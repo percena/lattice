@@ -4,7 +4,7 @@ English | [简体中文](./README.zh-CN.md)
 
 > Ticket-Driven Development for coding agents.
 
-Lattice is an open-source toolkit of Agent Skills and optional Claude Code hooks that gives coding agents a disciplined path from product intent to a merged pull request. It runs locally with your existing Git and GitHub credentials, and is packaged for [Claude Code](https://claude.ai/code) and [Codex](https://openai.com/codex).
+Lattice is an open-source toolkit of Agent Skills and optional Claude Code hooks that gives coding agents a disciplined path from product intent to a merged pull request. It runs locally with your existing Git and GitHub credentials, and is packaged for [Claude Code](https://claude.ai/code) and [Codex](https://openai.com/codex). It is **discipline-first, not heavy** — it constrains the *path* (every shippable branch binds to a `tkt-N`/`spc-N`, every PR carries its Why/How/Spec line) but leaves the model free to think and code inside each step; the guardrails are a floor, not a ceiling.
 
 ## Quick start
 
@@ -59,6 +59,14 @@ Advanced install (org roll-out, private forks, local dev, refresh) → [docs/get
 /finish-work pr N
 ```
 
+## Philosophy
+
+**Constrain the path, not the model.** Lattice scripts the backbone — Spec → ticket → worktree → PR → merge — so the chain never skips a step and never loses its lineage. It does not script *how* the model reasons, what order to think, or what to output inside each step. Strong models stay creative; the framework keeps the chain resumable. Guardrails (worktree isolation, alignment checks, lineage) are a floor, not a ceiling.
+
+**Local-first retrieval, transparent memory.** Spec, ticket, review, and ADR are written as templated local files under `.lattice/` — grep-able, reviewable, and committed with your repo. Most context lookups (acceptance criteria, last review outcome, which tickets a spec split into) resolve with a local `cat`/`grep` in milliseconds; GitHub is queried only for facts that can only come from the remote (issue/PR live state, comments, CI). Memory is not a framework black box — it is an explicit engineering artifact you and your team own.
+
+**Lineage.** Each delivery leaves a traceable chain — a Spec (`spc-N`) splits into tickets (`tkt-N`), each ticket lands in a PR (`pr-N`), every review is a `rev-…`. These IDs are the binder file names, so the whole chain is recoverable with one `grep -r spc-N .lattice/`, across sessions, without a network hop.
+
 ## Skills
 
 | Skill | Purpose | Slash |
@@ -97,3 +105,7 @@ Not part of the delivery loop — three tiers, none create lineage nodes:
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+## Acknowledgements
+
+Thanks to the [linuxdo](https://linux.do) community for discussion, sharing, and feedback. Thanks to the [Agent Skills](https://agentskills.io/) standard, [Claude Code](https://claude.ai/code), and [Codex](https://openai.com/codex) ecosystem for the runtimes Lattice builds on.
