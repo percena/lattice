@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/10 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | Refine README positioning + add Acknowledgements (en + zh) |
 | spec | none |
@@ -35,3 +35,8 @@
 
 - Source material: `.tmp-promo/lattice-promo-post.md` (the refined promo draft). The promo post itself is NOT shipped — only its messaging is folded into the README pair.
 - Out of scope: code, other docs (getting-started, github-surface), the promo draft file.
+
+## Finish
+
+- pr-11 merged: 2026-08-01T12:28:29Z — https://github.com/percena/lattice/pull/11 (base merge)
+- issue #10 closed: 2026-08-01T12:29:33Z — https://github.com/percena/lattice/issues/10
