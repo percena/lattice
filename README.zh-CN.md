@@ -108,4 +108,4 @@ MIT——见 [LICENSE](./LICENSE)。
 
 ## 致谢
 
-感谢 [linuxdo](https://linux.do) 社区的讨论、分享与反馈。感谢 [Agent Skills](https://agentskills.io/) 标准、[Claude Code](https://claude.ai/code) 与 [Codex](https://openai.com/codex) 生态提供的运行底座。
+感谢 [linuxdo](https://linux.do) 社区的讨论、分享与反馈。

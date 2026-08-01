@@ -108,4 +108,4 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Acknowledgements
 
-Thanks to the [linuxdo](https://linux.do) community for discussion, sharing, and feedback. Thanks to the [Agent Skills](https://agentskills.io/) standard, [Claude Code](https://claude.ai/code), and [Codex](https://openai.com/codex) ecosystem for the runtimes Lattice builds on.
+Thanks to the [linuxdo](https://linux.do) community for discussion, sharing, and feedback.
