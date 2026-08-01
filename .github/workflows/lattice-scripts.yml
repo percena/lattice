@@ -1,0 +1,37 @@
+name: lattice-scripts
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "skills/**"
+      - "tools/**"
+      - "evals/**"
+      - ".github/workflows/lattice-scripts.yml"
+  pull_request:
+    paths:
+      - "skills/**"
+      - "tools/**"
+      - "evals/**"
+      - ".github/workflows/lattice-scripts.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Run skill script tests (all suites discovered)
+        run: |
+          mapfile -t suites < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
+          echo "suites: ${suites[*]}"
+          bats "${suites[@]}"

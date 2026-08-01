@@ -1,0 +1,15 @@
+{
+  "skill_name": "review-code",
+  "aliases": ["代码审查", "review PR bug", "审查 diff", "检查回归"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Review PR 42 for material bugs and regressions", "top_k": 1 },
+      { "prompt": "Check this branch diff before merge and report failure scenarios", "top_k": 1 },
+      { "prompt": "请帮我审查这个 PR 有没有 bug 或回归问题", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Persist a durable architecture Review with spawn_spec outcome", "owner": "create-review" },
+      { "prompt": "Is this PR production ready including rollback and security", "owner": "review-production" }
+    ]
+  }
+}

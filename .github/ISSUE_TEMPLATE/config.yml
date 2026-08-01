@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/percena/lattice/security/advisories/new
+    about: Report vulnerabilities privately; do not file a public issue.
+  - name: Code of Conduct report
+    url: mailto:info@percena.co?subject=%5Blattice%20conduct%5D
+    about: Email info@percena.co privately with [lattice conduct] in the subject.

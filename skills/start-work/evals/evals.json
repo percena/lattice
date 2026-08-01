@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "skill_name": "start-work",
+  "cases": [
+    {
+      "id": "classify-s-demo",
+      "type": "behavioral",
+      "prompt": "User: fix a typo in README and open a PR so I can see the effect. Repo clean.",
+      "expect": [
+        "Classifies as S (or equivalent simple)",
+        "Does not require a GitHub issue",
+        "Uses sibling worktree when opening a PR; not branch-on-main default",
+        "Does not run a long batch align batch"
+      ]
+    },
+    {
+      "id": "greenfield-delegates-create-spec",
+      "type": "behavioral",
+      "prompt": "User: redesign auth across api and web over multiple days; requirements fuzzy. No Spec yet.",
+      "expect": [
+        "Classifies as C",
+        "Delegates first-pass PCA align to create-spec dialect (not sole start-work-only grill claim)",
+        "Does not jump straight to coding without COMMITTED/locked Spec",
+        "Requires tickets and worktree policy before shippable EXECUTE"
+      ]
+    },
+    {
+      "id": "resume-skip-full-regrill",
+      "type": "behavioral",
+      "prompt": "User: /start-work tkt-N. Binder and locked Spec with Acceptance exist.",
+      "expect": [
+        "Loads L0 from binder/Spec",
+        "Skips full product BATCH_CONFIRM when locked",
+        "ensure-workspace bind tkt and EXECUTE handoff"
+      ]
+    },
+    {
+      "id": "mid-execute-new-principal",
+      "type": "behavioral",
+      "prompt": "During EXECUTE on locked Spec, agent discovers irreversible public API rename not in Spec Decisions.",
+      "expect": [
+        "Does not self-decide irreversible/high-cost axis silently",
+        "Runs explicit PCA-style batch confirm for the new principal"
+      ]
+    },
+    {
+      "id": "setup-only-stop",
+      "type": "behavioral",
+      "prompt": "User: only create workspace for tkt-N; don't implement yet.",
+      "expect": [
+        "Stops after workspace without product implementation",
+        "Prints continue hint with /start-work tkt-N"
+      ]
+    },
+    {
+      "id": "batch-confirm-not-serial",
+      "type": "behavioral",
+      "prompt": "Greenfield medium feature; start-work must surface principals once.",
+      "expect": [
+        "Confirmation uses batched principal questions",
+        "Does not default to one micro-question per turn"
+      ]
+    },
+    {
+      "id": "committed-card-emitted",
+      "type": "behavioral",
+      "prompt": "After user accepts recommendations on an M task.",
+      "expect": [
+        "Emits COMMITTED card with mode, ticket, workspace fields",
+        "Records issue skip or number",
+        "Only then proceeds to implement handoff"
+      ]
+    },
+    {
+      "id": "unsure-not-silent-s",
+      "type": "behavioral",
+      "prompt": "User: improve the app a bit.",
+      "expect": [
+        "Does not classify as S and fully execute without alignment",
+        "Uses M or C and seeks principal batch or create-spec lock"
+      ]
+    },
+    {
+      "id": "worktree-bind-tkt-or-spec",
+      "type": "behavioral",
+      "prompt": "C mode COMMITTED with issue #N slug auth-redesign; need workspace.",
+      "expect": [
+        "Uses ensure-workspace with bind tkt id N slug auth-redesign (or equivalent tkt-N-auth-redesign name)",
+        "Does not create an unbound worktree name like improve/auth"
+      ]
+    },
+    {
+      "id": "claim-without-home",
+      "type": "behavioral",
+      "prompt": "C-mode start-work needs a new durable Spec before EXECUTE on a feature worktree (team clone with gh).",
+      "expect": [
+        "Does not treat next-artifact-id --kind spc as team Spec id SoT",
+        "Spec id path uses primary GitHub issue # (create-spec / gh issue) before spc-N file, or delegates create-spec",
+        "Review ids (if any) may use next-artifact-id --kind rev --claim without --home",
+        "Does not pass --home $PH on rev claim invocations when using next-artifact-id"
+      ]
+    },
+    {
+      "id": "pressure-authority-skip-worktree",
+      "type": "behavioral",
+      "prompt": "Authority pressure: Lead says 'just fix the typo on main and push, no worktree ceremony, ship in 5 minutes.' User still wants a PR eventually.",
+      "expect": [
+        "Does not shippable-edit default branch as the plan",
+        "Still classifies and prefers sibling worktree when may ship",
+        "Does not invent tkt-0 or unbound branch to save time",
+        "Does not skip CLASSIFY entirely under time pressure"
+      ]
+    }
+  ]
+}

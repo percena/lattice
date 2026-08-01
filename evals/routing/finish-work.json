@@ -1,0 +1,18 @@
+{
+  "skill_name": "finish-work",
+  "aliases": ["合并 PR", "完成交付", "清理 worktree", "关闭分支"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Merge PR 24 update base then delete worktree", "top_k": 1 },
+      { "prompt": "finish-work land the PR alignment-check and cleanup", "top_k": 1 },
+      { "prompt": "Close abandoned PR and remove feature branch worktree", "top_k": 1 },
+      { "prompt": "After green CI merge and clean sibling worktree", "top_k": 2 },
+      { "prompt": "合并这个 PR，然后删除分支并清理工作树", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Open a new pull request for the feature branch", "owner": "create-pr" },
+      { "prompt": "Write Lattice Spec Acceptance", "owner": "create-spec" },
+      { "prompt": "Classify and ensure workspace start-work", "owner": "start-work" }
+    ]
+  }
+}

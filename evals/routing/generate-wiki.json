@@ -1,0 +1,15 @@
+{
+  "skill_name": "generate-wiki",
+  "aliases": ["生成 wiki", "代码库文档目录", "项目知识库", "LLM 友好索引"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Generate a navigable Markdown wiki for this repository", "top_k": 1 },
+      { "prompt": "Create a codebase map and llms.txt without Lattice tickets", "top_k": 1 },
+      { "prompt": "给当前仓库生成可导航的 wiki 和 LLM 友好项目索引", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Write a locked product Spec with Acceptance", "owner": "create-spec" },
+      { "prompt": "Review PR 42 for bugs", "owner": "review-code" }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "percena",
+  "description": "Percena marketplace: Lattice workflow skills and the Claude Code lattice plugin. Portable skills live under skills/; the plugin adds packaging and optional hooks.",
+  "owner": {
+    "name": "Percena"
+  },
+  "plugins": [
+    {
+      "name": "lattice",
+      "source": "./plugins/lattice",
+      "description": "Full Lattice loop for Claude: start-work, create-spec, create-review, create-tickets, create-pr, finish-work, _lattice-lib, and the create-adr out-of-band ADR companion. Optional hooks advise on bare gh pr create/merge; strict mode opts into marker gates.",
+      "version": "0.1.0",
+      "keywords": [
+        "lattice",
+        "workflow",
+        "start-work",
+        "create-spec",
+        "create-review",
+        "create-tickets",
+        "create-pr",
+        "finish-work",
+        "create-adr",
+        "skills",
+        "_lattice-lib"
+      ]
+    }
+  ]
+}

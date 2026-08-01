@@ -1,0 +1,18 @@
+{
+  "skill_name": "start-work",
+  "aliases": ["开始实现", "继续 ticket", "创建工作树", "resume issue"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Start work on tkt-N and ensure the sibling worktree workspace", "top_k": 1 },
+      { "prompt": "Continue spc-N resume implement without re-grilling", "top_k": 1 },
+      { "prompt": "Classify this request and ensure sibling worktree then execute", "top_k": 3 },
+      { "prompt": "Setup only: create binder and stop before product code", "top_k": 2 },
+      { "prompt": "开始实现 issue N，准备对应工作树并继续执行", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Open a pull request for this branch", "owner": "create-pr" },
+      { "prompt": "Merge the PR and delete the worktree", "owner": "finish-work" },
+      { "prompt": "Split the locked Spec into GitHub issues", "owner": "create-tickets" }
+    ]
+  }
+}

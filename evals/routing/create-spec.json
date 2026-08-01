@@ -1,0 +1,18 @@
+{
+  "skill_name": "create-spec",
+  "aliases": ["创建 Spec", "锁定需求", "验收标准", "产品决策对齐"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Lock a multi-session Spec with Acceptance criteria A1 A2", "top_k": 1 },
+      { "prompt": "First-pass PCA batch confirm then persist spc under .lattice/specs", "top_k": 1 },
+      { "prompt": "Requirements fuzzy greenfield — write durable Spec before tickets", "top_k": 2 },
+      { "prompt": "Align product decisions and create-spec only, do not implement", "top_k": 2 },
+      { "prompt": "需求还比较模糊，先对齐产品决策并创建带验收标准的 Spec", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Create GitHub issues and ticket binders from locked scope", "owner": "create-tickets" },
+      { "prompt": "Start implement on existing tkt-N", "owner": "start-work" },
+      { "prompt": "Open or update a pull request", "owner": "create-pr" }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+# ADR NNN: Title
+
+- **Status:** Proposed | Accepted | Superseded by ADR-NNN
+- **Date:** YYYY-MM-DD
+- **Deciders:** (names or "maintainers")
+- **Related:** (optional) `spc-n`, `rev-YYYYMMDD-HHMMSSZ`, `pr-n`, paths
+- **Related ADRs:** (optional) `ADR-NNN` supersede / amend chain
+
+## Context
+
+What forces a decision? Constraints, alternatives pressure, who is affected.
+
+## Decision Drivers
+
+<!-- optional — separates *why we must decide* (Context) from *what criteria the chosen option must satisfy* -->
+
+-
+
+## Considered Options
+
+<!-- optional (MADR-style) — forces explicit alternatives instead of burying them in Notes -->
+
+- **Option A** — one-line trade-off (good: …; bad: …)
+- **Option B** — …
+- Rejected alternatives may live here or in Notes.
+
+## Decision
+
+The choice in one short paragraph (or bullets). Imperative: "We will …".
+
+## Consequences
+
+- **Positive:**
+- **Negative / trade-offs:**
+- **Follow-ups:** (optional) tickets or Specs — cite ids, do not invent lineage edges here
+- **Verification:** (optional) how we know this is being followed — link to check / gate / script
+
+## Status history
+
+<!-- optional — audit trail without git archaeology -->
+
+- YYYY-MM-DD: Proposed → Accepted
+- YYYY-MM-DD: Accepted → Superseded by ADR-NNN
+
+## Notes
+
+Optional: rejected alternatives, links to Reviews, migration notes.
+
+---
+
+_Not a Lattice bloodline/graph node. Cite from Spec/PR/Review with `ADR-NNN` or this path._

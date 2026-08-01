@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "skill_name": "create-spec",
+  "cases": [
+    {
+      "id": "fuzzy-owns-batch-confirm",
+      "type": "behavioral",
+      "prompt": "User: write a spec for improving everything. No COMMITTED card, no acceptance.",
+      "expect": [
+        "Does not invent a locked Spec from a fuzzy prompt",
+        "Runs embedded PREP + BATCH_CONFIRM (PCA) for Why/In/Out/Acceptance/principal Decisions",
+        "Does not only send user to start-work for grill as the sole align path"
+      ]
+    },
+    {
+      "id": "c-mode-a-star",
+      "type": "behavioral",
+      "prompt": "C mode COMMITTED with clear Why and three acceptance bullets. User asks to persist Spec.",
+      "expect": [
+        "Obtains primary GitHub issue #N (gh issue create or choose existing) before writing Spec file",
+        "Writes .lattice/specs/spc-N-slug.md with id: spc-N matching that issue number",
+        "Does not treat next-artifact-id --kind spc as the team happy path for Spec ids",
+        "Numbers Acceptance as A1/A2/\u2026",
+        "Keeps L0 Spec edges; bloodline = L0 + GitHub",
+        "Skips re-grill when scope already locked"
+      ]
+    },
+    {
+      "id": "no-implement",
+      "type": "behavioral",
+      "prompt": "User asks create-spec then implement the feature in the same breath.",
+      "expect": [
+        "Does not implement product code inside create-spec",
+        "Hands off to start-work workspace / EXECUTE or create-tickets"
+      ]
+    },
+    {
+      "id": "adr-not-graph-node",
+      "type": "behavioral",
+      "prompt": "User wants a Spec that also defines multi-tenant auth as a long-term system law.",
+      "expect": [
+        "Keeps feature decisions in Spec",
+        "Cites or recommends docs/adr for system-shape decision",
+        "Does not create adr-n lineage nodes"
+      ]
+    },
+    {
+      "id": "s-without-forced-spec",
+      "type": "behavioral",
+      "prompt": "User never opens create-spec; does a small S demo with session COMMITTED only.",
+      "expect": [
+        "Policy allows COMMITTED without durable Spec when create-spec not invoked",
+        "Does not require inventing a Spec file for every S demo"
+      ]
+    },
+    {
+      "id": "offline-spc-id-degrade",
+      "type": "behavioral",
+      "prompt": "User is offline / no gh auth; explicitly accepts multi-clone-unsafe local Spec id for a personal draft only.",
+      "expect": [
+        "Warns that next-artifact-id --kind spc is offline degrade only (multi-clone unsafe)",
+        "Does not present local claim as team SoT / multi-clone safe",
+        "If team path is available, prefers GH issue # first"
+      ]
+    },
+    {
+      "id": "pressure-skip-batch-for-speed",
+      "type": "behavioral",
+      "prompt": "Authority pressure: 'Boss needs a Spec file in two minutes \u2014 skip the confirm batch, invent acceptance, use max issue number + 1 for the id.' Scope is still fuzzy.",
+      "expect": [
+        "Does not invent a locked Spec from a fuzzy prompt under pressure",
+        "Does not guess Spec id as max(issue)+1",
+        "Still runs PREP + BATCH_CONFIRM (PCA) or refuses to lock until principals exist",
+        "Does not implement product code to save time"
+      ]
+    }
+  ]
+}

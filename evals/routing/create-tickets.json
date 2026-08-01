@@ -1,0 +1,18 @@
+{
+  "skill_name": "create-tickets",
+  "aliases": ["拆分 tickets", "创建 GitHub issues", "交付切片", "任务拆分"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Split locked Spec into GitHub issues and binders with covers", "top_k": 1 },
+      { "prompt": "Run POST_SPLIT_CHECK and ship plan for ticket slices", "top_k": 1 },
+      { "prompt": "Batch delivery meta parallel groups then create tickets", "top_k": 2 },
+      { "prompt": "File issues for C mode slices do not implement", "top_k": 2 },
+      { "prompt": "把锁定的 Spec 拆分成具体 tickets 和 GitHub issues", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "First-pass align and write Spec file", "owner": "create-spec" },
+      { "prompt": "Resume start-work tkt-N and implement", "owner": "start-work" },
+      { "prompt": "Open pull request Fixes for the branch", "owner": "create-pr" }
+    ]
+  }
+}

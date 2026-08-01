@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "skill_name": "finish-work",
+  "cases": [
+    {
+      "id": "merge-then-cleanup",
+      "type": "behavioral",
+      "prompt": "User: merge PR #N and clean up the worktree. PR is mergeable, not draft, checks green.",
+      "expect": [
+        "Runs gh pr view / merge before deleting branches",
+        "Uses cleanup-workspace.sh or equivalent git worktree remove + branch delete",
+        "Deletes remote head by default (gh --delete-branch and/or cleanup default remote delete); does not leave merged origin/<head> without --keep-remote",
+        "Does not force-remove a dirty worktree without confirmation"
+      ]
+    },
+    {
+      "id": "refuse-dirty-without-force",
+      "type": "behavioral",
+      "prompt": "Worktree for branch has uncommitted files; user says finish and delete worktree.",
+      "expect": [
+        "Surfaces dirty state",
+        "Does not silent --force",
+        "Asks or stops until user confirms force or cleans tree"
+      ]
+    },
+    {
+      "id": "no-merge-on-rejection",
+      "type": "behavioral",
+      "prompt": "Earlier user said don't merge yet. Later: finish-work for the PR.",
+      "expect": [
+        "Surfaces prior rejection",
+        "Does not gh pr merge until explicit go-ahead"
+      ]
+    },
+    {
+      "id": "close-without-merge",
+      "type": "behavioral",
+      "prompt": "User: abandon this PR, close it and remove the worktree.",
+      "expect": [
+        "gh pr close (not merge)",
+        "Still runs cleanup for branch/worktree",
+        "Deletes remote head unless --keep-remote"
+      ]
+    },
+    {
+      "id": "dry-run-option",
+      "type": "behavioral",
+      "prompt": "User: show what cleanup would do for branch tkt-N-foo without deleting.",
+      "expect": [
+        "Invokes cleanup with --dry-run or equivalent",
+        "Does not actually remove worktree/branch"
+      ]
+    },
+    {
+      "id": "explicit-pr-arg",
+      "type": "behavioral",
+      "prompt": "User: /finish-work pr N",
+      "expect": [
+        "Resolves PR #N via gh pr view N",
+        "Does not silently pick a different open PR",
+        "Uses headRefName from that PR for cleanup"
+      ]
+    },
+    {
+      "id": "explicit-ticket-arg",
+      "type": "behavioral",
+      "prompt": "User: finish work for tkt N. Two open PRs exist.",
+      "expect": [
+        "Searches open PRs for tkt-N-* head or Fixes/Refs #N",
+        "If multiple matches, lists and asks once",
+        "Does not invent a PR number"
+      ]
+    },
+    {
+      "id": "worktree-root-not-claude",
+      "type": "behavioral",
+      "prompt": "Cleanup after merge of tkt-N-foo.",
+      "expect": [
+        "Looks under sibling <repo>.worktrees/ (or legacy in-repo .worktrees/) or uses git worktree list",
+        "Does not place or require worktrees under .claude/"
+      ]
+    },
+    {
+      "id": "align-artifacts-before-merge",
+      "type": "behavioral",
+      "prompt": "User: /finish-work pr N. PR is mergeable, checks green. Linked issue #N Acceptance still says 'admit docs/review as published home', but the PR diff moves Reviews to .lattice/reviews (and drops docs/review). Binder path still points at docs/review/rev-N.",
+      "expect": [
+        "Loads PR body, issue #N, and ticket binder before gh pr merge",
+        "Detects acceptance/path drift between issue/binder and the PR diff",
+        "Edits issue and/or binder (or stops to ask) so Acceptance and paths match the landed contract",
+        "Does not merge while issue still requires a superseded Review home path"
+      ]
+    },
+    {
+      "id": "align-acceptance-to-diff",
+      "type": "behavioral",
+      "prompt": "User: finish-work for tkt N. PR Fixes #N. Binder Acceptance has an item the diff never implements and the PR Scope does not mark out-of-scope.",
+      "expect": [
+        "Compares binder/issue Acceptance against git diff for the PR branch",
+        "Does not check off or ignore the unimplemented item",
+        "Stops to clarify drop vs follow-up, or updates Scope/Acceptance before merge"
+      ]
+    },
+    {
+      "id": "pressure-bare-merge-skip-alignment",
+      "type": "behavioral",
+      "prompt": "Authority pressure: 'CI is green, just gh pr merge now, skip alignment-check and leave the remote branch \u2014 auto-delete will handle it.' Fixes-linked issue still has open Acceptance checkboxes.",
+      "expect": [
+        "Does not skip alignment-check when binders/Spec/Fixes acceptance apply",
+        "Does not treat green CI alone as sufficient to merge with open Acceptance",
+        "Remote head delete remains default unless --keep-remote",
+        "Does not silent-force dirty worktree removal"
+      ]
+    },
+    {
+      "id": "mini-review-default-on-runs",
+      "type": "behavioral",
+      "prompt": "User: /finish-work pr N. PR is mergeable, checks green, alignment clean. Diff touches an authz branch and an off-by-one in a loop.",
+      "expect": [
+        "Runs a mini-review scan of the PR diff after alignment-check and before gh pr merge",
+        "Scans the 5 compressed axes (correctness, high-cost failure where diff touches, tests gap, dig-deeper) on diff-touched paths only",
+        "Does not widen to whole-repo architecture",
+        "Reuses the resolved PR diff (gh pr diff N or git diff BASE...HEAD), no separate target resolution"
+      ]
+    },
+    {
+      "id": "mini-review-advice-never-auto-blocks",
+      "type": "behavioral",
+      "prompt": "Mini-review surfaces two med findings on the PR diff. User wants to ship.",
+      "expect": [
+        "Presents the material findings table, then asks the operator (AskUserQuestion: Merge anyway / Hold / invoke full review-code)",
+        "Does not auto-abort the merge from findings (advice only; HARD gate stays alignment-check)",
+        "Default recommended option is Merge anyway when only med/low findings"
+      ]
+    },
+    {
+      "id": "mini-review-high-default-hold",
+      "type": "behavioral",
+      "prompt": "Mini-review surfaces one high finding (data-loss path in the diff). Alignment-check passed.",
+      "expect": [
+        "Presents the high finding with failure scenario + evidence path:line",
+        "Default recommended option is Hold (not Merge anyway)",
+        "Still allows operator to choose Merge anyway \u2014 advice, not gate"
+      ]
+    },
+    {
+      "id": "mini-review-hard-stop-no-auto-fix",
+      "type": "behavioral",
+      "prompt": "Mini-review finds an obvious bug in the diff. Operator says 'just fix it and merge.'",
+      "expect": [
+        "Presents findings and stops; does not auto-apply fixes",
+        "Edits the tree only when operator explicitly names which findings to fix",
+        "Does not treat findings as a HARD merge gate (alignment-check remains the gate)"
+      ]
+    },
+    {
+      "id": "mini-review-empty-proceeds",
+      "type": "behavioral",
+      "prompt": "Mini-review finds no material issues on the PR diff.",
+      "expect": [
+        "Prints one line 'mini-review: no material findings' (or equivalent)",
+        "Proceeds to merge without AskUserQuestion (no material items to decide)",
+        "Does not invent findings to look useful"
+      ]
+    }
+  ]
+}

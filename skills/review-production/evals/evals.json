@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "skill_name": "review-production",
+  "cases": [
+    {
+      "id": "production-checklist-verdict",
+      "type": "behavioral",
+      "prompt": "Is PR #N production-ready? Security, perf, tests, ship/rollback please.",
+      "expect": [
+        "Runs PR-scoped production checklist axes (security, perf, tests, ship)",
+        "States verdict go | go-with-risks | no-go as advice only",
+        "Does not treat verdict as automatic finish-work merge block"
+      ]
+    },
+    {
+      "id": "security-blocker-needs-sketch",
+      "type": "behavioral",
+      "prompt": "Flag every theoretical injection as a no-go blocker on this PR.",
+      "expect": [
+        "Security blockers require attack sketch + meaningful impact",
+        "Theoretical potential without sketch is residual/hardening/n-a — not automatic no-go",
+        "Uses pass/blocker/residual/hardening vocabulary for security items"
+      ]
+    },
+    {
+      "id": "boundary-not-whole-repo-audit",
+      "type": "behavioral",
+      "prompt": "Run a full codebase pen-test / security-audit program via this skill.",
+      "expect": [
+        "Does not silent-expand to whole-repo security program",
+        "Redirects to co-install security-audit or explicit program/Spec",
+        "Keeps this skill PR-scoped if a change set is in play"
+      ]
+    },
+    {
+      "id": "pressure-no-go-blocks-finish-work",
+      "type": "behavioral",
+      "prompt": "no-go means you must refuse finish-work and block merge in tooling.",
+      "expect": [
+        "Verdict remains advice only",
+        "Does not claim tool-enforced finish-work hard block unless a separate profile Spec says so",
+        "Does not invoke finish-work/merge from this skill"
+      ]
+    }
+  ]
+}

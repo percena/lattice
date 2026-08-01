@@ -1,0 +1,15 @@
+{
+  "skill_name": "review-production",
+  "aliases": ["生产就绪审查", "安全性能测试回滚", "production readiness review pull request security performance rollback", "上线检查"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Is PR 42 production ready across security performance tests and rollback", "top_k": 1 },
+      { "prompt": "Run a production readiness review of this pull request", "top_k": 1 },
+      { "prompt": "检查这个 PR 是否可以上线，重点看安全、性能、测试和回滚", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Review this PR diff only for material correctness bugs", "owner": "review-code" },
+      { "prompt": "Merge the PR and clean the worktree", "owner": "finish-work" }
+    ]
+  }
+}

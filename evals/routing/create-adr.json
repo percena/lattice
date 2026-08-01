@@ -1,0 +1,16 @@
+{
+  "skill_name": "create-adr",
+  "aliases": ["写 ADR", "架构决策记录", "architecture decision record", "记录架构决策"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Write an Architecture Decision Record for the new storage layout", "top_k": 1 },
+      { "prompt": "Record this cross-feature architecture decision as an ADR", "top_k": 1 },
+      { "prompt": "给这个跨特性的架构决策写一个 ADR，放到 docs/adr/", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Lock a product Spec with Why/In/Out/Acceptance", "owner": "create-spec" },
+      { "prompt": "Review PR 12 for bugs", "owner": "review-code" },
+      { "prompt": "Generate a wiki and llms.txt for the repo", "owner": "generate-wiki" }
+    ]
+  }
+}

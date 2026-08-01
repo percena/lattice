@@ -1,0 +1,71 @@
+---
+name: _lattice-lib
+description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the six user-facing Lattice skills."
+user-invocable: false
+disable-model-invocation: true
+metadata:
+  agents: "claude-code,codex"
+  lattice: library
+---
+
+# `_lattice-lib` (library install-unit)
+
+**Not a navigation skill.** User surface remains:
+
+`start-work` · `create-spec` · `create-review` · `create-tickets` · `create-pr` · `finish-work`
+
+This package is an **install unit** for shared scripts + portable policy so partial installs and relative `../start-work` paths are unnecessary. Leading **`_`** = internal shared package.
+
+## Scripts (runtime — ships with install)
+
+| Script | Role |
+| --- | --- |
+| `_lattice-home.sh` | `lattice_default_home`, `lattice_profile`, … |
+| `next-artifact-id.sh` | spc local claim (not team SoT); rev R1 UTC token |
+| `ensure-workspace.sh` | Bound branch/worktree |
+| `ensure-lattice.sh` | **Agent entrypoint** — idempotent consumer ready-check + init-if-needed |
+| `assert-shippable-cwd.sh` | Default guard against team-base writes; explicit clean, user-authorized base-direct escape is recorded |
+| `check-base-residue.sh` | Detect uncommitted `.lattice` dirt on MAIN (finish-work / pull rescue) |
+| `lattice-init.sh` | Low-level skeleton writer (called by ensure; not user-facing) |
+| `upload-github-asset.sh` | Durable GH media URLs |
+| `github-project-add.sh` | Optional Project item-add after issue/PR create (soft-fail; env / `.env`) |
+| `github-issue-parent-add.sh` | Soft-fail link child issue as GH sub-issue of Spec primary |
+| `resolve-lattice-lib.sh` | Print this scripts dir (resolve order) |
+
+**Consumer bootstrap:** skills call `ensure-lattice.sh` at entry. Users never run init scripts.  
+**L0 pollution guard (DEFAULT):** before shippable Spec / ticket binder / product code / new ADR writes, agents run `assert-shippable-cwd.sh` (or only write after `ensure-workspace` + `cd` into worktree). A clean base checkout may pass only through `--allow-base-write --reason` after explicit user authorization. **`create-review` Review-only is exempt**; same-pass co-create defaults to one shippable worktree.
+
+**Maintainer tools** (validate-skills, plugin-version gate, eval runners) live in monorepo **`tools/`** — not in this install unit.
+
+## Resolve order (callers)
+
+Prefer:
+
+```bash
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+[[ "$SKILL_ROOT" = /* && -f "$SKILL_ROOT/SKILL.md" ]] || { echo "Error: resolve this SKILL.md directory to absolute LATTICE_SKILL_ROOT" >&2; exit 1; }
+RESOLVE="$SKILL_ROOT/scripts/resolve-lattice-lib.sh"
+LIB=$(bash "$RESOLVE")
+```
+
+Order inside `resolve-lattice-lib.sh`:
+
+1. Absolute `LATTICE_LIB_SCRIPTS` operator override
+2. The resolver script's own canonical installed directory
+
+`--from` remains accepted for older callers but is not searched. Consumer cwd and Git roots are never executable resolution sources.
+
+Legacy install dir `lattice-lib` is **not** accepted (migration window closed).
+
+## Install
+
+Install **with** the six user skills (whole package or explicit `--skill _lattice-lib`).
+
+```bash
+npx skills add percena/lattice -a claude-code -a codex -g -y
+# or explicit:
+npx skills add percena/lattice \
+  --skill _lattice-lib \
+  --skill start-work --skill create-spec --skill create-review \
+  --skill create-tickets --skill create-pr --skill finish-work
+```

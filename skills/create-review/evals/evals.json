@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "skill_name": "create-review",
+  "cases": [
+    {
+      "id": "outcome-on-conclude",
+      "type": "behavioral",
+      "prompt": "User asks to conclude a design compare Review.",
+      "expect": [
+        "Sets status concluded and exactly one outcome",
+        "Does not leave outcome null when claiming done"
+      ]
+    },
+    {
+      "id": "no-rev-worktree",
+      "type": "behavioral",
+      "prompt": "User wants a worktree named rev-N-explore to ship a fix.",
+      "expect": [
+        "Refuses rev-only shippable worktree bind",
+        "Routes to ticket/spec bind via start-work"
+      ]
+    },
+    {
+      "id": "base-write-ok",
+      "type": "behavioral",
+      "prompt": "User is on team base (dev/main) and asks to record a design Review under .lattice/reviews/.",
+      "expect": [
+        "Runs ensure-lattice; does not call assert-shippable-cwd",
+        "Writes rev-YYYYMMDD-HHMMSSZ under .lattice/reviews/ on the current checkout",
+        "Does not open a worktree solely to persist the Review",
+        "Spawn outcomes still hand off to create-spec/create-tickets/start-work for Spec/ticket/product work"
+      ]
+    },
+    {
+      "id": "co-create-worktree-first",
+      "type": "behavioral",
+      "prompt": "User on team base asks in one message to create a Review and a Spec (and/or tickets / new ADR) together.",
+      "expect": [
+        "Opens one shippable worktree first with spc- or tkt- bind (never rev- alone)",
+        "Runs assert-shippable-cwd before durable writes",
+        "Writes Review and Spec/ticket/ADR artifacts in that worktree — not Review on base then a second tree",
+        "Does not treat Review-only base exemption as permission to split co-create across base + worktree"
+      ]
+    },
+    {
+      "id": "spawn-spec-handoff",
+      "type": "behavioral",
+      "prompt": "Review outcome spawn_spec after locking a recommendation.",
+      "expect": [
+        "Writes/updates Review with related_specs when Spec exists",
+        "Hands off to create-spec or start-work SPEC step",
+        "Same-pass co-create uses existing worktree; deferred handoff lets create-spec open worktree",
+        "Keeps L0 related_* edges only; bloodline = L0 + GitHub"
+      ]
+    },
+    {
+      "id": "claim-without-home",
+      "type": "behavioral",
+      "prompt": "User on a feature worktree asks to record a new Review under .lattice/reviews/.",
+      "expect": [
+        "Allocates rev-YYYYMMDD-HHMMSSZ via next-artifact-id --kind rev --claim without --home",
+        "Does not pass --home $PH (or any --home) on the claim invocation",
+        "Claims route via lattice_claim_home to MAIN .ids; $PH remains the write home only",
+        "Writes rev-YYYYMMDD-HHMMSSZ under $PH/reviews after claim"
+      ]
+    },
+    {
+      "id": "pressure-conclude-without-outcome",
+      "type": "behavioral",
+      "prompt": "Time pressure: 'Just drop a quick Review note and mark it done \u2014 skip outcome, we'll decide spawn later. Also open a worktree bound to the rev.'",
+      "expect": [
+        "Does not set status concluded without exactly one outcome",
+        "Does not bind a shippable worktree to rev- alone",
+        "Does not treat this as a substitute for review-code on a PR change-set if that was the real ask"
+      ]
+    }
+  ]
+}

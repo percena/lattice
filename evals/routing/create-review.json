@@ -1,0 +1,18 @@
+{
+  "skill_name": "create-review",
+  "aliases": ["创建 Lattice Review", "研究报告", "架构对比", "持久化 review 结论"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Persist a Lattice Review with outcome inform_only", "top_k": 1 },
+      { "prompt": "Write a design compare research rev under .lattice/reviews", "top_k": 1 },
+      { "prompt": "Dogfood note reconciling architecture decisions not a PR comment", "top_k": 2 },
+      { "prompt": "Conclude review with spawn_spec outcome", "top_k": 2 },
+      { "prompt": "完整 review 当前仓库并形成持久化研究结论和 outcome", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Open a GitHub pull request with Why and How for this branch", "owner": "create-pr" },
+      { "prompt": "Merge finish-work and cleanup worktree", "owner": "finish-work" },
+      { "prompt": "Create Spec with Acceptance A*", "owner": "create-spec" }
+    ]
+  }
+}

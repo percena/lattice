@@ -1,0 +1,31 @@
+name: plugin-hooks
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "plugins/lattice/**"
+      - ".github/workflows/plugin-hooks.yml"
+  pull_request:
+    paths:
+      - "plugins/lattice/**"
+      - ".github/workflows/plugin-hooks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Run lattice hook tests
+        working-directory: plugins/lattice
+        run: bats scripts/tests/

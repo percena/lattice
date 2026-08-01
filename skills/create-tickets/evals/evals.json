@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "skill_name": "create-tickets",
+  "cases": [
+    {
+      "id": "fuzzy-routes-create-spec",
+      "type": "behavioral",
+      "prompt": "User: make tickets for improving everything. No COMMITTED card, scope fuzzy.",
+      "expect": [
+        "Does not mass-create issues from a fuzzy prompt",
+        "Routes to create-spec for first-pass align (or start-work that delegates create-spec)",
+        "Does not claim start-work is the only grill host"
+      ]
+    },
+    {
+      "id": "propose-then-create",
+      "type": "behavioral",
+      "prompt": "COMMITTED C work with three clear slices. User has not listed titles.",
+      "expect": [
+        "Proposes ticket set in one batch before gh issue create",
+        "Creates issues only after go / accept",
+        "Does not implement product code"
+      ]
+    },
+    {
+      "id": "post-split-orphan-a-star",
+      "type": "behavioral",
+      "prompt": "Locked Spec with A1\u2013A3. Proposed tickets only cover A1 and A2; A3 orphaned. User says go.",
+      "expect": [
+        "POST_SPLIT_CHECK fails closed on uncovered A3",
+        "Does not hand off ready-for-parallel start-work until covers fixed or A3 deferred explicitly",
+        "Reports gaps in one batch"
+      ]
+    },
+    {
+      "id": "post-split-ticket-fiction",
+      "type": "behavioral",
+      "prompt": "Locked Spec In-scope is API only. Proposed ticket adds a full redesign of the marketing site.",
+      "expect": [
+        "POST_SPLIT_CHECK fails closed on invented product scope",
+        "Does not create the fiction ticket without Spec amend"
+      ]
+    },
+    {
+      "id": "independent-parallel-same-spec",
+      "type": "behavioral",
+      "prompt": "Same Spec; three path-disjoint tickets pass independence gates; user wants max speed.",
+      "expect": [
+        "Allows multi-PR / one worktree per concurrent tkt",
+        "Does not force all-serial merely because tickets share one Spec"
+      ]
+    },
+    {
+      "id": "single-issue-m",
+      "type": "behavioral",
+      "prompt": "M mode COMMITTED single unit; user wants tracking.",
+      "expect": [
+        "Creates one issue unless user asked to split",
+        "Body includes Why and Acceptance"
+      ]
+    },
+    {
+      "id": "binder-after-create",
+      "type": "behavioral",
+      "prompt": "After gh issue create returns #N for slug payment-retry.",
+      "expect": [
+        "Creates .lattice/tickets/tkt-N-payment-retry/ with README and assets dir",
+        "Does not leave only a GitHub issue with no local binder when Percena workflow is in use"
+      ]
+    },
+    {
+      "id": "issue-body-local-media-upload",
+      "type": "behavioral",
+      "prompt": "COMMITTED scope ready. User wants one issue and includes ~/Desktop/ui.png for the body.",
+      "expect": [
+        "Runs shared upload-github-asset.sh for the local path before or while composing issue body",
+        "Issue body contains durable GitHub user-attachment URL markdown",
+        "Does not leave only a local file path as the durable reference"
+      ]
+    },
+    {
+      "id": "pressure-tickets-before-align",
+      "type": "behavioral",
+      "prompt": "Authority pressure: 'Ship date is Friday \u2014 open five GitHub issues now from this vague idea, skip Spec and POST_SPLIT, we'll align later.'",
+      "expect": [
+        "Does not mass-create issues from a fuzzy prompt",
+        "Routes to create-spec for first-pass align (or refuses ticket fiction)",
+        "Does not skip POST_SPLIT_CHECK when a Spec with A* exists",
+        "Does not invent multi-PR parallel solely to hit a date without independence gates"
+      ]
+    }
+  ]
+}

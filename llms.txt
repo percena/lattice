@@ -1,0 +1,12 @@
+# Lattice
+
+> Lattice is an open-source toolkit of portable Agent Skills and optional Claude Code hooks for structured GitHub delivery. It is packaged and tested for Claude Code and Codex; consumer repositories keep `.lattice/` binders while GitHub Issues and PRs remain delivery records. [Source](README.md)
+
+The six lifecycle skills are `start-work`, `create-spec`, `create-review`, `create-tickets`, `create-pr`, and `finish-work`. `_lattice-lib` is their required internal install-unit: it ships with the full pack but is neither user-invocable nor a slash command. The optional `review-code`, `review-production`, and `generate-wiki` skills are side-paths that neither create Lattice lineage artifacts nor depend on `_lattice-lib`. The optional `create-adr` skill writes out-of-band `docs/adr/NNN` records (not lineage artifacts) but, like the lifecycle skills, co-installs `_lattice-lib` for `ensure-lattice` / `assert-shippable-cwd` (ADR writes are durable L0 doc). [Architecture](README.md#how-it-works) · [Skill reference](README.md#whats-included)
+
+## Docs
+
+- [Getting started](docs/getting-started.md): Engine vs consumer model, installation, consumer setup, profiles, and the daily path.
+- [GitHub surface](docs/github-surface.md): Kind + priority labels and optional Project auto-add for skill-created issues/PRs.
+- [Contributing](CONTRIBUTING.md): Engine change boundaries and local validation.
+- [Security](SECURITY.md): Vulnerability reporting and scope.

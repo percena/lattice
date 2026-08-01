@@ -1,0 +1,13 @@
+# {{PROJECT_NAME}}
+
+> {{DENSE_ONE_PARAGRAPH_SUMMARY — what it does, who it is for, key technologies. Must be unique to THIS project.}}
+
+{{OPTIONAL_CONTEXT_PARAGRAPHS — non-obvious constraints, architectural philosophy, things an LLM would get wrong without being told.}}
+
+## Docs
+
+- [{{PAGE_TITLE}}]({{RELATIVE_PATH_FROM_THIS_FILE}}): {{ONE_SENTENCE_WHAT_THE_READER_LEARNS}}
+
+## Optional
+
+- [{{SECONDARY_TITLE}}]({{RELATIVE_PATH}}): {{DESCRIPTION — skippable for shorter context windows}}

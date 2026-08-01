@@ -1,0 +1,54 @@
+# ── OS / editor (contributor-side artifacts) ─────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+# Shared editor configs are intentionally not committed; un-ignore with !.vscode/
+# if you want to share launch.json etc.
+.vscode/
+.idea/
+
+# ── Python ────────────────────────────────────────────────────────────────
+*.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# ── Logs / runtime ─────────────────────────────────────────────────────────
+*.log
+
+# ── Tool-private local state ─────────────────────────────────────────────
+# Claude Code sessions / worktree scratch — tool-private.
+# NOTE: .claude-plugin/ is tracked (marketplace install entry point for
+# `plugin marketplace add`) — do NOT ignore.
+.claude/
+# OpenAI Codex CLI keeps state in ~/.codex/ globally; this only catches any
+# project-local sandbox/session residue if a contributor configures CODEX_HOME.
+.codex/
+.bats/
+.worktrees/
+
+# ── Generated eval artifacts ──────────────────────────────────────────────
+evals/artifacts/
+
+# ── Lattice ───────────────────────────────────────────────────────────────
+# ticket assets are large/generated; keep dir placeholders only
+.lattice/tickets/**/assets/*
+!.lattice/tickets/**/assets/.gitkeep
+# Runtime id-claim markers (next-artifact-id.sh --claim); ids are recoverable
+# from committed artifact files, so claims stay local.
+.lattice/.ids/
+# atomic_write temp files
+.lattice/**/.*.tmp
+# Derived lineage graph/board is not committed; do not create.
+.lattice/lineage/
+.lattice/BOARD.md
+# lattice-init.sh regenerates this on every run; merge helper, not a tracked
+# artifact. Ignored so it never surfaces as a stray git change.
+.lattice/gitignore.snippet
+
+# ── Local env (optional GitHub Project auto-add — see .env.example) ──────
+.env
+.env.*
+!.env.example

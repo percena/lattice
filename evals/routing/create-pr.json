@@ -1,0 +1,18 @@
+{
+  "skill_name": "create-pr",
+  "aliases": ["创建 PR", "打开拉取请求", "提交 pull request", "推送并开 PR"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Open a pull request for this branch", "top_k": 1 },
+      { "prompt": "Open a pull request with Fixes line Spec line and upload media", "top_k": 1 },
+      { "prompt": "Submit a GitHub PR update the existing one", "top_k": 1 },
+      { "prompt": "Ship this branch as a pull request description Why How", "top_k": 2 },
+      { "prompt": "把当前分支推送并创建一个 PR，正文写清 Why 和 How", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Merge the PR delete branch and worktree", "owner": "finish-work" },
+      { "prompt": "Create ticket binders from Spec", "owner": "create-tickets" },
+      { "prompt": "Start work resume implement tkt-N", "owner": "start-work" }
+    ]
+  }
+}

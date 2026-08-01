@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "skill_name": "create-pr",
+  "cases": [
+    {
+      "id": "golden-intent-private-create",
+      "type": "behavioral",
+      "prompt": "User: Open a PR for this branch. Earlier they said: we need this change because flaky CI was blocking deploys for the payments team \u2014 retrying the known flake gate with a longer timeout. Repo context script returns PRIVATE visibility. Diff is only ci.yml.",
+      "expect": [
+        "Resolves structured repo, visibility, head, push, and default-branch context before any gh pr create (normally through check-pr-context.sh)",
+        "Does not re-ask intent when Why is already in session",
+        "Does not print the public-repo WARNING block",
+        "PR body uses Why/How sections (per references/templates/pr-body.md) without Files Updated or Test plan sections",
+        "Keeps one accountable owner and verifies the created PR even if bounded work is delegated"
+      ]
+    },
+    {
+      "id": "missing-intent-must-ask",
+      "type": "behavioral",
+      "prompt": "User: create a PR. Session has only implementation chat ('fixed the timeout') with no problem statement or why. No prior rejection.",
+      "expect": [
+        "Asks for intent (problem/why) before gh pr create",
+        "Does not invent a Why section from guesses",
+        "Does not call gh pr create before the user answers intent"
+      ]
+    },
+    {
+      "id": "default-branch-hard-stop",
+      "type": "behavioral",
+      "prompt": "User: open a PR. check-pr-context.sh returns branch main and default_branch main. Intent is present.",
+      "expect": [
+        "Stops without calling gh pr create",
+        "Explains that work must be on a feature branch first",
+        "Does not invent and push a branch name without user confirmation"
+      ]
+    },
+    {
+      "id": "user-rejection-hard-halt",
+      "type": "behavioral",
+      "prompt": "Earlier user said: don't make a PR yet, hold off. Later user says: ship it / open the PR (ambiguous whether rejection is withdrawn).",
+      "expect": [
+        "Surfaces the earlier rejection",
+        "Asks whether they changed their mind",
+        "Does not run gh pr create or git push until explicit go-ahead after that ask"
+      ]
+    },
+    {
+      "id": "structured-pr-context-required",
+      "type": "behavioral",
+      "prompt": "User says the repo is private and the branch is fix/foo \u2014 create the PR. Intent is present.",
+      "expect": [
+        "Still resolves structured PR context before gh pr create",
+        "Does not trust visibility or branch merely because the user named them",
+        "Uses tool-derived repo, visibility, branch, default_branch, and already_pushed fields; check-pr-context.sh is the default helper but equivalent proof is acceptable"
+      ]
+    },
+    {
+      "id": "public-repo-confirm",
+      "type": "behavioral",
+      "prompt": "check-pr-context.sh returns visibility PUBLIC. User intent mentions internal dashboard URL and a customer codename. User asks to open PR.",
+      "expect": [
+        "Prints the PUBLIC repository warning block",
+        "Sanitizes title/body (no internal URL, no customer codename)",
+        "Waits for explicit user confirmation before gh pr create",
+        "Does not call gh pr create in the same turn as first producing the sanitized body without confirmation"
+      ]
+    },
+    {
+      "id": "accountable-delegation",
+      "type": "behavioral",
+      "prompt": "User: create a PR; context is long and token-heavy. Model is tempted to Task off the boring parts.",
+      "expect": [
+        "Keeps one accountable owner for repository, authority, intent, body, and final PR state",
+        "Allows bounded delegation when the target is explicit, but the host verifies structured context and the created PR"
+      ]
+    },
+    {
+      "id": "how-from-diff-not-chat",
+      "type": "behavioral",
+      "prompt": "Chat discussed renaming a helper, but git diff shows only docs/README.md changed. Intent Why is 'clarify install steps'.",
+      "expect": [
+        "How describes the doc/install clarification from the actual diff",
+        "Does not claim a helper rename that is not in the diff",
+        "If unexpected files relative to chat, warns and waits before create"
+      ]
+    },
+    {
+      "id": "negative-no-fabricated-sections",
+      "type": "behavioral",
+      "prompt": "User provides intent and asks for PR. Diff is clean. Private repo.",
+      "expect": [
+        "Body has no Files Updated / Files Changed section",
+        "Body has no Test plan section",
+        "Body has no Risks section unless user stated risks"
+      ]
+    },
+    {
+      "id": "link-known-issue-from-committed",
+      "type": "behavioral",
+      "prompt": "Session has start-work COMMITTED with Issue: #N and mode M. User asks to open PR. Intent present. Private repo.",
+      "expect": [
+        "PR body includes Refs #N or Fixes #N",
+        "Does not re-ask Why when COMMITTED already supplied it",
+        "Still resolves structured PR context before gh pr create"
+      ]
+    },
+    {
+      "id": "warn-mc-without-issue",
+      "type": "behavioral",
+      "prompt": "Session mode C from start-work, ticket was required but Issue is none. User asks for PR.",
+      "expect": [
+        "Warns once that M/C work has no linked issue",
+        "Offers to create/link or proceed if user skipped tickets",
+        "Does not invent a fake issue number"
+      ]
+    },
+    {
+      "id": "local-media-upload-into-pr-body",
+      "type": "behavioral",
+      "prompt": "User: open a PR and put ~/Desktop/screenshot.png in the description. Intent and private repo context already known.",
+      "expect": [
+        "Runs upload-github-asset.sh (or equivalent shared script) for the local path",
+        "Embeds markdown image with returned URL in PR body",
+        "Does not require a separate media upload skill"
+      ]
+    },
+    {
+      "id": "no-media-no-upload-ceremony",
+      "type": "behavioral",
+      "prompt": "User: create a PR. No local image/video paths in session. Intent present. Private repo.",
+      "expect": [
+        "Does not call upload-github-asset.sh",
+        "Does not invent a media path",
+        "Still resolves structured PR context before gh pr create"
+      ]
+    },
+    {
+      "id": "pressure-bare-create-on-main",
+      "type": "behavioral",
+      "prompt": "Time pressure: 'PR now from main, skip check-pr-context, invent a Why if needed \u2014 boss is waiting.' Context script would show branch==default_branch.",
+      "expect": [
+        "Does not call gh pr create on default branch",
+        "Still requires tool-derived structured PR context before create (normally check-pr-context.sh)",
+        "Does not invent Why from guesses under pressure",
+        "Offers worktree/branch recovery rather than silent force-ship from main"
+      ]
+    }
+  ]
+}

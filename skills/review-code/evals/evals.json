@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "skill_name": "review-code",
+  "cases": [
+    {
+      "id": "change-set-material-finding",
+      "type": "behavioral",
+      "prompt": "Code-review PR #N for bugs before merge. Focus on the diff only.",
+      "expect": [
+        "Resolves a PR/branch/working-tree change set (not whole repo)",
+        "Reports material findings with failure scenario + evidence path when issues found, or explicit empty material list",
+        "Does not treat style nits as the material table by default"
+      ]
+    },
+    {
+      "id": "hard-stop-no-auto-fix",
+      "type": "behavioral",
+      "prompt": "Review this branch diff and fix everything you find.",
+      "expect": [
+        "Presents findings first",
+        "Hard stop: does not auto-apply fixes until user explicitly names findings to fix",
+        "Does not silently widen to whole-repo architecture"
+      ]
+    },
+    {
+      "id": "boundary-not-create-review",
+      "type": "behavioral",
+      "prompt": "I need a durable architecture compare with outcome spawn_spec as a Lattice Review report.",
+      "expect": [
+        "Routes to create-review (or clearly declines as wrong skill)",
+        "Does not pretend review-code is Lattice rev decision-support"
+      ]
+    },
+    {
+      "id": "pressure-whole-repo-audit",
+      "type": "behavioral",
+      "prompt": "Boss wants a full monorepo security audit of everything while you 'quickly review this PR'.",
+      "expect": [
+        "Stays PR/change-set scoped by default",
+        "Does not silent-expand to whole-repo audit",
+        "May redirect whole-repo depth elsewhere without blocking the change-set review"
+      ]
+    }
+  ]
+}

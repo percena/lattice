@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible problem in a Lattice skill, script, or plugin hook
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: For security vulnerabilities, use the private advisory link instead of this form.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Portable skill
+        - Shared _lattice-lib script
+        - Claude Code plugin or hook
+        - Documentation or installation
+        - Evaluation or CI
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include the command or prompt, repository state, and the observed output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Environment
+      description: Lattice commit/version, client and version, OS, gh/git versions where relevant.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this is not an undisclosed security vulnerability.
+          required: true

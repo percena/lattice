@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a focused improvement to Lattice's delivery workflow
+title: "[Feature]: "
+labels: [feat]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow gap
+      description: Describe the concrete user outcome that is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed direction
+      description: Include affected skills or surfaces and any compatibility constraints.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Scope check
+      options:
+        - label: This preserves model autonomy except for narrow safety, provenance, irreversible-action, or result-contract gates.
+          required: true
