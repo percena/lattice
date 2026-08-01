@@ -2,7 +2,7 @@
 
 > **TL;DR:** Refine README (en + zh) intro/positioning to reflect Lattice's actual stance (lightweight discipline, local-first retrieval, transparent Memory, lineage) and add an Acknowledgements section thanking the linuxdo community.
 > **Kind:** documentation · **Status:** open · **Priority:** P3
-> **Path:** tkt-10 → pr-… (one-PR)
+> **Path:** tkt-10 → pr-11 (one-PR)
 
 | Field | Value |
 | --- | --- |
@@ -23,13 +23,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-10-readme-positioning-acknowledgements` |
 | worktree | sibling `…/lattice.worktrees/tkt-10-readme-positioning-acknowledgements/` |
-| prs | (pending) |
+| prs | pr-11 |
 
 ## Acceptance (this slice)
 
-- [ ] Both READMEs reflect the three positioning points: (a) lightweight discipline / constrain path not model; (b) local-first retrieval + transparent Memory; (c) lineage concept briefly explained
-- [ ] Both READMEs have an Acknowledgements section thanking linuxdo
-- [ ] README en + zh stay in sync (zh mirrors en)
+- [x] Both READMEs reflect the three positioning points: (a) lightweight discipline / constrain path not model; (b) local-first retrieval + transparent Memory; (c) lineage concept briefly explained
+- [x] Both READMEs have an Acknowledgements section thanking linuxdo
+- [x] README en + zh stay in sync (zh mirrors en)
 
 ## Notes
 
