@@ -27,10 +27,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** all `actions/checkout@…` pins resolve to v7.0.1 SHA `3d3c42e5aac5ba805825da76410c181273ba90b1` + ` # v7.0.1` across lint.yml, lattice-scripts.yml, plugin-hooks.yml
-- [ ] **A2** `actions/setup-python@…` pins to v7.0.0 SHA `5fda3b95a4ea91299a34e894583c3862153e4b97` + ` # v7.0.0`
-- [ ] **A3** `actions/setup-node@…` pins to v7.0.0 SHA `820762786026740c76f36085b0efc47a31fe5020` + ` # v7.0.0`
-- [ ] **A4** CI (shellcheck, symlink-integrity, skill-quality, plugin-validate, bats) green on `dev`
+- [x] **A1** all `actions/checkout@…` pins resolve to v7.0.1 SHA `3d3c42e5aac5ba805825da76410c181273ba90b1` + ` # v7.0.1` across lint.yml, lattice-scripts.yml, plugin-hooks.yml
+- [x] **A2** `actions/setup-python@…` pins to v7.0.0 SHA `5fda3b95a4ea91299a34e894583c3862153e4b97` + ` # v7.0.0`
+- [x] **A3** `actions/setup-node@…` pins to v7.0.0 SHA `820762786026740c76f36085b0efc47a31fe5020` + ` # v7.0.0`
+- [x] **A4** CI (shellcheck, symlink-integrity, skill-quality, plugin-validate, bats) green on `dev`
 
 ## Notes
 

@@ -41,12 +41,12 @@ Three Dependabot PRs (#1, #2, #3) bump CI actions to v7 majors; all are green bu
 
 ## Acceptance
 
-- [ ] **A1** All `uses: actions/checkout@…` pins resolve to the v7.0.1 SHA with ` # v7.0.1` comment, in `lint.yml`, `lattice-scripts.yml`, `plugin-hooks.yml`.
-- [ ] **A2** `actions/setup-python@…` pins to the v7.0.0 SHA with ` # v7.0.0` comment in `lint.yml`.
-- [ ] **A3** `actions/setup-node@…` pins to the v7.0.0 SHA with ` # v7.0.0` comment in `lint.yml`.
-- [ ] **A4** CI (`shellcheck`, `symlink-integrity`, `skill-quality`, `plugin-validate`, `bats`) is green on `dev` after the combined commit lands.
-- [ ] **A5** `.github/dependabot.yml` contains a `groups:` block grouping the `github-actions` ecosystem (`patterns: ["*"]`).
-- [ ] **A6** `docs/adr/ADR-001-dependabot-github-actions-policy.md` exists, is appended to `docs/adr/README.md` index, and records the SHA-pin + weekly + grouped + major-bump-validation rule.
+- [x] **A1** All `uses: actions/checkout@…` pins resolve to the v7.0.1 SHA with ` # v7.0.1` comment, in `lint.yml`, `lattice-scripts.yml`, `plugin-hooks.yml`.
+- [x] **A2** `actions/setup-python@…` pins to the v7.0.0 SHA with ` # v7.0.0` comment in `lint.yml`.
+- [x] **A3** `actions/setup-node@…` pins to the v7.0.0 SHA with ` # v7.0.0` comment in `lint.yml`.
+- [x] **A4** CI (`shellcheck`, `symlink-integrity`, `skill-quality`, `plugin-validate`, `bats`) is green on `dev` after the combined commit lands.
+- [x] **A5** `.github/dependabot.yml` contains a `groups:` block grouping the `github-actions` ecosystem (`patterns: ["*"]`).
+- [x] **A6** `docs/adr/ADR-001-dependabot-github-actions-policy.md` exists, is appended to `docs/adr/README.md` index, and records the SHA-pin + weekly + grouped + major-bump-validation rule.
 - [ ] **A7** Dependabot PRs #1, #2, #3 are closed (not dangling open) once the combined upgrade is on `dev`/`main`.
 
 ## Non-goals

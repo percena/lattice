@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A6** `docs/adr/001-dependabot-github-actions-policy.md` exists, README index row present, records SHA-pin + weekly + grouped + major-bump-validation rule
+- [x] **A6** `docs/adr/001-dependabot-github-actions-policy.md` exists, README index row present, records SHA-pin + weekly + grouped + major-bump-validation rule
 
 ## Notes
 

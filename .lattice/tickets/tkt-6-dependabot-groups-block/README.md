@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A5** `.github/dependabot.yml` contains a `groups:` block grouping `github-actions` with `patterns: ["*"]`
+- [x] **A5** `.github/dependabot.yml` contains a `groups:` block grouping `github-actions` with `patterns: ["*"]`
 
 ## Notes
 
