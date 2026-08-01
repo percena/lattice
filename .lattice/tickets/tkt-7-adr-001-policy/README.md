@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2, spec |
 | github | https://github.com/percena/lattice/issues/7 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | Land ADR-001 Dependabot GitHub Actions policy + README index row |
 | spec | spc-4 — (path: ../../specs/spc-4-gh-actions-v7-upgrade.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-5, tkt-6 |
 | **worktree_bind** | `spc-4-gh-actions-v7-upgrade` |
 | worktree | sibling `…/lattice.worktrees/spc-4-gh-actions-v7-upgrade/` |
-| prs | (none — rides tkt-5 PR) |
+| prs | (none — rides tkt-5 PR) · pr-9 — https://github.com/percena/lattice/pull/9 |
 
 ## Acceptance (this slice)
 
@@ -32,3 +32,8 @@
 ## Notes
 
 - ADR body already drafted in this worktree (Status: Accepted). This ticket validates + lands it inside the tkt-5 PR.
+
+## Finish
+
+- pr-9 merged: 2026-08-01T10:29:01Z — https://github.com/percena/lattice/pull/9 (base merge)
+- issue #7 closed: 2026-08-01T10:29:34Z — https://github.com/percena/lattice/issues/7

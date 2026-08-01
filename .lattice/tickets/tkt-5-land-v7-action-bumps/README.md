@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2, spec |
 | github | https://github.com/percena/lattice/issues/5 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | Land v7 bumps for checkout/setup-node/setup-python as one combined commit; dev CI green |
 | spec | spc-4 — GitHub Actions v7 upgrade + Dependabot grouping policy (path: ../../specs/spc-4-gh-actions-v7-upgrade.md) |
@@ -36,3 +36,8 @@
 
 - Primary ship ticket. One-PR ship plan (path overlap on .github/workflows + .github/dependabot.yml + docs/adr).
 - Supersedes Dependabot PRs #1, #2, #3 (closed by tkt-8 after merge).
+
+## Finish
+
+- pr-9 merged: 2026-08-01T10:29:01Z — https://github.com/percena/lattice/pull/9 (base merge)
+- issue #5 closed: 2026-08-01T10:29:26Z — https://github.com/percena/lattice/issues/5
