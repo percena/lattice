@@ -3,7 +3,7 @@ id: spc-4
 slug: gh-actions-v7-upgrade
 title: GitHub Actions v7 upgrade + Dependabot grouping policy
 kind: chore
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Land v7 bumps for checkout/setup-node/setup-python as one batch + lock grouped-deps policy as ADR-001"
@@ -47,7 +47,7 @@ Three Dependabot PRs (#1, #2, #3) bump CI actions to v7 majors; all are green bu
 - [x] **A4** CI (`shellcheck`, `symlink-integrity`, `skill-quality`, `plugin-validate`, `bats`) is green on `dev` after the combined commit lands.
 - [x] **A5** `.github/dependabot.yml` contains a `groups:` block grouping the `github-actions` ecosystem (`patterns: ["*"]`).
 - [x] **A6** `docs/adr/ADR-001-dependabot-github-actions-policy.md` exists, is appended to `docs/adr/README.md` index, and records the SHA-pin + weekly + grouped + major-bump-validation rule.
-- [ ] **A7** Dependabot PRs #1, #2, #3 are closed (not dangling open) once the combined upgrade is on `dev`/`main`.
+- [x] **A7** Dependabot PRs #1, #2, #3 are closed (not dangling open) once the combined upgrade is on `dev`/`main`.
 
 ## Non-goals
 

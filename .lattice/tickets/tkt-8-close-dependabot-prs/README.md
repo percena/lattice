@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A7** Dependabot PRs #1, #2, #3 are closed (not open) once the combined upgrade is on `dev`/`main`
+- [x] **A7** Dependabot PRs #1, #2, #3 are closed (not open) once the combined upgrade is on `dev`/`main`
 
 ## Notes
 
