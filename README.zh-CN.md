@@ -63,7 +63,7 @@ npx skills add percena/lattice -g -y
 
 **约束路径，不约束脑子。** Lattice 只脚本化主干——Spec → ticket → worktree → PR → merge——保证链路不跳步、不丢血缘。但它*不*脚本化模型每一步内部怎么推理、按什么顺序思考、输出什么句式。强模型保持创造性，框架负责让链路可续作。护栏（worktree 隔离、对齐检查、血缘）是底线，不是天花板。
 
-**本地优先检索，透明的 Memory。** Spec、ticket、review、ADR 都作为模板化本地文件写在 `.lattice/` 下——可 grep、可 review、随仓库一起 commit。绝大部分上下文查询（验收标准、上次 review 结论、一个 spec 拆成了哪几张票）用本地 `cat`/`grep` 毫秒级就能拿到；GitHub 只在需要远端独有事实（issue/PR 实时状态、评论、CI）时才查。Memory 不是框架黑箱——它是你和团队共同拥有、显式的工程产物。
+**本地优先检索，透明的 Memory。** Spec、ticket、review 都作为模板化本地文件写在 `.lattice/` 下（ADR 在 `docs/adr/`）——可 grep、可 review、随仓库一起 commit。绝大部分上下文查询（验收标准、上次 review 结论、一个 spec 拆成了哪几张票）用本地 `cat`/`grep` 毫秒级就能拿到；GitHub 只在需要远端独有事实（issue/PR 实时状态、评论、CI）时才查。Memory 不是框架黑箱——它是你和团队共同拥有、显式的工程产物。
 
 **血缘（Lineage）。** 每次交付留下一条可回头追的链——Spec（`spc-N`）拆成若干 ticket（`tkt-N`），每张票落进一个 PR（`pr-N`），每次 review 是一个 `rev-…`。这些 ID 就是活页夹文件名，所以一条 `grep -r spc-N .lattice/` 就能跨会话、不联网地把整条链捞回来。
 
