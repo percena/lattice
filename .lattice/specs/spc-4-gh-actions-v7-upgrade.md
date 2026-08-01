@@ -10,7 +10,7 @@ summary: "Land v7 bumps for checkout/setup-node/setup-python as one batch + lock
 created: 2026-08-01
 updated: 2026-08-01
 tickets: [tkt-5, tkt-6, tkt-7, tkt-8]
-prs: []
+prs: [pr-9]
 reviews: [rev-20260801-072719Z]
 supersedes: []
 superseded_by: null
@@ -82,5 +82,5 @@ Three Dependabot PRs (#1, #2, #3) bump CI actions to v7 majors; all are green bu
 ## Links / bloodline (L0)
 
 - Tickets: `tkt-5` (land v7 bumps, primary ship), `tkt-6` (dependabot groups), `tkt-7` (ADR-001), `tkt-8` (close PRs #1/#2/#3)
-- PRs: (pr-N — opened via `create-pr` after implementation)
+- PRs: `pr-9` (https://github.com/percena/lattice/pull/9, base `dev`)
 - Reviews: `rev-20260801-072719Z`
