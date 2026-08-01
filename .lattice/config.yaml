@@ -1,0 +1,8 @@
+# Lattice consumer config. Safe to commit.
+# profile: strict (default) | light
+#   strict — sibling worktree default for shippable; alignment HARD on open Acceptance
+#   light  — shippable --mode branch allowed; alignment softens Acceptance HARD → WARN
+#            bind law still requires tkt-/spc- (no unbound)
+# Override for one shell: export LATTICE_PROFILE=light
+# long_lived_patterns: [integration, trunk]   # additive to main/master/dev/develop/release/*/rc/*
+profile: strict
