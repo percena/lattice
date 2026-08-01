@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-6, tkt-7 (same PR), tkt-8 (cleanup after merge) |
 | **worktree_bind** | `spc-4-gh-actions-v7-upgrade` |
 | worktree | sibling `…/lattice.worktrees/spc-4-gh-actions-v7-upgrade/` |
-| prs | (none yet) |
+| prs | pr-9 (https://github.com/percena/lattice/pull/9, base dev, all CI green) |
 
 ## Acceptance (this slice)
 
