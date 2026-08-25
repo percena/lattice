@@ -21,7 +21,7 @@
 | **primary_ticket** | (this) |
 | **related_tickets** | (none) |
 | **worktree_bind** | (to be bound at start-work) |
-| prs | (none) |
+| prs | pr-39 — https://github.com/percena/lattice/pull/39 |
 | adr | ADR-003 |
 
 ## Acceptance (this slice)
