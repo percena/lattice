@@ -128,6 +128,7 @@ No separate target resolution — reuse the PR diff already in scope: `gh pr dif
 | High-cost failure (if touched) | authz/trust · data loss/corruption · retry/idempotency · races · empty/timeout · schema/compat when migrations change — short list only |
 | Tests | Clear gaps for **new** behavior; missing regression for a bug fix |
 | Dig deeper | empty/null paths · partial failure/idempotency · stale state/ordering · rollback/irreversible writes — only where the diff touches |
+| Privacy/Secrets | Scan diff, PR body, ticket binders, and commit messages for: local filesystem paths (`/Users/`, `/home/`, `C:\`, `/root/`); API keys, tokens, passwords, private keys (grep: `api[_-]?key`, `secret`, `password`, `token`, `BEGIN.*PRIVATE`); closed-source project names or internal hostnames in public-repo artifacts; DB schema details of external services (table/column names in non-migration context); personal email/phone in non-standard contexts. **Credentials/secrets → high (default Hold).** Local paths/project names → med (recommend cleanup). If sensitive content is unavoidable → `AskUserQuestion`: "This diff contains `<type>` — clean up first or confirm it is safe to commit?" |
 
 Skip deep threat modeling, load testing, full coverage matrices (those are `/review-production`).
 
@@ -155,7 +156,8 @@ Report only **material** findings. Each row = severity + one-line failure scenar
   - `Merge anyway` — operator accepts the risk
   - `Hold (I'll address)` — stop; operator fixes or defers
   - `Invoke full /review-code` — deeper pass before deciding
-- Any **high** finding → default recommended option `Hold`; only med/low → default `Merge anyway`.
+- Any **high** finding (including credential/secret leak) → default recommended option `Hold`; only med/low → default `Merge anyway`.
+- **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), default to `Hold` regardless of other axes. If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.
 - **Hard stop on edits:** present findings and stop. Do **not** auto-fix even if "obvious". Edit the tree only when the operator explicitly names which findings to fix (then smallest change in the change set's modules; fresh test output if tests requested).
 - The HARD merge gate is unchanged — `alignment-check.sh`. Findings are advice; the operator may still choose `Merge anyway`.
 
@@ -216,6 +218,8 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - Residual `origin/<head>` after finish without keep-remote
 - Force-pushing default branch
 - Merge after authority pressure with open `- [ ]` on Fixes #N
+- Merging despite **high** Privacy/Secrets findings without explicit user confirmation
+- Ignoring local paths, credentials, or closed-source project names in the diff
 - Using open Spec primary / `label:epic` as cover for unfinished Fixes land
 - Rewriting hand-created issue bodies at land to green the gate
 

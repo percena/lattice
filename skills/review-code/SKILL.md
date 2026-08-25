@@ -93,6 +93,7 @@ Large change sets: start with context script / status / `--stat` / file list; se
 | Correctness | Logic errors, off-by-one, broken edge cases in **changed** paths |
 | High-cost failure (if touched) | authz/trust, data loss/corruption, retry/idempotency, races, empty/timeout, contract/schema when migrations change — short list only. Security **high** only with exploit bar (attacker → action → impact); theoretical “potential” stays med/low. Full production security checklist → `review-production` |
 | Tests | Clear gaps for **new** behavior; missing regression for a bug fix |
+| Privacy/Secrets | Scan diff, commit messages, and PR body for: local filesystem paths (`/Users/`, `/home/`, `C:\`, `/root/`); API keys, tokens, passwords, private keys (grep: `api[_-]?key`, `secret`, `password`, `token`, `BEGIN.*PRIVATE`); closed-source project names or internal hostnames in public-repo artifacts; DB schema details of external services (table/column names in non-migration context); personal email/phone in non-standard contexts. **Credentials/secrets → high** (recommend removal + `.env`/secret-manager). Local paths/project names → **med** (recommend generic replacement). If sensitive content is unavoidable (e.g. legitimate config reference), mark **inference** and recommend redaction or externalization. |
 | (demoted) Nits | Style/naming only if truly high confusion — **not** in material table by default |
 
 Skip deep threat modeling, load testing, full coverage matrices (`review-production`).
@@ -192,6 +193,8 @@ Do **not** invoke `finish-work` or claim merge is tool-blocked.
 - Silently writing product code/tests on team base without the explicit clean base-direct escape
 - Posting as if this replaces Lattice `create-review` research notes
 - Silent scope expand after “quick look at dependencies”
+- Ignoring local paths, credentials, or closed-source project names in the diff
+- Presenting findings without scanning for Privacy/Secrets axis
 - Using `go/no-go` vocabulary from `review-production` as this skill’s overall
 
 ## Verification
