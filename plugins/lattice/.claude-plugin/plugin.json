@@ -1,6 +1,6 @@
 {
   "name": "lattice",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Lattice workflow for Claude Code: six lifecycle skills (start-work, create-spec, create-review, create-tickets, create-pr, finish-work) plus _lattice-lib and the create-adr out-of-band ADR companion. Optional hooks advise on bare gh pr create/merge; LATTICE_HOOK_MODE=strict opts into marker gates.",
   "author": {
     "name": "Percena"
