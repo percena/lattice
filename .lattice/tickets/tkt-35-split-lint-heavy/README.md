@@ -25,10 +25,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `lint.yml` retains only `shellcheck` + `symlink-integrity` jobs, with workflow-level `paths:` filter `skills/**`, `plugins/**`, `tools/**`, `.github/workflows/lint.yml` (push main + PR trigger unchanged) — ✅ verified local
-- [ ] **A2** New `.github/workflows/lint-heavy.yml` moves `skill-quality` + `plugin-validate` jobs verbatim (steps/env preserved), with `paths:` filter `skills/**`, `tools/**`, `evals/**`, `plugins/**`, `.claude-plugin/**`, `.github/workflows/lint-heavy.yml` (push main + PR trigger) — ✅ verified local
+- [x] **A1** `lint.yml` retains only `shellcheck` + `symlink-integrity` jobs, with workflow-level `paths:` filter `skills/**`, `plugins/**`, `tools/**`, `.github/workflows/lint.yml` (push main + PR trigger unchanged) — ✅ verified local
+- [x] **A2** New `.github/workflows/lint-heavy.yml` moves `skill-quality` + `plugin-validate` jobs verbatim (steps/env preserved), with `paths:` filter `skills/**`, `tools/**`, `evals/**`, `plugins/**`, `.claude-plugin/**`, `.github/workflows/lint-heavy.yml` (push main + PR trigger) — ✅ verified local
 - [ ] **A3** docs/README-only change on a PR branch triggers **neither** workflow (verified by test push + observed skip) — ⏳ pending live probe (optional; symmetric inverse of A4, standard GitHub path-filter semantics)
-- [ ] **A4** skills/plugins/tools change still triggers **both** workflows (coverage unchanged — verified by test push) — ✅ verified live on PR #37: this PR's workflow-file changes triggered two separate workflow runs (32832995707=lint, 32832995320=lint-heavy)
+- [x] **A4** skills/plugins/tools change still triggers **both** workflows (coverage unchanged — verified by test push) — ✅ verified live on PR #37: this PR's workflow-file changes triggered two separate workflow runs (32832995707=lint, 32832995320=lint-heavy)
 
 ## Notes
 
