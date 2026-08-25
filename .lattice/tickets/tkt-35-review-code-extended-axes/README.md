@@ -9,7 +9,7 @@
 | priority | P2 |
 | labels | review-code, skill, quality |
 | github | https://github.com/percena/lattice/issues/38 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | extend review-code with CI/CD, syntax/lint, docs-sync, interface-impact axes; solution-oriented findings; single batch confirmation |
 | spec | (none — review-fix / ADR-driven) |
@@ -48,3 +48,5 @@
 ## Finish
 
 - (pending — PR to be opened, issue to be filed)
+- pr-39 merged: 2026-08-25T11:18:01Z — https://github.com/percena/lattice/pull/39 (base merge)
+- issue #38 closed: 2026-08-25T11:18:14Z — https://github.com/percena/lattice/issues/38
