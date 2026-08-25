@@ -1,13 +1,13 @@
-# Example: weftd smoke story
+# Example: app smoke story
 
-A concrete e2e story that smoke-tests a running weftd instance. Adapt `STORY_URL` to point at your local or deployed instance (e.g. `http://localhost:8080/health` for a local dev server, or the deployed weftd URL for a post-deploy smoke).
+A concrete e2e story that smoke-tests a running app instance. Adapt `STORY_URL` to point at your local or deployed instance (e.g. `http://localhost:8080/health` for a local dev server, or the deployed app URL for a post-deploy smoke).
 
 ```bash
 STORY_URL="${STORY_URL:-http://localhost:8080/health}" \
-STORY_SCREENSHOT="${STORY_SCREENSHOT:-/tmp/weftd-smoke.png}" \
+STORY_SCREENSHOT="${STORY_SCREENSHOT:-/tmp/smoke-test.png}" \
 ego-browser nodejs <<'EOF'
 // 1. Task space — inherit login state (ADR-002 §2).
-const task = await taskSpaces.useOrCreate('weftd-smoke')
+const task = await taskSpaces.useOrCreate('smoke-test')
 
 // 2. Subscribe to console + page errors BEFORE navigation.
 const consoleErrors = []
@@ -40,14 +40,14 @@ if (EXPECTED_AUTH && looksLikeLogin) {
   try { failScreenshot = await page.screenshot({ path: '.playwright-artifacts/fail-auth.png', fullPage: true }) } catch (e) { /* best-effort */ }
   result.screenshot = failScreenshot
   console.log(JSON.stringify(result, null, 2))
-  throw new Error('e2e-story: fail-loud auth check failed — landed on login page')
+  throw new Error('run-e2e: fail-loud auth check failed — landed on login page')
 }
 
 // 5. Assert via page.evaluate (runs in-page; value returned directly).
 const assertions = []
 
 // Health endpoints often return JSON — read the body text and check it
-// reports healthy. The exact shape may differ; adapt to weftd's contract.
+// reports healthy. The exact shape may differ; adapt to app's contract.
 const bodyOk = await page.evaluate(() => {
   const text = (document.body && document.body.textContent) || ''
   return /ok|healthy|up/i.test(text)
@@ -84,9 +84,9 @@ Copy this block into a new story file when the target route is login-protected. 
 
 ```bash
 # STORY_URL="${STORY_URL:-http://localhost:8080/dashboard}" \
-# STORY_SCREENSHOT="${STORY_SCREENSHOT:-/tmp/weftd-protected.png}" \
+# STORY_SCREENSHOT="${STORY_SCREENSHOT:-/tmp/app-protected.png}" \
 # ego-browser nodejs <<'EOF'
-# const task = await taskSpaces.useOrCreate('weftd-protected')
+# const task = await taskSpaces.useOrCreate('app-protected')
 # const consoleErrors = []
 # const pageErrors = []
 # page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()) })
@@ -104,7 +104,7 @@ Copy this block into a new story file when the target route is login-protected. 
 #   try { failScreenshot = await page.screenshot({ path: '.playwright-artifacts/fail-auth.png', fullPage: true }) } catch (e) { /* best-effort */ }
 #   result.screenshot = failScreenshot
 #   console.log(JSON.stringify(result, null, 2))
-#   throw new Error('e2e-story: fail-loud auth check failed — landed on login page')
+#   throw new Error('run-e2e: fail-loud auth check failed — landed on login page')
 # }
 # const assertions = []
 # const headingOk = await page.evaluate(() => !!document.querySelector('main'))
@@ -134,14 +134,14 @@ Copy this block into a new story file when the target route is login-protected. 
   ],
   "consoleErrors": [],
   "pageErrors": [],
-  "screenshot": "/tmp/weftd-smoke.png"
+  "screenshot": "/tmp/smoke-test.png"
 }
 ```
 
 ## Notes
 
-- **Local run:** start weftd (`go run` / docker compose), then run the story with `STORY_URL=http://localhost:<port>/health`.
-- **Post-deploy smoke:** set `STORY_URL` to the deployed weftd health URL; attach `STORY_SCREENSHOT` to the deploy artifact dir.
+- **Local run:** start app (`go run` / docker compose), then run the story with `STORY_URL=http://localhost:<port>/health`.
+- **Post-deploy smoke:** set `STORY_URL` to the deployed app health URL; attach `STORY_SCREENSHOT` to the deploy artifact dir.
 - **Protected page variant:** copy `references/story-template.md`, set `EXPECTED_AUTH = true`, target a login-protected route, and rely on the task space's inherited login state instead of minting a token. (See the commented-out block above.)
 - **JSON health endpoint assertion:** for a pure JSON health contract (no rendered body), prefer `fetch.browser` (in-origin) or `fetch.server` (Node-side) to assert the response shape directly rather than scraping `document.body.textContent`. Use `fetch.browser` when the call must carry the page's cookies/origin, and `fetch.server` for a detached probe.
 - **No completion in-script:** if you want to close the task space, run a separate `ego-browser nodejs <<'EOF' ... taskSpaces.complete(<id>, { keep: false }) ... EOF` invocation *after* reviewing the JSON above — never in the same Bash call as the browser work.

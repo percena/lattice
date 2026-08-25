@@ -41,7 +41,7 @@ if (EXPECTED_AUTH && looksLikeLogin) {
   try { failScreenshot = await page.screenshot({ path: '.playwright-artifacts/fail-auth.png', fullPage: true }) } catch (e) { /* best-effort */ }
   result.screenshot = failScreenshot
   console.log(JSON.stringify(result, null, 2))
-  throw new Error('e2e-story: fail-loud auth check failed — landed on login page')
+  throw new Error('run-e2e: fail-loud auth check failed — landed on login page')
 }
 
 // ── 5. Snapshot + interact ─────────────────────────────────────────────
