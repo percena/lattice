@@ -8,8 +8,8 @@
     {
       "name": "lattice",
       "source": "./plugins/lattice",
-      "description": "Full Lattice loop for Claude: start-work, create-spec, create-review, create-tickets, create-pr, finish-work, _lattice-lib, and the create-adr out-of-band ADR companion. Optional hooks advise on bare gh pr create/merge; strict mode opts into marker gates.",
-      "version": "0.1.0",
+      "description": "Full Lattice loop for Claude: start-work, create-spec, create-review, create-tickets, batch-work, create-pr, finish-work, _lattice-lib, create-adr, run-e2e, and review-code/review-production side-paths. Optional hooks advise on bare gh pr create/merge; strict mode opts into marker gates.",
+      "version": "0.1.9",
       "keywords": [
         "lattice",
         "workflow",
@@ -17,9 +17,12 @@
         "create-spec",
         "create-review",
         "create-tickets",
+        "batch-work",
         "create-pr",
         "finish-work",
         "create-adr",
+        "run-e2e",
+        "review-code",
         "skills",
         "_lattice-lib"
       ]
