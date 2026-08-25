@@ -1,14 +1,14 @@
 ---
-name: e2e-story
+name: run-e2e
 description: "Reference pattern for writing ego-browser heredoc JS end-to-end test scripts: one Bash invocation per story, fail-loud auth checks, structured JSON output via console.log. Not a YAML runner, not ERP auto-playwright. Use when authoring or reviewing e2e stories that drive a real Chromium browser against a local or deployed web app."
 allowed-tools: Bash Read Grep Glob
 metadata:
   agents: "claude-code,codex"
 ---
 
-# e2e-story
+# run-e2e
 
-e2e-story is a **reference pattern** for writing end-to-end test scripts with [ego-browser](../../ego-lite/skills/ego-browser/SKILL.md). A story is a single `ego-browser nodejs <<'EOF' ... EOF` heredoc that navigates a real Chromium page, interacts through semantic locators, captures screenshot evidence, runs assertions via `page.evaluate`, and prints one structured JSON object to stdout. The caller (a Lattice skill, a CI step, or a human) reads that JSON.
+run-e2e is a **reference pattern** for writing end-to-end test scripts with [ego-browser](../../ego-lite/skills/ego-browser/SKILL.md). A story is a single `ego-browser nodejs <<'EOF' ... EOF` heredoc that navigates a real Chromium page, interacts through semantic locators, captures screenshot evidence, runs assertions via `page.evaluate`, and prints one structured JSON object to stdout. The caller (a Lattice skill, a CI step, or a human) reads that JSON.
 
 This skill documents the pattern; it is **not** a separate runner. There is no YAML, no step DSL, no plugin loader. You write JavaScript in a heredoc and run it with one Bash call.
 
@@ -58,7 +58,7 @@ if (expectedAuth && looksLikeLogin) {
   try { failScreenshot = await page.screenshot({ path: '.playwright-artifacts/fail-auth.png', fullPage: true }) } catch (e) { /* best-effort */ }
   result.screenshot = failScreenshot
   console.log(JSON.stringify(result, null, 2))
-  throw new Error('e2e-story: fail-loud auth check failed — landed on login page')
+  throw new Error('run-e2e: fail-loud auth check failed — landed on login page')
 }
 ```
 
@@ -93,7 +93,7 @@ Because task spaces inherit the user's login state, an unexpected login redirect
 
 ## Not a YAML runner
 
-e2e-story is **heredoc JS, not a YAML runner**. There is no `steps:` block, no `assert:` DSL, no plugin discovery. Rationale (ADR-002 §2):
+run-e2e is **heredoc JS, not a YAML runner**. There is no `steps:` block, no `assert:` DSL, no plugin discovery. Rationale (ADR-002 §2):
 
 - ego-browser already exposes a complete, Playwright-style JS facade; a DSL on top only re-encodes the same calls with less power.
 - In-process adaptation (branch on `page.evaluate` results, retry within the same script) is the ego-browser execution model; a YAML step list forces one round-trip per step.
@@ -126,7 +126,7 @@ If you reach for a runner, write the heredoc instead.
 
 ## Flow
 
-1. **Select task space.** `const task = await taskSpaces.useOrCreate('weftd smoke')`.
+1. **Select task space.** `const task = await taskSpaces.useOrCreate('app smoke')`.
 2. **Subscribe to console/page errors** before navigation, so errors during load are captured.
 3. **Navigate.** `await browser.openOrReuseTab(url, { wait: true, timeout: 20000 })`.
 4. **Fail-loud auth check.** If the page should be authenticated but looks like a login page, capture a fail screenshot, emit fail JSON, then throw.
@@ -166,4 +166,4 @@ Before declaring a story done, confirm:
 
 # References:
 - [Story heredoc template](references/story-template.md)
-- [Example: weftd smoke story](examples/weftd-smoke.story.md)
+- [Example: app smoke story](examples/smoke-test.story.md)

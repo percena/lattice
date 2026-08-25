@@ -42,7 +42,7 @@
 - Spec: `spc-12` (path above)
 - ADR: `ADR-002` → `docs/adr/002-lattice-skill-gap-bridge-adaptations.md`
 - Review: `rev-20260825-072540Z` Finding 3
-- ERP reference: `/Users/mxue/GitRepos/FlowDance/erp/.claude/skills/implement/references/step-0c-pre-fix-reproduction.md`, `step-1b-post-fix-verification.md`
+- ERP reference: `FlowDance ERP skill: implement/references/step-0c-pre-fix-reproduction.md`, `step-1b-post-fix-verification.md`
 
 ## Lineage
 

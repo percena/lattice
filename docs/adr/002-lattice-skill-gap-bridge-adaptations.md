@@ -8,12 +8,12 @@
 
 ## Context
 
-A cross-comparison review (`rev-20260825-072540Z`) examined 7 FlowDance ERP skills (`request-feature`, `report-bug`, `request-harness`, `implement`, `batch-implement`, `auto-playwright`, `fast-deploy`) against Lattice's 10-skill lifecycle. The review identified 5 borrowable patterns (a 6th, deploy quality gates for `deploy-weftd-flitro`, was deemed out-of-scope — that skill lives in the weftd repo, not Lattice) and also identified patterns that should NOT be directly ported because Lattice's architecture is fundamentally different (GitHub-native vs Firestore-native, lighter binder vs 18-step manifest).
+A cross-comparison review (`rev-20260825-072540Z`) examined 7 FlowDance ERP skills (`request-feature`, `report-bug`, `request-harness`, `implement`, `batch-implement`, `auto-playwright`, `fast-deploy`) against Lattice's 10-skill lifecycle. The review identified 5 borrowable patterns (a 6th, deploy quality gates for a non-Lattice deploy skill, was deemed out-of-scope — that skill lives in another repo, not Lattice) and also identified patterns that should NOT be directly ported because Lattice's architecture is fundamentally different (GitHub-native vs Firestore-native, lighter binder vs 18-step manifest).
 
 The key forces driving this decision:
 
 1. **Lattice is GitHub-native.** GitHub issues are the team SoT for `spc-N` and `tkt-N`. ERP's Firestore-only filing shape (HARNESS-548) — where the `created` event is the durable record and the folder is hydrated into git later — doesn't directly translate. The *principle* (cheap filing, expensive booking) does.
-2. **ego-browser already exists** as a Lattice-available skill (`/Users/mxue/GitRepos/infra/ego-lite/skills/ego-browser/SKILL.md`, v1.2.6). Its task-space model inherits the user's live login state without auth fixtures, eliminating the cross-port auth problem (ERP HARNESS-421) that ERP's `auto-playwright` required significant engineering to solve.
+2. **ego-browser already exists** as a Lattice-available skill (`ego-browser skill (v1.2.6)`, v1.2.6). Its task-space model inherits the user's live login state without auth fixtures, eliminating the cross-port auth problem (ERP HARNESS-421) that ERP's `auto-playwright` required significant engineering to solve.
 3. **Lattice's sibling worktree model** (one worktree per tkt, `ensure-workspace.sh --mode worktree`) already supports concurrent work. `create-tickets` already defines `parallel_group` + independence gates. The infrastructure for batch orchestration exists — the orchestration layer does not.
 4. **Lattice's quality side-path** (`review-code`, advice-only) is deliberately lighter than ERP's `guard.sh` step-manifest enforcement (18 steps, required artifacts, `unobtainable_artifacts` declarations). Lattice's binder is artifact-level, not step-level.
 
@@ -37,13 +37,13 @@ We will adopt **Option B — Lattice-native adaptations.** Specifically:
 
 1. **GitHub-native, not Firestore-native.** Lattice does NOT adopt ERP's Firestore-only filing shape. Duplicate-work precheck will use `gh issue list --state open --search` + `git worktree list` + `gh pr list --state open` — three surfaces (Lattice has no separate tracker queue). The principle of "check before creating" applies; the implementation is GitHub-native.
 
-2. **ego-browser is the approved browser automation foundation.** Lattice does NOT port ERP's `auto-playwright` runtime. ego-browser's task-space login-state inheritance eliminates the cross-port auth problem (HARNESS-421) natively. A thin `e2e-story` reference layer will be built on ego-browser heredoc JS scripts (goto/click/fill/assert/screenshot primitives + fail-loud auth check + structured JSON output), NOT a separate YAML runner or profile management system.
+2. **ego-browser is the approved browser automation foundation.** Lattice does NOT port ERP's `auto-playwright` runtime. ego-browser's task-space login-state inheritance eliminates the cross-port auth problem (HARNESS-421) natively. A thin `run-e2e` reference layer will be built on ego-browser heredoc JS scripts (goto/click/fill/assert/screenshot primitives + fail-loud auth check + structured JSON output), NOT a separate YAML runner or profile management system.
 
 3. **Batch orchestration reuses sibling worktree model.** A `batch-work` skill will read `parallel_group` from create-tickets binders → spawn agents per group (one worktree each, via `ensure-workspace.sh`) → layer-barrier sync → `BATCH_WORK=1` env blocks finish-work merge (only create-pr; human reviews then finish-work). This is NOT ERP's Firestore-based DAG (`build-program-dag.mjs`) — it reuses Lattice's existing worktree + independence-gate infrastructure.
 
 4. **Step-manifest concept is explicitly deferred.** Lattice's binder stays artifact-level (binder README + Acceptance checkboxes + Finish ledger), NOT step-level. If the `batch-work` skill needs per-worktree progress for layer-barrier sync, a lightweight per-worktree progress file (not a global manifest) will suffice. ERP's `step-manifest.json` + `guard.sh` enforcement is NOT adopted.
 
-5. **Deploy quality gates for deploy-weftd-flitro are out-of-scope.** `deploy-weftd-flitro` is NOT a Lattice project skill (it lives in the weftd repo at `/Users/mxue/GitRepos/MVP/weftd/`). Deploy quality improvements belong in a weftd-repo spec, not this Lattice ADR. The review's Finding 4 remains valid research context but does not spawn Lattice delivery items.
+5. **Non-Lattice deploy skill quality gates are out-of-scope.** a non-Lattice deploy skill is NOT a Lattice project skill (it lives in another repo). Deploy quality improvements belong in that project's repo, not this Lattice ADR. The review's Finding 4 remains valid research context but does not spawn Lattice delivery items.
 
 ## Consequences
 
@@ -64,7 +64,7 @@ We will adopt **Option B — Lattice-native adaptations.** Specifically:
 
 ## Status history
 
-- 2026-08-25: Proposed → Accepted (stemming from `rev-20260825-072540Z` cross-comparison review; deploy-weftd-flitro scope error corrected same day)
+- 2026-08-25: Proposed → Accepted (stemming from `rev-20260825-072540Z` cross-comparison review; deploy skill scope error corrected same day)
 
 ## Notes
 

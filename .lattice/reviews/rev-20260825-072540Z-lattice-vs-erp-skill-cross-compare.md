@@ -21,7 +21,7 @@ related_prs: []
 
 ## Context
 
-The user asked to cross-compare the current Lattice project's skills with 7 important skills from the FlowDance ERP project (`/Users/mxue/GitRepos/FlowDance/erp`), focusing on: `request-feature`, `report-bug`, `request-harness`, `implement`, `batch-implement`, `auto-playwright`, `fast-deploy`. The goal is to identify patterns Lattice could borrow. Two Explore agents inventoried both skill sets in detail; two further verification agents confirmed all technical claims against the actual SKILL.md files and the ego-browser skill at `/Users/mxue/GitRepos/infra/ego-lite/skills/ego-browser/SKILL.md`.
+The user asked to cross-compare the current Lattice project's skills with 7 important skills from the FlowDance ERP project (`FlowDance ERP project`), focusing on: `request-feature`, `report-bug`, `request-harness`, `implement`, `batch-implement`, `auto-playwright`, `fast-deploy`. The goal is to identify patterns Lattice could borrow. Two Explore agents inventoried both skill sets in detail; two further verification agents confirmed all technical claims against the actual SKILL.md files and the ego-browser skill at `ego-browser skill (v1.2.6)`.
 
 **Two skill systems at a glance:**
 
@@ -33,7 +33,7 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 | `/implement` | Intentionally absent (EXECUTE is a state inside start-work) | Unified end-to-end delivery with step-manifest + guard.sh |
 | Batch/parallel | create-tickets defines parallel_group but does not orchestrate execution | batch-implement: DAG + `claude --bg` concurrent spawning |
 | Browser automation | playwright-cli + playwright-record-demo | auto-playwright: 3 modes + story DSL + persistent auth |
-| Deploy | deploy-weftd-flitro (pull image + restart compose) | fast-deploy: incremental detection + review + tests + two gates |
+| Deploy | a non-Lattice deploy skill (pull image + restart compose) | fast-deploy: incremental detection + review + tests + two gates |
 
 ## Problem Audit
 
@@ -66,20 +66,20 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 - Lattice: start-work SKILL.md lines 82-93 — EXECUTE goes straight to implementation. Line 91: "DEFAULT: no forced TDD." The only verify is a generic DoD check at step 8 (line 93): "VERIFY with fresh command evidence" — "tests pass with fresh output this session," not a bug-specific reproduce-then-fix-then-verify loop.
 - **Lattice-native adaptation:** Add a bug-type classification to start-work's CLASSIFY step. For bug-class tickets: Phase 0c (reproduce, capture evidence) → Phase 1 (fix) → Phase 1b (re-verify, cross-compare, max 2 cycles). This is lighter than ERP's 18-step manifest — just two extra phases gated on ticket type.
 
-### 4. deploy-weftd-flitro lacks pre-deploy quality gate and diff classification — **OUT OF SCOPE (not a Lattice skill)**
+### 4. Non-Lattice deploy skill lacks pre-deploy quality gate — **OUT OF SCOPE**
 
 **Evidence:**
-- ERP: `fast-deploy` (549 lines) — two-gate design: Gate 1 (environment checks + sync remote + read last deployed version + classify diff via `tools/classify-diff.mjs` → confirm scope) → Steps 1-4 unattended (code review + full test suite, parallel) → Gate 2 (comprehensive summary with review findings + test results + deploy plan → final approval) → Steps 6-7 auto (execute deploys + post-deploy verify). Hosting and Functions deploy independently (HARNESS-1061) with separate baselines; already-deployed functions skipped. `classify-diff.mjs` maps diff to deploy targets (frontend → hosting, api → functions, docs/skill/tool → no deploy, early exit).
-- Lattice: `deploy-weftd-flitro` (at `/Users/mxue/.claude/skills/deploy-weftd-flitro/SKILL.md`, also mirrored in weftd repo `/Users/mxue/GitRepos/MVP/weftd/`) — grep for "code.review", "test run", "diff classif", "changed component", "only deploy.*changed" returned zero matches. The only pre-deploy checks are infrastructure pre-flight (project dir, compose file, `.env`, GHCR auth, port bind sanity). There IS a WS-5 schema gate (operator must confirm `sessions.token_epoch` column exists on prod Supabase before rolling weftd) — but this is a DB schema precondition, not a code-review/test quality gate. There IS a manual `SERVICE` selector (`all | weftd | agentd`) — but manual selection, not automatic diff-based detection.
-- **OUT OF SCOPE:** `deploy-weftd-flitro` is NOT a Lattice project skill — it lives in the weftd repo (`/Users/mxue/GitRepos/MVP/weftd/`), not in the lattice repo. Deploy quality improvements belong in a weftd-repo spec, not a Lattice spec. Finding retained as research context; does NOT spawn a Lattice delivery ticket. (tkt-17 was closed as scope error; ADR-002 §5 documents this exclusion.)
+- ERP: `fast-deploy` (549 lines) — two-gate design: Gate 1 (environment checks + sync remote + read last deployed version + classify diff → confirm scope) → Steps 1-4 unattended (code review + full test suite, parallel) → Gate 2 (comprehensive summary with review findings + test results + deploy plan → final approval) → Steps 6-7 auto (execute deploys + post-deploy verify). Hosting and Functions deploy independently (HARNESS-1061) with separate baselines; already-deployed functions skipped.
+- A non-Lattice deploy skill was reviewed — it has only infrastructure pre-flight checks (project dir, compose file, env, auth, port sanity). No code review, no test run, no diff classification. It has a DB schema precondition gate and a manual service selector, but neither is a quality gate.
+- **OUT OF SCOPE:** This deploy skill is NOT a Lattice project skill. Deploy quality improvements belong in that project's own repo, not a Lattice spec. Finding retained as research context; does NOT spawn a Lattice delivery ticket.
 
 ### 5. Auto-playwright should NOT be ported — ego-browser already provides a superior foundation
 
 **Evidence:**
 - ERP: `auto-playwright` (481 lines) — three modes (visible CLI, `--logs`, `--story`). Cross-port auth (HARNESS-421) solves Firebase web auth's IndexedDB-partition-by-origin problem via `newContext({storageState})` rewriting origin. Story DSL (YAML): open/goto/click/fill/select/press/wait/screenshot/assert/evaluate/tab/usb/serial/firestore_get. Device emulation (HARNESS-1047) at context level. Output: stdout JSON, exit 0 always.
-- ego-browser: `/Users/mxue/GitRepos/infra/ego-lite/skills/ego-browser/SKILL.md` (v1.2.6) — provides Playwright-shaped API (`page`, `page.locator`, `browser`, `taskSpaces`, `fetch`, `cdp`) via `ego-browser nodejs` heredoc. **Login state inheritance via task spaces** — agents reuse user's live login state without auth fixtures, solving ERP's cross-port auth problem natively. Isolated space (no human competition). One Bash invocation per task with in-process adaptation. `screencast` (VP8 WebM), `screenshot`, `evaluate`, full locator chain. `cdp` escape hatch. Output: stdout JSON via `console.log`. No process spawn overhead (reuses running ego lite Chromium).
+- ego-browser: `ego-browser skill (v1.2.6)` (v1.2.6) — provides Playwright-shaped API (`page`, `page.locator`, `browser`, `taskSpaces`, `fetch`, `cdp`) via `ego-browser nodejs` heredoc. **Login state inheritance via task spaces** — agents reuse user's live login state without auth fixtures, solving ERP's cross-port auth problem natively. Isolated space (no human competition). One Bash invocation per task with in-process adaptation. `screencast` (VP8 WebM), `screenshot`, `evaluate`, full locator chain. `cdp` escape hatch. Output: stdout JSON via `console.log`. No process spawn overhead (reuses running ego lite Chromium).
 - **Comparison:** ego-browser eliminates ERP's entire cross-port auth engineering (HARNESS-421/243/275), profile management, and device-emulation complexity. The task-space isolation model is architecturally superior to Playwright's per-run browser launch. The only thing worth borrowing from ERP is the **story DSL concept** — but implemented as ego-browser heredoc JS script templates (with assertion primitives and structured output), not a separate YAML runner.
-- **Lattice-native adaptation:** Build a thin `e2e-story` skill (or reference template) on ego-browser: heredoc JS script pattern with goto/click/fill/assert/screenshot primitives + fail-loud auth check (expected auth but landed on login → FAIL) + structured JSON output. No separate runtime, no YAML parser, no profile management. Leverage ego-browser's `page.evaluate` for assertions, `page.screenshot` for evidence, `taskSpaces` for auth.
+- **Lattice-native adaptation:** Build a thin `run-e2e` skill (or reference template) on ego-browser: heredoc JS script pattern with goto/click/fill/assert/screenshot primitives + fail-loud auth check (expected auth but landed on login → FAIL) + structured JSON output. No separate runtime, no YAML parser, no profile management. Leverage ego-browser's `page.evaluate` for assertions, `page.screenshot` for evidence, `taskSpaces` for auth.
 
 ### 6. Step-manifest concept absent — lower priority
 
@@ -93,7 +93,7 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 1. **Create a Spec** (spc-12) formalizing these borrowable capabilities as Lattice-native skills or skill enhancements. Five findings map to deliverable work items; Finding 4 (deploy gates) is out-of-scope (not a Lattice skill).
 2. **Write an ADR** documenting the architectural decision: Lattice stays GitHub-native (not Firestore), ego-browser supersedes auto-playwright, batch orchestration reuses sibling worktree model.
 3. **Priority order for tickets:** batch-work (Finding 2) > duplicate-work precheck (Finding 1) > ego-browser e2e story runner (Finding 5) > pre/post-fix reproduction loop (Finding 3) > step-manifest (Finding 6, deferred).
-4. **Explicitly reject:** porting ERP's auto-playwright runtime, porting ERP's Firestore-only filing shape, porting ERP's guard.sh step-manifest enforcement as-is, modifying deploy-weftd-flitro (not a Lattice skill).
+4. **Explicitly reject:** porting ERP's auto-playwright runtime, porting ERP's Firestore-only filing shape, porting ERP's guard.sh step-manifest enforcement as-is, modifying a non-Lattice deploy skill (not a Lattice skill).
 
 ## Outcome (required to conclude)
 
@@ -107,16 +107,16 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 
 - [x] Spec `spc-12` — created in same-pass worktree
 - [x] ADR-002 — cross-feature architecture decision (`docs/adr/002-lattice-skill-gap-bridge-adaptations.md`)
-- [x] Tickets — tkt-13 (A1), tkt-14 (A3), tkt-15 (A2), tkt-16 (A4); A5 deferred (documented in spec Decisions); tkt-17 closed (deploy-weftd-flitro scope error)
+- [x] Tickets — tkt-13 (A1), tkt-14 (A3), tkt-15 (A2), tkt-16 (A4); A5 deferred (documented in spec Decisions); tkt-17 closed (deploy skill scope error)
 
 ## References
 
-- Lattice skills: `/Users/mxue/GitRepos/MVP/lattice/skills/` (start-work, finish-work, create-spec, create-tickets, create-pr, create-review, review-code, review-production, create-adr, generate-wiki, _lattice-lib)
-- Lattice scripts: `/Users/mxue/.claude/skills/_lattice-lib/scripts/` (14 scripts, verified no duplicate-work detector)
-- ERP skills: `/Users/mxue/GitRepos/FlowDance/erp/.claude/skills/` (~134 skills, SKILLS-MAP.md catalogue)
+- Lattice skills: `skills/` (start-work, finish-work, create-spec, create-tickets, create-pr, create-review, review-code, review-production, create-adr, generate-wiki, _lattice-lib)
+- Lattice scripts: `_lattice-lib/scripts/` (14 scripts, verified no duplicate-work detector)
+- ERP skills: `FlowDance ERP skill: ` (~134 skills, SKILLS-MAP.md catalogue)
 - ERP priority skills: `request-feature/SKILL.md` (255 lines), `report-bug/SKILL.md` (280 lines), `request-harness/SKILL.md` (296 lines), `implement/SKILL.md` (361 lines + 18 reference files), `batch-implement/SKILL.md` (71 lines), `auto-playwright/SKILL.md` (481 lines), `fast-deploy/SKILL.md` (549 lines)
-- ego-browser: `/Users/mxue/GitRepos/infra/ego-lite/skills/ego-browser/SKILL.md` (v1.2.6, 2026-07-20)
-- deploy-weftd-flitro: `/Users/mxue/.claude/skills/deploy-weftd-flitro/SKILL.md`
+- ego-browser: `ego-browser skill (v1.2.6)` (v1.2.6, 2026-07-20)
+- a non-Lattice deploy skill: 
 
 ## Links
 
