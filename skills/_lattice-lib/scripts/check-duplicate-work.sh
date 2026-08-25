@@ -86,7 +86,7 @@ tokenize() {
   # Extract alphanumeric tokens >=3 chars
   printf '%s' "$text" | grep -oE '[a-z0-9]{3,}' 2>/dev/null || true
   # Extract CJK runs >=3 chars (perl-compatible grep)
-  printf '%s' "$text" | grep -oE $(printf '[\xe4\xb8\x80-\xe9\xbf\xbf]{3,}') 2>/dev/null || true
+  printf '%s' "$text" | grep -oE "$(printf '[\xe4\xb8\x80-\xe9\xbf\xbf]{3,}')" 2>/dev/null || true
 }
 
 # Bash 3.2-compatible array from command output
@@ -110,13 +110,6 @@ if [[ ${#TITLE_TOKENS[@]} -eq 0 ]]; then
   fi
   exit 0
 fi
-
-# --- Count shared tokens between two arrays ---
-count_shared() {
-  local -a a1=("${!1}")  # bash 3.2 doesn't support nameref; use eval
-  # Actually bash 3.2 doesn't support nameref well. Inline the logic instead.
-  return 0
-}
 
 # Inline shared-token counting (bash 3.2 safe)
 count_shared_tokens() {
