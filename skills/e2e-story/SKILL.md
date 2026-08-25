@@ -3,8 +3,6 @@ name: e2e-story
 description: "Reference pattern for writing ego-browser heredoc JS end-to-end test scripts: one Bash invocation per story, fail-loud auth checks, structured JSON output via console.log. Not a YAML runner, not ERP auto-playwright. Use when authoring or reviewing e2e stories that drive a real Chromium browser against a local or deployed web app."
 allowed-tools: Bash Read Grep Glob
 metadata:
-  version: "0.1.0"
-  date: "2026-08-25"
   agents: "claude-code,codex"
 ---
 
@@ -31,7 +29,8 @@ Every story composes these ego-browser primitives. Names mirror the ego-browser 
 | **press** | `await page.keyboard.press('Enter')` / `await locator.press('Tab')` | For key chords and submit-on-Enter. |
 | **screenshot** | `await page.screenshot({ path, fullPage: true })` | Evidence capture. Use `page.info()` first; if `w:0`/`h:0`, stop and re-verify the tab. |
 | **assert** | `await page.evaluate(() => { ... ; return bool })` | Runs in-page; returns the value directly. Do **not** `JSON.parse` the result. Return `true`/`false` or a structured object; the story interprets. |
-| **wait** | `page.waitForResponse` / `page.waitForURL` / `page.waitForLoadState` / `page.waitForFunction` | Register before the triggering action. These return falsy on timeout — check the result. |
+| **wait (state)** | `page.waitForURL` / `page.waitForLoadState` / `page.waitForFunction` | Register before the triggering action. These return falsy on timeout — check the result. |
+| **wait (response)** | `page.waitForResponse` | Register before the triggering action. waitForResponse throws on timeout (not falsy); wrap in try/catch. |
 | **fetch** | `fetch.server(...)` / `fetch.browser(...)` | Node-side or in-origin requests; escape hatch for API-level probes. |
 | **cdp** | `cdp('Page.handleJavaScriptDialog', { accept: true })` | Escape hatch only; dismiss dialogs via `page.info()` first. |
 
@@ -44,11 +43,22 @@ Pattern: after `goto`, inspect `await page.url()` and `await page.title()` (or a
 ```js
 const url = await page.url()
 const title = await page.title()
-const looksLikeLogin = /\/login|\/sign-in|\/auth/i.test(url) ||
+const looksLikeLogin = /\/auth\/login|\/sign-in|\/login/i.test(url) ||
   /sign in|log in/i.test(title || '')
 if (expectedAuth && looksLikeLogin) {
-  console.log(JSON.stringify({ status: 'fail', reason: 'landed-on-login', url, title }))
-  return
+  const result = {
+    status: 'fail',
+    reason: 'landed-on-login',
+    url,
+    title,
+    consoleErrors,
+    pageErrors,
+  }
+  let failScreenshot = null
+  try { failScreenshot = await page.screenshot({ path: '.playwright-artifacts/fail-auth.png', fullPage: true }) } catch (e) { /* best-effort */ }
+  result.screenshot = failScreenshot
+  console.log(JSON.stringify(result, null, 2))
+  throw new Error('e2e-story: fail-loud auth check failed — landed on login page')
 }
 ```
 
@@ -62,6 +72,7 @@ Because task spaces inherit the user's login state, an unexpected login redirect
 {
   "status": "pass" | "fail",
   "reason": "short machine-readable code (e.g. title-mismatch, landed-on-login, console-errors)",
+  "taskSpaceId": "task space id (string)",
   "url": "final page url",
   "title": "final page title",
   "assertions": [
@@ -69,14 +80,16 @@ Because task spaces inherit the user's login state, an unexpected login redirect
     { "name": "no console errors", "pass": true }
   ],
   "screenshot": "path/to/evidence.png",
-  "consoleErrors": []
+  "consoleErrors": [],
+  "pageErrors": []
 }
 ```
 
 - `console.log(JSON.stringify(result, null, 2))` once, at the end.
 - Do not print intermediate JSON objects; intermediate reads stay in-script.
 - Screenshots are file paths the caller can attach as evidence.
-- Capture console errors by subscribing before navigation: `page.on('console', e => { if (e.type() === 'error') errors.push(e.text()) })` and via `page.on('pageerror', e => errors.push(e.message))`.
+- Capture console errors by subscribing before navigation: `page.on('console', e => { if (e.type() === 'error') errors.push(e.text()) })` for `consoleErrors` and `page.on('pageerror', e => errors.push(e.message))` for `pageErrors`. `pageErrors` (uncaught page exceptions) and `consoleErrors` (`console.error` calls) are separate arrays — do not merge them.
+- **Caller parsing note:** extract the JSON object from stdout; a trailing `[ego-browser:notice]` line may follow the JSON and must be ignored before `JSON.parse`. Split on the last `{` ... `}` object or strip trailing notice lines before parsing.
 
 ## Not a YAML runner
 
@@ -116,7 +129,7 @@ If you reach for a runner, write the heredoc instead.
 1. **Select task space.** `const task = await taskSpaces.useOrCreate('weftd smoke')`.
 2. **Subscribe to console/page errors** before navigation, so errors during load are captured.
 3. **Navigate.** `await browser.openOrReuseTab(url, { wait: true, timeout: 20000 })`.
-4. **Fail-loud auth check.** If the page should be authenticated but looks like a login page, emit fail JSON and return.
+4. **Fail-loud auth check.** If the page should be authenticated but looks like a login page, capture a fail screenshot, emit fail JSON, then throw.
 5. **Snapshot + interact.** `page.snapshot()` → locators → click/fill/select/press. Register waits before triggering actions.
 6. **Assert.** `await page.evaluate(() => ...)` returning booleans; assemble an `assertions` array.
 7. **Evidence.** `await page.screenshot({ path, fullPage: true })`.

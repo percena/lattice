@@ -25,7 +25,7 @@ await browser.openOrReuseTab(target, { wait: true, timeout: 20000 })
 const url = await page.url()
 const title = await page.title()
 const EXPECTED_AUTH = true   // set false for public pages (e.g. /health)
-const looksLikeLogin = /\/login|\/sign-in|\/auth/i.test(url) ||
+const looksLikeLogin = /\/auth\/login|\/sign-in|\/login/i.test(url) ||
   /sign in|log in/i.test(title || '')
 if (EXPECTED_AUTH && looksLikeLogin) {
   const result = {
@@ -37,8 +37,11 @@ if (EXPECTED_AUTH && looksLikeLogin) {
     consoleErrors,
     pageErrors,
   }
+  let failScreenshot = null
+  try { failScreenshot = await page.screenshot({ path: '.playwright-artifacts/fail-auth.png', fullPage: true }) } catch (e) { /* best-effort */ }
+  result.screenshot = failScreenshot
   console.log(JSON.stringify(result, null, 2))
-  return
+  throw new Error('e2e-story: fail-loud auth check failed — landed on login page')
 }
 
 // ── 5. Snapshot + interact ─────────────────────────────────────────────
