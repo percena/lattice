@@ -36,6 +36,11 @@
 - `concurrency.group` uses `github.workflow` → split workflows get independent groups, run in parallel (no contention).
 - `fetch-depth: 0` only needed by `skill-quality` (validate-plugin-versions.py git diff); keep per-job, do not pollute plugin-validate.
 - **Known blocker for A1 green verification:** `plugins/lattice/skills/run-e2e` symlink is broken (points `../../../../skills/run-e2e`, one `../` too many) — tracked in **tkt-31** / #31 (OPEN). symlink-integrity job is red on any PR until tkt-31 lands. Verify A1/A3/A4 against the other jobs; treat symlink-integrity red as the known tkt-31 condition, not a regression of this ticket.
+- **Pre-existing reds observed on PR #37 (NOT caused by this split — jobs moved verbatim):**
+  - `symlink-integrity` (fail) → #31 broken run-e2e symlink.
+  - `skill-quality` (fail, 6s) → `validate-plugin-versions.py` reports TWO content errors: (a) same #31 symlink-escapes-repo-root; (b) **marketplace version mismatch** — `.claude-plugin/marketplace.json` = `0.1.0` vs `plugins/lattice/.claude-plugin/plugin.json` = `0.1.8`. (b) is a NEW finding, out of tkt-35 scope; needs its own ticket.
+  - Green on #37: `shellcheck` ✅, `plugin-validate` ✅ (confirms the moved heavy job works).
+- **A3 live-probe caveat:** `pull_request` path filters evaluate the full PR diff, so a docs-only commit on a PR that *also* changes workflow files still triggers both. A clean A3 live test needs a dedicated docs-only branch/PR. A3 stands on standard GitHub path-filter semantics (symmetric inverse of A4).
 
 ## References
 
