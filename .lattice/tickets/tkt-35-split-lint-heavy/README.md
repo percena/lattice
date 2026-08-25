@@ -9,7 +9,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/35 |
-| status | open |
+| status | closed |
 | adopted | true |
 | summary | split lint.yml heavy jobs into path-filtered workflow |
 | spec | (none — ci-chore) |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-35 |
 | **related_tickets** | tkt-31 |
 | **worktree_bind** | tkt-35-split-lint-heavy |
-| prs | #37 |
+| prs | #37 · pr-37 — https://github.com/percena/lattice/pull/37 |
 
 ## Acceptance (this slice)
 
@@ -47,3 +47,8 @@
 
 - GitHub issue #35 body is SoT for long prose
 - Predecessor commit `0e6ecc7` already dropped `dev` from push triggers across all three workflows
+
+## Finish
+
+- pr-37 merged: 2026-08-25T09:52:43Z — https://github.com/percena/lattice/pull/37 (base merge)
+- issue #35 closed: 2026-08-25T09:53:06Z — https://github.com/percena/lattice/issues/35
