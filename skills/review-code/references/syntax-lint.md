@@ -18,6 +18,8 @@ For each changed file, detect language by extension and run the first available 
 | `.ts` | `tsc --noEmit` (only if `tsconfig.json` present) | skip |
 | `.json` | `jq empty <file>` → `python3 -m json.tool <file>` | skip |
 | `.yaml` / `.yml` | `python3 -c "import yaml,sys; list(yaml.safe_load_all(open(sys.argv[1])))" <file>` | skip |
+
+> **YAML availability check:** `command -v` does not apply to Python one-liners. Test PyYAML first with `python3 -c "import yaml"` — if it raises `ModuleNotFoundError`, report `skipped for yaml, PyYAML not installed` (not a finding).
 | `.md` | `markdownlint <file>` (if installed) | skip |
 | other | skip | skip |
 
