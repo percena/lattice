@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A3** start-work CLASSIFY step identifies bug-class tickets and runs Phase 0c (reproduce from ticket Reproduction Steps, capture evidence in binder `reproduction-evidence.md`; if no longer reproduces, consider wont-fix) → Phase 1 (fix) → Phase 1b (re-verify, cross-comparison table, max 2 cycles)
+- [x] **A3** start-work CLASSIFY step identifies bug-class tickets and runs Phase 0c (reproduce from ticket Reproduction Steps, capture evidence in binder `reproduction-evidence.md`; if no longer reproduces, consider wont-fix) → Phase 1 (fix) → Phase 1b (re-verify, cross-comparison table, max 2 cycles)
 
 ## Notes
 

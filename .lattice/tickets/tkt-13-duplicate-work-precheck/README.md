@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `check-duplicate-work.sh` exists in `_lattice-lib/scripts/`, checks 3 surfaces (open GitHub issues via `gh issue list`, local worktrees via `git worktree list`, open PRs via `gh pr list`), uses semantic title matching (≥2 shared significant tokens or CJK run ≥3 chars), always advisory (exits 0), and is integrated into create-tickets pre-flight and start-work pre-flight
+- [x] **A1** `check-duplicate-work.sh` exists in `_lattice-lib/scripts/`, checks 3 surfaces (open GitHub issues via `gh issue list`, local worktrees via `git worktree list`, open PRs via `gh pr list`), uses semantic title matching (≥2 shared significant tokens or CJK run ≥3 chars), always advisory (exits 0), and is integrated into create-tickets pre-flight and start-work pre-flight
 
 ## Notes
 
