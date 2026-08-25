@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Fix `check-duplicate-work.sh` worktree surface double-counting: title tokens are now counted once per worktree (union of branch-token match and path-substring match), preventing false positives from common 3-letter words.
 - Replace unreliable `BATCH_WORK=1` env-var gate with marker-file mechanism (` .lattice/.batch-work-active`) that survives across ephemeral Bash sessions in spawned agents.
 - Fix dead `ego-browser` markdown link in `run-e2e` SKILL.md (relative path to non-existent `../../ego-lite/` replaced with name reference).
-- Remove closed-source project name leakage from `github-project-add.bats` test (`Weft-Kit` → `some-project`).
+- Remove closed-source project name leakage from test fixtures.
 - Serialize `finish-ledger.sh` rewrites on the binder directory inode so high-contention sibling PR stamps cannot split across unlinked sidecar locks and lose entries.
 - Resolve Finish repository identity as case-insensitive `host/owner/repo`, including GitHub Enterprise and offline host-preserving URLs, while keeping cross-repository stamping fail-closed.
 - Repair the online `gh pr view` / `gh issue view` JSON parsers used by `finish-ledger.sh`; real GitHub lookups no longer fail with an embedded Python `SyntaxError`.
