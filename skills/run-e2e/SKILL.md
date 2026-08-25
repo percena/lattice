@@ -8,7 +8,7 @@ metadata:
 
 # run-e2e
 
-run-e2e is a **reference pattern** for writing end-to-end test scripts with [ego-browser](../../ego-lite/skills/ego-browser/SKILL.md). A story is a single `ego-browser nodejs <<'EOF' ... EOF` heredoc that navigates a real Chromium page, interacts through semantic locators, captures screenshot evidence, runs assertions via `page.evaluate`, and prints one structured JSON object to stdout. The caller (a Lattice skill, a CI step, or a human) reads that JSON.
+run-e2e is a **reference pattern** for writing end-to-end test scripts with the ego-browser skill (an externally installed skill; install separately before use). A story is a single `ego-browser nodejs <<'EOF' ... EOF` heredoc that navigates a real Chromium page, interacts through semantic locators, captures screenshot evidence, runs assertions via `page.evaluate`, and prints one structured JSON object to stdout. The caller (a Lattice skill, a CI step, or a human) reads that JSON.
 
 This skill documents the pattern; it is **not** a separate runner. There is no YAML, no step DSL, no plugin loader. You write JavaScript in a heredoc and run it with one Bash call.
 

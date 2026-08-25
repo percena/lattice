@@ -33,7 +33,7 @@
 #     WARNING N possible overlap(s) -- review before proceeding
 #     INFO coverage gap -- matching is by token, not meaning
 #
-# Requires: `gh` with repo scope, `jq` (optional for --json).
+# Requires: `gh` with repo scope, `jq` (required for JSON parsing and --json output construction).
 
 set -eu
 
@@ -164,7 +164,13 @@ if [[ -n "$REPOSITORY" ]]; then
       SHARED=$(count_shared_tokens "$TITLE_TOKS_STR" "$ISSUE_TOKS_STR")
 
       if [[ $SHARED -ge 2 ]]; then
-        ISSUE_OVERLAPS+=("{\"number\":$ISSUE_NUM,\"title\":\"$ISSUE_TITLE\",\"url\":\"$ISSUE_URL\",\"shared_tokens\":$SHARED,\"surface\":\"open-issues\"}")
+        ISSUE_OVERLAPS+=("$(jq -nc \
+          --argjson number "$ISSUE_NUM" \
+          --arg title "$ISSUE_TITLE" \
+          --arg url "$ISSUE_URL" \
+          --argjson shared_tokens "$SHARED" \
+          --arg surface "open-issues" \
+          '{number:$number,title:$title,url:$url,shared_tokens:$shared_tokens,surface:$surface}')")
       fi
     done < <(printf '%s' "$ISSUES_JSON" | jq -c '.[]' 2>/dev/null || true)
   fi
@@ -185,19 +191,35 @@ if [[ -n "$REPO_ROOT" ]]; then
       WT_TOKS_STR="$WT_TOKS_STR $tok"
     done < <(tokenize "$WT_BRANCH")
 
-    # Also check title tokens in worktree path
-    PATH_SHARED=0
+    # Count title tokens found in either branch tokens or path substring (union, not sum —
+    # a token that appears in both is counted once, preventing false positives from common
+    # 3-letter words like "fix" matching in both the branch and the path).
+    SHARED=0
     for tt in "${TITLE_TOKENS[@]}"; do
-      if [[ "$WT_PATH" == *"$tt"* ]]; then
-        PATH_SHARED=$((PATH_SHARED + 1))
+      found=false
+      # Check branch tokens first
+      for ct in $WT_TOKS_STR; do
+        if [[ "$tt" == "$ct" ]]; then
+          found=true
+          break
+        fi
+      done
+      # Check path substring only if not already matched in branch (union)
+      if [[ "$found" == false && "$WT_PATH" == *"$tt"* ]]; then
+        found=true
+      fi
+      if [[ "$found" == true ]]; then
+        SHARED=$((SHARED + 1))
       fi
     done
 
-    SHARED=$(count_shared_tokens "$TITLE_TOKS_STR" "$WT_TOKS_STR")
-    SHARED=$((SHARED + PATH_SHARED))
-
     if [[ $SHARED -ge 2 ]]; then
-      WORKTREE_OVERLAPS+=("{\"branch\":\"$WT_BRANCH\",\"path\":\"$WT_PATH\",\"shared_tokens\":$SHARED,\"surface\":\"worktrees\"}")
+      WORKTREE_OVERLAPS+=("$(jq -nc \
+        --arg branch "$WT_BRANCH" \
+        --arg path "$WT_PATH" \
+        --argjson shared_tokens "$SHARED" \
+        --arg surface "worktrees" \
+        '{branch:$branch,path:$path,shared_tokens:$shared_tokens,surface:$surface}')")
     fi
   done < <(git worktree list 2>/dev/null || true)
 fi
@@ -223,7 +245,13 @@ if [[ "$SKIP_REMOTE" == false && -n "$REPOSITORY" ]]; then
       SHARED=$(count_shared_tokens "$TITLE_TOKS_STR" "$PR_TOKS_STR")
 
       if [[ $SHARED -ge 2 ]]; then
-        PR_OVERLAPS+=("{\"number\":$PR_NUM,\"title\":\"$PR_TITLE\",\"url\":\"$PR_URL\",\"shared_tokens\":$SHARED,\"surface\":\"open-prs\"}")
+        PR_OVERLAPS+=("$(jq -nc \
+          --argjson number "$PR_NUM" \
+          --arg title "$PR_TITLE" \
+          --arg url "$PR_URL" \
+          --argjson shared_tokens "$SHARED" \
+          --arg surface "open-prs" \
+          '{number:$number,title:$title,url:$url,shared_tokens:$shared_tokens,surface:$surface}')")
       fi
     done < <(printf '%s' "$PRS_JSON" | jq -c '.[]' 2>/dev/null || true)
   fi

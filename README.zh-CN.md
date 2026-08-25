@@ -36,7 +36,7 @@ npx skills add percena/lattice -g -y
   /create-spec  |  /create-review
        ↓
   /create-tickets
-       ↓
+       ↓                         ↘ /batch-work (parallel groups → fan-out)
   /start-work
        ↓
   implement
@@ -75,15 +75,17 @@ npx skills add percena/lattice -g -y
 | [`create-spec`](./skills/create-spec/) | 持久化带验收标准的 Lattice Spec（`spc-n`） | `/create-spec` |
 | [`create-review`](./skills/create-review/) | 持久化带显式 outcome 的 Lattice Review（`rev-YYYYMMDD-HHMMSSZ`） | `/create-review` |
 | [`create-tickets`](./skills/create-tickets/) | 将已锁定范围拆分为 GitHub issues + 活页夹 | `/create-tickets` |
+| [`batch-work`](./skills/batch-work/) | DAG 编排扇出：在多个 sibling 工作树上并行派发 `start-work` 代理，层间屏障同步 | `/batch-work` |
 | [`create-pr`](./skills/create-pr/) | 开启/更新格式规范的 GitHub PR | `/create-pr` |
 | [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、合并、清理 | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | 支撑上述技能的共享脚本（共装，非 slash 入口） | — |
 
-非交付循环——分三类，均不产生血缘节点：
+非交付循环——分四类，均不产生血缘节点：
 
 | 类别 | 技能 | 说明 |
 | --- | --- | --- |
 | PR 范围质量旁路 | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | 可选，在 `/create-pr` 前后；不依赖 `_lattice-lib` |
+| E2e 参考模式 | [`run-e2e`](./skills/run-e2e/) | ego-browser heredoc JS story 模式；一次 Bash 调用一个 story，fail-loud 认证，结构化 JSON；非 runner，非循环入口 |
 | 独立文档工具 | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`；随时可跑；不依赖 `_lattice-lib` |
 | 带外伴生（`create-*` 家族） | [`create-adr`](./skills/create-adr/) | 写 `docs/adr/NNN`；共装 `_lattice-lib`；**非血缘节点**——与 `/create-spec`/`/create-review` 同 pass 同 worktree 调用（提升跨特性决策）；绝非循环入口或 Spec 替代品 |
 

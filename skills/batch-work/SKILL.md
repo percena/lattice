@@ -45,7 +45,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | --- | --- |
 | Independence gate | Every ticket in a parallel group must pass the `create-tickets` independence gates (disjoint `paths`, no shared API/type without Spec/ADR). Path-overlapping tickets are **serial** within one tree, not parallel |
 | One worktree per tkt | Each spawned ticket gets its own sibling worktree via `ensure-workspace.sh --mode worktree --bind tkt --id N --slug <slug>`. Never share a tree across parallel tickets |
-| `BATCH_WORK=1` blocks merge | Spawned agents run with `BATCH_WORK=1`, which blocks `finish-work` merge. Agents stop at `create-pr` (PR opened, human reviews, then `finish-work`) |
+| Batch marker blocks merge | Before spawning each agent, the orchestrator writes a `.lattice/.batch-work-active` marker file in the worktree. `finish-work` checks for this marker and refuses `gh pr merge` if present. Agents stop at `create-pr` (PR opened, human reviews, then `finish-work` removes the marker and merges) |
 | RAM threshold before spawn | Before each layer spawn, check available RAM ≥ threshold (default 10 GB). Below threshold → fail closed for that layer (do not spawn); report and stop |
 | Failure isolation | One agent crash does not block peers in the same layer or subsequent layers. Collect exit codes; a failed ticket is reported, not fatal |
 | Accountable owner | One host owns DAG build, spawn, collect, and report. Delegated `start-work` agents own only their bounded ticket brief; host validates final PR list |
@@ -59,7 +59,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | `--concurrency 3` per layer | User opt-in `--concurrency N`; respect machine RAM + agent overhead |
 | RAM threshold 10 GB | `--ram-threshold <GB>`; set 0 to disable (not recommended) |
 | **Required:** one of `--ids` or `--groups` | `--ids ID1,ID2,…` runs one layer (all parallel if gates pass); `--groups` reads `parallel_group` + `blocked_by` from **all** binders and builds DAG |
-| `BATCH_WORK=1` → agents create-pr only | `BATCH_WORK=0` allows agents to call `finish-work` (discouraged; loses human review gate) |
+| Batch marker → agents create-pr only | To disable the gate, omit the marker file (discouraged; loses human review gate) |
 | Report to stdout | `--report <path>` writes a durable Markdown report |
 | Dry-run shows DAG + layers, no spawn | `--dry-run` always exits before any `ensure-workspace` / Agent call |
 | Base = integration-branch resolved | `--base <ref>` override; passed through to `ensure-workspace` |
@@ -89,18 +89,18 @@ bash "$LIB/ensure-lattice.sh"
    - Resolve worktree binding: honor the binder's `worktree_bind` field if present (pass through to `ensure-workspace`), else fall back to the standard `--bind tkt --id <N> --slug <slug>` pattern.
    - `bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id <N> --slug <slug> [--base <ref>]` (or the binder's `worktree_bind` override).
    - Capture `path` + `cd_hint` from JSON.
-   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`, `BATCH_WORK=1` in the prompt, brief: "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`."
+   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`. Before spawning, write the batch marker: `touch <worktree>/.lattice/.batch-work-active`. Brief: "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`."
    - Bound delegation: the agent owns only its ticket brief + worktree; host owns DAG + report.
 8. **LAYER/WAVE BARRIER** — wait for all agents in the current wave to complete (success or fail). Collect exit status + PR URL per ticket. If more waves remain in this layer, run RAM check again and spawn the next wave. A failed ticket is recorded; peers and subsequent waves/layers proceed (failure isolation).
 9. **NEXT LAYER** — repeat RAM check + spawn for the next layer. A ticket whose `blocked_by` includes a failed dependency is skipped (recorded as blocked-by-failure).
 10. **REPORT** — emit a Markdown table: ticket, layer, worktree path, agent status (ok/failed/blocked), PR URL, binder path. Write to `--report <path>` if given; always also print to stdout.
-11. **HANDOFF** — summary: N spawned, M ok, K failed, L blocked. Human reviews open PRs, then runs `finish-work` per PR. `BATCH_WORK=1` ensured no agent merged.
+11. **HANDOFF** — summary: N spawned, M ok, K failed, L blocked. Human reviews open PRs, then runs `finish-work` per PR. The `.lattice/.batch-work-active` marker ensured no agent merged.
 
 Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`references/flow.md`**.
 
 ## Safety
 
-- **`BATCH_WORK=1` merge block.** Spawned agents are instructed that `finish-work` merge is blocked; they stop at `create-pr`. This keeps a human review gate over the batch. `BATCH_WORK=0` disables the gate — discouraged.
+- **Batch marker merge block.** Before spawning each agent, the orchestrator writes `.lattice/.batch-work-active` in the worktree. `finish-work` checks for this marker and refuses `gh pr merge` if present, keeping a human review gate over the batch. Agents are instructed not to call `finish-work`. The marker is removed by `finish-work` after the human review-and-merge step.
 - **RAM threshold.** Default 10 GB available before spawn. Spawn is skipped (fail closed) when RAM is below threshold; the batch stops with a partial report rather than thrashing the machine. Override via `--ram-threshold <GB>`; `0` disables (not recommended).
 - **Failure isolation.** Agent crashes are per-ticket. The host collects each agent's result via the background-completion channel; a crash is recorded as `failed` for that ticket and does not block peers in the same layer or tickets in later layers (except tickets `blocked_by` the failed one, which are marked `blocked-by-failure`).
 - **No live-default PR.** All work happens in sibling worktrees branched off the resolved base. The main checkout stays on base for orchestration.
@@ -112,7 +112,7 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | --- | --- |
 | `start-work` | Spawned per ticket in its worktree; implements to acceptance |
 | `create-tickets` | Source of `parallel_group` + `blocked_by` + `paths` in binders |
-| `finish-work` | **Not** called by spawned agents (`BATCH_WORK=1`); human runs per PR after review |
+| `finish-work` | **Not** called by spawned agents (`.batch-work-active` marker + prompt instruction); human runs per PR after review |
 | `create-pr` | Called by spawned agents to open the PR (stop point) |
 | `create-review` | Optional: host may write one `rev` summarizing the batch outcome |
 
@@ -121,7 +121,7 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | Don’t | Why |
 | --- | --- |
 | Spawn agents without independence gates / path overlap check | Shared paths → merge conflicts + violated disjoint-write rule |
-| Allow spawned agents to call `finish-work` (merge) | Loses the human review gate; `BATCH_WORK=1` blocks this |
+| Allow spawned agents to call `finish-work` (merge) | Loses the human review gate; the `.batch-work-active` marker blocks this |
 | Skip RAM check before a layer | Machine thrash → all agents fail; worse than a stopped batch |
 | Reuse one worktree for multiple parallel tickets | Violates one-tree-per-PR + disjoint-write invariants |
 | Treat batch as unattended merge | Batch fans out to PRs; merge is a separate human-owned step |
@@ -135,7 +135,7 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | Rationalization | Reality |
 | --- | --- |
 | "Two tickets touch the same file — spawn both anyway" | Path overlap → serial in one tree, or fail closed; never parallel |
-| "Agent can merge its own PR to save a step" | `BATCH_WORK=1` blocks merge; human review is the gate |
+| "Agent can merge its own PR to save a step" | The `.batch-work-active` marker blocks merge; human review is the gate |
 | "RAM is fine, skip the check" | Thrash kills all agents; the check is cheap and fail-closed |
 | "Dry-run is just a print" | Dry-run must exit before spawn — no worktree, no agent |
 | "Failed ticket → abort everything" | Failure isolation: peers and later layers continue; only `blocked_by` chain stops |
@@ -150,7 +150,7 @@ Before claiming a batch is done:
 - [ ] `--dry-run` (if requested) printed DAG and exited before any spawn
 - [ ] RAM check ran before each layer; below-threshold layer stopped the batch with a partial report
 - [ ] One sibling worktree per ticket via `ensure-workspace --mode worktree --bind tkt`
-- [ ] Spawned agents ran with `BATCH_WORK=1`; no agent called `finish-work`
+- [ ] Orchestrator wrote `.lattice/.batch-work-active` marker in each spawned worktree; no agent called `finish-work`
 - [ ] Layer barrier waited for all agents before next layer
 - [ ] Failure isolation: a crashed agent recorded `failed`; peers + later layers continued
 - [ ] Report table emitted (ticket, layer, worktree, status, PR URL, binder path) to stdout and `--report`
