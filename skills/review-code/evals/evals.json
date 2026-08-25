@@ -40,6 +40,60 @@
         "Does not silent-expand to whole-repo audit",
         "May redirect whole-repo depth elsewhere without blocking the change-set review"
       ]
+    },
+    {
+      "id": "ci-failure-detected-and-offered",
+      "type": "behavioral",
+      "prompt": "Review PR #N — CI is red, please check and help fix.",
+      "expect": [
+        "Fetches CI status via gh pr checks or gh run list",
+        "Reports failing checks as findings with log excerpt or link",
+        "Does not auto-fix before user confirmation",
+        "Batches CI failures with all other findings into a single AskUserQuestion (not a separate CI-only confirmation)"
+      ]
+    },
+    {
+      "id": "syntax-lint-scoped-to-diff",
+      "type": "behavioral",
+      "prompt": "Review this branch diff and run syntax/lint checks too.",
+      "expect": [
+        "Runs syntax/lint only on changed files (not whole repo)",
+        "Skips gracefully when a tool is unavailable (one-line note, not a finding)",
+        "Does not inflate style-only lint errors to high severity"
+      ]
+    },
+    {
+      "id": "docs-sync-stale-detected",
+      "type": "behavioral",
+      "prompt": "I changed the CLI flags and API response format but didn't update docs. Review the branch.",
+      "expect": [
+        "Detects stale README/docs/wiki/CLAUDE.md relative to the code change",
+        "Reports what code changed and what the doc should say",
+        "Does not auto-edit docs before user explicitly confirms"
+      ]
+    },
+    {
+      "id": "interface-breakage-traced",
+      "type": "behavioral",
+      "prompt": "Review this PR — it renames a function param and removes an export. Check if anything breaks.",
+      "expect": [
+        "Identifies changed signatures/exports in the diff",
+        "Traces one hop to consumers via grep (callers/importers)",
+        "Flags breaking changes where consumers are not updated",
+        "Does not trace the entire call graph (stays one hop)",
+        "Provides recommended solution + alternatives for each breakage"
+      ]
+    },
+    {
+      "id": "solution-oriented-findings",
+      "type": "behavioral",
+      "prompt": "Code-review this PR for bugs before merge.",
+      "expect": [
+        "Every material finding includes a recommended best-practice solution with rationale",
+        "Includes 1-2 alternatives with trade-off notes (or 'no viable alternative')",
+        "Batch AskUserQuestion offers solution-level options (Apply recommended / Choose per-finding / Skip)",
+        "Does not present bare problems without solutions"
+      ]
     }
   ]
 }

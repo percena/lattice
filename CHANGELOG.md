@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Bug reproduction loop** in `start-work` — bug-class tickets (has `bug` label or Reproduction Steps) run Phase 0c (pre-fix reproduction) → Phase 1 (fix) → Phase 1b (post-fix verification with cross-comparison, max 2 cycles).
 - **Privacy/Secrets axis** in `finish-work` mini-review and `review-code` — scan diff, PR body, ticket binders, and commit messages for local filesystem paths, API keys/tokens, closed-source project names, and DB schema details. Credentials/secrets → high (default Hold); local paths/project names → med (recommend cleanup).
 - **Batch-work marker gate** in `finish-work` — `.lattice/.batch-work-active` marker file blocks `gh pr merge` when batch-work spawned the worktree, keeping a human review gate. Marker-based (not env-var) for reliability across ephemeral Bash sessions.
+- **review-code skill extended** — added CI/CD, syntax/lint, docs-sync, and interface/contract impact axes; solution-oriented findings (recommended solution + alternatives); single batch confirmation (one AskUserQuestion, never per-finding). `finish-work` mini-review unchanged. See [ADR-003](docs/adr/003-review-code-extended-axes-and-solution-oriented-findings.md).
 
 ### Fixed
 
