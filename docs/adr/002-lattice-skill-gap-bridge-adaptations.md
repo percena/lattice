@@ -1,6 +1,6 @@
 # ADR 002: Lattice skill-gap bridge — ERP pattern adaptation strategy
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-25
 - **Deciders:** maintainers
 - **Related:** `spc-12`, `rev-20260825-072540Z`
@@ -8,7 +8,7 @@
 
 ## Context
 
-A cross-comparison review (`rev-20260825-072540Z`) examined 7 FlowDance ERP skills (`request-feature`, `report-bug`, `request-harness`, `implement`, `batch-implement`, `auto-playwright`, `fast-deploy`) against Lattice's 10-skill lifecycle. The review identified 6 borrowable patterns but also identified patterns that should NOT be directly ported because Lattice's architecture is fundamentally different (GitHub-native vs Firestore-native, lighter binder vs 18-step manifest).
+A cross-comparison review (`rev-20260825-072540Z`) examined 7 FlowDance ERP skills (`request-feature`, `report-bug`, `request-harness`, `implement`, `batch-implement`, `auto-playwright`, `fast-deploy`) against Lattice's 10-skill lifecycle. The review identified 5 borrowable patterns (a 6th, deploy quality gates for `deploy-weftd-flitro`, was deemed out-of-scope — that skill lives in the weftd repo, not Lattice) and also identified patterns that should NOT be directly ported because Lattice's architecture is fundamentally different (GitHub-native vs Firestore-native, lighter binder vs 18-step manifest).
 
 The key forces driving this decision:
 
@@ -28,7 +28,7 @@ The key forces driving this decision:
 ## Considered Options
 
 - **Option A — Direct port ERP skills** (Firestore filing, auto-playwright runtime, guard.sh manifest). Good: proven, feature-complete. Bad: architectural mismatch (Firestore vs GitHub, 18-step pipeline vs 6-skill lifecycle), significant rework, cargo-culting patterns that solve non-existent problems.
-- **Option B — Lattice-native adaptations** (GitHub-native duplicate-work check, ego-browser e2e story layer, sibling-worktree batch orchestrator, review-code-based deploy gate). Good: reuses existing infrastructure, architecturally consistent, lighter. Bad: less battle-tested than ERP's mature patterns, needs new code.
+- **Option B — Lattice-native adaptations** (GitHub-native duplicate-work check, ego-browser e2e story layer, sibling-worktree batch orchestrator). Good: reuses existing infrastructure, architecturally consistent, lighter. Bad: less battle-tested than ERP's mature patterns, needs new code.
 - **Option C — Hybrid: port ERP scripts, adapt Lattice skills.** Good: leverage ERP's tooling. Bad: ERP scripts are Firestore-coupled (`tracker-events.mjs`, `build-program-dag.mjs`), thin portability.
 
 ## Decision
@@ -41,9 +41,9 @@ We will adopt **Option B — Lattice-native adaptations.** Specifically:
 
 3. **Batch orchestration reuses sibling worktree model.** A `batch-work` skill will read `parallel_group` from create-tickets binders → spawn agents per group (one worktree each, via `ensure-workspace.sh`) → layer-barrier sync → `BATCH_WORK=1` env blocks finish-work merge (only create-pr; human reviews then finish-work). This is NOT ERP's Firestore-based DAG (`build-program-dag.mjs`) — it reuses Lattice's existing worktree + independence-gate infrastructure.
 
-4. **Deploy quality gates reuse review-code contract.** A deploy quality sub-pipeline for `deploy-weftd-flitro` will use `review-code` scan (advice-only) + available tests + diff classification (weftd frontend / flitro+agentd / docs-only → skip), NOT ERP's `guard.sh` step-manifest enforcement or `verify-code` 8-phase gate. The two-gate pattern (Gate 1: scope confirm; unattended review+test; Gate 2: deploy approval) is borrowed in shape.
+4. **Step-manifest concept is explicitly deferred.** Lattice's binder stays artifact-level (binder README + Acceptance checkboxes + Finish ledger), NOT step-level. If the `batch-work` skill needs per-worktree progress for layer-barrier sync, a lightweight per-worktree progress file (not a global manifest) will suffice. ERP's `step-manifest.json` + `guard.sh` enforcement is NOT adopted.
 
-5. **Step-manifest concept is explicitly deferred.** Lattice's binder stays artifact-level (binder README + Acceptance checkboxes + Finish ledger), NOT step-level. If the `batch-work` skill needs per-worktree progress for layer-barrier sync, a lightweight per-worktree progress file (not a global manifest) will suffice. ERP's `step-manifest.json` + `guard.sh` enforcement is NOT adopted.
+5. **Deploy quality gates for deploy-weftd-flitro are out-of-scope.** `deploy-weftd-flitro` is NOT a Lattice project skill (it lives in the weftd repo at `/Users/mxue/GitRepos/MVP/weftd/`). Deploy quality improvements belong in a weftd-repo spec, not this Lattice ADR. The review's Finding 4 remains valid research context but does not spawn Lattice delivery items.
 
 ## Consequences
 
@@ -59,17 +59,17 @@ We will adopt **Option B — Lattice-native adaptations.** Specifically:
   - batch-work orchestrator is new code, not proven in production like ERP's batch-implement
   - ego-browser requires the ego lite app running (not headless) — may not fit CI environments without a display
 
-- **Follow-ups:** `spc-5` (skill-gap bridge Spec), tickets to be created via create-tickets
-- **Verification:** ADR cited in `spc-5` References; review `rev-20260825-072540Z` Findings 1-6 map to delivery items
+- **Follow-ups:** `spc-12` (skill-gap bridge Spec), tickets tkt-13…tkt-16 created via create-tickets
+- **Verification:** ADR cited in `spc-12` References; review `rev-20260825-072540Z` Findings 1-5 map to delivery items (Finding 4 deploy gates out-of-scope)
 
 ## Status history
 
-- 2026-08-25: Proposed (stemming from `rev-20260825-072540Z` cross-comparison review)
+- 2026-08-25: Proposed → Accepted (stemming from `rev-20260825-072540Z` cross-comparison review; deploy-weftd-flitro scope error corrected same day)
 
 ## Notes
 
 - ERP's `check-duplicate-work.mjs` semantic matching (≥2 shared significant tokens or CJK run ≥3 chars) is worth borrowing as a matching heuristic, even though the storage layer changes.
-- ERP's pre-fix reproduction / post-fix verification loop (implement Step 0c/1b) is a process improvement, not an architectural decision — it goes in `spc-5` Spec Decisions, not this ADR.
+- ERP's pre-fix reproduction / post-fix verification loop (implement Step 0c/1b) is a process improvement, not an architectural decision — it goes in `spc-12` Spec Decisions, not this ADR.
 - ego-browser's `cdp` escape hatch provides a path to capabilities not covered by facades (e.g. `Page.handleJavaScriptDialog`), matching ERP's escape-hatch philosophy.
 
 ---

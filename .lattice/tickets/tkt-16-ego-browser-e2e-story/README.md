@@ -14,7 +14,7 @@
 | adopted | false |
 | summary | ego-browser e2e-story reference layer — heredoc JS + assert + fail-loud auth + JSON output |
 | spec | spc-12 — Lattice skill-gap bridge (path: ../../specs/spc-12-skill-gap-bridge.md) |
-| covers | A5 |
+| covers | A4 |
 | blocked_by | (none) |
 | parallel_group | G1 (parallel) |
 | paths | skills/e2e-story/ or references/ (new) |
@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A5** `e2e-story` reference template exists (heredoc JS pattern for ego-browser) with goto/click/fill/select/press/screenshot/assert primitives, fail-loud auth check (expected auth but landed on login → FAIL), structured JSON output via `console.log`, and at least one example story for weftd or flitro
+- [ ] **A4** `e2e-story` reference template exists (heredoc JS pattern for ego-browser) with goto/click/fill/select/press/screenshot/assert primitives, fail-loud auth check (expected auth but landed on login page → FAIL), structured JSON output via `console.log`, and at least one example story for weftd or flitro
 
 ## Notes
 
@@ -36,7 +36,7 @@
 - ego-browser v1.2.6 at `/Users/mxue/GitRepos/infra/ego-lite/skills/ego-browser/SKILL.md`
 - Uses heredoc JS via `ego-browser nodejs <<'EOF'`, NOT a YAML runner
 - Primitives map to ego-browser's page/locator API (goto→page.goto, click→locator.click, assert→page.evaluate)
-- Fail-loud auth: if taskSpaces indicates user-owned or login page detected → story FAILS
+- Fail-loud auth: if expected auth but landed on login page → story FAILS
 
 ## References
 
@@ -53,7 +53,7 @@
 - Parent issue (GH sub-issue): **#12**
 - Primary ticket: **tkt-16**
 - Related / sub-tickets: (none)
-- Covers: **A5**
+- Covers: **A4**
 - Blocked by: (none)
 - Parallel group: **G1 (parallel)**
 - Worktree bind: `tkt-16-ego-browser-e2e-story`

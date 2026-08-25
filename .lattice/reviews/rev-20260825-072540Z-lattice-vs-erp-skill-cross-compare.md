@@ -9,7 +9,7 @@ summary: "Cross-compare 7 ERP skills vs Lattice; ego-browser supersedes auto-pla
 created: 2026-08-25
 updated: 2026-08-25
 related_specs: [spc-12]
-related_tickets: [tkt-13, tkt-14, tkt-15, tkt-16, tkt-17]
+related_tickets: [tkt-13, tkt-14, tkt-15, tkt-16]
 related_prs: []
 ---
 
@@ -39,7 +39,7 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 
 | Layer | Notes |
 | --- | --- |
-| Validity | Problem is real — Lattice's skill pipeline is deliberately lean (6 lifecycle skills) and has acknowledged gaps (start-work explicitly states "No `/implement` skill"). ERP operates at ~134 skills with heavier operational surface. The comparison is apples-to-oranges in scale but valid for pattern-borrowing. |
+| Validity | Problem is real — Lattice's skill pipeline is deliberately lean (6 lifecycle pipeline skills out of 10 total user-facing) and has acknowledged gaps (start-work explicitly states "No `/implement` skill"). ERP operates at ~134 skills with heavier operational surface. The comparison is apples-to-oranges in scale but valid for pattern-borrowing. |
 | Information | Sufficient. All 7 ERP skills read in full via Explore agent. All 6 Lattice claims verified against actual SKILL.md files + `_lattice-lib/scripts/` listing. ego-browser SKILL.md read in full (frontmatter, workflow, auth model, primitives, output contract). No must-have info gaps. |
 | Hidden issues | (1) ERP uses Firestore as tracker SoT — the "Firestore-only filing" pattern doesn't directly translate to GitHub-native Lattice; the *principle* (cheap filing, expensive booking) does. (2) ERP's auto-playwright cross-port auth (HARNESS-421) is a workaround for a problem ego-browser solves natively — porting it would be cargo-culting. (3) Step-manifest + guard.sh is tightly coupled to ERP's 18-step pipeline; Lattice's lighter binder model may not need this granularity. |
 
@@ -66,12 +66,12 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 - Lattice: start-work SKILL.md lines 82-93 — EXECUTE goes straight to implementation. Line 91: "DEFAULT: no forced TDD." The only verify is a generic DoD check at step 8 (line 93): "VERIFY with fresh command evidence" — "tests pass with fresh output this session," not a bug-specific reproduce-then-fix-then-verify loop.
 - **Lattice-native adaptation:** Add a bug-type classification to start-work's CLASSIFY step. For bug-class tickets: Phase 0c (reproduce, capture evidence) → Phase 1 (fix) → Phase 1b (re-verify, cross-compare, max 2 cycles). This is lighter than ERP's 18-step manifest — just two extra phases gated on ticket type.
 
-### 4. deploy-weftd-flitro lacks pre-deploy quality gate and diff classification
+### 4. deploy-weftd-flitro lacks pre-deploy quality gate and diff classification — **OUT OF SCOPE (not a Lattice skill)**
 
 **Evidence:**
 - ERP: `fast-deploy` (549 lines) — two-gate design: Gate 1 (environment checks + sync remote + read last deployed version + classify diff via `tools/classify-diff.mjs` → confirm scope) → Steps 1-4 unattended (code review + full test suite, parallel) → Gate 2 (comprehensive summary with review findings + test results + deploy plan → final approval) → Steps 6-7 auto (execute deploys + post-deploy verify). Hosting and Functions deploy independently (HARNESS-1061) with separate baselines; already-deployed functions skipped. `classify-diff.mjs` maps diff to deploy targets (frontend → hosting, api → functions, docs/skill/tool → no deploy, early exit).
-- Lattice: `deploy-weftd-flitro` (at `/Users/mxue/.claude/skills/deploy-weftd-flitro/SKILL.md`, also mirrored in weftd repo) — grep for "code.review", "test run", "diff classif", "changed component", "only deploy.*changed" returned zero matches. The only pre-deploy checks are infrastructure pre-flight (project dir, compose file, `.env`, GHCR auth, port bind sanity). There IS a WS-5 schema gate (operator must confirm `sessions.token_epoch` column exists on prod Supabase before rolling weftd) — but this is a DB schema precondition, not a code-review/test quality gate. There IS a manual `SERVICE` selector (`all | weftd | agentd`) — but manual selection, not automatic diff-based detection.
-- **Lattice-native adaptation:** Add a pre-deploy quality sub-pipeline: (1) classify diff (weftd frontend / flitro+agentd / docs / infra-only → skip deploy) (2) if code changed, run review-code scan on the diff (advice) (3) run available tests (4) Gate 1 confirm scope (5) deploy (6) post-deploy health check. Reuse Lattice's existing review-code contract rather than ERP's heavier review-changes + verify-code pair.
+- Lattice: `deploy-weftd-flitro` (at `/Users/mxue/.claude/skills/deploy-weftd-flitro/SKILL.md`, also mirrored in weftd repo `/Users/mxue/GitRepos/MVP/weftd/`) — grep for "code.review", "test run", "diff classif", "changed component", "only deploy.*changed" returned zero matches. The only pre-deploy checks are infrastructure pre-flight (project dir, compose file, `.env`, GHCR auth, port bind sanity). There IS a WS-5 schema gate (operator must confirm `sessions.token_epoch` column exists on prod Supabase before rolling weftd) — but this is a DB schema precondition, not a code-review/test quality gate. There IS a manual `SERVICE` selector (`all | weftd | agentd`) — but manual selection, not automatic diff-based detection.
+- **OUT OF SCOPE:** `deploy-weftd-flitro` is NOT a Lattice project skill — it lives in the weftd repo (`/Users/mxue/GitRepos/MVP/weftd/`), not in the lattice repo. Deploy quality improvements belong in a weftd-repo spec, not a Lattice spec. Finding retained as research context; does NOT spawn a Lattice delivery ticket. (tkt-17 was closed as scope error; ADR-002 §5 documents this exclusion.)
 
 ### 5. Auto-playwright should NOT be ported — ego-browser already provides a superior foundation
 
@@ -90,10 +90,10 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 
 ## Recommendations
 
-1. **Create a Spec** (spc-5) formalizing these borrowable capabilities as Lattice-native skills or skill enhancements. Six findings map to deliverable work items.
+1. **Create a Spec** (spc-12) formalizing these borrowable capabilities as Lattice-native skills or skill enhancements. Five findings map to deliverable work items; Finding 4 (deploy gates) is out-of-scope (not a Lattice skill).
 2. **Write an ADR** documenting the architectural decision: Lattice stays GitHub-native (not Firestore), ego-browser supersedes auto-playwright, batch orchestration reuses sibling worktree model.
-3. **Priority order for tickets:** batch-work (Finding 2) > duplicate-work precheck (Finding 1) > ego-browser e2e story runner (Finding 5) > two-gate deploy (Finding 4) > pre/post-fix reproduction loop (Finding 3) > step-manifest (Finding 6, deferred).
-4. **Explicitly reject:** porting ERP's auto-playwright runtime, porting ERP's Firestore-only filing shape, porting ERP's guard.sh step-manifest enforcement as-is.
+3. **Priority order for tickets:** batch-work (Finding 2) > duplicate-work precheck (Finding 1) > ego-browser e2e story runner (Finding 5) > pre/post-fix reproduction loop (Finding 3) > step-manifest (Finding 6, deferred).
+4. **Explicitly reject:** porting ERP's auto-playwright runtime, porting ERP's Firestore-only filing shape, porting ERP's guard.sh step-manifest enforcement as-is, modifying deploy-weftd-flitro (not a Lattice skill).
 
 ## Outcome (required to conclude)
 
@@ -107,7 +107,7 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 
 - [x] Spec `spc-12` — created in same-pass worktree
 - [x] ADR-002 — cross-feature architecture decision (`docs/adr/002-lattice-skill-gap-bridge-adaptations.md`)
-- [x] Tickets — tkt-13 (A1), tkt-14 (A3), tkt-15 (A2), tkt-16 (A5), tkt-17 (A4); A6 deferred (documented in spec Decisions)
+- [x] Tickets — tkt-13 (A1), tkt-14 (A3), tkt-15 (A2), tkt-16 (A4); A5 deferred (documented in spec Decisions); tkt-17 closed (deploy-weftd-flitro scope error)
 
 ## References
 
@@ -120,4 +120,4 @@ The user asked to cross-compare the current Lattice project's skills with 7 impo
 
 ## Links
 
-Bare ids in front matter lists only — `spc-12` linked; tickets tkt-13…tkt-17 linked.
+Bare ids in front matter lists only — `spc-12` linked; tickets tkt-13…tkt-16 linked (tkt-17 closed, scope error).
