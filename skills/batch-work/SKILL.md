@@ -1,8 +1,8 @@
 ---
 name: batch-work
 description: "DAG-orchestrated unattended batch delivery: spawn multiple start-work agents in parallel on sibling worktrees with layer-barrier synchronization. Use when a Spec/ticket set has independence-gated parallel groups and the user wants one command to fan out work. Not for single-ticket start, fuzzy product align, PR merge, or manual ticket splitting."
-allowed-tools: Bash Read Grep Glob Agent AskUserQuestion
-argument-hint: "[--ids ID1,ID2,... | --groups] [--concurrency N] [--report <path>] [--dry-run]"
+allowed-tools: Bash Read Grep Glob Task AskUserQuestion
+argument-hint: "[--ids ID1,ID2,... | --groups] [--concurrency N] [--ram-threshold <GB>] [--base <ref>] [--report <path>] [--dry-run]"
 metadata:
   agents: "claude-code,codex"
 ---
@@ -58,13 +58,15 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | --- | --- |
 | `--concurrency 3` per layer | User opt-in `--concurrency N`; respect machine RAM + agent overhead |
 | RAM threshold 10 GB | `--ram-threshold <GB>`; set 0 to disable (not recommended) |
-| `--groups` reads `parallel_group` from binders | `--ids ID1,ID2,…` runs one layer (all parallel if gates pass) |
+| **Required:** one of `--ids` or `--groups` | `--ids ID1,ID2,…` runs one layer (all parallel if gates pass); `--groups` reads `parallel_group` + `blocked_by` from **all** binders and builds DAG |
 | `BATCH_WORK=1` → agents create-pr only | `BATCH_WORK=0` allows agents to call `finish-work` (discouraged; loses human review gate) |
 | Report to stdout | `--report <path>` writes a durable Markdown report |
 | Dry-run shows DAG + layers, no spawn | `--dry-run` always exits before any `ensure-workspace` / Agent call |
 | Base = integration-branch resolved | `--base <ref>` override; passed through to `ensure-workspace` |
 
 ## Step 0 (every run)
+
+> **Note:** `--dry-run` does **not** skip Step 0. `ensure-lattice.sh` is an idempotent writer (creates/refreshes `.lattice/` scaffolding only); it always runs, even in dry-run, so the DAG build has the binders it expects. Dry-run exits before any `ensure-workspace` / `Agent` call, not before lattice setup.
 
 ```bash
 SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
@@ -82,13 +84,14 @@ bash "$LIB/ensure-lattice.sh"
 3. **BUILD DAG** — nodes = tickets; edges = `blocked_by`. Topologically sort into layers: layer 0 = no blockers, layer k = all `blocked_by` satisfied by layers < k. Tickets with the same `parallel_group` and no cross-dependency share a layer.
 4. **VALIDATE INDEPENDENCE** — within each layer, confirm `paths` are disjoint (no path glob overlap across tickets in the same layer). Overlap → demote to serial (next layer) or fail closed with a report.
 5. **DRY-RUN EXIT** — if `--dry-run`, print DAG (layers + ticket ids + worktree paths + concurrency) and exit 0 before any spawn.
-6. **RAM CHECK** — before each layer: read available RAM (macOS `vm_stat` / `sysctl hw.memsize`; Linux `/proc/meminfo`). Below threshold → fail closed for this layer; stop batch; report partial results.
-7. **SPAWN LAYER** — for each ticket in the layer (up to `--concurrency`):
-   - `bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id <N> --slug <slug> [--base <ref>]`
+6. **RAM CHECK** — before each layer: read available RAM (macOS `vm_stat` + `sysctl -n hw.pagesize`; Linux `/proc/meminfo`). Below threshold → fail closed for this layer; stop batch; report partial results.
+7. **SPAWN LAYER (waves)** — if the layer has more tickets than `--concurrency`, spawn in **waves** of `--concurrency` tickets each, with a barrier between waves (see step 8). Within a wave:
+   - Resolve worktree binding: honor the binder's `worktree_bind` field if present (pass through to `ensure-workspace`), else fall back to the standard `--bind tkt --id <N> --slug <slug>` pattern.
+   - `bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id <N> --slug <slug> [--base <ref>]` (or the binder's `worktree_bind` override).
    - Capture `path` + `cd_hint` from JSON.
-   - Launch an `Agent` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`, `BATCH_WORK=1` in the prompt, brief: "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`."
+   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`, `BATCH_WORK=1` in the prompt, brief: "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`."
    - Bound delegation: the agent owns only its ticket brief + worktree; host owns DAG + report.
-8. **LAYER BARRIER** — wait for all agents in the layer to complete (success or fail). Collect exit status + PR URL per ticket. A failed ticket is recorded; peers and subsequent layers proceed (failure isolation).
+8. **LAYER/WAVE BARRIER** — wait for all agents in the current wave to complete (success or fail). Collect exit status + PR URL per ticket. If more waves remain in this layer, run RAM check again and spawn the next wave. A failed ticket is recorded; peers and subsequent waves/layers proceed (failure isolation).
 9. **NEXT LAYER** — repeat RAM check + spawn for the next layer. A ticket whose `blocked_by` includes a failed dependency is skipped (recorded as blocked-by-failure).
 10. **REPORT** — emit a Markdown table: ticket, layer, worktree path, agent status (ok/failed/blocked), PR URL, binder path. Write to `--report <path>` if given; always also print to stdout.
 11. **HANDOFF** — summary: N spawned, M ok, K failed, L blocked. Human reviews open PRs, then runs `finish-work` per PR. `BATCH_WORK=1` ensured no agent merged.
