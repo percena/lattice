@@ -36,8 +36,6 @@
 # Requires: `gh` with repo scope, `jq` (optional for --json).
 
 set -eu
-# Note: bash 3.2 (macOS) throws "unbound variable" on "${empty_array[@]}" with -u.
-# We guard all array iterations with ${#array[@]} checks.
 
 log() { printf 'check-duplicate-work: %s\n' "$*" >&2; }
 
@@ -85,8 +83,8 @@ tokenize() {
   text=$(printf '%s' "$text" | tr '[:upper:]' '[:lower:]')
   # Extract alphanumeric tokens >=3 chars
   printf '%s' "$text" | grep -oE '[a-z0-9]{3,}' 2>/dev/null || true
-  # Extract CJK runs >=3 chars (perl-compatible grep)
-  printf '%s' "$text" | grep -oE "$(printf '[\xe4\xb8\x80-\xe9\xbf\xbf]{3,}')" 2>/dev/null || true
+  # Extract CJK runs >=3 chars (LC_ALL=C for byte-level matching — locale-independent)
+  printf '%s' "$text" | LC_ALL=C grep -oE '[一-鿿]{3,}' 2>/dev/null || true
 }
 
 # Bash 3.2-compatible array from command output

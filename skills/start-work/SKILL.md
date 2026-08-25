@@ -91,7 +91,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.
    - DEFAULT: no forced TDD; use the bound workspace unless an escape is explicit; new irreversible axis → PCA batch.
    - **Bug-class tickets** (ticket has `bug` label or Reproduction Steps): run the reproduce → fix → re-verify loop:
-     - **Phase 0c (Pre-Fix Reproduction):** reproduce from ticket Reproduction Steps; capture pre-fix evidence in binder `reproduction-evidence.md`. If bug no longer reproduces → consider wont-fix (stop, ask user).
+     - **Phase 0c (Pre-Fix Reproduction):** reproduce from ticket Reproduction Steps; capture pre-fix evidence in binder `reproduction-evidence.md`. If no Reproduction Steps found in binder → skip to Phase 1 with a note (cannot reproduce without steps). If bug no longer reproduces → consider wont-fix (stop, ask user).
      - **Phase 1 (Fix):** implement the fix.
      - **Phase 1b (Post-Fix Verification):** re-execute same reproduction; append post-fix evidence with cross-comparison table (pre vs post). If symptom persists → loop back to Phase 1 (max 2 cycles). If still failing after 2 cycles → stop, report to user.
    - `NOTICED BUT NOT TOUCHING:` out-of-ticket cleanup → later ticket, do not fold in.  
