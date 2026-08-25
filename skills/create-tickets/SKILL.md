@@ -101,6 +101,7 @@ Parallel degree ≥ 2 → one sibling worktree per concurrent tkt. Path-overlap 
 2. Read locked Spec / COMMITTED.
 3. Propose ship plan + ticket table (one batch).
 4. POST_SPLIT_CHECK.
+4b. Duplicate-work precheck (advisory, DEFAULT): for each proposed ticket title, run `check-duplicate-work.sh --title "…" --skip-remote` (in `_lattice-lib/scripts/`) before `gh issue create`. Review ⚠️ overlaps; never blocks (advisory, exits 0).
 5. `gh issue create` + labels; optional Project add (soft-fail); under Spec primary → soft-fail sub-issue parent link (including N=1); write binders; update Spec.tickets.
 6. Handoff issue #s + binder paths for `start-work`.
 

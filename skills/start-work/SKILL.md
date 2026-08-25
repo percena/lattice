@@ -86,6 +86,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 3. Else if **existing GH issue `#M`** / `tkt-M` **without complete L0** → **ADOPT_CHECK** (portable detail in `references/policy.md`) — **append-only** on issue body; write binder; optional Spec/comment; soft-fail edges.  
 4. Else if fuzzy greenfield → **delegate `create-spec`** (then tickets if needed).  
 5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship).  
+5b. Duplicate-work precheck (advisory, DEFAULT): run `check-duplicate-work.sh --title "<ticket title>"` (in `_lattice-lib/scripts/`) before `ensure-workspace`. Review ⚠️ overlaps; never blocks (advisory, exits 0).  
 6. WORKSPACE: `ensure-workspace --mode worktree --bind tkt|spc …` (or light/user branch escape). **cd** to path.  
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.
    - DEFAULT: no forced TDD; use the bound workspace unless an escape is explicit; new irreversible axis → PCA batch.
