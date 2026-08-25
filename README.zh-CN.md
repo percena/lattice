@@ -105,7 +105,3 @@ npx skills add percena/lattice -g -y
 ## 许可证
 
 MIT——见 [LICENSE](./LICENSE)。
-
-## 致谢
-
-感谢 [linuxdo](https://linux.do) 社区的讨论、分享与反馈。

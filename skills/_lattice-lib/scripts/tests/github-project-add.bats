@@ -167,7 +167,7 @@ EOF
 
 @test "non-digit project number → skip without gh" {
   export LATTICE_GITHUB_PROJECT_OWNER=acme
-  export LATTICE_GITHUB_PROJECT_NUMBER=Weft-Kit
+  export LATTICE_GITHUB_PROJECT_NUMBER=some-project
   run bash "$ADD" "https://github.com/acme/r/issues/10"
   [ "$status" -eq 0 ]
   [[ "$output" == *"must be digits"* ]]
