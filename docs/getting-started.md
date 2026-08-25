@@ -54,6 +54,7 @@ Lattice is **discipline-first**, not a silent IDE theme. Default profile is **st
 | `create-spec` | skill | Persist `spc-n` |
 | `create-review` | skill | Persist `rev-YYYYMMDD-HHMMSSZ` (not GitHub PR review) |
 | `create-tickets` | skill | Issues + binders |
+| `batch-work` | skill (optional) | DAG-orchestrated parallel fan-out of `start-work` agents on sibling worktrees |
 | `create-pr` | skill | Open/update PR |
 | `finish-work` | skill | Align + merge + cleanup |
 | `lattice@percena` | Claude plugin | Packages all six skills; gates bare `gh pr create` / `gh pr merge` |
@@ -93,6 +94,22 @@ npx skills add percena/lattice --skill review-code --skill review-production
 **HARD default:** analysis unit = one PR (or the diff / dirty working tree that will become one PR) — **not** whole-repo architecture. Expand only if the user **explicitly** asks; otherwise redirect to `/create-review` / Spec.
 
 **Do not confuse with `/create-review`:** that skill persists a Lattice Review *report* (`rev` + `outcome`). Side-paths are optional quality passes; the pipeline does **not** require them for `create-pr` / `finish-work`.
+
+### Optional: batch execution + e2e reference
+
+Two additional skills extend the loop for parallel delivery and browser e2e:
+
+| Skill | Needs `_lattice-lib`? | Role |
+| --- | --- | --- |
+| `/batch-work` | Yes (co-install) | DAG-orchestrated fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, failure isolation |
+| `/run-e2e` | No (reference pattern) | Heredoc JS story pattern for ego-browser — one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
+
+```bash
+npx skills add percena/lattice --skill batch-work        # co-installs _lattice-lib
+npx skills add percena/lattice --skill run-e2e            # standalone reference
+```
+
+**batch-work** spawns agents that stop at `create-pr` (human reviews, then `finish-work` per PR). A `.lattice/.batch-work-active` marker in each worktree blocks `finish-work` merge until the human runs it.
 
 ### Optional: doc-tool skills (not part of the core loop)
 

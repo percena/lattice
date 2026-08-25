@@ -57,6 +57,7 @@ Finish **does not invent** which PR to merge.
 ## Finish cycle (copy)
 
 - [ ] Target resolved (pr|tkt|spc|branch) — no multi-PR guess
+- [ ] **Batch-work marker gate:** if `.lattice/.batch-work-active` marker file exists in the worktree → refuse `gh pr merge`; print "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review"; stop (do not merge). Proceed only when the marker is absent. After a successful human-driven merge, remove the marker.
 - [ ] Base updated (unless `--no-update-branch`); not CONFLICTING
 - [ ] `alignment-check.sh --json` + human dimensions; retain its approved `closing_ids` through merge; **land-time Spec drift** when `Spec:` / Spec-bound Fixes apply; DoD honesty — drift ⇒ remediate (a) commits (b) tickets (c) Spec, **no merge**
 - [ ] **Mini-review scan (default-on):** load PR diff, 5-axis light scan, present material findings, `AskUserQuestion` on material items (high → default Hold); advice, **not** a gate — HARD gate stays alignment-check
@@ -77,6 +78,7 @@ Finish **does not invent** which PR to merge.
 5. **No invent bloodline** — update binders only when paths exist and PR # known.
 6. **Merge/cleanup accountability** — authority and exact target stay explicit; bounded delegation is allowed, but the host verifies alignment, merge state, issue closure, and cleanup.
 7. **Never** `git push --force` to default branch.
+8. **Batch-work marker gate** — `.lattice/.batch-work-active` marker file present → refuse `gh pr merge`; print guidance: "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review". The operator must remove the marker (or confirm it was not set by batch-work) before this skill may merge. After a successful human-driven merge, the marker is removed.
 
 ### DEFAULT
 
@@ -95,15 +97,16 @@ Finish **does not invent** which PR to merge.
 ## Short path
 
 1. Resolve target → record PR_N / HEAD / BASE.
-2. Preflight (draft, checks, mergeable). **Base-mismatch advice:** if `BASE` (PR base) ≠ the user's current integration branch (long-lived, e.g. on `dev` but PR targets `main`), surface a one-line warning **before** `gh pr merge` and let the operator confirm or switch. Advice only — HARD gate stays `alignment-check.sh`.
-3. `update-pr-base.sh --pr N` (unless skipped).
-4. `alignment-check.sh --pr N` + dimension fix/stop; **land-time Spec drift** when applicable; print `alignment:` line.
-5. **Mini-review scan (default-on):** load PR diff (`gh pr diff N` or `git diff <BASE>...HEAD`), 5-axis light scan, present material findings, `AskUserQuestion` on material items (any high → default recommended `Hold`; only med/low → default `Merge anyway`); advice, **not** a gate — HARD gate stays alignment-check. See **§ Mini-review (embedded)**. Proceed on no findings or operator `Merge anyway`.
-6. `gh pr merge` or `gh pr close`.
-7. **After merge:** `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` (required) — refuse a changed closing set, then close OPEN actionable local delivery issues only; skip and report Spec-primary/`epic` plus unsupported repository-qualified references.
-8. **`cleanup-workspace.sh --branch HEAD --pr N …` (required after merge)** — not optional after a “successful” merge; close-without-merge does not imply branch deletion authority.
-9. **Binder `## Finish` ledger (REQUIRED).** After cleanup (step 8), `cd` to the **main checkout**, switch to the **PR merge base** (`git checkout <base>` + pull), and run `finish-ledger.sh --pr <PR_N> --issue <closing_M> --binder <.lattice/tickets/tkt-M-*/README.md> [--repo owner/repo]`. It stamps firm GH dates (`mergedAt`/`closedAt`) + `prs` + `status: closed` into the binder idempotently (never a second `## Finish`), then commit + push the base branch. **Two-phase:** cleanup removes the worktree, so the ledger is a post-merge commit on the base branch (policy.md:41). **No binder** (ticket-only flow) → `finish-ledger.sh` skips with a note, finish does not fail. **Closed-without-merge** → the helper reads the PR state itself and records `closed without merge` **without** claiming `mergedAt`; `status` flips to `closed` only when a closing issue actually closed. An **OPEN** PR is refused (the ledger records outcomes, not intentions). The helper also refuses to stamp a PR from a repository other than the binder's own origin. Spec primary close (when workstream complete) is separate.
-10. Report URL + cleanup + **actionable local delivery issues closed** + **epic/unsupported exclusions reported** + Spec-primary suggestion (if any) + **assert remote gone**.
+2. **Batch-work marker gate:** if `.lattice/.batch-work-active` marker exists in the worktree → refuse `gh pr merge`; print "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review" and stop (do not merge, do not proceed to base update). Proceed only when the marker is absent. After a successful human-driven merge, remove the marker.
+3. Preflight (draft, checks, mergeable). **Base-mismatch advice:** if `BASE` (PR base) ≠ the user's current integration branch (long-lived, e.g. on `dev` but PR targets `main`), surface a one-line warning **before** `gh pr merge` and let the operator confirm or switch. Advice only — HARD gate stays `alignment-check.sh`.
+4. `update-pr-base.sh --pr N` (unless skipped).
+5. `alignment-check.sh --pr N` + dimension fix/stop; **land-time Spec drift** when applicable; print `alignment:` line.
+6. **Mini-review scan (default-on):** load PR diff (`gh pr diff N` or `git diff <BASE>...HEAD`), 5-axis light scan, present material findings, `AskUserQuestion` on material items (any high → default recommended `Hold`; only med/low → default `Merge anyway`); advice, **not** a gate — HARD gate stays alignment-check. See **§ Mini-review (embedded)**. Proceed on no findings or operator `Merge anyway`.
+7. `gh pr merge` or `gh pr close`.
+8. **After merge:** `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` (required) — refuse a changed closing set, then close OPEN actionable local delivery issues only; skip and report Spec-primary/`epic` plus unsupported repository-qualified references.
+9. **`cleanup-workspace.sh --branch HEAD --pr N …` (required after merge)** — not optional after a “successful” merge; close-without-merge does not imply branch deletion authority.
+10. **Binder `## Finish` ledger (REQUIRED).** After cleanup (step 9), `cd` to the **main checkout**, switch to the **PR merge base** (`git checkout <base>` + pull), and run `finish-ledger.sh --pr <PR_N> --issue <closing_M> --binder <.lattice/tickets/tkt-M-*/README.md> [--repo owner/repo]`. It stamps firm GH dates (`mergedAt`/`closedAt`) + `prs` + `status: closed` into the binder idempotently (never a second `## Finish`), then commit + push the base branch. **Two-phase:** cleanup removes the worktree, so the ledger is a post-merge commit on the base branch (policy.md:41). **No binder** (ticket-only flow) → `finish-ledger.sh` skips with a note, finish does not fail. **Closed-without-merge** → the helper reads the PR state itself and records `closed without merge` **without** claiming `mergedAt`; `status` flips to `closed` only when a closing issue actually closed. An **OPEN** PR is refused (the ledger records outcomes, not intentions). The helper also refuses to stamp a PR from a repository other than the binder's own origin. Spec primary close (when workstream complete) is separate.
+11. Report URL + cleanup + **actionable local delivery issues closed** + **epic/unsupported exclusions reported** + Spec-primary suggestion (if any) + **assert remote gone**.
 
 Full step text: **`references/flow.md`**. Policy tables: **`references/policy.md`**.
 
@@ -125,6 +128,7 @@ No separate target resolution — reuse the PR diff already in scope: `gh pr dif
 | High-cost failure (if touched) | authz/trust · data loss/corruption · retry/idempotency · races · empty/timeout · schema/compat when migrations change — short list only |
 | Tests | Clear gaps for **new** behavior; missing regression for a bug fix |
 | Dig deeper | empty/null paths · partial failure/idempotency · stale state/ordering · rollback/irreversible writes — only where the diff touches |
+| Privacy/Secrets | Scan diff, PR body, ticket binders, and commit messages for: local filesystem paths (`/Users/`, `/home/`, `C:\`, `/root/`); API keys, tokens, passwords, private keys (grep: `api[_-]?key`, `secret`, `password`, `token`, `BEGIN.*PRIVATE`); closed-source project names or internal hostnames in public-repo artifacts; DB schema details of external services (table/column names in non-migration context); personal email/phone in non-standard contexts. **Credentials/secrets → high (default Hold).** Local paths/project names → med (recommend cleanup). If sensitive content is unavoidable → `AskUserQuestion`: "This diff contains `<type>` — clean up first or confirm it is safe to commit?" |
 
 Skip deep threat modeling, load testing, full coverage matrices (those are `/review-production`).
 
@@ -152,7 +156,8 @@ Report only **material** findings. Each row = severity + one-line failure scenar
   - `Merge anyway` — operator accepts the risk
   - `Hold (I'll address)` — stop; operator fixes or defers
   - `Invoke full /review-code` — deeper pass before deciding
-- Any **high** finding → default recommended option `Hold`; only med/low → default `Merge anyway`.
+- Any **high** finding (including credential/secret leak) → default recommended option `Hold`; only med/low → default `Merge anyway`.
+- **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), default to `Hold` regardless of other axes. If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.
 - **Hard stop on edits:** present findings and stop. Do **not** auto-fix even if "obvious". Edit the tree only when the operator explicitly names which findings to fix (then smallest change in the change set's modules; fresh test output if tests requested).
 - The HARD merge gate is unchanged — `alignment-check.sh`. Findings are advice; the operator may still choose `Merge anyway`.
 
@@ -213,6 +218,8 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - Residual `origin/<head>` after finish without keep-remote
 - Force-pushing default branch
 - Merge after authority pressure with open `- [ ]` on Fixes #N
+- Merging despite **high** Privacy/Secrets findings without explicit user confirmation
+- Ignoring local paths, credentials, or closed-source project names in the diff
 - Using open Spec primary / `label:epic` as cover for unfinished Fixes land
 - Rewriting hand-created issue bodies at land to green the gate
 
