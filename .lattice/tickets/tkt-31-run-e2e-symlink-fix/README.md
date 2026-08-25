@@ -9,7 +9,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/31 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | fix broken run-e2e plugin symlink + dead ego-browser doc link |
 | spec | (none — review-fix, not Spec-driven) |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-31 (this issue) |
 | **related_tickets** | tkt-32, tkt-33, tkt-34 (same PR) |
 | **worktree_bind** | tkt-31-run-e2e-symlink-fix |
-| prs | (none) |
+| prs | (none) · pr-36 — https://github.com/percena/lattice/pull/36 |
 
 ## Acceptance (this slice)
 
@@ -37,3 +37,8 @@
 ## References
 
 - GitHub issue body is SoT for long prose
+
+## Finish
+
+- pr-36 merged: 2026-08-25T09:45:49Z — https://github.com/percena/lattice/pull/36 (base merge)
+- issue #31 closed: 2026-08-25T09:46:35Z — https://github.com/percena/lattice/issues/31

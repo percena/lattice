@@ -9,7 +9,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/33 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | fix BATCH_WORK=1 enforcement — env var → marker file |
 | spec | (none — review-fix) |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-31 |
 | **related_tickets** | tkt-31, tkt-32, tkt-34 |
 | **worktree_bind** | tkt-31-run-e2e-symlink-fix (shared) |
-| prs | (none) |
+| prs | (none) · pr-36 — https://github.com/percena/lattice/pull/36 |
 
 ## Acceptance (this slice)
 
@@ -36,3 +36,8 @@
 ## References
 
 - GitHub issue body is SoT for long prose
+
+## Finish
+
+- pr-36 merged: 2026-08-25T09:45:49Z — https://github.com/percena/lattice/pull/36 (base merge)
+- issue #33 closed: 2026-08-25T09:46:40Z — https://github.com/percena/lattice/issues/33
