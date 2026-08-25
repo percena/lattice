@@ -18,7 +18,7 @@ Detailed step recipes for the `batch-work` skill. The `SKILL.md` is the protocol
 
 ## RESOLVE TICKETS
 
-For each id in `--ids` (or, under `--groups`, every binder under `.lattice/tickets/` that has a `parallel_group` set):
+For each id in `--ids` (or, under `--groups`, **every** binder under `.lattice/tickets/` — not only those with a `parallel_group` set; tickets with no `parallel_group` are assigned to a default serial layer, see BUILD DAG):
 
 1. Locate `.lattice/tickets/tkt-<id>-*/README.md`. If missing → fail closed: "ticket <id> has no binder; run create-tickets first".
 2. Parse the binder frontmatter/table for: `github`, `parallel_group`, `blocked_by`, `paths`, `worktree_bind`, `primary_ticket`.
@@ -33,7 +33,9 @@ Layer assignment (Kahn's algorithm):
 - Layer 0: tickets with no `blocked_by` (or `blocked_by` only on tickets outside the batch).
 - Layer k: ticket whose every `blocked_by` target is in a layer < k.
 - Within a layer, tickets sharing the same `parallel_group` are candidates for concurrent spawn (subject to independence check).
-- Tickets with no `parallel_group` under `--groups` are placed in layer 0 if unblocked, else by their `blocked_by`.
+- Tickets with no `parallel_group` under `--groups` are assigned to a **default serial layer** — each such ticket is serialized (one at a time), ordered by `blocked_by` then binder id; they are never spawned concurrently with each other.
+
+> **`--ids` still respects `blocked_by`.** Even though `--ids` is one-layer intent, if any id in the set has a `blocked_by` target that is **also in the set**, those two must be serialized (the blocker lands in an earlier sub-layer). Cross-set blockers (not in `--ids`) are treated as already-satisfied preconditions and do not force serialization.
 
 Cycle detection: if Kahn's algorithm leaves unprocessed nodes, fail closed: "DAG has a cycle: <ids>". Do not spawn.
 
@@ -69,16 +71,18 @@ Exit 0 before any `ensure-workspace` or `Agent` call.
 
 Before spawning each layer:
 
-- macOS: available = pages free × page size, from `vm_stat` + `sysctl -n hw.pagesize`. Compare to threshold × 1 GB (1 073 741 824 bytes).
+- macOS: available = (`pages_free` + `pages_inactive` + `pages_speculative`) × page size, from `vm_stat` + `sysctl -n hw.pagesize`. Compare to threshold × 1 GB (1 073 741 824 bytes).
 - Linux: `MemAvailable` from `/proc/meminfo`.
 - Below threshold → fail closed for this layer: stop the batch, emit partial report, exit non-zero.
 - Threshold 0 disables the check (not recommended; record as an escape in the report).
 
 ## SPAWN LAYER
 
-For each ticket in the layer, up to `--concurrency`:
+If the layer has more tickets than `--concurrency`, spawn in **waves** of `--concurrency` tickets each. Run a wave, wait at the LAYER BARRIER for all of its agents, then run the next wave (re-checking RAM between waves). Within a single wave, up to `--concurrency` tickets:
 
 1. **Ensure worktree:**
+   - Honor the binder's `worktree_bind` field if present — pass its `--bind`/`--id`/`--slug`/`--branch` values through to `ensure-workspace.sh` instead of the defaults below.
+   - Default (no `worktree_bind`):
    ```bash
    bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id <N> --slug <slug> [--base <ref>]
    ```
@@ -99,13 +103,13 @@ For each ticket in the layer, up to `--concurrency`:
 
 ## LAYER BARRIER
 
-Wait for all agents spawned in this layer to complete (background-completion channel). For each:
+Wait for all agents spawned in the current **wave** to complete (background-completion channel). For each:
 
 - Success with PR URL → `ok`, record PR URL.
 - Agent reported failure / no PR → `failed`, record reason.
 - Timeout (if imposed) → `failed`, record timeout.
 
-A `failed` ticket does not block peers in the same layer. Proceed to the next layer.
+If more waves remain in this layer, re-run the RAM CHECK and spawn the next wave. A `failed` ticket does not block peers in the same wave. Once all waves of the layer finish, proceed to the next layer.
 
 ## NEXT-LAYER DEPENDENCY CHECK
 
