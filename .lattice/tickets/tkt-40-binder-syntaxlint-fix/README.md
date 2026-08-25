@@ -9,7 +9,7 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/40 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | fix binder checkbox hygiene + syntax-lint.md PyYAML availability check |
 | spec | (none — review-fix) |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-40 (this issue) |
 | **related_tickets** | tkt-35 (split-lint-heavy) |
 | **worktree_bind** | tkt-40-binder-syntaxlint-fix |
-| prs | (none) |
+| prs | (none) · pr-41 — https://github.com/percena/lattice/pull/41 |
 
 ## Acceptance (this slice)
 
@@ -36,3 +36,8 @@
 ## References
 
 - GitHub issue body is SoT for long prose
+
+## Finish
+
+- pr-41 merged: 2026-08-25T12:38:19Z — https://github.com/percena/lattice/pull/41 (base merge)
+- issue #40 closed: 2026-08-25T12:38:35Z — https://github.com/percena/lattice/issues/40
