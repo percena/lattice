@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2** `batch-work` skill exists with `--ids`/`--groups` input, reads `parallel_group` from ticket binders, spawns one worktree per tkt via `ensure-workspace.sh`, layer-barrier sync (waits for all agents in a group before next), `BATCH_WORK=1` env blocks finish-work merge (agents create-pr only), RAM threshold check before spawn, dry-run mode, failure isolation (one agent crash doesn't block peers or subsequent layers)
+- [x] **A2** `batch-work` skill exists with `--ids`/`--groups` input, reads `parallel_group` from ticket binders, spawns one worktree per tkt via `ensure-workspace.sh`, layer-barrier sync (waits for all agents in a group before next), `BATCH_WORK=1` env blocks finish-work merge (agents create-pr only), RAM threshold check before spawn, dry-run mode, failure isolation (one agent crash doesn't block peers or subsequent layers)
 
 ## Notes
 

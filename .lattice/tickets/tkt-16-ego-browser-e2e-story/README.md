@@ -27,7 +27,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A4** `e2e-story` reference template exists (heredoc JS pattern for ego-browser) with goto/click/fill/select/press/screenshot/assert primitives, fail-loud auth check (expected auth but landed on login page → FAIL), structured JSON output via `console.log`, and at least one example story for weftd or flitro
+- [x] **A4** `e2e-story` reference template exists (heredoc JS pattern for ego-browser) with goto/click/fill/select/press/screenshot/assert primitives, fail-loud auth check (expected auth but landed on login page → FAIL), structured JSON output via `console.log`, and at least one example story for weftd or flitro
 
 ## Notes
 
