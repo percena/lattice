@@ -36,7 +36,7 @@ Advanced install (org roll-out, private forks, local dev, refresh) → [docs/get
   /create-spec  |  /create-review
        ↓
   /create-tickets
-       ↓
+       ↓                         ↘ /batch-work (parallel groups → fan-out)
   /start-work
        ↓
   implement
@@ -75,6 +75,7 @@ Advanced install (org roll-out, private forks, local dev, refresh) → [docs/get
 | [`create-spec`](./skills/create-spec/) | Persist a Lattice Spec (`spc-n`) with acceptance criteria | `/create-spec` |
 | [`create-review`](./skills/create-review/) | Persist a Lattice Review (`rev-YYYYMMDD-HHMMSSZ`) with an explicit outcome | `/create-review` |
 | [`create-tickets`](./skills/create-tickets/) | Split locked scope into GitHub issues + binders | `/create-tickets` |
+| [`batch-work`](./skills/batch-work/) | DAG-orchestrated fan-out: spawn multiple `start-work` agents on sibling worktrees with layer-barrier sync | `/batch-work` |
 | [`create-pr`](./skills/create-pr/) | Open/update a well-formed GitHub PR | `/create-pr` |
 | [`finish-work`](./skills/finish-work/) | Update base, alignment-check, merge, cleanup | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | Shared scripts backing the above (co-install, not a slash entry) | — |
@@ -84,6 +85,7 @@ Not part of the delivery loop — three tiers, none create lineage nodes:
 | Tier | Skill(s) | Notes |
 | --- | --- | --- |
 | PR-scoped quality side-paths | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | Optional, before/after `/create-pr`; no `_lattice-lib` |
+| E2e reference pattern | [`run-e2e`](./skills/run-e2e/) | Heredoc JS story pattern for ego-browser; one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
 | standalone doc tool | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`; anytime; no `_lattice-lib` |
 | out-of-band companion (`create-*` family) | [`create-adr`](./skills/create-adr/) | writes `docs/adr/NNN`; co-installs `_lattice-lib`; **not a lineage node** — invoked *alongside* `/create-spec`/`/create-review` (same worktree, promotes cross-feature decisions); never a loop entry or a Spec substitute |
 

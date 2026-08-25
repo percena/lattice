@@ -95,10 +95,12 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      ```
      Worktree: <path> (branch <branch>). cd there before any work.
      Run: start-work tkt-<id>.
-     Env: BATCH_WORK=1 — finish-work merge is BLOCKED. Do not call finish-work.
+     Batch marker: .lattice/.batch-work-active is present in this worktree —
+     finish-work merge is BLOCKED. Do not call finish-work.
      Implement to the ticket's Acceptance criteria. Then open a PR via create-pr.
      Stop after create-pr. Report the PR URL.
      ```
+   - Before spawning, write the batch marker: `touch <path>/.lattice/.batch-work-active`.
    - Record agent handle + ticket id + worktree path.
 
 ## LAYER BARRIER
@@ -141,7 +143,7 @@ ran: <UTC timestamp>
 
 ## Handoff
 Human reviews open PRs, then runs finish-work per PR.
-BATCH_WORK=1 ensured no agent merged.
+The .lattice/.batch-work-active marker ensured no agent merged.
 ```
 
 ## Failure-isolation contract

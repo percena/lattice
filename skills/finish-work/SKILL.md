@@ -57,7 +57,7 @@ Finish **does not invent** which PR to merge.
 ## Finish cycle (copy)
 
 - [ ] Target resolved (pr|tkt|spc|branch) — no multi-PR guess
-- [ ] **BATCH_WORK gate:** if `BATCH_WORK=1` env set → refuse `gh pr merge`; print "BATCH_WORK=1 is set — batch-work agents may only create-pr; human must run finish-work after review"; stop (do not merge). Proceed only when `BATCH_WORK` is unset or `0`.
+- [ ] **Batch-work marker gate:** if `.lattice/.batch-work-active` marker file exists in the worktree → refuse `gh pr merge`; print "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review"; stop (do not merge). Proceed only when the marker is absent. After a successful human-driven merge, remove the marker.
 - [ ] Base updated (unless `--no-update-branch`); not CONFLICTING
 - [ ] `alignment-check.sh --json` + human dimensions; retain its approved `closing_ids` through merge; **land-time Spec drift** when `Spec:` / Spec-bound Fixes apply; DoD honesty — drift ⇒ remediate (a) commits (b) tickets (c) Spec, **no merge**
 - [ ] **Mini-review scan (default-on):** load PR diff, 5-axis light scan, present material findings, `AskUserQuestion` on material items (high → default Hold); advice, **not** a gate — HARD gate stays alignment-check
@@ -78,7 +78,7 @@ Finish **does not invent** which PR to merge.
 5. **No invent bloodline** — update binders only when paths exist and PR # known.
 6. **Merge/cleanup accountability** — authority and exact target stay explicit; bounded delegation is allowed, but the host verifies alignment, merge state, issue closure, and cleanup.
 7. **Never** `git push --force` to default branch.
-8. **BATCH_WORK gate** — `BATCH_WORK=1` env → refuse `gh pr merge`; print guidance: "BATCH_WORK=1 is set — batch-work agents may only create-pr; human must run finish-work after review". The operator must unset `BATCH_WORK` (or set `0`) before this skill may merge.
+8. **Batch-work marker gate** — `.lattice/.batch-work-active` marker file present → refuse `gh pr merge`; print guidance: "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review". The operator must remove the marker (or confirm it was not set by batch-work) before this skill may merge. After a successful human-driven merge, the marker is removed.
 
 ### DEFAULT
 
@@ -97,7 +97,7 @@ Finish **does not invent** which PR to merge.
 ## Short path
 
 1. Resolve target → record PR_N / HEAD / BASE.
-2. **BATCH_WORK gate:** if `BATCH_WORK=1` env is set → refuse `gh pr merge`; print "BATCH_WORK=1 is set — batch-work agents may only create-pr; human must run finish-work after review" and stop (do not merge, do not proceed to base update). Proceed only when `BATCH_WORK` is unset or `0`.
+2. **Batch-work marker gate:** if `.lattice/.batch-work-active` marker exists in the worktree → refuse `gh pr merge`; print "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review" and stop (do not merge, do not proceed to base update). Proceed only when the marker is absent. After a successful human-driven merge, remove the marker.
 3. Preflight (draft, checks, mergeable). **Base-mismatch advice:** if `BASE` (PR base) ≠ the user's current integration branch (long-lived, e.g. on `dev` but PR targets `main`), surface a one-line warning **before** `gh pr merge` and let the operator confirm or switch. Advice only — HARD gate stays `alignment-check.sh`.
 4. `update-pr-base.sh --pr N` (unless skipped).
 5. `alignment-check.sh --pr N` + dimension fix/stop; **land-time Spec drift** when applicable; print `alignment:` line.
