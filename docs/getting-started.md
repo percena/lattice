@@ -90,6 +90,7 @@ npx skills add percena/lattice --skill review-code --skill review-production
 | --- | --- |
 | `/review-code` | Light **material** code review of a **PR / dirty WT / branch change set** (before or after `create-pr`) — failure scenario + evidence + recommendation; not style-nit primary |
 | `/review-production` | Heavier production-readiness checklist on that **same PR unit** (advice only) |
+| `/review-delivery` | Artifact-only **chain review of a delivered ticket set** (`spc-N` \| ids \| batch report) — A*→evidence fidelity, cross-PR coherence + throwaway integration build, decision-ratification queue, per-PR findings → ranked morning digest (`auto-pass \| ratify-then-pass \| deep-review`) with per-axis attestation; co-installs `_lattice-lib`; never merges |
 
 **HARD default:** analysis unit = one PR (or the diff / dirty working tree that will become one PR) — **not** whole-repo architecture. Expand only if the user **explicitly** asks; otherwise redirect to `/create-review` / Spec.
 
