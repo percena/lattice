@@ -35,7 +35,7 @@ stateDiagram-v2
     state "pr-open" as pr
     [*] --> queued
     queued --> ip: spawn / bind
-    queued --> deferred: deschedule / batch fuse
+    queued --> deferred: human deschedule
     deferred --> queued: re-schedule
     ip --> pr: PR opened
     ip --> parked: park & pivot (unresolvable decision)
@@ -48,6 +48,8 @@ stateDiagram-v2
     stuck --> closed: cancel
     closed --> [*]
 ```
+
+Fuse edge: a batch fuse halt is **not** a transition — fuse-halted tickets stay `queued` (the batch report notes the halt); `deferred` is the optional human deschedule stamp, applied at triage when a ticket should leave the schedulable queue.
 
 Review path from `pr-open`: chain review (`review-delivery`, artifact-only) → bounded fix cycle (≤2) for material findings → verdict `auto-pass | ratify-then-pass | deep-review` → **human merge**. A materially changed rebase voids the verdict (clean rebase carries it). `stuck` also exits sideways to M1 (re-scope → Spec/ticket revision) — a scope escape is a planning defect, not an execution problem.
 
@@ -85,7 +87,7 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | State → State | Trigger | Owner |
 | --- | --- | --- |
 | queued → in-progress | batch-work spawn / start-work bind | system |
-| queued → deferred | deliberate deschedule, or batch fuse halts the layer | human / system |
+| queued → deferred | deliberate deschedule (optional stamp, e.g. at triage after a batch fuse halt — the fuse itself leaves tickets `queued`; the report notes the halt) | human |
 | deferred → queued | re-scheduled into a later batch | human |
 | in-progress → pr-open | `create-pr` opens the PR | agent |
 | in-progress → parked | irreversible / cross-contract decision, unattended → park & pivot | agent |
