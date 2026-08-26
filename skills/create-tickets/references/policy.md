@@ -110,6 +110,7 @@ Each ticket must declare (templates):
 | **solo-merge** | Can land alone on green main? |
 
 Path-overlapping tickets must **not** share a parallel group. Shared APIs/types belong on Spec/ADR before fan-out.  
+**Implicit shared files:** engine-style repos carry files every bundled change touches even when no ticket lists them — plugin version manifests (`.claude-plugin/marketplace.json`, `plugins/*/.claude-plugin/plugin.json`) and the changelog. They do not count as path overlap for the gate, but parallel tickets touching bundled content MUST route version/changelog handling to the release-train convention (`skills/batch-work/references/flow.md`): no per-branch bumps; the orchestrator applies one byte-identical version cut to every train branch.  
 Workspace: **shippable default is sibling worktree**. Parallel degree ≥ 2 → one sibling worktree per concurrent tkt. Dependent / path-overlapping tickets **pack into one worktree** (one PR: `Fixes` primary + `Refs` related). Independence gates stay required before multi-PR.
 
 **Same Spec does not force serial:** path-independent G1 tickets → multi-worktree parallel EXECUTE.

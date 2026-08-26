@@ -199,6 +199,67 @@ def changed_paths(root: Path, base_oid: str, head_oid: str) -> list[str]:
     )
 
 
+def blob_oid(root: Path, commit: str, path: str) -> str | None:
+    """Return the blob OID for path at commit, or None when it does not exist."""
+    result = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", f"{commit}:{path}"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def train_cut_shared(root: Path, base_oid: str, head_oid: str, manifest_path: str) -> bool:
+    """Release-train acceptance: is the equal version an identical cut shared by both sides?
+
+    The batch release train commits one byte-identical version cut (marketplace +
+    manifests) to every train branch, so after the first train PR merges, later
+    heads compare equal-version against the updated base.  That cut is identical
+    *content* but a distinct commit per branch, so detection is blob-level: for
+    every version-bearing file, the blob at head equals the blob at base while
+    differing from the blob at the merge base — both lines landed the same cut
+    after diverging — and the manifest version increased since the fork point.
+    The worktree must also match the head blobs (a dirty version file is not the
+    cut that ships).  Anything short of all that keeps the strict per-landing
+    law: bundled change + equal version -> error.
+    """
+    version_paths = [".claude-plugin/marketplace.json", manifest_path]
+    try:
+        merge_base = git(root, "merge-base", base_oid, head_oid).strip()
+    except RuntimeError:
+        return False
+    for path in version_paths:
+        head_blob = blob_oid(root, head_oid, path)
+        if head_blob is None:
+            return False
+        if blob_oid(root, base_oid, path) != head_blob:
+            return False  # base does not carry the identical cut
+        if blob_oid(root, merge_base, path) == head_blob:
+            return False  # version files never changed on this branch: no cut
+        try:
+            if load_json(root / path) != load_json_at(root, head_oid, path):
+                return False  # dirty worktree version file: not the committed cut
+        except (OSError, ValueError, json.JSONDecodeError):
+            return False
+    try:
+        fork_manifest = load_json_at(root, merge_base, manifest_path)
+        head_manifest = load_json_at(root, head_oid, manifest_path)
+    except (ValueError, json.JSONDecodeError):
+        return False
+    fork_version = fork_manifest.get("version") if fork_manifest else None
+    head_version = head_manifest.get("version") if head_manifest else None
+    if not isinstance(fork_version, str) or not isinstance(head_version, str):
+        return False
+    try:
+        return semver_key(head_version) > semver_key(fork_version)
+    except ValueError:
+        return False
+
+
 ZERO_OID_RE = re.compile(r"^0{7,40}$")
 
 
@@ -279,6 +340,11 @@ def parse_args() -> argparse.Namespace:
         "--initial-publish",
         action="store_true",
         help="validate current metadata/cache identities without a historical release baseline",
+    )
+    parser.add_argument(
+        "--no-train",
+        action="store_true",
+        help="disable release-train acceptance: bundled change + equal version always fails",
     )
     parser.add_argument("--repo-root", type=Path, help="repository root (defaults to git root)")
     parser.add_argument("--json", action="store_true", help="emit deterministic JSON")
@@ -402,10 +468,14 @@ def main() -> int:
 
         if base_oid and previous_manifest is None:
             bundle_changed = True
+        train_cut = False
         if base_oid and bundle_changed and manifest_version == previous_version:
-            errors.append(
-                f"{name}: bundled content changed without a version increment ({manifest_version})"
-            )
+            if not args.no_train:
+                train_cut = train_cut_shared(root, base_oid, head_oid, manifest_path)
+            if not train_cut:
+                errors.append(
+                    f"{name}: bundled content changed without a version increment ({manifest_version})"
+                )
         if (
             base_oid
             and isinstance(previous_version, str)
@@ -429,6 +499,7 @@ def main() -> int:
                 "changed_paths": impact_paths,
                 "name": name,
                 "previous_version": previous_version,
+                "train_cut": train_cut,
                 "version": manifest_version,
             }
         )
@@ -476,6 +547,11 @@ def main() -> int:
                 f"{plugin['name']}: {plugin['version']} ({state}) "
                 f"cache={plugin['cache_path']}"
             )
+            if plugin["train_cut"]:
+                print(
+                    f"{plugin['name']}: release-train cut shared with base — "
+                    f"equal version {plugin['version']} accepted"
+                )
         for error in result["errors"]:
             print(f"ERROR: {error}", file=sys.stderr)
         print("validate-plugin-versions: OK" if not errors else "validate-plugin-versions: FAILED")

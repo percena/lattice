@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/60 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | train mode for the version validator + shared-file modeling in the paths independence gate |
 | spec | none — hygiene/enhancement from dogfood review |
@@ -40,6 +40,10 @@ Add a train detection path to `validate-plugin-versions.py`: when bundled conten
 - Whether train mode needs an explicit flag vs auto-detection — disposition: agent-decides (prefer auto with flag override)
 
 ## Decision journal
+
+- **Detection mechanism: shared-cut blob comparison (not release-tag compare).** Chain source: 1 — binder `## Anticipated decisions` disposition "agent-decides; both satisfy acceptance" + `## Approach` lists shared-cut first; empirical fit: the train cut is byte-identical content but *distinct commits* per branch (`skills/batch-work/references/flow.md` §"orchestrator commits ONE identical version cut … byte-identical"), so blob-level identity (same blob OID at head and base, differing from the merge-base, with a SemVer increase since the fork) detects exactly the documented convention, while release-tag compare would add a tag-discipline dependency this repo does not yet have. Reversible, ticket-local.
+- **Auto-detection with `--no-train` override flag (no opt-in flag).** Chain source: 1 — binder disposition "prefer auto with flag override". Auto keeps CI invocations unchanged; `--no-train` restores the unconditional strict law for callers that want it. Reversible, ticket-local.
+- **Train acceptance requires clean version files in the worktree** (disk manifest/marketplace must match the head commit). Chain source: 5 — codebase convention (validator already folds worktree state into `changed_paths`; a dirty version file means the cut is not what ships). Reversible, ticket-local.
 
 ## Pending decisions
 
