@@ -1,7 +1,7 @@
 # tkt-47-review-delivery
 
 > **TL;DR:** New review-delivery skill — artifact-only chain review (A* fidelity, cross-PR coherence, decision queue, per-PR findings) + build-review-context.sh + ranked morning digest with attestation
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** pr-open · **Priority:** P2
 > **Path:** spc-42 → tkt-47 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/47 |
-| status | open |
+| status | pr-open |
 | adopted | false |
 | summary | review-delivery skill + context bundle script + morning digest (auto-pass / ratify / deep-review triage, promotion proposals) |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |
@@ -23,12 +23,12 @@
 | **related_tickets** | tkt-46 (preferences lifecycle this digest renders proposals for) |
 | **worktree_bind** | tkt-47-review-delivery |
 | worktree | sibling …/lattice.worktrees/tkt-47-review-delivery/ |
-| prs | (none) |
+| prs | pr-58 — https://github.com/percena/lattice/pull/58 |
 
 ## Acceptance (this slice)
 
-- [ ] **A6** review-delivery skill exists: input `spc-N | --ids tkt list | batch report`; context assembled exclusively from durable artifacts via `build-review-context.sh` (Spec, ADRs, binders incl. journals/attempts, PR bodies+diffs, batch report, test evidence — never implementer transcripts; artifact insufficiency is itself a finding); four axes (semantic A*→evidence fidelity incl. orphan criteria and ticket-less code; cross-PR coherence incl. throwaway pre-merge integration build in DAG order; decision-ratification queue; per-PR findings reusing the review-code contract); morning digest triages every PR `auto-pass | ratify-then-pass | deep-review` with recommended merge order; per-axis attestation mandatory (no bare LGTM); never merges
-- [ ] **A3** (completion) digest renders preference-promotion proposals for decision-journal entries ratified ×2
+- [x] **A6** review-delivery skill exists: input `spc-N | --ids tkt list | batch report`; context assembled exclusively from durable artifacts via `build-review-context.sh` (Spec, ADRs, binders incl. journals/attempts, PR bodies+diffs, batch report, test evidence — never implementer transcripts; artifact insufficiency is itself a finding); four axes (semantic A*→evidence fidelity incl. orphan criteria and ticket-less code; cross-PR coherence incl. throwaway pre-merge integration build in DAG order; decision-ratification queue; per-PR findings reusing the review-code contract); morning digest triages every PR `auto-pass | ratify-then-pass | deep-review` with recommended merge order; per-axis attestation mandatory (no bare LGTM); never merges
+- [x] **A3** (completion) digest renders preference-promotion proposals for decision-journal entries ratified ×2
 
 ## Notes
 
@@ -53,7 +53,7 @@
 - Blocked by: **#44**
 - Parallel group: **G2 (parallel)**
 - Worktree bind: `tkt-47-review-delivery`
-- Child PRs: (none yet)
+- Child PRs: pr-58 (https://github.com/percena/lattice/pull/58)
 
 ## Assets
 
