@@ -46,8 +46,15 @@ TMP="review-delivery/integration-$(date -u +%Y%m%d-%H%M%SZ)"
 git fetch origin
 git switch -c "$TMP" "$BASE"
 # DAG order: topological order of blocked_by from the manifest — merge
+<<<<<<< HEAD
 # blockers before dependents. Octopus when independent:
 git merge --no-ff --no-edit <pr-head-1> <pr-head-2> ...   # or sequential in DAG order
+=======
+# blockers before dependents, ONE AT A TIME (sequential). Do NOT octopus:
+# release-train PRs share files (version/changelog cuts) and octopus refuses
+# any non-trivial shared-file merge even when the edits are byte-identical.
+for h in <pr-head-1> <pr-head-2> ...; do git merge --no-ff --no-edit "$h"; done
+>>>>>>> origin/dev
 # Run what the repo runs (validators + tests actually present):
 bash tools/validate-skills.sh                # example: this repo's validators
 python3 tools/validate-lattice-artifacts.py
@@ -56,8 +63,16 @@ git switch "$BASE"
 git branch -D "$TMP"                         # ALWAYS discard — even on failure
 ```
 
+<<<<<<< HEAD
 - Merge conflict during the octopus/sequential merge → finding (name the two
   PRs + path). Do **not** resolve it; discard and report.
+=======
+- Merge conflict during the sequential merge → finding (name the two
+  PRs + path). Do **not** resolve it; discard and report. Exception: a conflict
+  on a shared release-train file where one branch is a strict superset (e.g. a
+  train version cut plus one branch's manifest additions) may be resolved by
+  taking the superset side — note it in the attestation.
+>>>>>>> origin/dev
 - Failures that appear only on the combined branch (each PR green alone) are
   the axis's highest-value findings — record the failing command + excerpt.
 - Very slow suites: run a documented subset and say so in the attestation
