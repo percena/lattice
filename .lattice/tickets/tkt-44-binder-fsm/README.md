@@ -1,7 +1,7 @@
 # tkt-44-binder-fsm
 
 > **TL;DR:** Binder template gains Approach / Anticipated decisions / Decision journal / Pending decisions / Attempts sections; field-table `status` extended into the FSM enum; validator checks transitions
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** pr-open · **Priority:** P2
 > **Path:** spc-42 → tkt-44 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/44 |
-| status | open |
+| status | pr-open |
 | adopted | false |
 | summary | binder sections + status FSM enum (compatible with finish-ledger closed stamp) + validator transition checks |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |
@@ -23,11 +23,11 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-44-binder-fsm |
 | worktree | sibling …/lattice.worktrees/tkt-44-binder-fsm/ |
-| prs | (none) |
+| prs | pr-54 — https://github.com/percena/lattice/pull/54 |
 
 ## Acceptance (this slice)
 
-- [ ] **A4** Binder template gains `## Approach`, `## Anticipated decisions` (disposition `pre-resolved | agent-decides | must-ask`), `## Decision journal`, `## Pending decisions`, `## Attempts`; existing field-table `status` extended in place — working `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` (merged vs closed-without-merge read from `## Finish` mergedAt, compatible with finish-ledger.sh), legacy `open` accepted with a validator warning; `validate-lattice-artifacts.py` rejects unknown status values and illegal transitions (e.g. `closed` without a `## Finish` ledger)
+- [x] **A4** Binder template gains `## Approach`, `## Anticipated decisions` (disposition `pre-resolved | agent-decides | must-ask`), `## Decision journal`, `## Pending decisions`, `## Attempts`; existing field-table `status` extended in place — working `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` (merged vs closed-without-merge read from `## Finish` mergedAt, compatible with finish-ledger.sh), legacy `open` accepted with a validator warning; `validate-lattice-artifacts.py` rejects unknown status values and illegal transitions (e.g. `closed` without a `## Finish` ledger)
 
 ## Notes
 
@@ -52,7 +52,7 @@
 - Blocked by: (none)
 - Parallel group: **G1 (parallel)**
 - Worktree bind: `tkt-44-binder-fsm`
-- Child PRs: (none yet)
+- Child PRs: pr-54 (https://github.com/percena/lattice/pull/54)
 
 ## Assets
 

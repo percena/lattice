@@ -5,7 +5,9 @@ Detects selected current-law drift over distributed Spec/ticket/Review files
 without introducing a lineage database or rewriting artifacts.
 
 Checks (selected, not exhaustive):
-  - ticket binder ``status`` vocabulary (open|closed only for current rows)
+  - ticket binder ``status`` FSM vocabulary: working
+    queued|in-progress|parked|stuck|pr-open|rework|deferred, terminal closed
+    (requires a real ``## Finish`` ledger), legacy open (warning, lazy migration)
   - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal)
   - ``covers`` A* ids that do not exist on the parent Spec Acceptance
   - one-sided local edges: ticket lists Spec but Spec.tickets omits the ticket
@@ -23,7 +25,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-STATUS_OK = {"open", "closed"}
+# Binder status FSM (ADR-004 §6 / spc-42 A4). `open` is legacy-coarse: accepted
+# with a warning (lazy migration). `closed` is finish-ledger's terminal stamp;
+# merged vs closed-without-merge is read from the ## Finish ledger's mergedAt.
+STATUS_WORKING_ORDER = ("queued", "in-progress", "parked", "stuck", "pr-open", "rework", "deferred")
+STATUS_WORKING = set(STATUS_WORKING_ORDER)
+STATUS_TERMINAL = {"closed"}
+STATUS_LEGACY = {"open"}
+STATUS_OK = STATUS_WORKING | STATUS_TERMINAL | STATUS_LEGACY
 SPEC_ID_RE = re.compile(r"^spc-([1-9][0-9]*)$")
 TKT_ID_RE = re.compile(r"^tkt-([1-9][0-9]*)$")
 REV_ID_RE = re.compile(
@@ -91,6 +100,26 @@ def ticket_status(text: str) -> str | None:
 
 ACCEPT_HEADING_RE = re.compile(r"^(#{2,6})\s+.*acceptance", re.I)
 HEADING_RE = re.compile(r"^(#{2,6})\s")
+FINISH_SECTION_RE = re.compile(r"^##\s+Finish\b.*?\n(.*?)(?=^##\s|\Z)", re.S | re.M)
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+
+
+def has_finish_ledger(text: str) -> bool:
+    """True when a ``## Finish`` section carries real ledger content.
+
+    Placeholder bodies — ``(none yet)``, bullets of it, HTML comments, blank
+    lines — do not count. finish-ledger.sh replaces the placeholder with dated
+    ``pr-P merged: …`` / ``issue #N closed: …`` lines, which do.
+    """
+    m = FINISH_SECTION_RE.search(text)
+    if not m:
+        return False
+    body = HTML_COMMENT_RE.sub("", m.group(1))
+    for line in body.splitlines():
+        content = line.strip().lstrip("-").strip()
+        if content and content != "(none yet)":
+            return True
+    return False
 
 
 def spec_acceptance_ids(text: str) -> set[str]:
@@ -234,6 +263,23 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "detail": f"status {st!r} not in {sorted(STATUS_OK)}",
                 }
             )
+        if st in STATUS_LEGACY:
+            findings.append(
+                {
+                    "code": "legacy_open_status",
+                    "level": "warning",
+                    "path": str(path),
+                    "detail": f"status {st!r} is legacy-coarse; migrate to the FSM enum ({' | '.join(STATUS_WORKING_ORDER)} | closed)",
+                }
+            )
+        if st in STATUS_TERMINAL and not has_finish_ledger(text):
+            findings.append(
+                {
+                    "code": "closed_without_finish",
+                    "path": str(path),
+                    "detail": f"status {st!r} but ## Finish ledger is missing or placeholder-only",
+                }
+            )
 
         # covers vs Spec Acceptance (spec row from the binder card only)
         sm = SPEC_REF_RE.search(first_table_block(text))
@@ -251,12 +297,13 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             "detail": f"{tid} covers {missing} but {sid} Acceptance lacks them",
                         }
                     )
-            # one-sided: open ticket claims Spec but Spec.tickets omits ticket.
-            # Limit to non-archive open binders to avoid historical ledger noise.
+            # one-sided: active ticket claims Spec but Spec.tickets omits ticket.
+            # Active = legacy open + any working FSM state; terminal binders are
+            # historical ledger and stay exempt, as does the archive.
             under_archive = "tickets/archive" in path.as_posix()
             if (
                 not under_archive
-                and st == "open"
+                and st in (STATUS_LEGACY | STATUS_WORKING)
                 and sid in spec_tickets
                 and tid
                 and tid not in spec_tickets[sid]
@@ -303,22 +350,34 @@ def main(argv: list[str] | None = None) -> int:
     # Stable order
     all_findings.sort(key=lambda f: (f.get("code", ""), f.get("path", ""), f.get("detail", "")))
 
+    # Warnings surface but never fail the run (lazy migration).
+    errors = [f for f in all_findings if f.get("level", "error") != "warning"]
+    warnings = [f for f in all_findings if f.get("level", "error") == "warning"]
+
     if args.json:
         print(
             json.dumps(
-                {"ok": not all_findings, "count": len(all_findings), "findings": all_findings},
+                {
+                    "ok": not errors,
+                    "count": len(errors),
+                    "warning_count": len(warnings),
+                    "findings": all_findings,
+                },
                 indent=2,
             )
         )
     else:
-        if not all_findings:
-            print("validate-lattice-artifacts: OK")
+        if not errors:
+            suffix = f" ({len(warnings)} warning(s))" if warnings else ""
+            print(f"validate-lattice-artifacts: OK{suffix}")
         else:
-            print(f"validate-lattice-artifacts: FAILED ({len(all_findings)} finding(s))")
-            for f in all_findings:
-                print(f"  [{f['code']}] {f['path']}: {f['detail']}")
+            print(f"validate-lattice-artifacts: FAILED ({len(errors)} finding(s), {len(warnings)} warning(s))")
+        for f in all_findings:
+            level = f.get("level", "error")
+            prefix = "warn " if level == "warning" else ""
+            print(f"  [{prefix}{f['code']}] {f['path']}: {f['detail']}")
 
-    return 1 if all_findings else 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":
