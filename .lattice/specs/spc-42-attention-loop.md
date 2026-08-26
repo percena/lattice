@@ -3,14 +3,14 @@ id: spc-42
 slug: attention-loop
 title: Attention loop — unattended night-shift delivery with a modeled human-attention contract
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Decision policy, team preferences, bounded fallback, chain review (review-delivery), FSM status field: close the day/night cycle"
 created: 2026-08-26
 updated: 2026-08-26
 tickets: [tkt-43, tkt-44, tkt-45, tkt-46, tkt-47, tkt-48, tkt-49, tkt-50]
-prs: []
+prs: [pr-52, pr-53, pr-54, pr-55, pr-56, pr-57, pr-58, pr-59]
 reviews: [rev-20260826-141124Z]
 supersedes: []
 superseded_by: null
@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: Attention loop — unattended night-shift delivery
 
 > **TL;DR:** Make human attention a modeled resource: day-phase mechanisms front-load the night's questions, a decision policy + team preferences + bounded fallback let agents run unattended without blocking or spinning, a new `review-delivery` skill reviews the delivered chain from artifacts alone and emits a morning digest, and a binder `status:` FSM field makes ticket state observable and checkable. Merge authority stays human (batch marker unchanged).
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** spc-42 → tkt-… → pr-…
 
 ## Why
@@ -49,15 +49,15 @@ Teams running Lattice in a day/night cycle (attended planning by day, unattended
 
 ## Acceptance
 
-- [ ] **A1** `_lattice-lib/references/decision-policy.md` exists and defines: (a) the resolution chain — ticket AC/binder Approach → Spec Decisions → ADR → `.lattice/preferences.md` → default heuristics (codebase convention > minimal public surface > most reversible) → park & pivot; (b) the reversibility × blast-radius matrix (reversible+local → self-decide + journal; irreversible or cross-contract → attended PCA / unattended park & pivot); (c) the journal contract (every self-decision cites its resolution source). start-work and batch-work reference it.
-- [ ] **A2** `_lattice-lib/references/fallback-policy.md` exists and defines: pivot-over-retry with the articulated-difference rule (no retry without a written cause + delta in `## Attempts`), caps (≤2 tries/path, ≤3 paths/ticket, per-ticket timebox), early-stop signals (same error twice; scope escape beyond ticket `paths`), the batch fuse (layer failure ratio > threshold → halt subsequent layers, graceful-drain running agents), and the stuck-with-ledger framing (Attempts ledger + one well-formed question = deliverable). batch-work injects it into spawn briefs.
-- [ ] **A3** `.lattice/preferences.md` is scaffolded by `ensure-lattice.sh` (template with INVARIANT/DEFAULT/HINT sections per `constraint-language.md`); decision-policy resolution consults it; a decision-journal entry ratified twice generates a promotion proposal in the morning digest; entries are superseded with a date, never deleted; Spec/ADR outrank preferences.
-- [ ] **A4** The ticket-binder template gains `## Approach`, `## Anticipated decisions` (each item dispositioned `pre-resolved | agent-decides | must-ask`), `## Decision journal`, `## Pending decisions`, `## Attempts`, and the existing binder field-table `status` is extended into the FSM enum: working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` (merged vs closed-without-merge distinguished by the `## Finish` ledger's `mergedAt`, as finish-ledger.sh already stamps), with legacy `open` accepted as a coarse value (lazy migration — validator warns, not fails); `validate-lattice-artifacts.py` rejects unknown status values and illegal transitions (e.g. `closed` without a `## Finish` ledger).
-- [ ] **A5** `create-tickets` runs an anticipated-decisions scan per proposed ticket (dry-run against real code, emit decision points with dispositions into the binder) and authors `## Approach` (sketch + touch-set) at split time; both land in one delivery-meta batch, not serial questioning.
-- [ ] **A6** `review-delivery` skill exists: input `spc-N | --ids tkt list | batch report`; assembles context exclusively from durable artifacts via `build-review-context.sh` (Spec, ADRs, binders incl. journals/attempts, PR bodies+diffs, batch report, test evidence — never implementer transcripts); reviews four axes (semantic A*→evidence fidelity incl. orphan criteria and ticket-less code; cross-PR coherence incl. a throwaway pre-merge integration build in DAG order; decision-ratification queue; per-PR findings reusing the review-code contract); emits a morning digest triaging every PR `auto-pass | ratify-then-pass | deep-review` with recommended merge order; per-axis attestation is mandatory (no bare LGTM); never merges.
-- [ ] **A7** `batch-work` upgrades: spawn briefs carry the decision + fallback protocols and the evidence contract (fresh test output, decision journal, e2e evidence when UI); per-ticket watchdog/timebox marks hung agents `failed`; batch fuse per A2; `--with-review` chains `review-delivery` after the last layer and dispatches a bounded (≤2 cycles) fix loop for material findings before the digest is finalized.
-- [ ] **A8** Re-entry edges exist: a PR returned with findings moves its binder to `status: rework` with findings as the new brief and re-enters the queue (address-review shape); ratifying a parked decision atomically writes the decision into the binder and flips `parked → queued`; finish-work re-runs its mini-review when a base update materially changes the diff (conflict or non-trivial rebase), carrying clean-rebase verdicts unchanged.
-- [ ] **A9** Docs: `docs/workflow-fsm.md` records the three coupled machines, the transition table with owners, the human-owned transition white-list (macro sign-off, ratify, deep-review verdict, Spec revision, cancel, merge), and the bounded-loop invariant (every autonomous loop declares an upper bound); `docs/day-phase.md` records the recipe — business requirement → solution-proposal rev (2–3 options + recommendation + rejected-alternatives attestation) → spec → adr → tickets.
+- [x] **A1** `_lattice-lib/references/decision-policy.md` exists and defines: (a) the resolution chain — ticket AC/binder Approach → Spec Decisions → ADR → `.lattice/preferences.md` → default heuristics (codebase convention > minimal public surface > most reversible) → park & pivot; (b) the reversibility × blast-radius matrix (reversible+local → self-decide + journal; irreversible or cross-contract → attended PCA / unattended park & pivot); (c) the journal contract (every self-decision cites its resolution source). start-work and batch-work reference it.
+- [x] **A2** `_lattice-lib/references/fallback-policy.md` exists and defines: pivot-over-retry with the articulated-difference rule (no retry without a written cause + delta in `## Attempts`), caps (≤2 tries/path, ≤3 paths/ticket, per-ticket timebox), early-stop signals (same error twice; scope escape beyond ticket `paths`), the batch fuse (layer failure ratio > threshold → halt subsequent layers, graceful-drain running agents), and the stuck-with-ledger framing (Attempts ledger + one well-formed question = deliverable). batch-work injects it into spawn briefs.
+- [x] **A3** `.lattice/preferences.md` is scaffolded by `ensure-lattice.sh` (template with INVARIANT/DEFAULT/HINT sections per `constraint-language.md`); decision-policy resolution consults it; a decision-journal entry ratified twice generates a promotion proposal in the morning digest; entries are superseded with a date, never deleted; Spec/ADR outrank preferences.
+- [x] **A4** The ticket-binder template gains `## Approach`, `## Anticipated decisions` (each item dispositioned `pre-resolved | agent-decides | must-ask`), `## Decision journal`, `## Pending decisions`, `## Attempts`, and the existing binder field-table `status` is extended into the FSM enum: working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` (merged vs closed-without-merge distinguished by the `## Finish` ledger's `mergedAt`, as finish-ledger.sh already stamps), with legacy `open` accepted as a coarse value (lazy migration — validator warns, not fails); `validate-lattice-artifacts.py` rejects unknown status values and illegal transitions (e.g. `closed` without a `## Finish` ledger).
+- [x] **A5** `create-tickets` runs an anticipated-decisions scan per proposed ticket (dry-run against real code, emit decision points with dispositions into the binder) and authors `## Approach` (sketch + touch-set) at split time; both land in one delivery-meta batch, not serial questioning.
+- [x] **A6** `review-delivery` skill exists: input `spc-N | --ids tkt list | batch report`; assembles context exclusively from durable artifacts via `build-review-context.sh` (Spec, ADRs, binders incl. journals/attempts, PR bodies+diffs, batch report, test evidence — never implementer transcripts); reviews four axes (semantic A*→evidence fidelity incl. orphan criteria and ticket-less code; cross-PR coherence incl. a throwaway pre-merge integration build in DAG order; decision-ratification queue; per-PR findings reusing the review-code contract); emits a morning digest triaging every PR `auto-pass | ratify-then-pass | deep-review` with recommended merge order; per-axis attestation is mandatory (no bare LGTM); never merges.
+- [x] **A7** `batch-work` upgrades: spawn briefs carry the decision + fallback protocols and the evidence contract (fresh test output, decision journal, e2e evidence when UI); per-ticket watchdog/timebox marks hung agents `failed`; batch fuse per A2; `--with-review` chains `review-delivery` after the last layer and dispatches a bounded (≤2 cycles) fix loop for material findings before the digest is finalized.
+- [x] **A8** Re-entry edges exist: a PR returned with findings moves its binder to `status: rework` with findings as the new brief and re-enters the queue (address-review shape); ratifying a parked decision atomically writes the decision into the binder and flips `parked → queued`; finish-work re-runs its mini-review when a base update materially changes the diff (conflict or non-trivial rebase), carrying clean-rebase verdicts unchanged.
+- [x] **A9** Docs: `docs/workflow-fsm.md` records the three coupled machines, the transition table with owners, the human-owned transition white-list (macro sign-off, ratify, deep-review verdict, Spec revision, cancel, merge), and the bounded-loop invariant (every autonomous loop declares an upper bound); `docs/day-phase.md` records the recipe — business requirement → solution-proposal rev (2–3 options + recommendation + rejected-alternatives attestation) → spec → adr → tickets.
 
 ## Non-goals
 
@@ -98,5 +98,5 @@ Teams running Lattice in a day/night cycle (attended planning by day, unattended
 
 - Tickets: tkt-43 (A1,A2 · G1), tkt-44 (A4 · G1), tkt-45 (A9 · G1), tkt-46 (A3 · G2, blocked_by 43), tkt-47 (A6+A3 · G2, blocked_by 44), tkt-48 (A5 · G2, blocked_by 44), tkt-49 (A8 · G2, blocked_by 43,44), tkt-50 (A7+A2 · G3, blocked_by 43,47)
 - Ship plan: multi-PR — one worktree/PR per ticket; layers G1 → G2 → G3 (batch-work compatible)
-- PRs: (to be created)
+- PRs: pr-52…pr-59 (all merged to dev 2026-08-26)
 - Reviews: `rev-20260826-141124Z`

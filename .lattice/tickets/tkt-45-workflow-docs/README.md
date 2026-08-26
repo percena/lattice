@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/45 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | workflow FSM reference + day-phase recipe docs; README docs-table rows |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-45-workflow-docs |
 | worktree | sibling …/lattice.worktrees/tkt-45-workflow-docs/ |
-| prs | https://github.com/percena/lattice/pull/53 |
+| prs | https://github.com/percena/lattice/pull/53 · pr-53 — https://github.com/percena/lattice/pull/53 |
 
 ## Acceptance (this slice)
 
@@ -59,4 +59,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-53 merged: 2026-08-26T15:11:11Z — https://github.com/percena/lattice/pull/53 (base merge)
+- issue #45 closed: 2026-08-26T15:11:15Z — https://github.com/percena/lattice/issues/45

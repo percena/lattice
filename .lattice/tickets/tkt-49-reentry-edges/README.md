@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-49-reentry-edges |
 | worktree | sibling …/lattice.worktrees/tkt-49-reentry-edges/ |
-| prs | https://github.com/percena/lattice/pull/57 |
+| prs | https://github.com/percena/lattice/pull/57 · pr-57 — https://github.com/percena/lattice/pull/57 |
 
 ## Acceptance (this slice)
 
@@ -60,4 +60,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-57 merged: 2026-08-26T15:12:10Z — https://github.com/percena/lattice/pull/57 (base merge)
+- issue #49 closed: 2026-08-26T15:12:15Z — https://github.com/percena/lattice/issues/49

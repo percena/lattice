@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-47 (digest promotion-proposal rendering completes A3) |
 | **worktree_bind** | tkt-46-preferences |
 | worktree | sibling …/lattice.worktrees/tkt-46-preferences/ |
-| prs | https://github.com/percena/lattice/pull/55 |
+| prs | https://github.com/percena/lattice/pull/55 · pr-55 — https://github.com/percena/lattice/pull/55 |
 
 ## Acceptance (this slice)
 
@@ -60,4 +60,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-55 merged: 2026-08-26T15:11:30Z — https://github.com/percena/lattice/pull/55 (base merge)
+- issue #46 closed: 2026-08-26T15:11:35Z — https://github.com/percena/lattice/issues/46

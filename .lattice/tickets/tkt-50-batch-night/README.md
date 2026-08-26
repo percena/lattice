@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-50-batch-night |
 | worktree | sibling …/lattice.worktrees/tkt-50-batch-night/ |
-| prs | https://github.com/percena/lattice/pull/59 |
+| prs | https://github.com/percena/lattice/pull/59 · pr-59 — https://github.com/percena/lattice/pull/59 |
 
 ## Acceptance (this slice)
 
@@ -61,4 +61,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-59 merged: 2026-08-26T15:14:18Z — https://github.com/percena/lattice/pull/59 (base merge)
+- issue #50 closed: 2026-08-26T15:14:23Z — https://github.com/percena/lattice/issues/50

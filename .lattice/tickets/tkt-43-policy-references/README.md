@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/43 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | decision-policy + fallback-policy references; start-work citation; batch-work injection deferred to tkt-50 |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-43-policy-references |
 | worktree | sibling …/lattice.worktrees/tkt-43-policy-references/ |
-| prs | https://github.com/percena/lattice/pull/52 |
+| prs | https://github.com/percena/lattice/pull/52 · pr-52 — https://github.com/percena/lattice/pull/52 |
 
 ## Acceptance (this slice)
 
@@ -61,4 +61,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-52 merged: 2026-08-26T15:10:08Z — https://github.com/percena/lattice/pull/52 (base merge)
+- issue #43 closed: 2026-08-26T15:10:14Z — https://github.com/percena/lattice/issues/43
