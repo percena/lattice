@@ -85,6 +85,7 @@ Not part of the delivery loop — three tiers, none create lineage nodes:
 | Tier | Skill(s) | Notes |
 | --- | --- | --- |
 | PR-scoped quality side-paths | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | Optional, before/after `/create-pr`; no `_lattice-lib` |
+| Chain-review side-path | [`review-delivery`](./skills/review-delivery/) | Artifact-only review of a delivered ticket set (Spec A* fidelity, cross-PR coherence, decision queue, per-PR findings) → ranked morning digest with per-axis attestation; co-installs `_lattice-lib`; never merges, never a merge gate |
 | E2e reference pattern | [`run-e2e`](./skills/run-e2e/) | Heredoc JS story pattern for ego-browser; one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
 | standalone doc tool | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`; anytime; no `_lattice-lib` |
 | out-of-band companion (`create-*` family) | [`create-adr`](./skills/create-adr/) | writes `docs/adr/NNN`; co-installs `_lattice-lib`; **not a lineage node** — invoked *alongside* `/create-spec`/`/create-review` (same worktree, promotes cross-feature decisions); never a loop entry or a Spec substitute |
