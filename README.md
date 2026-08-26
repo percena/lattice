@@ -95,6 +95,8 @@ Not part of the delivery loop — three tiers, none create lineage nodes:
 | --- | --- |
 | [getting-started](./docs/getting-started.md) | Install, auto-ensure, profiles, daily path, advanced install |
 | [github-surface](./docs/github-surface.md) | Kind + priority labels, optional Project auto-add |
+| [workflow-fsm](./docs/workflow-fsm.md) | Three coupled state machines, transition owners, bounded-loop invariant |
+| [day-phase](./docs/day-phase.md) | Attended planning recipe: requirement → proposal rev → spec → adr → tickets |
 | [CONTRIBUTING](./CONTRIBUTING.md) | Changing skills/plugins in this monorepo |
 | [SECURITY](./SECURITY.md) | Vulnerability reporting |
 | [CODE OF CONDUCT](./CODE_OF_CONDUCT.md) | Community standards |
