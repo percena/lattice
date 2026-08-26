@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-26
+
+Deferred validator items from tkt-65 (#74): single-PR bump.
+
+### Added
+
+- **`prs_row_format` warning** in `validate-lattice-artifacts.py` — a filled binder `prs` row must match the canonical `pr-N — <URL>` format (em dash; comma-separated entries for multi-PR tickets); `(none…)` placeholders are exempt. Warning-level permanently — adopt flows may reintroduce legacy rows.
+- **`preferences.md`** joined `lattice-init.sh`'s `assert_managed_paths_safe` list — initialization now refuses a symlinked `.lattice/preferences.md` before any mutation (matching ensure-lattice's existing refusal).
+
 ## [0.2.1] - 2026-08-26
 
 Release train for the process-hardening batch (tkt-60…tkt-65, issues #60–#65): one identical cut on every train branch.
