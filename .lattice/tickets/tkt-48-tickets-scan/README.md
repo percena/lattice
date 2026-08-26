@@ -1,7 +1,7 @@
 # tkt-48-tickets-scan
 
 > **TL;DR:** create-tickets runs an anticipated-decisions dry-run per ticket and authors `## Approach` (sketch + touch-set) at split time — front-loading the night's questions
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** pr-open · **Priority:** P2
 > **Path:** spc-42 → tkt-48 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/48 |
-| status | open |
+| status | pr-open |
 | adopted | false |
 | summary | anticipated-decisions scan (pre-resolved / agent-decides / must-ask) + Approach authoring in create-tickets |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |
@@ -23,11 +23,11 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-48-tickets-scan |
 | worktree | sibling …/lattice.worktrees/tkt-48-tickets-scan/ |
-| prs | (none) |
+| prs | pr-56 — https://github.com/percena/lattice/pull/56 |
 
 ## Acceptance (this slice)
 
-- [ ] **A5** create-tickets runs an anticipated-decisions scan per proposed ticket (dry-run against real code, emit decision points with dispositions `pre-resolved | agent-decides | must-ask` into the binder `## Anticipated decisions`) and authors `## Approach` (5–10 line sketch + touch-set) at split time; pre-resolved items join the single delivery-meta batch — no serial questioning
+- [x] **A5** create-tickets runs an anticipated-decisions scan per proposed ticket (dry-run against real code, emit decision points with dispositions `pre-resolved | agent-decides | must-ask` into the binder `## Anticipated decisions`) and authors `## Approach` (5–10 line sketch + touch-set) at split time; pre-resolved items join the single delivery-meta batch — no serial questioning
 
 ## Notes
 
@@ -52,7 +52,7 @@
 - Blocked by: **#44**
 - Parallel group: **G2 (parallel)**
 - Worktree bind: `tkt-48-tickets-scan`
-- Child PRs: (none yet)
+- Child PRs: pr-56 — https://github.com/percena/lattice/pull/56
 
 ## Assets
 
