@@ -77,6 +77,51 @@ teardown() {
   [ ! -d "$MISSING" ]
 }
 
+@test "fresh run scaffolds preferences.md with the three severity sections" {
+  run bash "$ENSURE" --root "$TEST_DIR/repo" --json
+  [ "$status" -eq 0 ]
+  PREFS="$TEST_DIR/repo/.lattice/preferences.md"
+  [[ -f "$PREFS" ]]
+  grep -q '^## INVARIANT' "$PREFS"
+  grep -q '^## DEFAULT' "$PREFS"
+  grep -q '^## HINT' "$PREFS"
+  [[ "$output" == *'"created_preferences": true'* ]]
+}
+
+@test "second run never overwrites a user-modified preferences.md" {
+  bash "$ENSURE" --root "$TEST_DIR/repo" >/dev/null
+  PREFS="$TEST_DIR/repo/.lattice/preferences.md"
+  printf '# team law\n- DEFAULT: tabs are illegal (added 2026-08-26)\n' >"$PREFS"
+  run bash "$ENSURE" --root "$TEST_DIR/repo" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"created_preferences": false'* ]]
+  [ "$(cat "$PREFS")" = '# team law
+- DEFAULT: tabs are illegal (added 2026-08-26)' ]
+}
+
+@test "preferences scaffold falls back to heredoc when template tree is absent" {
+  mkdir -p "$TEST_DIR/bin"
+  cp "$(dirname "$ENSURE")/ensure-lattice.sh" "$(dirname "$ENSURE")/lattice-init.sh" "$TEST_DIR/bin/"
+  run bash "$TEST_DIR/bin/ensure-lattice.sh" --root "$TEST_DIR/repo"
+  [ "$status" -eq 0 ]
+  PREFS="$TEST_DIR/repo/.lattice/preferences.md"
+  grep -q '^## INVARIANT' "$PREFS"
+  grep -q '^## DEFAULT' "$PREFS"
+  grep -q '^## HINT' "$PREFS"
+}
+
+@test "refuses a symlinked preferences.md" {
+  mkdir -p "$TEST_DIR/victim"
+  printf 'keep-me\n' >"$TEST_DIR/victim/prefs.md"
+  bash "$ENSURE" --root "$TEST_DIR/repo" >/dev/null
+  rm "$TEST_DIR/repo/.lattice/preferences.md"
+  ln -s ../../victim/prefs.md "$TEST_DIR/repo/.lattice/preferences.md"
+  run bash "$ENSURE" --root "$TEST_DIR/repo"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"refusing symlinked managed path"* ]]
+  [ "$(cat "$TEST_DIR/victim/prefs.md")" = "keep-me" ]
+}
+
 @test "check-only --json on a nonexistent root emits ok:false JSON without creating it" {
   MISSING="$TEST_DIR/never-made-json"
   run bash "$ENSURE" --check-only --json --root "$MISSING"
