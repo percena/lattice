@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-26
+
+Release train for the process-hardening batch (tkt-60…tkt-65, issues #60–#65): one identical cut on every train branch.
+
+### Added
+
+- **Release-train mode** in `validate-plugin-versions.py` — equal-version passes when the version files carry a byte-identical cut shared with the base (SemVer still increased since fork); `--no-train` restores the unconditional strict law. create-tickets paths gate now names implicit shared files.
+- **Skill registration integrity** — validate-skills asserts every `skills/` dir is registered (USER_FACING/EXEMPT) and bundled; backfilled plugin symlinks for batch-work, generate-wiki, review-code, review-production; batch-work + run-e2e joined USER_FACING; CONTRIBUTING gains the new-skill checklist.
+- **`tools/ci-local.sh`** — one-command local CI parity (all validators, shellcheck, evals, every bats suite); wired into the batch-work evidence contract.
+- **Batch ergonomics** — check-pr-context batch-marker whitelist; `stamp-pr-open.sh` (binder prs/status + issue-body acceptance sync in one idempotent step).
+- **Merge-train hardening** — finish-work CI-checks gate in the train recipe, file-explicit conflict law, post-merge marker sweep, orphaned-run hygiene; `update-pr-base.sh` emits `diff_changed`/conflict signals; mini-review text single-sourced.
+- **Template/validator debts** — binder header-status dedup + canonical prs format, fsm fuse wording, label taxonomy sync, ensure-lattice symlink alignment, `find-spec.sh`.
+
+
 ## [0.2.0] - 2026-08-26
 
 Release train for `spc-42` (attention loop): one identical version cut carried by every PR in the train (#52, #54–#58 + batch-work night upgrades); bundled-content increments land once for the whole set.
