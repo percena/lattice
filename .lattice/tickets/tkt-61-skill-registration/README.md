@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/61 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | registration-integrity validator + bundle symlink backfill (batch-work, run-e2e, generate-wiki, review-code, review-production) + USER_FACING adds |
 | spec | none — hygiene from dogfood review |
@@ -40,6 +40,13 @@ Backfill `plugins/lattice/skills/` symlinks (3-level relative, mirroring existin
 - Whether generate-wiki/review-* need plugin.json keyword entries too — disposition: agent-decides (match existing precedent)
 
 ## Decision journal
+
+- 2026-08-26 · run-e2e symlink already existed on dev — backfill was 4 links (batch-work, generate-wiki, review-code, review-production), not 5; no other action needed (reversible/local, articulated difference from brief).
+- 2026-08-26 · Exempt-list mechanism (anticipated): inline `EXEMPT` array in validate-skills.sh with per-entry comment — same idiom as USER_FACING, no marker files (agent-decides).
+- 2026-08-26 · Bundle-symlink check keys off `dirname(SKILLS_DIR)/plugins/lattice/skills` and skips when absent — consumer installs without plugins/ stay green, bats fixtures can opt in by building a sibling plugins tree (agent-decides).
+- 2026-08-26 · plugin.json (anticipated): added `generate-wiki` + `review-production` keywords and `generate-wiki` to description — matched existing precedent (run-e2e/review-code already listed), no duplicates.
+- 2026-08-26 · Pre-authorized anatomy extension USED: batch-work +`## Red Flags` (3 rows); run-e2e +`## Common Rationalizations` (3 rows) +`## Red Flags` (3 rows) and renamed `## Verification checklist` → `## Verification` (validator exact-matches the heading; content unchanged).
+- 2026-08-26 · CONTRIBUTING ground-rule rows updated (plugin packs *all* shipped skills; generate-* are bundled) — old text contradicted the new enforced invariant (local to in-scope file).
 
 ## Pending decisions
 
