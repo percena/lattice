@@ -106,7 +106,8 @@ assert_managed_paths_safe() {
     "$LATTICE/tickets" \
     "$LATTICE/config.yaml" \
     "$LATTICE/gitignore.snippet" \
-    "$LATTICE/README.md"
+    "$LATTICE/README.md" \
+    "$LATTICE/preferences.md"
   do
     if [[ -L "$path" ]]; then
       echo "Error: refusing symlinked managed path: $path" >&2

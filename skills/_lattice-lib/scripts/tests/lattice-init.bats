@@ -97,6 +97,18 @@ teardown() {
   [ -z "$(find "$TEST_DIR/victim/specs" -mindepth 1 -print -quit)" ]
 }
 
+@test "initialization rejects a symlinked preferences.md" {
+  mkdir -p "$TEST_DIR/repo/.lattice" "$TEST_DIR/victim"
+  printf 'keep-me\n' >"$TEST_DIR/victim/preferences.md"
+  ln -s ../../victim/preferences.md "$TEST_DIR/repo/.lattice/preferences.md"
+
+  run bash "$INIT" --root "$TEST_DIR/repo" --json
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"refusing symlinked managed path"* ]]
+  [ "$(cat "$TEST_DIR/victim/preferences.md")" = "keep-me" ]
+}
+
 @test "sync-labels never executes a consumer-repository fallback" {
   PARTIAL_INSTALL="$TEST_DIR/partial/_lattice-lib/scripts"
   CONSUMER_SYNC="$TEST_DIR/repo/skills/create-tickets/scripts"
