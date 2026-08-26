@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/61 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | registration-integrity validator + bundle symlink backfill (batch-work, run-e2e, generate-wiki, review-code, review-production) + USER_FACING adds |
 | spec | none — hygiene from dogfood review |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-61-skill-registration |
 | worktree | sibling …/lattice.worktrees/tkt-61-skill-registration/ |
-| prs | (none) |
+| prs | pr-67 — https://github.com/percena/lattice/pull/67 |
 
 ## Acceptance (this slice)
 
-- [ ] All shipped skills present in bundle symlinks + USER_FACING (or documented exemption); registration-integrity check fails on an unregistered skills/ dir; bats green
-- [ ] CONTRIBUTING new-skill checklist (5 surfaces) added
+- [x] All shipped skills present in bundle symlinks + USER_FACING (or documented exemption); registration-integrity check fails on an unregistered skills/ dir; bats green
+- [x] CONTRIBUTING new-skill checklist (5 surfaces) added
 
 ## Approach
 
@@ -65,7 +65,7 @@ Backfill `plugins/lattice/skills/` symlinks (3-level relative, mirroring existin
 
 - Parent spec: none (ticket-only)
 - Primary ticket: **tkt-61** · Covers: Finding 2 · Parallel group: **G1** · Worktree bind: `tkt-61-skill-registration`
-- Child PRs: (none yet)
+- Child PRs: pr-67 — https://github.com/percena/lattice/pull/67
 
 ## Finish
 
