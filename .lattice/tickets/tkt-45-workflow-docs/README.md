@@ -23,11 +23,11 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-45-workflow-docs |
 | worktree | sibling …/lattice.worktrees/tkt-45-workflow-docs/ |
-| prs | (none) |
+| prs | https://github.com/percena/lattice/pull/53 |
 
 ## Acceptance (this slice)
 
-- [ ] **A9** `docs/workflow-fsm.md` records the three coupled machines (planning / execution / knowledge), the transition table with owners, the human-owned transition white-list (macro sign-off, ratify, deep-review verdict, Spec revision, cancel, merge), and the bounded-loop invariant; `docs/day-phase.md` records the recipe — business requirement → solution-proposal rev (2–3 options + recommendation + rejected-alternatives attestation) → spec → adr → tickets; README docs table updated
+- [x] **A9** `docs/workflow-fsm.md` records the three coupled machines (planning / execution / knowledge), the transition table with owners, the human-owned transition white-list (macro sign-off, ratify, deep-review verdict, Spec revision, cancel, merge), and the bounded-loop invariant; `docs/day-phase.md` records the recipe — business requirement → solution-proposal rev (2–3 options + recommendation + rejected-alternatives attestation) → spec → adr → tickets; README docs table updated
 
 ## Notes
 
