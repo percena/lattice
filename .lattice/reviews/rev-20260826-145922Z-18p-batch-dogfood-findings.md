@@ -48,11 +48,12 @@ Skipped — this review *is* the observation log of a live run; each finding car
 
 ### Follow-ups
 
-- [ ] Ticket: validate-plugin-versions train mode + create-tickets shared-file paths modeling
-- [ ] Ticket: new-skill registration checklist/scaffold + validator; backfill batch-work/run-e2e/generate-wiki/review-code/review-production into bundle + USER_FACING
-- [ ] Ticket: `ci-local` parity runner wired into batch-work evidence contract
-- [ ] Ticket: check-pr-context marker whitelist + pr-open binder stamp helper
-- [ ] Ticket (LOW, batchable): template/validator debts of Finding 6
+- [x] Ticket: validate-plugin-versions train mode + create-tickets shared-file paths modeling → **tkt-60** (#60)
+- [x] Ticket: new-skill registration checklist/scaffold + validator; backfill batch-work/run-e2e/generate-wiki/review-code/review-production into bundle + USER_FACING → **tkt-61** (#61)
+- [x] Ticket: `ci-local` parity runner wired into batch-work evidence contract → **tkt-62** (#62)
+- [x] Ticket: check-pr-context marker whitelist + pr-open binder stamp helper (+ issue-body acceptance sync, A1) → **tkt-63** (#63)
+- [x] Ticket: merge-train hardening in finish-work + update-pr-base diff signal (F20 + A3) → **tkt-64** (#64)
+- [x] Ticket (LOW, batchable): template/validator debts of Finding 6 → **tkt-65** (#65)
 
 ## Addendum — merge-train phase (post-digest)
 
