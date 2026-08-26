@@ -54,6 +54,14 @@ Skipped — this review *is* the observation log of a live run; each finding car
 - [ ] Ticket: check-pr-context marker whitelist + pr-open binder stamp helper
 - [ ] Ticket (LOW, batchable): template/validator debts of Finding 6
 
+## Addendum — merge-train phase (post-digest)
+
+Three more findings from executing the morning merge train itself:
+
+- **A1 (gate catch, positive + gap):** `alignment-check` HARD-blocked the first merge because agents check binder acceptance but never sync the GitHub issue body's checkboxes — the gate worked; the gap is that no step owns issue-body sync (candidate: create-pr or the pr-open stamp helper does it).
+- **A2 (guard catch):** `cleanup-workspace` refused a "dirty" worktree whose only dirt was the batch marker — the ad-hoc conflict path had skipped finish-work's marker-removal step. Guard correct; marker lifecycle must be in any train script.
+- **A3 (orchestrator incident, severity high, repaired):** the train's conflict-resolution script ran `git add -A` before its unresolved-conflict check, committing conflict markers into `axes.md` on dev via PR #59's merge; caught by immediate post-merge inspection, repaired same-hour on dev (`fix: repair axes.md conflict markers…`). Lesson for the rework/merge tooling ticket: conflict resolution must be file-explicit (`checkout --ours/--theirs <path>` per named path), never `add -A`; and a post-merge marker sweep (`grep -r '<<<<<<<'`) belongs in the finish-work verification list.
+
 ## References
 
 - Digest for this batch: `rev-20260826-145922Z`
