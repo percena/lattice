@@ -27,6 +27,8 @@ USER_FACING=(
   create-tickets
   create-pr
   finish-work
+  batch-work
+  run-e2e
   generate-wiki
   review-code
   review-production
@@ -168,6 +170,42 @@ for name in "${QUALITY_SIDE_PATHS[@]}"; do
   if [[ ! -f "$f" ]]; then
     echo "ERROR: quality side-path missing $f" >&2
     ERR=1
+  fi
+done
+
+# Registration integrity: every directory under the skills root must be a
+# registered skill (USER_FACING) or a documented exemption, and — when a
+# plugin bundle tree sits beside the skills root — must have a resolving
+# symlink in plugins/lattice/skills/. Keyed off SKILLS_DIR like the rest of
+# the script so fixture trees (LATTICE_SKILLS_DIR) work, and tolerant of
+# consumer installs where no plugins/ tree exists.
+EXEMPT=(
+  _lattice-lib # internal library install-unit (anatomy/evals exempt above)
+)
+PLUGIN_SKILLS_DIR="$(dirname "$SKILLS_DIR")/plugins/lattice/skills"
+for dir in "$SKILLS_DIR"/*/; do
+  [[ -d "$dir" ]] || continue
+  name="$(basename "$dir")"
+  registered=0
+  for known in "${USER_FACING[@]}" "${EXEMPT[@]}"; do
+    if [[ "$name" == "$known" ]]; then
+      registered=1
+      break
+    fi
+  done
+  if [[ "$registered" -ne 1 ]]; then
+    echo "ERROR: skills/$name not registered — add it to USER_FACING in tools/validate-skills.sh (or the documented EXEMPT list)" >&2
+    ERR=1
+  fi
+  if [[ -d "$PLUGIN_SKILLS_DIR" ]]; then
+    link="${PLUGIN_SKILLS_DIR}/${name}"
+    if [[ ! -L "$link" ]]; then
+      echo "ERROR: plugin bundle missing symlink for skills/$name (expected $link -> ../../../skills/$name)" >&2
+      ERR=1
+    elif [[ ! -e "$link" ]]; then
+      echo "ERROR: plugin bundle symlink does not resolve: $link" >&2
+      ERR=1
+    fi
   fi
 done
 

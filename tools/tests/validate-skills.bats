@@ -38,7 +38,7 @@ EOF
 }
 
 build_green_tree() {
-  local user_facing="start-work create-spec create-review create-tickets create-pr finish-work generate-wiki review-code review-production create-adr review-delivery"
+  local user_facing="start-work create-spec create-review create-tickets create-pr finish-work batch-work run-e2e generate-wiki review-code review-production create-adr review-delivery"
   local lifecycle="start-work create-spec create-review create-tickets create-pr finish-work"
   local name
   for name in $user_facing _lattice-lib; do
@@ -51,6 +51,18 @@ build_green_tree() {
   done
   mkdir -p "$LATTICE_SKILLS_DIR/_lattice-lib/references"
   : >"$LATTICE_SKILLS_DIR/_lattice-lib/references/orchestration-patterns.md"
+}
+
+# Mirror the repo layout beside the fixture skills root: a plugins/lattice/skills
+# tree of 3-level relative symlinks, so the registration-integrity bundle check
+# activates (it keys off dirname of the skills root).
+build_plugin_tree() {
+  local dir name
+  mkdir -p "$TEST_TMP/plugins/lattice/skills"
+  for dir in "$LATTICE_SKILLS_DIR"/*/; do
+    name="$(basename "$dir")"
+    ln -s "../../../skills/$name" "$TEST_TMP/plugins/lattice/skills/$name"
+  done
 }
 
 @test "green fixture tree passes" {
@@ -156,6 +168,23 @@ EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
   [[ "$output" == *"cwd-relative skills/_lattice-lib/scripts"* ]]
+}
+
+@test "unregistered skills/ directory fails registration integrity" {
+  mkdir -p "$LATTICE_SKILLS_DIR/rogue-skill"
+  run bash "$VALIDATE"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"skills/rogue-skill not registered"* ]]
+}
+
+@test "full plugin bundle passes; a missing bundle symlink fails" {
+  build_plugin_tree
+  run bash "$VALIDATE"
+  [ "$status" -eq 0 ]
+  rm "$TEST_TMP/plugins/lattice/skills/batch-work"
+  run bash "$VALIDATE"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"plugin bundle missing symlink for skills/batch-work"* ]]
 }
 
 @test "consumer-root runtime helper fallback fails" {

@@ -149,7 +149,21 @@ If you reach for a runner, write the heredoc instead.
 | Skip screenshot on fail | Evidence is most useful on the failure path. |
 | Mint a new task space per assertion | Breaks login-state reuse and goal continuity. |
 
-## Verification checklist
+## Common Rationalizations
+
+| Rationalization | Reality |
+| --- | --- |
+| "One quick `waitForTimeout` won't hurt" | Time-based waits are the top flake source; a state-based wait exists for every case |
+| "The page rendered, so login worked" | Asserting against the login page's own content masks auth regressions — fail loud instead |
+| "I'll split the story into several Bash calls to watch progress" | Browser handles die between invocations; one heredoc per story is the contract |
+
+## Red Flags
+
+- More than one JSON object printed across the story — the caller cannot tell which is final
+- A `targetId` or page handle carried over from a previous invocation
+- No screenshot on the failure path — evidence is most useful exactly there
+
+## Verification
 
 Before declaring a story done, confirm:
 

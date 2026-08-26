@@ -184,6 +184,12 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | "Two agents, one scratchpad — names won't collide" | They did (observed). Per-ticket suffix/subdir is part of the brief |
 | "Digest says auto-pass, so merge it" | `--with-review` is advice-only; marker + human `finish-work` remain the merge authority |
 
+## Red Flags
+
+- Two tickets in the same layer whose binder `paths` rows overlap — the independence gate was skipped
+- A spawned worktree without the `.batch-work-active` marker, or any agent invoking merge/`finish-work` during the batch window
+- Spawn briefs missing contract items (decision policy, evidence contract, timebox) — "the agent will figure it out" is how nights are lost
+
 ## Verification
 
 Before claiming a batch is done:
