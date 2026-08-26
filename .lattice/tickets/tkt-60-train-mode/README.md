@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/60 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | train mode for the version validator + shared-file modeling in the paths independence gate |
 | spec | none — hygiene/enhancement from dogfood review |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-60-train-mode |
 | worktree | sibling …/lattice.worktrees/tkt-60-train-mode/ |
-| prs | (none) |
+| prs | pr-68 — https://github.com/percena/lattice/pull/68 |
 
 ## Acceptance (this slice)
 
-- [ ] Train PR whose head shares the identical version-cut commit with its base passes; non-train bundled change without increment still fails; bats green
-- [ ] create-tickets policy documents implicit shared files in the paths gate
+- [x] Train PR whose head shares the identical version-cut commit with its base passes; non-train bundled change without increment still fails; bats green
+- [x] create-tickets policy documents implicit shared files in the paths gate
 
 ## Approach
 
@@ -62,7 +62,7 @@ Add a train detection path to `validate-plugin-versions.py`: when bundled conten
 
 - Parent spec: none (ticket-only)
 - Primary ticket: **tkt-60** · Covers: Finding 1 · Parallel group: **G1** · Worktree bind: `tkt-60-train-mode`
-- Child PRs: (none yet)
+- Child PRs: pr-68 — https://github.com/percena/lattice/pull/68
 
 ## Finish
 
