@@ -63,6 +63,8 @@ bash "$SKILL_ROOT/scripts/update-pr-base.sh" --pr "<PR_N>"
 | fork/default-head/OID mismatch/unknown or still-behind state | **Stop**; refresh PR identity/state or use the owning checkout; never infer success from error text |
 | `--no-update-branch` | Skip script; still refuse CONFLICTING |
 
+**Record whether the update materially changed the diff** — merge/rebase hit conflicts, or the post-update diff differs from the previously reviewed diff beyond trivial context lines. §2.7 uses this to decide verdict validity (rebase-verdict rule, ADR-004 §4). HINT: `git range-diff <old-base>..<old-head> <new-base>..<new-head>` helps judge triviality.
+
 ## 2.5 Artifact alignment (INVARIANT before merge)
 
 Green CI ≠ ready. Cross-check contracts against **actual diff**.
@@ -161,12 +163,23 @@ Report only **material** findings. Each row = severity + one-line failure scenar
 
 `proceed` = no material issues; `fix-first` = material issues surfaced. Sort high first.
 
+### Verdict validity across base updates (rebase-verdict rule)
+
+A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratify-then-pass`) or an earlier mini-review `proceed` — stands **only over the diff it reviewed** (ADR-004 §4):
+
+| §2.4 base update was… | Verdict |
+| --- | --- |
+| **Material** — conflicts during merge/rebase, or post-update diff differs beyond trivial context lines | **VOID** — re-run this mini-review before §3 merge; do not merge on the stale verdict |
+| **Clean** — no conflicts, diff unchanged beyond context lines | Carries unchanged — do not re-review out of ritual |
+
+This is a validity condition on advice, not a new gate — the HARD gate stays `alignment-check.sh`.
+
 ### Decision (advice, never auto-block / never auto-fix)
 
 - No material findings → one-line `mini-review: no material findings`; proceed to §3 merge.
 - Material findings → print the table, then `AskUserQuestion`:
   - `Merge anyway` — operator accepts the risk
-  - `Hold (I'll address)` — stop; operator fixes or defers
+  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (`docs/workflow-fsm.md`); `start-work` resume loads them as the brief and fixes on the same PR (fix cycle ≤2). The stamp records the operator's decision on a durable artifact — bookkeeping, not a gate.
   - `Invoke full /review-code` — deeper pass before deciding
 - Any **high** finding → default recommended option `Hold`; only med/low → default `Merge anyway`.
 - **Hard stop on edits:** present findings and stop. Do **not** auto-fix even if "obvious". Edit the tree only when the operator explicitly names which findings to fix (then smallest change in the change set's modules; fresh test output if tests requested).
