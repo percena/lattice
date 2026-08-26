@@ -27,6 +27,8 @@ Templates: co-installed `create-spec` / `create-review` `references/templates/` 
 | Severity labels INVARIANT/DEFAULT/HINT | `../_lattice-lib/references/constraint-language.md` |
 | Delegation and accountable ownership | `../_lattice-lib/references/orchestration-patterns.md` |
 | Claiming shippable / tests green | `../_lattice-lib/references/definition-of-done.md` |
+| Mid-EXECUTE decision resolution, park & pivot | `../_lattice-lib/references/decision-policy.md` |
+| Retry caps, early-stop, stuck-with-ledger (unattended) | `../_lattice-lib/references/fallback-policy.md` |
 
 Do **not** pre-load every reference; stay on this file for locked resume + S path.
 
@@ -90,6 +92,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 6. WORKSPACE: `ensure-workspace --mode worktree --bind tkt|spc …` (or light/user branch escape). **cd** to path.  
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.
    - DEFAULT: no forced TDD; use the bound workspace unless an escape is explicit; new irreversible axis → PCA batch.
+   - DEFAULT: mid-EXECUTE decisions resolve via `../_lattice-lib/references/decision-policy.md` (chain first-hit; reversible+local → journal; else park & pivot); unattended fallback follows `../_lattice-lib/references/fallback-policy.md`.
    - **Bug-class tickets** (ticket has `bug` label or Reproduction Steps): run the reproduce → fix → re-verify loop:
      - **Phase 0c (Pre-Fix Reproduction):** reproduce from ticket Reproduction Steps; capture pre-fix evidence in binder `reproduction-evidence.md`. If no Reproduction Steps found in binder → skip to Phase 1 with a note (cannot reproduce without steps). If bug no longer reproduces → consider wont-fix (stop, ask user).
      - **Phase 1 (Fix):** implement the fix.
