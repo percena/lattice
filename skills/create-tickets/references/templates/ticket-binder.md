@@ -13,7 +13,7 @@
 | --- | --- |
 | kind | feat |
 | priority | P2 |
-| labels | feat, P2 |
+| labels | enhancement, P2 |
 | github | https://github.com/<org>/<repo>/issues/<id> |
 | status | queued | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it; merged vs closed-without-merge read from ## Finish mergedAt) · legacy: open (coarse — validator warns) |
 | adopted | false | true — **true** when GH issue body is hand-created / append-only; land uses binder-first Acceptance |
