@@ -8,6 +8,8 @@ Checks (selected, not exhaustive):
   - ticket binder ``status`` FSM vocabulary: working
     queued|in-progress|parked|stuck|pr-open|rework|deferred, terminal closed
     (requires a real ``## Finish`` ledger), legacy open (warning, lazy migration)
+  - header ``**Status:**`` copy (TL;DR blockquote) contradicting the field-table
+    status (warning; legacy-coarse ``open`` headers are exempt — lazy migration)
   - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal)
   - ``covers`` A* ids that do not exist on the parent Spec Acceptance
   - one-sided local edges: ticket lists Spec but Spec.tickets omits the ticket
@@ -83,6 +85,25 @@ def first_table_block(text: str) -> str:
     while end < len(lines) and lines[end].lstrip().startswith("|"):
         end += 1
     return "\n".join(lines[start:end])
+
+
+def tldr_header_status(text: str) -> str | None:
+    """Header ``**Status:**`` from TL;DR blockquote lines before the binder card.
+
+    Scoped to ``>`` lines above the first table so prose that merely mentions
+    the literal ``**Status:**`` marker (e.g. an acceptance criterion about it)
+    can never masquerade as a header status. The template dropped this copy
+    (field table is SoT); legacy binders may still carry it.
+    """
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("|"):
+            break
+        if stripped.startswith(">"):
+            m = STATUS_TLDR_RE.search(line)
+            if m:
+                return m.group(1).strip().lower()
+    return None
 
 
 def ticket_status(text: str) -> str | None:
@@ -270,6 +291,31 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "level": "warning",
                     "path": str(path),
                     "detail": f"status {st!r} is legacy-coarse; migrate to the FSM enum ({' | '.join(STATUS_WORKING_ORDER)} | closed)",
+                }
+            )
+        # Header **Status:** copy vs field-table status. The template dropped
+        # the header copy (field table is SoT); a stale survivor that
+        # contradicts the table is dual-maintenance drift. Legacy-coarse
+        # `open` headers predate the FSM migration and stay exempt (the
+        # lazy-migration path owns those).
+        table_status_m = STATUS_TABLE_RE.search(first_table_block(text))
+        header_st = tldr_header_status(text)
+        if (
+            table_status_m
+            and header_st is not None
+            and header_st not in STATUS_LEGACY
+            and header_st != table_status_m.group(1).strip().lower()
+        ):
+            findings.append(
+                {
+                    "code": "header_status_mismatch",
+                    "level": "warning",
+                    "path": str(path),
+                    "detail": (
+                        f"TL;DR header status {header_st!r} contradicts field-table "
+                        f"status {table_status_m.group(1).strip().lower()!r} "
+                        "(field table is SoT; drop the header copy)"
+                    ),
                 }
             )
         if st in STATUS_TERMINAL and not has_finish_ledger(text):

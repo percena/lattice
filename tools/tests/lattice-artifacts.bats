@@ -77,6 +77,27 @@ setup_file() {
   [[ "$output" == *'"warning_count": 1'* ]]
 }
 
+@test "header Status copy contradicting the field table warns (does not fail)" {
+  # tkt-70: header in-progress vs table queued → exactly one warning; the home
+  # still passes (warnings never fail the run).
+  run python3 "$VAL" --home "$FIX/header-status" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" == *header_status_mismatch* ]]
+  [[ "$output" == *tkt-70-mismatch* ]]
+  [[ "$output" == *'"warning_count": 1'* ]]
+}
+
+@test "matching, legacy-open, and prose-mention headers do not warn" {
+  # tkt-71 header==table, tkt-72 legacy-coarse open header (exempt), tkt-73
+  # prose mention of **Status:** below the binder card — none may fire.
+  run python3 "$VAL" --home "$FIX/header-status" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" != *tkt-71-match* ]]
+  [[ "$output" != *tkt-72-legacy-header* ]]
+  [[ "$output" != *tkt-73-prose-mention* ]]
+}
+
 @test "prose backtick mention must not mask onesided_spec_ticket_edge" {
   # spec spc-4 omits tkt-4 from authoritative `tickets:` but mentions `tkt-4`
   # in prose; the one-sided edge must still fire.
