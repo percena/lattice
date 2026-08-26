@@ -75,9 +75,9 @@ Advanced install (org roll-out, private forks, local dev, refresh) → [docs/get
 | [`create-spec`](./skills/create-spec/) | Persist a Lattice Spec (`spc-n`) with acceptance criteria | `/create-spec` |
 | [`create-review`](./skills/create-review/) | Persist a Lattice Review (`rev-YYYYMMDD-HHMMSSZ`) with an explicit outcome | `/create-review` |
 | [`create-tickets`](./skills/create-tickets/) | Split locked scope into GitHub issues + binders | `/create-tickets` |
-| [`batch-work`](./skills/batch-work/) | DAG-orchestrated fan-out: spawn multiple `start-work` agents on sibling worktrees with layer-barrier sync | `/batch-work` |
+| [`batch-work`](./skills/batch-work/) | DAG-orchestrated unattended fan-out: spawn multiple `start-work` agents in parallel on sibling worktrees with layer-barrier sync | `/batch-work` |
 | [`create-pr`](./skills/create-pr/) | Open/update a well-formed GitHub PR | `/create-pr` |
-| [`finish-work`](./skills/finish-work/) | Update base, alignment-check, merge, cleanup | `/finish-work` |
+| [`finish-work`](./skills/finish-work/) | Update base, alignment-check, default-on mini-review scan, merge, cleanup | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | Shared scripts backing the above (co-install, not a slash entry) | — |
 
 Not part of the delivery loop — three tiers, none create lineage nodes:

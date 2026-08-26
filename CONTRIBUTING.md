@@ -23,12 +23,9 @@ Thanks for helping improve **Lattice** — the workflow engine monorepo (portabl
 ## Local development
 
 ```bash
-# Skills from this checkout
-npx skills add . \
-  --skill _lattice-lib \
-  --skill start-work --skill create-spec --skill create-review \
-  --skill create-tickets --skill create-pr --skill finish-work \
-  -a claude-code -a codex -y
+# Skills from this checkout — no --skill flags = every shipped skill
+# (lifecycle six + side-paths + _lattice-lib; list stays in tools/validate-skills.sh USER_FACING)
+npx skills add . -a claude-code -a codex -y
 
 # Claude plugin from this checkout (note: --plugin-dir does not follow out-of-tree symlinks)
 claude --plugin-dir ./plugins/lattice

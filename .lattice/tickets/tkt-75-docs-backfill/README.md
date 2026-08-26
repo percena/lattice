@@ -40,6 +40,11 @@ Source of truth = USER_FACING in tools/validate-skills.sh (13 skills). Diff each
 
 ## Decision journal
 
+- 2026-08-26 CONTRIBUTING install example: chose the maintainable all-skills form (`npx skills add . -a claude-code -a codex -y`, no `--skill` flags) over listing 14 units — mirrors the README quickstart's flagless form, and a name list would drift every time a skill lands; comment points at `tools/validate-skills.sh` USER_FACING as the canonical list.
+- 2026-08-26 getting-started side-path placement: kept the "Skill + plugin map" table core-loop-only (its existing structure) and covered the six side-paths with an explicit tier note under the table pointing to their "Optional" sections — per binder disposition "follow the table's existing structure".
+- 2026-08-26 Stale plugin-packaging claims in getting-started ("Packages all six skills", "not packaged in lattice@percena for v1") corrected to every-shipped-skill reality (verified `plugins/lattice/skills/` holds all 13 + `_lattice-lib`; CONTRIBUTING ground rule + validator registration-integrity agree). In-scope file, table row + directly contradicting adjacent line only — no restructuring.
+- 2026-08-26 README finish-work row gained "default-on mini-review scan" (SKILL.md description claims it since merge-train hardening); batch-work rows in both docs gained "unattended" (SKILL.md: "DAG-orchestrated unattended batch delivery").
+
 ## Pending decisions
 
 ## Attempts
