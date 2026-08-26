@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/63 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | marker warning whitelist + pr-open stamp helper (binder + GH issue acceptance sync); kills the two-commit dance and the alignment sync gap |
 | spec | none — enhancement from dogfood review |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-63-batch-ergonomics |
 | worktree | sibling …/lattice.worktrees/tkt-63-batch-ergonomics/ |
-| prs | (none) |
+| prs | pr-70 — https://github.com/percena/lattice/pull/70 |
 
 ## Acceptance (this slice)
 
