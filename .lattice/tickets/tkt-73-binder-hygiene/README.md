@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/73 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | legacy binder FSM migration (tkt-8/13/14/15/16) + prs-row canonicalization (tkt-43, tkt-5) |
 | spec | none — hygiene from round-1/2 digests |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-73-binder-hygiene |
 | worktree | sibling …/lattice.worktrees/tkt-73-binder-hygiene/ |
-| prs | (none) |
+| prs | pr-78 — https://github.com/percena/lattice/pull/78 |
 
 ## Acceptance (this slice)
 
-- [ ] `validate-lattice-artifacts` emits 0 legacy/status warnings for `.lattice/tickets/`
-- [ ] tkt-43 and tkt-5 prs rows canonical (`pr-N — <URL>`); all migrated binders' `## Finish` content sourced from GH facts only (finish-ledger.sh or `gh pr view`) — nothing invented
+- [x] `validate-lattice-artifacts` emits 0 legacy/status warnings for `.lattice/tickets/`
+- [x] tkt-43 and tkt-5 prs rows canonical (`pr-N — <URL>`); all migrated binders' `## Finish` content sourced from GH facts only (finish-ledger.sh or `gh pr view`) — nothing invented
 
 ## Approach
 
