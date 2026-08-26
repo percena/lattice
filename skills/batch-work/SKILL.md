@@ -2,7 +2,7 @@
 name: batch-work
 description: "DAG-orchestrated unattended batch delivery: spawn multiple start-work agents in parallel on sibling worktrees with layer-barrier synchronization. Use when a Spec/ticket set has independence-gated parallel groups and the user wants one command to fan out work. Not for single-ticket start, fuzzy product align, PR merge, or manual ticket splitting."
 allowed-tools: Bash Read Grep Glob Task AskUserQuestion
-argument-hint: "[--ids ID1,ID2,... | --groups] [--concurrency N] [--ram-threshold <GB>] [--base <ref>] [--report <path>] [--dry-run]"
+argument-hint: "[--ids ID1,ID2,... | --groups] [--concurrency N] [--ram-threshold <GB>] [--base <ref>] [--report <path>] [--dry-run] [--with-review]"
 metadata:
   agents: "claude-code,codex"
 ---
@@ -21,7 +21,10 @@ Templates: co-installed `create-tickets` `references/templates/ticket-binder.md`
 
 | When | Read |
 | --- | --- |
-| DAG build, layer barrier, spawn/collect recipes | `references/flow.md` |
+| DAG build, layer barrier, spawn/collect, watchdog, fuse, stacked-base, `--with-review` recipes | `references/flow.md` |
+| Decision protocol injected into every spawn brief | `../_lattice-lib/references/decision-policy.md` |
+| Fallback protocol, caps, batch-fuse law injected into every spawn brief | `../_lattice-lib/references/fallback-policy.md` |
+| `--with-review` chain review + morning digest | `../review-delivery/SKILL.md` |
 | Independence gates, parallel_group policy, worktree packing | `../_lattice-lib/references/orchestration-patterns.md` + `../create-tickets/references/policy.md` |
 | Severity labels INVARIANT/DEFAULT/HINT | `../_lattice-lib/references/constraint-language.md` |
 | Delegation and accountable ownership | `../_lattice-lib/references/orchestration-patterns.md` |
@@ -36,6 +39,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | Spec/ticket set with independence-gated `parallel_group`s; fan out in one command | Single ticket → `start-work` |
 | Unattended batch delivery: one owner, many disjoint worktrees | Fuzzy product align → `create-spec` |
 | `--dry-run` to inspect DAG + layer assignment before spawn | Ticket splitting / binder authoring → `create-tickets` |
+| `--with-review`: night run ends in a ranked morning digest | Standalone chain review of already-open PRs → `review-delivery` |
 | Human reviews PRs after batch, then `finish-work` per PR | Merge / cleanup → `finish-work` |
 | | Open a single PR → `create-pr` |
 
@@ -51,6 +55,11 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | Accountable owner | One host owns DAG build, spawn, collect, and report. Delegated `start-work` agents own only their bounded ticket brief; host validates final PR list |
 | Bound ids only | All `--ids` must resolve to real GitHub issue numbers (≥1) with a binder. `tkt-0` / fake ids remain forbidden (inherited from `ensure-workspace`) |
 | No live-default PR | Agents never open PRs from the live default branch; worktrees branch off the resolved base |
+| Spawn-brief contract | Every spawn brief carries the six items of the **Spawn-brief contract** section below: decision protocol, fallback protocol, evidence contract, per-agent scratch uniqueness, public-repo pre-authorization (when public), release-train version policy (when the repo requires per-PR version bumps). A brief missing any applicable item is malformed — do not spawn on it |
+| Watchdog / timebox | Each spawn brief carries a per-ticket wall-clock timebox (DEFAULT per mode S/M/C; tunable `.lattice/config.yaml`). A ticket exceeding it is marked `failed` — the watchdog extends failure isolation from crashes to hangs. The binder is left with whatever ledger exists; never deleted |
+| Layer fuse + graceful drain | At each layer/wave barrier compute the layer's failed+stuck ratio; over threshold (DEFAULT 50%, tunable `.lattice/config.yaml`) → halt subsequent layers/waves, **graceful-drain** in-flight agents (finish current attempt, write ledgers — no mid-write kills), report partial results. The law is `fallback-policy.md` §Batch fuse; this skill is the wiring |
+| Binder `status` is stamped | Spawned tickets flip binder `status` `queued → in-progress → pr-open` (agents stamp it per their brief; enum + validator per the ticket-binder template). Fuse-halted / never-spawned tickets stay `queued` with a report note — no new enum values |
+| `--with-review` is advice-only | Chains `review-delivery` after the last layer; material findings dispatch a bounded fix loop (≤2 cycles); the digest is the batch's final report artifact. Merge authority unchanged — marker + human `finish-work` |
 
 ## Defaults and escapes
 
@@ -62,7 +71,25 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | Batch marker → agents create-pr only | To disable the gate, omit the marker file (discouraged; loses human review gate) |
 | Report to stdout | `--report <path>` writes a durable Markdown report |
 | Dry-run shows DAG + layers, no spawn | `--dry-run` always exits before any `ensure-workspace` / Agent call |
-| Base = integration-branch resolved | `--base <ref>` override; passed through to `ensure-workspace` |
+| Base = integration-branch resolved | `--base <ref>` override; passed through to `ensure-workspace`. Dependent (`blocked_by`) layers get a **stacked base** built by sequential merges of prior heads — see `references/flow.md` |
+| Per-ticket timebox per mode: S 30 min / M 60 min / C 120 min | `.lattice/config.yaml` keys `batch_timebox_S/M/C` (minutes) |
+| Fuse threshold 50% failed+stuck per layer | `.lattice/config.yaml` key `batch_fuse_threshold` (percent) |
+| No chained review | `--with-review` chains `review-delivery` after the last layer (advice-only; see flow) |
+
+## Spawn-brief contract (INVARIANT)
+
+Every spawn brief carries all six items (full template: `references/flow.md` §SPAWN LAYER). Cite the policies — do not paste their bodies into the brief; the agent reads the referenced files.
+
+| # | Item | Content |
+| --- | --- | --- |
+| 1 | Decision protocol | Cite `_lattice-lib/references/decision-policy.md`: resolve every mid-execution decision through the chain; reversible + ticket-local → self-decide + binder `## Decision journal` entry citing the source; anything else → park & pivot (`## Pending decisions` + reversible seam). Never block waiting on a human |
+| 2 | Fallback protocol | Cite `_lattice-lib/references/fallback-policy.md`: articulated-difference rule before any retry, caps (≤2 tries/path, ≤3 paths/ticket, the brief's timebox), early-stop signals (same error twice, scope escape), stuck-with-ledger = deliverable |
+| 3 | Evidence contract | Fresh test/validator output pasted in the PR body (no stale or paraphrased runs); decision journal entries in the binder; e2e evidence when UI is touched |
+| 4 | Scratch uniqueness | Parallel agents share one scratchpad — real collisions observed. Every scratch file/dir gets a per-ticket unique suffix or subdir (e.g. `…-tkt-<id>` or `tkt-<id>/`) |
+| 5 | Public-repo pre-authorization | A night agent cannot "explicitly confirm" `create-pr`'s public-repo step — no human is present. When the repo is PUBLIC, the orchestrator pre-authorizes PR creation **in the brief** and mandates the sanitize self-check (no internal URLs, personal paths, team/customer identifiers in title/body) before `gh pr create` |
+| 6 | Release-train version policy | When the engine repo requires per-PR bundled-version increments, the **orchestrator** commits ONE identical version cut (version files + changelog) to every train branch — byte-identical, so sequential merges stay clean. Branch-specific manifest edits (e.g. registering a new skill) ride only their own branch; the morning merge takes the superset on conflict. Agents do NOT bump versions themselves |
+
+The brief also carries the per-ticket timebox, the binder `status` stamping instruction (`in-progress` on start, `pr-open` after `create-pr`), and — for stacked layers — the base ref, the Stacking note for the PR body, and the interface contracts (exact file/section names) the ticket depends on.
 
 ## Step 0 (every run)
 
@@ -79,7 +106,7 @@ bash "$LIB/ensure-lattice.sh"
 
 ## Flow
 
-1. **INTAKE** — parse args: `--ids`, `--groups`, `--concurrency`, `--report`, `--dry-run`, `--ram-threshold`, `--base`.
+1. **INTAKE** — parse args: `--ids`, `--groups`, `--concurrency`, `--report`, `--dry-run`, `--ram-threshold`, `--base`, `--with-review`. Read timebox + fuse tunables from `.lattice/config.yaml` (defaults above).
 2. **RESOLVE TICKETS** — for each id, locate binder `.lattice/tickets/tkt-<id>-<slug>/README.md`; extract `parallel_group`, `blocked_by`, `paths`, `worktree_bind`, `slug`. Fail closed if a binder is missing.
 3. **BUILD DAG** — nodes = tickets; edges = `blocked_by`. Topologically sort into layers: layer 0 = no blockers, layer k = all `blocked_by` satisfied by layers < k. Tickets with the same `parallel_group` and no cross-dependency share a layer.
 4. **VALIDATE INDEPENDENCE** — within each layer, confirm `paths` are disjoint (no path glob overlap across tickets in the same layer). Overlap → demote to serial (next layer) or fail closed with a report.
@@ -89,12 +116,14 @@ bash "$LIB/ensure-lattice.sh"
    - Resolve worktree binding: honor the binder's `worktree_bind` field if present (pass through to `ensure-workspace`), else fall back to the standard `--bind tkt --id <N> --slug <slug>` pattern.
    - `bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id <N> --slug <slug> [--base <ref>]` (or the binder's `worktree_bind` override).
    - Capture `path` + `cd_hint` from JSON.
-   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`. Before spawning, write the batch marker: `touch <worktree>/.lattice/.batch-work-active`. Brief: "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`."
+   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`. Before spawning, write the batch marker: `touch <worktree>/.lattice/.batch-work-active`. Brief: full **Spawn-brief contract** template (`references/flow.md` §SPAWN LAYER) — core instruction stays "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`", plus the six contract items, the timebox, and the binder-status stamping instruction.
    - Bound delegation: the agent owns only its ticket brief + worktree; host owns DAG + report.
-8. **LAYER/WAVE BARRIER** — wait for all agents in the current wave to complete (success or fail). Collect exit status + PR URL per ticket. If more waves remain in this layer, run RAM check again and spawn the next wave. A failed ticket is recorded; peers and subsequent waves/layers proceed (failure isolation).
-9. **NEXT LAYER** — repeat RAM check + spawn for the next layer. A ticket whose `blocked_by` includes a failed dependency is skipped (recorded as blocked-by-failure).
-10. **REPORT** — emit a Markdown table: ticket, layer, worktree path, agent status (ok/failed/blocked), PR URL, binder path. Write to `--report <path>` if given; always also print to stdout.
-11. **HANDOFF** — summary: N spawned, M ok, K failed, L blocked. Human reviews open PRs, then runs `finish-work` per PR. The `.lattice/.batch-work-active` marker ensured no agent merged.
+   - Record spawn timestamp per ticket (watchdog input).
+8. **LAYER/WAVE BARRIER + WATCHDOG** — wait for all agents in the current wave to complete (success or fail). A ticket exceeding its timebox is marked `failed` (`timeout`) and no longer waited on; its binder keeps whatever ledger exists. Collect exit status + PR URL per ticket. **FUSE CHECK:** compute the layer's cumulative failed+stuck ratio; over threshold → halt all subsequent waves/layers, graceful-drain in-flight agents (finish current attempt, write ledgers), jump to REPORT with partial results. Otherwise, if more waves remain in this layer, run RAM check again and spawn the next wave. A failed ticket is recorded; peers and subsequent waves/layers proceed (failure isolation).
+9. **NEXT LAYER** — repeat RAM check + spawn for the next layer. A ticket whose `blocked_by` includes a failed dependency is skipped (recorded as blocked-by-failure). If the layer depends on earlier layers' unmerged output, build the **stacked base** (sequential merges of prior heads — `references/flow.md` §STACKED DEPENDENCY BASES) and pass it via `--base`.
+10. **WITH-REVIEW (opt-in)** — if `--with-review`: after the last layer's barrier, chain `review-delivery` on the batch report; material findings dispatch a bounded fix loop (re-brief the ticket's agent in its worktree, ≤2 cycles) before the digest is finalized (`references/flow.md` §WITH-REVIEW). Advice-only; no merge.
+11. **REPORT** — emit a Markdown table: ticket, layer, worktree path, agent status (ok/failed/blocked/fuse-halted), PR URL, binder path. Write to `--report <path>` if given; always also print to stdout. Under `--with-review`, the digest is the batch's final report artifact (the table is referenced from it).
+12. **HANDOFF** — summary: N spawned, M ok, K failed, L blocked (+ fuse trip if any). Human reviews open PRs (digest-first when `--with-review`), then runs `finish-work` per PR. The `.lattice/.batch-work-active` marker ensured no agent merged.
 
 Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`references/flow.md`**.
 
@@ -103,6 +132,9 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 - **Batch marker merge block.** Before spawning each agent, the orchestrator writes `.lattice/.batch-work-active` in the worktree. `finish-work` checks for this marker and refuses `gh pr merge` if present, keeping a human review gate over the batch. Agents are instructed not to call `finish-work`. The marker is removed by `finish-work` after the human review-and-merge step.
 - **RAM threshold.** Default 10 GB available before spawn. Spawn is skipped (fail closed) when RAM is below threshold; the batch stops with a partial report rather than thrashing the machine. Override via `--ram-threshold <GB>`; `0` disables (not recommended).
 - **Failure isolation.** Agent crashes are per-ticket. The host collects each agent's result via the background-completion channel; a crash is recorded as `failed` for that ticket and does not block peers in the same layer or tickets in later layers (except tickets `blocked_by` the failed one, which are marked `blocked-by-failure`).
+- **Watchdog / timebox.** Failure isolation covers hangs, not just crashes: each brief carries a per-ticket wall-clock timebox (DEFAULT per mode S/M/C; `.lattice/config.yaml`); a ticket that exceeds it is marked `failed` (`timeout`) and the batch moves on. The worktree and binder are left intact — whatever `## Attempts` / journal ledger exists is the deliverable.
+- **Layer fuse + graceful drain.** At each barrier the host computes the layer's failed+stuck ratio; over threshold (DEFAULT 50%, `.lattice/config.yaml`) the failure is systemic — halt subsequent layers/waves, let in-flight agents finish their current attempt and write their ledgers (no mid-write kills), and report partial results. Law: `fallback-policy.md` §Batch fuse.
+- **`--with-review` never merges.** The chained `review-delivery` digest and its fix loop are advice; merge authority is unchanged (marker + human `finish-work`).
 - **No live-default PR.** All work happens in sibling worktrees branched off the resolved base. The main checkout stays on base for orchestration.
 - **No unbound ids.** `--ids` must be real GitHub issue numbers with binders. `ensure-workspace` still rejects `tkt-0` / fake ids.
 
@@ -115,6 +147,7 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | `finish-work` | **Not** called by spawned agents (`.batch-work-active` marker + prompt instruction); human runs per PR after review |
 | `create-pr` | Called by spawned agents to open the PR (stop point) |
 | `create-review` | Optional: host may write one `rev` summarizing the batch outcome |
+| `review-delivery` | Chained by `--with-review` after the last layer; consumes the batch report; material findings dispatch a bounded (≤2 cycles) fix loop before the digest — the batch's final report artifact — is finalized |
 
 ## Anti-patterns
 
@@ -129,6 +162,9 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | One agent crash blocks the whole batch | Failure isolation: collect, report, continue |
 | Dry-run that spawns | `--dry-run` exits before any `ensure-workspace` / Agent call |
 | Fan out on `--ids` that lack binders | Binder is recovery SoT; fail closed if missing |
+| Spawn a brief without the six contract items | Policy-blind agents block, spin, or leak — the brief is the night's law |
+| Kill in-flight agents when the fuse trips | Graceful drain: finish the attempt, write the ledger; mid-write kills destroy the morning's map |
+| Octopus-merge prior heads for a dependency base | Octopus fails on shared-file edits; build the integration branch by sequential merges |
 
 ## Common Rationalizations
 
@@ -140,6 +176,13 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | "Dry-run is just a print" | Dry-run must exit before spawn — no worktree, no agent |
 | "Failed ticket → abort everything" | Failure isolation: peers and later layers continue; only `blocked_by` chain stops |
 | "Batch-work replaces start-work" | Batch spawns `start-work` per ticket; it is the orchestration layer, not the implementer |
+| "Octopus-merge the layer heads for the next layer's base" | Octopus fails on shared-file edits (observed in practice). Sequential merges of prior heads, in layer order |
+| "The agent can confirm the public-repo step itself" | A night agent has no human to satisfy `create-pr`'s explicit-confirm gate; the orchestrator pre-authorizes in the brief and mandates the sanitize self-check |
+| "The hung agent will finish eventually — keep waiting" | The timebox *is* the wait. Watchdog marks `failed`, keeps the ledger, moves on |
+| "Fuse tripped but the next layer's tickets look independent" | Over-threshold means systemic (broken base/env), not per-ticket bad luck — halt, drain, report |
+| "Each train branch can bump the version its own way" | Divergent version cuts conflict on every sequential merge; the orchestrator commits ONE byte-identical cut to every branch |
+| "Two agents, one scratchpad — names won't collide" | They did (observed). Per-ticket suffix/subdir is part of the brief |
+| "Digest says auto-pass, so merge it" | `--with-review` is advice-only; marker + human `finish-work` remain the merge authority |
 
 ## Verification
 
@@ -155,3 +198,9 @@ Before claiming a batch is done:
 - [ ] Failure isolation: a crashed agent recorded `failed`; peers + later layers continued
 - [ ] Report table emitted (ticket, layer, worktree, status, PR URL, binder path) to stdout and `--report`
 - [ ] Open PRs left for human review; handoff states "run `finish-work` per PR"
+- [ ] Every spawn brief carried all applicable Spawn-brief contract items: decision-policy cite, fallback-policy cite, evidence contract, scratch uniqueness, public-repo pre-auth (when public), release-train version policy (when the repo requires per-PR bumps)
+- [ ] Per-ticket timebox rode each brief; watchdog marked over-timebox tickets `failed` (`timeout`) with binder ledger left intact
+- [ ] Fuse ratio computed at every barrier; a trip halted subsequent layers/waves, drained in-flight agents gracefully, and produced a partial report
+- [ ] Dependent layers spawned off a sequential-merge stacked base via `--base`; PRs targeted the true base and carried a Stacking note; interface contracts rode the briefs
+- [ ] `--with-review` (if requested): `review-delivery` ran on the batch report after the last barrier; material findings dispatched a bounded (≤2 cycles) fix loop; digest finalized as the batch's final report artifact; no merge performed
+- [ ] Binder `status` stamped `queued → in-progress → pr-open` per spawned ticket; fuse-halted / never-spawned tickets left `queued` with a report note (no invented enum values)
