@@ -1,7 +1,7 @@
 # tkt-46-preferences
 
 > **TL;DR:** `.lattice/preferences.md` scaffolded by ensure-lattice from a severity-labeled template, with promotion / supersede lifecycle rules
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** pr-open · **Priority:** P2
 > **Path:** spc-42 → tkt-46 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/46 |
-| status | open |
+| status | pr-open |
 | adopted | false |
 | summary | preferences template + ensure-lattice scaffold + lifecycle (promotion ×2, supersede-with-date, Spec/ADR outrank) |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |
@@ -23,11 +23,11 @@
 | **related_tickets** | tkt-47 (digest promotion-proposal rendering completes A3) |
 | **worktree_bind** | tkt-46-preferences |
 | worktree | sibling …/lattice.worktrees/tkt-46-preferences/ |
-| prs | (none) |
+| prs | https://github.com/percena/lattice/pull/55 |
 
 ## Acceptance (this slice)
 
-- [ ] **A3** (scaffold + lifecycle) `ensure-lattice.sh` scaffolds `.lattice/preferences.md` from a template with INVARIANT/DEFAULT/HINT sections per `constraint-language.md`; lifecycle rules recorded in the template header: promotion (decision-journal entry ratified ×2 → proposal in morning digest), supersede-with-date (never delete), Spec/ADR outrank preferences, every use cited in the journal. Digest rendering of promotion proposals is tkt-47's slice.
+- [x] **A3** (scaffold + lifecycle — this slice delivered by PR #55; digest rendering of promotion proposals remains tkt-47's slice) `ensure-lattice.sh` scaffolds `.lattice/preferences.md` from a template with INVARIANT/DEFAULT/HINT sections per `constraint-language.md`; lifecycle rules recorded in the template header: promotion (decision-journal entry ratified ×2 → proposal in morning digest), supersede-with-date (never delete), Spec/ADR outrank preferences, every use cited in the journal. Digest rendering of promotion proposals is tkt-47's slice.
 
 ## Notes
 
@@ -52,7 +52,7 @@
 - Blocked by: **#43**
 - Parallel group: **G2 (parallel)**
 - Worktree bind: `tkt-46-preferences`
-- Child PRs: (none yet)
+- Child PRs: pr-55 → https://github.com/percena/lattice/pull/55
 
 ## Assets
 
