@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/64 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | merge-train hardening: prevent the add -A conflict-marker incident class; make the A8 verdict-void rule checkable |
 | spec | none — hardening from dogfood review |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-64-merge-train-hardening |
 | worktree | sibling …/lattice.worktrees/tkt-64-merge-train-hardening/ |
-| prs | (none) |
+| prs | pr-72 — https://github.com/percena/lattice/pull/72 |
 
 ## Acceptance (this slice)
 
