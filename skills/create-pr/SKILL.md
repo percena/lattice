@@ -51,10 +51,11 @@ Short path below is enough for a normal private-repo PR.
 8. **Body shape** — Why + How required; Scope on M/C; **Verification (commands run)** only when real commands ran. Standing DoD when claiming shippable.
 9. **No theater** — No empty Test plan checklist, no Files Updated list, no invented risks / hunk narration. Optional Risks/Decisions only if user stated them. Claims of green tests require Iron Law evidence (`definition-of-done.md`).
 10. **Progress comments** — Multi-commit milestones → `templates/pr-progress-comment.md`; skip typo-only pushes.
+11. **Post-open binder stamp** — After a **new** PR, when a ticket binder exists for the branch, run `bash "$LIB/stamp-pr-open.sh" --pr <N>` (`../_lattice-lib/scripts/stamp-pr-open.sh`): binder `prs` row + `status: pr-open` + issue acceptance sync, one idempotent call. Marker lifecycle: `.lattice/.batch-work-active` stays untracked-dirty until finish-work removes it at merge — scripts must never `git add -A` it (check-pr-context whitelists it at warning level only).
 
 ### HINT
 
-11. **Response style** — Intent question (if needed), public-repo warning (if public), PR URL or errors. No phase narration.
+12. **Response style** — Intent question (if needed), public-repo warning (if public), PR URL or errors. No phase narration.
 
 ## Short path
 
