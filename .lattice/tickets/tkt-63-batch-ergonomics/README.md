@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/63 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | marker warning whitelist + pr-open stamp helper (binder + GH issue acceptance sync); kills the two-commit dance and the alignment sync gap |
 | spec | none — enhancement from dogfood review |
@@ -23,13 +23,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-63-batch-ergonomics |
 | worktree | sibling …/lattice.worktrees/tkt-63-batch-ergonomics/ |
-| prs | (none) |
+| prs | pr-70 — https://github.com/percena/lattice/pull/70 |
 
 ## Acceptance (this slice)
 
-- [ ] check-pr-context no longer warns when the only dirt is `.lattice/.batch-work-active`
-- [ ] stamp-pr-open.sh: binder `prs` row (`pr-N — URL`) + `status: pr-open` + GitHub issue-body acceptance checkbox sync (Lattice-template issues only; adopted bodies untouched) — one idempotent call; bats green
-- [ ] create-pr SKILL.md: DEFAULT line invoking the helper when a binder exists; marker lifecycle note (finish-work removes at merge; never `git add -A` it)
+- [x] check-pr-context no longer warns when the only dirt is `.lattice/.batch-work-active`
+- [x] stamp-pr-open.sh: binder `prs` row (`pr-N — URL`) + `status: pr-open` + GitHub issue-body acceptance checkbox sync (Lattice-template issues only; adopted bodies untouched) — one idempotent call; bats green
+- [x] create-pr SKILL.md: DEFAULT line invoking the helper when a binder exists; marker lifecycle note (finish-work removes at merge; never `git add -A` it)
 
 ## Approach
 
@@ -41,6 +41,12 @@ check-pr-context: filter the untracked list against the marker path before count
 - Whether create-pr auto-invokes vs documents the helper — disposition: agent-decides (DEFAULT auto when binder exists, escape flag)
 
 ## Decision journal
+
+- check-pr-context had NO uncommitted-changes reporting before this slice (the scary "1 uncommitted change" came from `gh pr create` itself); implemented the whitelist as a new `uncommitted_count` JSON field + stderr warning that both exclude the marker — 1 (binder Approach: "filter the untracked list against the marker path before counting"); reversible, ticket-local
+- Acceptance mirroring: `**A<n>**` id-match primary — 1 (pre-resolved in Anticipated decisions); ordinal-position fallback for id-less items (real bodies, e.g. issue #63, omit ids; text drifts between binder and issue) — 5 (most reversible: one-directional check-only, never unchecks); reversible, ticket-local
+- stamp-pr-open refuses a non-OPEN PR (merged/closed outcomes belong to finish-ledger) and never regresses a `closed` binder status — 5 (codebase convention: finish-ledger symmetrically refuses OPEN); reversible, ticket-local
+- Issue-side gh failures are soft (warn + exit 0 after the binder stamp; adopted-comment dedup via hidden `<!-- lattice:stamp-pr-open pr-N -->` marker) — 5 (convention: finish-ledger treats issue lookup as best-effort) + decision-policy never-block; reversible, ticket-local
+- create-pr auto-invoke vs document-only: DEFAULT rule 11 (auto when a binder exists, severity DEFAULT so agents can deviate with reason) — 1 (Anticipated decisions: agent-decides, DEFAULT auto); reversible, ticket-local
 
 ## Pending decisions
 
