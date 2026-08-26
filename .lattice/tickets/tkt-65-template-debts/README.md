@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/65 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | six small template/validator/docs debts from the batch run, landed or explicitly deferred each |
 | spec | none — hygiene from dogfood review |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-65-template-debts |
 | worktree | sibling …/lattice.worktrees/tkt-65-template-debts/ |
-| prs | (none) |
+| prs | pr-71 — https://github.com/percena/lattice/pull/71 |
 
 ## Acceptance (this slice)
 
@@ -71,7 +71,7 @@ Six independent micro-changes; land in one PR, each item its own commit or clear
 
 - Parent spec: none (ticket-only)
 - Primary ticket: **tkt-65** · Covers: Finding 6 · Parallel group: **G1** · Worktree bind: `tkt-65-template-debts`
-- Child PRs: (none yet)
+- Child PRs: pr-71 — https://github.com/percena/lattice/pull/71
 
 ## Finish
 
