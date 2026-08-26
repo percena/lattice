@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/75 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | human-facing docs catch up with the registered 13-skill reality |
 | spec | none — noticed-by tkt-61 (#61, PR #67) |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-75-docs-backfill |
 | worktree | sibling …/lattice.worktrees/tkt-75-docs-backfill/ |
-| prs | (none) |
+| prs | pr-77 — https://github.com/percena/lattice/pull/77 |
 
 ## Acceptance (this slice)
 
-- [ ] Every skill in `tools/validate-skills.sh` USER_FACING appears correctly in README's skill tables and getting-started's skill map (right tier, current one-line purpose) — or an explicit tier note covers it
-- [ ] CONTRIBUTING `npx skills add` example matches the shipped skill set (full list or maintainable "all skills" form)
+- [x] Every skill in `tools/validate-skills.sh` USER_FACING appears correctly in README's skill tables and getting-started's skill map (right tier, current one-line purpose) — or an explicit tier note covers it
+- [x] CONTRIBUTING `npx skills add` example matches the shipped skill set (full list or maintainable "all skills" form)
 
 ## Approach
 
