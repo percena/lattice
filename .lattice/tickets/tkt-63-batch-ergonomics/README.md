@@ -68,4 +68,6 @@ check-pr-context: filter the untracked list against the marker path before count
 
 ## Finish
 
-- (none yet)
+
+- pr-70 merged: 2026-08-26T16:56:29Z — https://github.com/percena/lattice/pull/70 (base merge)
+- issue #63 closed: 2026-08-26T16:56:34Z — https://github.com/percena/lattice/issues/63

@@ -67,4 +67,6 @@ Read `.github/workflows/*.yml` to enumerate exactly what CI runs; wrap each as a
 
 ## Finish
 
-- (none yet)
+
+- pr-69 merged: 2026-08-26T16:56:07Z — https://github.com/percena/lattice/pull/69 (base merge)
+- issue #62 closed: 2026-08-26T16:56:13Z — https://github.com/percena/lattice/issues/62

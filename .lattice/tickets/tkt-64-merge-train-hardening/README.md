@@ -68,4 +68,6 @@ update-pr-base: after merge/rebase, compare pre/post `git diff base...HEAD` hash
 
 ## Finish
 
-- (none yet)
+
+- pr-72 merged: 2026-08-26T16:57:11Z — https://github.com/percena/lattice/pull/72 (base merge)
+- issue #64 closed: 2026-08-26T16:57:16Z — https://github.com/percena/lattice/issues/64

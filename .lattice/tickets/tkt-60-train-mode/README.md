@@ -66,4 +66,6 @@ Add a train detection path to `validate-plugin-versions.py`: when bundled conten
 
 ## Finish
 
-- (none yet)
+
+- pr-68 merged: 2026-08-26T16:55:07Z — https://github.com/percena/lattice/pull/68 (base merge)
+- issue #60 closed: 2026-08-26T16:55:12Z — https://github.com/percena/lattice/issues/60

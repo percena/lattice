@@ -75,4 +75,6 @@ Six independent micro-changes; land in one PR, each item its own commit or clear
 
 ## Finish
 
-- (none yet)
+
+- pr-71 merged: 2026-08-26T16:56:50Z — https://github.com/percena/lattice/pull/71 (base merge)
+- issue #65 closed: 2026-08-26T16:56:55Z — https://github.com/percena/lattice/issues/65

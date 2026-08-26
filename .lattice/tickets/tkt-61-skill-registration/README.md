@@ -69,4 +69,6 @@ Backfill `plugins/lattice/skills/` symlinks (3-level relative, mirroring existin
 
 ## Finish
 
-- (none yet)
+
+- pr-67 merged: 2026-08-26T16:55:45Z — https://github.com/percena/lattice/pull/67 (base merge)
+- issue #61 closed: 2026-08-26T16:55:50Z — https://github.com/percena/lattice/issues/61
