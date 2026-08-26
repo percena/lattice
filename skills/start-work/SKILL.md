@@ -84,7 +84,10 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 ## S path (short)
 
 1. INTAKE + CLASSIFY → announce mode. If ticket has `bug` label or Reproduction Steps in binder → classify as **bug-class** (triggers Phase 0c/1b loop in step 7).  
-2. If `tkt-N` / `spc-N` **with locked L0** → **resume** (load binder/Spec, skip re-grill).  
+2. If `tkt-N` / `spc-N` **with locked L0** → **resume** (load binder/Spec, skip re-grill). Resume honors the binder `status` FSM (SoT — `docs/workflow-fsm.md`, ADR-004 §6):
+   - `rework` — PR returned with findings. Load the findings (binder + PR review threads / review-delivery digest) as the **new brief**; EXECUTE the fixes on the **same branch/PR** (address-review shape, fix cycle ≤2). Do not open a second PR; on push, status returns to `pr-open`.
+   - `parked` (ratified) — the **ratify** action atomically wrote the decision into `## Decision journal` **and** flipped `parked → queued` (one write — never a re-queued binder without its recorded decision). Resume implements from the recorded decision; do not re-ask it. Still-`parked` binders without a ratified entry stay parked — surface, don't guess.
+   - `stuck` — never silently retry (Attempts ledger + caps carry across sessions, `fallback-policy.md`). Three exits, **operator-chosen**: **unblock** (answer/env fix) → re-queue; **re-scope** (scope-escape signal = planning defect) → Spec/ticket revision via `create-spec`/`create-tickets`; **cancel** → `status: closed` without merge.  
 3. Else if **existing GH issue `#M`** / `tkt-M` **without complete L0** → **ADOPT_CHECK** (portable detail in `references/policy.md`) — **append-only** on issue body; write binder; optional Spec/comment; soft-fail edges.  
 4. Else if fuzzy greenfield → **delegate `create-spec`** (then tickets if needed).  
 5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship).  
@@ -186,6 +189,8 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 | "New irreversible API rename mid-EXECUTE — just decide" | New principal → PCA batch |
 | "Delegation transfers accountability" | The host still owns scope, authority, integration, and fresh verification |
 | "While setting up, fix unrelated lint on main" | Scope: ticket bind only; NOTICED BUT NOT TOUCHING |
+| "`rework` binder — a fresh PR is cleaner" | Same PR: findings are the brief and the review thread is the context; a new PR orphans both (fix cycle ≤2) |
+| "`stuck` binder — I'll just have another go" | Attempts caps are per ticket, not per session; stuck exits are operator-chosen (unblock / re-scope / cancel), never a silent retry |
 
 ## Red Flags
 
@@ -206,3 +211,4 @@ Before claiming workflow setup / EXECUTE handoff is done:
 - [ ] Shippable path: `assert-shippable-cwd` passes under the workspace or records the explicit clean base-direct escape (or pure throwaway no-PR)
 - [ ] Ticket/Spec ids recorded when required by mode
 - [ ] Setup-only stops without product implementation when requested
+- [ ] Resume honored the binder `status`: `rework` → findings-as-brief on the same PR; `parked` → implemented from the ratified `## Decision journal` entry (no re-ask); `stuck` → operator-chosen exit recorded, no silent retry

@@ -59,6 +59,7 @@ Finish **does not invent** which PR to merge.
 - [ ] Target resolved (pr|tkt|spc|branch) — no multi-PR guess
 - [ ] **Batch-work marker gate:** if `.lattice/.batch-work-active` marker file exists in the worktree → refuse `gh pr merge`; print "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review"; stop (do not merge). Proceed only when the marker is absent. After a successful human-driven merge, remove the marker.
 - [ ] Base updated (unless `--no-update-branch`); not CONFLICTING
+- [ ] **Rebase-verdict rule:** base update **materially changed the diff** (merge/rebase hit conflicts, or the post-update diff differs beyond trivial context lines) → any prior review verdict (review-delivery digest triage or an earlier mini-review result) is **VOID** — re-run the mini-review before merge. A clean base update carries the verdict unchanged (ADR-004 §4)
 - [ ] `alignment-check.sh --json` + human dimensions; retain its approved `closing_ids` through merge; **land-time Spec drift** when `Spec:` / Spec-bound Fixes apply; DoD honesty — drift ⇒ remediate (a) commits (b) tickets (c) Spec, **no merge**
 - [ ] **Mini-review scan (default-on):** load PR diff, 5-axis light scan, present material findings, `AskUserQuestion` on material items (high → default Hold); advice, **not** a gate — HARD gate stays alignment-check
 - [ ] merge|close
@@ -99,9 +100,9 @@ Finish **does not invent** which PR to merge.
 1. Resolve target → record PR_N / HEAD / BASE.
 2. **Batch-work marker gate:** if `.lattice/.batch-work-active` marker exists in the worktree → refuse `gh pr merge`; print "batch-work marker is present — batch-work agents may only create-pr; human must run finish-work after review" and stop (do not merge, do not proceed to base update). Proceed only when the marker is absent. After a successful human-driven merge, remove the marker.
 3. Preflight (draft, checks, mergeable). **Base-mismatch advice:** if `BASE` (PR base) ≠ the user's current integration branch (long-lived, e.g. on `dev` but PR targets `main`), surface a one-line warning **before** `gh pr merge` and let the operator confirm or switch. Advice only — HARD gate stays `alignment-check.sh`.
-4. `update-pr-base.sh --pr N` (unless skipped).
+4. `update-pr-base.sh --pr N` (unless skipped). Note whether the update materially changed the diff (conflicts, or non-trivial diff delta) — it decides verdict validity in step 6.
 5. `alignment-check.sh --pr N` + dimension fix/stop; **land-time Spec drift** when applicable; print `alignment:` line.
-6. **Mini-review scan (default-on):** load PR diff (`gh pr diff N` or `git diff <BASE>...HEAD`), 5-axis light scan, present material findings, `AskUserQuestion` on material items (any high → default recommended `Hold`; only med/low → default `Merge anyway`); advice, **not** a gate — HARD gate stays alignment-check. See **§ Mini-review (embedded)**. Proceed on no findings or operator `Merge anyway`.
+6. **Mini-review scan (default-on):** load PR diff (`gh pr diff N` or `git diff <BASE>...HEAD`), 5-axis light scan, present material findings, `AskUserQuestion` on material items (any high → default recommended `Hold`; only med/low → default `Merge anyway`); advice, **not** a gate — HARD gate stays alignment-check. See **§ Mini-review (embedded)**. Proceed on no findings or operator `Merge anyway`. **Verdict validity:** a prior verdict skips the re-scan only when step 4's base update was clean — a material change voids it (rebase-verdict rule above). Operator `Hold` naming findings → stamp binder `status: rework` (see § Mini-review Decision).
 7. `gh pr merge` or `gh pr close`.
 8. **After merge:** `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` (required) — refuse a changed closing set, then close OPEN actionable local delivery issues only; skip and report Spec-primary/`epic` plus unsupported repository-qualified references.
 9. **`cleanup-workspace.sh --branch HEAD --pr N …` (required after merge)** — not optional after a “successful” merge; close-without-merge does not imply branch deletion authority.
@@ -149,12 +150,19 @@ Report only **material** findings. Each row = severity + one-line failure scenar
 
 `proceed` = no material issues; `fix-first` = material issues surfaced. Sort high first. Mark **inference** when not direct from the diff.
 
+### Verdict validity across base updates (rebase-verdict rule)
+
+A prior verdict (review-delivery digest triage `auto-pass`/`ratify-then-pass`, or an earlier mini-review `proceed`) stands **only over the diff it reviewed**:
+
+- **Material change** — the base update hit merge/rebase conflicts, **or** the post-update diff differs from the reviewed diff beyond trivial context lines → the verdict is **VOID**; re-run this mini-review before merge. HINT: `git range-diff` old-base..old-head new-base..new-head helps judge triviality.
+- **Clean update** — no conflicts, diff unchanged beyond context → the verdict carries unchanged; do not re-review out of ritual.
+
 ### Decision (advice, never auto-block / never auto-fix)
 
 - No material findings → one-line `mini-review: no material findings`; proceed to merge.
 - Material findings → print the table, then `AskUserQuestion`:
   - `Merge anyway` — operator accepts the risk
-  - `Hold (I'll address)` — stop; operator fixes or defers
+  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` edge (`docs/workflow-fsm.md`); `start-work` resume picks it up (fix cycle ≤2). The stamp records the operator's decision on a durable artifact; it is bookkeeping, not a gate.
   - `Invoke full /review-code` — deeper pass before deciding
 - Any **high** finding (including credential/secret leak) → default recommended option `Hold`; only med/low → default `Merge anyway`.
 - **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), default to `Hold` regardless of other axes. If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.
@@ -207,6 +215,8 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 | "mini-review high finding → block merge" | Advice only; `AskUserQuestion` lets operator `Merge anyway`; HARD gate stays `alignment-check.sh` |
 | "auto-fix the obvious bug the mini-review found" | Hard stop — only fix when operator explicitly names findings |
 | "mini-review makes /review-code redundant" | Containment: `/review-code` is the full superset for pre-`create-pr` / dedicated passes; mini is a bounded merge-time subset |
+| "verdict was from last night — still valid after rebase" | A material rebase (conflict or non-trivial diff delta) voids any prior verdict; re-run the mini-review. Only a clean base update carries it |
+| "operator held the PR — state is obvious from the open PR" | State is never inferred from PR existence (ADR-004 §6); Hold with named findings stamps binder `status: rework` so resume finds the brief |
 
 ## Red Flags
 
@@ -231,6 +241,8 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - [ ] Base updated (unless skipped); not CONFLICTING
 - [ ] `alignment-check.sh` pass (or profile-appropriate); DoD honesty (Iron Law)
 - [ ] Mini-review scan ran (default-on): material findings → `AskUserQuestion`; advice not gate; no auto-fix
+- [ ] Rebase-verdict rule honored: material base-update change → prior verdict voided and mini-review re-run; clean update → verdict carried (state which)
+- [ ] Operator `Hold` with named findings → binder stamped `status: rework` with the findings as the new brief
 - [ ] Issue Acceptance checkboxes match binder + diff when Fixes closes (**Lattice-template issues**); **adopted** binders: binder Acceptance checked/deferred — do not rewrite hand-created issue body
 - [ ] Land-time Spec drift cleared (or deferred/follow-up explicit) when `Spec:` / Spec-bound tickets apply
 
