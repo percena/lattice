@@ -23,6 +23,8 @@ Each issue + binder must be **self-contained**; cite Spec by id/path — do not 
 | --- | --- |
 | Labels, independence, parent-link policy | `references/policy.md` |
 | Full gh create / binder / media recipes | `references/flow.md` |
+| Anticipated-decisions scan + Approach recipe | `references/flow.md` §2.2 |
+| Disposition matrix (reversibility × blast radius) | `../_lattice-lib/references/decision-policy.md` |
 | Issue / binder body shapes | `references/templates/` |
 | Constraint severity labels | `../_lattice-lib/references/constraint-language.md` |
 | Delegation and accountable ownership | `../_lattice-lib/references/orchestration-patterns.md` |
@@ -52,6 +54,7 @@ Each issue + binder must be **self-contained**; cite Spec by id/path — do not 
 7. Prefer **vertical slices** over horizontal chore piles when splitting.
 8. Batch delivery meta in **one** round (not serial trivia; not re-open product principals on Spec).
 9. Path-overlap / serial foundation → **Ship: one-PR**, one worktree.
+9b. **Anticipated-decisions scan + `## Approach` at split time** — per proposed ticket, dry-run the implementation against real code (read-only) and emit expected decision points (error semantics, naming, library choice, edge behavior …) into binder `## Anticipated decisions`, each dispositioned `pre-resolved | agent-decides | must-ask` per `decision-policy.md` (irreversible / cross-contract is **never** `agent-decides`). Pre-resolved items are confirmed inside the **one** delivery-meta batch (rule 8 — no extra rounds); must-ask items the user leaves unresolved become `## Pending decisions`. Author `## Approach` (5–10 line sketch + touch-set) per ticket. Recipe: `flow.md` §2.2.
 10. **Any delivery ticket under Spec (`spc-N` primary #N, child ≠ primary):** after each child create, soft-fail link child as **GitHub sub-issue of Spec primary #N** (including single-ticket). Tickets stay full independent issues. Ticket-only (no Spec primary) → no parent.
 
 ### HINT
@@ -99,10 +102,11 @@ Parallel degree ≥ 2 → one sibling worktree per concurrent tkt. Path-overlap 
 
 1. Step 0: ensure-lattice + assert-shippable-cwd (`flow.md`).
 2. Read locked Spec / COMMITTED.
-3. Propose ship plan + ticket table (one batch).
+2b. Per proposed ticket: read-only dry-run against real code → draft `## Approach` (5–10 lines + touch-set) + anticipated decision points dispositioned `pre-resolved | agent-decides | must-ask` (`flow.md` §2.2).
+3. Propose ship plan + ticket table + decision dispositions (one batch).
 4. POST_SPLIT_CHECK.
 4b. Duplicate-work precheck (advisory, DEFAULT): for each proposed ticket title, run `check-duplicate-work.sh --title "…" --skip-remote` (in `_lattice-lib/scripts/`) before `gh issue create`. Review ⚠️ overlaps; never blocks (advisory, exits 0).
-5. `gh issue create` + labels; optional Project add (soft-fail); under Spec primary → soft-fail sub-issue parent link (including N=1); write binders; update Spec.tickets.
+5. `gh issue create` + labels; optional Project add (soft-fail); under Spec primary → soft-fail sub-issue parent link (including N=1); write binders (incl. `## Approach` + `## Anticipated decisions` from 2b; unresolved must-ask → `## Pending decisions`); update Spec.tickets.
 6. Handoff issue #s + binder paths for `start-work`.
 
 After each successful create, best-effort board add (opt-in; never blocks create):
@@ -155,6 +159,8 @@ Structural Don’ts (time-pressure / invent-scope excuses → **Common Rationali
 | "Boss said open issues now, align later" | No ticket fiction; align first |
 | "Sub-issue means no binder / no self-contained body" | Still full issue + binder |
 | "Parent k/n closed ⇒ Spec done" | Progress ≠ Acceptance; finish-work still checks boxes |
+| "Scan decisions later, at start-work" | Split time is when global context + the human are present; night questions are cheapest now |
+| "Confirm pre-resolved items one by one as they come up" | Dispositions ride the single delivery-meta batch — never serial questioning |
 | "Only one ticket under Spec — skip sub-issue / dual-role primary" | Spec-then-ticket ⇒ ≥2 issues; N=1 child still sub-issue |
 
 ## Red Flags
@@ -173,4 +179,6 @@ Structural Don’ts (time-pressure / invent-scope excuses → **Common Rationali
 - [ ] Each issue created with labels + body; binder README written; paths printed
 - [ ] Spec.tickets L0 updated with bare `tkt-N` ids
 - [ ] Under Spec primary: soft-fail parent link attempted for each delivery child (incl. N=1); ticket-only path skipped intentionally
+- [ ] Per ticket: `## Approach` (sketch + touch-set) + `## Anticipated decisions` dispositions written at split time; no irreversible/cross-contract item marked `agent-decides`
+- [ ] Pre-resolved items confirmed inside the one delivery-meta batch; user-unresolved must-ask landed in `## Pending decisions`
 - [ ] No product implementation
