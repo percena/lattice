@@ -47,32 +47,32 @@ teardown() {
 @test "existing label beyond a 1000-name page is still detected" {
   # 1200 filler names, catalog labels appended after the old --limit horizon
   seq -f 'zz-filler-%g' 1 1200 >"$GH_LIST_FILE"
-  printf 'feat\nP0\n' >>"$GH_LIST_FILE"
+  printf 'enhancement\nP1\n' >>"$GH_LIST_FILE"
   run bash "$SYNC"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"exists:  feat"* ]]
-  [[ "$output" == *"exists:  P0"* ]]
-  ! grep -q '^label create feat' "$GH_CALL_LOG"
-  ! grep -q '^label create P0' "$GH_CALL_LOG"
+  [[ "$output" == *"exists:  enhancement"* ]]
+  [[ "$output" == *"exists:  P1"* ]]
+  ! grep -q '^label create enhancement' "$GH_CALL_LOG"
+  ! grep -q '^label create P1' "$GH_CALL_LOG"
 }
 
 @test "creates missing labels and skips existing ones" {
-  printf 'feat\nbug\n' >"$GH_LIST_FILE"
+  printf 'enhancement\nbug\n' >"$GH_LIST_FILE"
   run bash "$SYNC"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"exists:  feat"* ]]
+  [[ "$output" == *"exists:  enhancement"* ]]
   [[ "$output" == *"exists:  bug"* ]]
   [[ "$output" == *"created: chore"* ]]
-  [[ "$output" == *"created: P0"* ]]
-  # 13 catalog labels, 2 already exist
-  [ "$(grep -c '^label create' "$GH_CALL_LOG")" -eq 11 ]
+  [[ "$output" == *"created: adr"* ]]
+  # 10 catalog labels (live canon, tkt-65), 2 already exist
+  [ "$(grep -c '^label create' "$GH_CALL_LOG")" -eq 8 ]
 }
 
 @test "--force-color edits existing labels instead of skipping" {
-  printf 'feat\n' >"$GH_LIST_FILE"
+  printf 'enhancement\n' >"$GH_LIST_FILE"
   run bash "$SYNC" --force-color
   [ "$status" -eq 0 ]
-  [[ "$output" == *"updated: feat"* ]]
+  [[ "$output" == *"updated: enhancement"* ]]
   [ "$(grep -c '^label edit' "$GH_CALL_LOG")" -eq 1 ]
 }
 
