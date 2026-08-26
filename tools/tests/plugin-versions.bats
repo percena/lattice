@@ -46,6 +46,56 @@ commit_fixture() {
   git -C "$TMP_REPO" commit -qm change
 }
 
+train_cut_fixture() {
+  # Sibling train branch: its own bundled change + the version cut. Its head
+  # stands in for the comparison base after the sibling PR merged.
+  git -C "$TMP_REPO" checkout -q -b sibling "$BASE"
+  printf 'sibling change\n' >"$TMP_REPO/skills/finish-work/SKILL.md"
+  write_version 2.3.5
+  commit_fixture
+  SIBLING="$(git -C "$TMP_REPO" rev-parse HEAD)"
+  # Train branch under test: different bundled change + the byte-identical cut.
+  git -C "$TMP_REPO" checkout -q -b train "$BASE"
+  printf 'train change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
+  write_version 2.3.5
+  commit_fixture
+}
+
+@test "release train: equal version with the identical shared cut passes" {
+  train_cut_fixture
+
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$SIBLING"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"release-train cut shared with base"* ]]
+  [[ "$output" == *"equal version 2.3.5 accepted"* ]]
+  [[ "$output" == *"validate-plugin-versions: OK"* ]]
+}
+
+@test "release train: diverged base without a cut on head still fails equal version" {
+  # Base advanced with an unrelated docs commit; head changed bundled content
+  # but never touched the version files — not a train, still the strict law.
+  git -C "$TMP_REPO" checkout -q -b sibling "$BASE"
+  mkdir -p "$TMP_REPO/docs"
+  printf 'unrelated\n' >"$TMP_REPO/docs/note.md"
+  commit_fixture
+  SIBLING="$(git -C "$TMP_REPO" rev-parse HEAD)"
+  git -C "$TMP_REPO" checkout -q -b feature "$BASE"
+  printf 'changed\n' >"$TMP_REPO/skills/_lattice-lib/SKILL.md"
+  commit_fixture
+
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$SIBLING"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.4)"* ]]
+}
+
+@test "release train: --no-train restores the unconditional strict law" {
+  train_cut_fixture
+
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$SIBLING" --no-train
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.5)"* ]]
+}
+
 @test "manifest and marketplace versions must match" {
   printf '{"name":"lattice","version":"2.3.5"}\n' \
     >"$TMP_REPO/plugins/lattice/.claude-plugin/plugin.json"
