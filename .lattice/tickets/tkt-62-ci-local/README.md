@@ -2,7 +2,7 @@
 
 > **TL;DR:** One-command local CI-parity runner (`tools/ci-local.sh`) wired into the batch-work evidence contract
 > **Kind:** feat · **Priority:** P2
-> **Path:** (ticket-only) → tkt-62 → (pr-…)
+> **Path:** (ticket-only) → tkt-62 → pr-69
 
 | Field | Value |
 | --- | --- |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/62 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | ci-local.sh runs everything CI runs; batch briefs cite it as the required evidence command |
 | spec | none — enhancement from dogfood review |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-62-ci-local |
 | worktree | sibling …/lattice.worktrees/tkt-62-ci-local/ |
-| prs | (none) |
+| prs | pr-69 — https://github.com/percena/lattice/pull/69 |
 
 ## Acceptance (this slice)
 
-- [ ] `bash tools/ci-local.sh` reproduces every CI verdict locally on a clean tree (validate-skills, artifacts, plugin-versions with default base ref, shellcheck, all bats with the BATS_TEST_TMPDIR shim); summary table; nonzero exit on any failure; itself shellcheck-clean
-- [ ] batch-work evidence contract names it
+- [x] `bash tools/ci-local.sh` reproduces every CI verdict locally on a clean tree (validate-skills, artifacts, plugin-versions with default base ref, shellcheck, all bats with the BATS_TEST_TMPDIR shim); summary table; nonzero exit on any failure; itself shellcheck-clean
+- [x] batch-work evidence contract names it
 
 ## Approach
 
@@ -63,7 +63,7 @@ Read `.github/workflows/*.yml` to enumerate exactly what CI runs; wrap each as a
 
 - Parent spec: none (ticket-only)
 - Primary ticket: **tkt-62** · Covers: Finding 3 · Parallel group: **G1** · Worktree bind: `tkt-62-ci-local`
-- Child PRs: (none yet)
+- Child PRs: pr-69 — https://github.com/percena/lattice/pull/69
 
 ## Finish
 
