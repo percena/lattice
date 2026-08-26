@@ -11,7 +11,15 @@
 #           worktree that checks out the head when one exists; a local branch
 #           AHEAD of origin/<head> is refused unless --allow-local-ahead.
 #
-# stdout: JSON summary
+# stdout: JSON summary. On success it includes:
+#   diff_changed — true when the update changed the PR's effective diff
+#                  (git diff base...HEAD content) vs before the update;
+#                  false on noop or a clean, content-identical update.
+#                  Probe failure degrades to true (conservative: unknown
+#                  diff must void any prior review verdict).
+#   conflict     — true when the merge/rebase hit conflicts (also set on
+#                  the conflict-shaped failure JSONs); always false on
+#                  success, since a conflicted update never completes here.
 # exit 0 = ready (or already up to date)
 # exit 1 = conflict / not mergeable after attempt / error (message on stderr + JSON)
 # exit 2 = usage
@@ -209,13 +217,16 @@ print("ORIGIN_PUSH_REPOSITORY=" + shlex.quote(push.get("nameWithOwner") or ""))
 fi
 
 if [[ "$MERGEABLE" == "CONFLICTING" && "$REBASE" != "true" ]]; then
-  echo "{\"ok\": false, \"pr\": $PR, \"action\": \"stop\", \"reason\": \"conflicting\", \"base\": $(json_escape "$BASE_BRANCH"), \"head\": $(json_escape "$HEAD_BRANCH"), \"url\": $(json_escape "$URL")}"
+  echo "{\"ok\": false, \"pr\": $PR, \"action\": \"stop\", \"reason\": \"conflicting\", \"conflict\": true, \"base\": $(json_escape "$BASE_BRANCH"), \"head\": $(json_escape "$HEAD_BRANCH"), \"url\": $(json_escape "$URL")}"
   echo "Error: PR #$PR is CONFLICTING with $BASE_BRANCH - resolve conflicts in the worktree, then re-run finish-work" >&2
   exit 1
 fi
 
 ACTION="none"
 DETAIL=""
+# diff_changed: did the update change the PR's effective diff content?
+# noop leaves it false; rebase/update_branch paths set it explicitly below.
+DIFF_CHANGED=false
 
 if [[ "$REBASE" == "true" ]]; then
   ACTION="rebase"
@@ -236,6 +247,11 @@ if [[ "$REBASE" == "true" ]]; then
     echo "Error: PR head changed before rebase (expected $HEAD_OID, fetched $FETCHED_HEAD_OID); refresh and retry" >&2
     exit 1
   fi
+  # diff_changed probe (pre): the PR's effective diff before the update —
+  # merge-base three-dot against the freshly fetched base tip.
+  PRE_DIFF=""
+  PRE_DIFF_OK=true
+  PRE_DIFF=$(git diff "refs/remotes/origin/$BASE_BRANCH...refs/remotes/origin/$HEAD_BRANCH" 2>/dev/null) || PRE_DIFF_OK=false
   # In the standard worktree layout the head branch is checked out in its own
   # worktree, where a `git checkout` here would abort with "already checked
   # out" (and, under set -e, without the JSON summary). Rebase inside that
@@ -341,8 +357,18 @@ if [[ "$REBASE" == "true" ]]; then
     fi
   fi
   if ! git -C "$WORK_DIR" rebase "origin/$BASE_BRANCH"; then
+    # Distinguish a conflicted rebase (in-flight rebase state exists) from a
+    # rebase that failed to start (e.g. dirty worktree).
+    REBASE_CONFLICT=false
+    for _p in rebase-merge rebase-apply; do
+      _pp=$(git -C "$WORK_DIR" rev-parse --git-path "$_p" 2>/dev/null || true)
+      [[ -n "$_pp" ]] || continue
+      [[ "$_pp" != /* ]] && _pp="$WORK_DIR/$_pp"
+      [[ -d "$_pp" ]] && REBASE_CONFLICT=true
+    done
+    unset _p _pp
     git -C "$WORK_DIR" rebase --abort 2>/dev/null || true
-    echo "{\"ok\": false, \"pr\": $PR, \"action\": \"rebase\", \"reason\": \"rebase_failed\", \"base\": $(json_escape "$BASE_BRANCH"), \"head\": $(json_escape "$HEAD_BRANCH")}"
+    echo "{\"ok\": false, \"pr\": $PR, \"action\": \"rebase\", \"reason\": \"rebase_failed\", \"conflict\": $REBASE_CONFLICT, \"base\": $(json_escape "$BASE_BRANCH"), \"head\": $(json_escape "$HEAD_BRANCH")}"
     echo "Error: rebase onto origin/$BASE_BRANCH failed (conflicts or dirty worktree) - resolve in worktree" >&2
     restore_checkout
     exit 1
@@ -352,6 +378,15 @@ if [[ "$REBASE" == "true" ]]; then
     echo "Error: force-with-lease push failed for $HEAD_BRANCH" >&2
     restore_checkout
     exit 1
+  fi
+  # diff_changed probe (post): the rebased head against the same base tip.
+  POST_DIFF=""
+  POST_DIFF_OK=true
+  POST_DIFF=$(git -C "$WORK_DIR" diff "refs/remotes/origin/$BASE_BRANCH...HEAD" 2>/dev/null) || POST_DIFF_OK=false
+  if [[ "$PRE_DIFF_OK" == "true" && "$POST_DIFF_OK" == "true" && "$PRE_DIFF" == "$POST_DIFF" ]]; then
+    DIFF_CHANGED=false
+  else
+    DIFF_CHANGED=true
   fi
   restore_checkout
   DETAIL="rebased onto origin/${BASE_BRANCH} and force-with-lease pushed"
@@ -375,6 +410,12 @@ else
     exit 0
   fi
   if [[ "$ACTION" == "update_branch" ]]; then
+    # diff_changed probe (pre): capture the PR's effective diff from GitHub
+    # before the update. Server-side, so it needs no local clone of the PR
+    # objects and never fetches into the operator's cwd repository.
+    PRE_PR_DIFF=""
+    PRE_PR_DIFF_OK=true
+    PRE_PR_DIFF=$(gh pr diff "$PR" 2>/dev/null) || PRE_PR_DIFF_OK=false
     # The mutation merges base into head only when the server still sees the
     # exact head OID inspected above. A concurrent head update fails closed.
     update_query='mutation UpdatePullRequestBranch($pullRequestId: ID!, $expectedHeadOid: GitObjectID!) { updatePullRequestBranch(input: {pullRequestId: $pullRequestId, expectedHeadOid: $expectedHeadOid, updateMethod: MERGE}) { pullRequest { headRefOid } } }'
@@ -410,7 +451,7 @@ print("HEAD_OID2=" + shlex.quote(view.get("headRefOid") or ""))
 done
 
 if [[ "$MERGEABLE2" == "CONFLICTING" ]]; then
-  echo "{\"ok\": false, \"pr\": $PR, \"action\": $(json_escape "$ACTION"), \"reason\": \"conflicting_after_update\", \"mergeable\": \"CONFLICTING\", \"mergeStateStatus\": $(json_escape "$MERGE_STATE"), \"base\": $(json_escape "$BASE_BRANCH"), \"head\": $(json_escape "$HEAD_BRANCH"), \"detail\": $(json_escape "$DETAIL")}"
+  echo "{\"ok\": false, \"pr\": $PR, \"action\": $(json_escape "$ACTION"), \"reason\": \"conflicting_after_update\", \"conflict\": true, \"mergeable\": \"CONFLICTING\", \"mergeStateStatus\": $(json_escape "$MERGE_STATE"), \"base\": $(json_escape "$BASE_BRANCH"), \"head\": $(json_escape "$HEAD_BRANCH"), \"detail\": $(json_escape "$DETAIL")}"
   echo "Error: PR #$PR still CONFLICTING after $ACTION - resolve conflicts, then re-run" >&2
   exit 1
 fi
@@ -436,5 +477,17 @@ case "$MERGE_STATE" in
     ;;
 esac
 
-echo "{\"ok\": true, \"pr\": $PR, \"action\": $(json_escape "$ACTION"), \"mergeable\": $(json_escape "$MERGEABLE2"), \"mergeStateStatus\": $(json_escape "$MERGE_STATE"), \"base\": $(json_escape "$BASE_BRANCH"), \"baseOid\": $(json_escape "$BASE_OID"), \"head\": $(json_escape "$HEAD_BRANCH"), \"headOid\": $(json_escape "$HEAD_OID2"), \"headRepository\": $(json_escape "$HEAD_REPOSITORY"), \"url\": $(json_escape "$URL"), \"detail\": $(json_escape "$DETAIL")}"
+if [[ "$ACTION" == "update_branch" ]]; then
+  # diff_changed probe (post): compare against the pre-update capture.
+  # Any probe failure degrades to true (unknown diff voids prior verdicts).
+  DIFF_CHANGED=true
+  POST_PR_DIFF=""
+  POST_PR_DIFF_OK=true
+  POST_PR_DIFF=$(gh pr diff "$PR" 2>/dev/null) || POST_PR_DIFF_OK=false
+  if [[ "$PRE_PR_DIFF_OK" == "true" && "$POST_PR_DIFF_OK" == "true" && "$PRE_PR_DIFF" == "$POST_PR_DIFF" ]]; then
+    DIFF_CHANGED=false
+  fi
+fi
+
+echo "{\"ok\": true, \"pr\": $PR, \"action\": $(json_escape "$ACTION"), \"diff_changed\": $DIFF_CHANGED, \"conflict\": false, \"mergeable\": $(json_escape "$MERGEABLE2"), \"mergeStateStatus\": $(json_escape "$MERGE_STATE"), \"base\": $(json_escape "$BASE_BRANCH"), \"baseOid\": $(json_escape "$BASE_OID"), \"head\": $(json_escape "$HEAD_BRANCH"), \"headOid\": $(json_escape "$HEAD_OID2"), \"headRepository\": $(json_escape "$HEAD_REPOSITORY"), \"url\": $(json_escape "$URL"), \"detail\": $(json_escape "$DETAIL")}"
 exit 0
