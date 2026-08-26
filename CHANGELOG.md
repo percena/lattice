@@ -6,7 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-26
+
+Release train for `spc-42` (attention loop): one identical version cut carried by every PR in the train (#52, #54–#58 + batch-work night upgrades); bundled-content increments land once for the whole set.
+
 ### Added
+
+- **`decision-policy.md` + `fallback-policy.md`** (`_lattice-lib/references/`) — unattended decision resolution (chain, reversibility × blast-radius, park & pivot, journal contract) and bounded fallback (articulated-difference retries, caps, early-stop, batch fuse, stuck-with-ledger). ADR-004 §2/§5.
+- **Binder FSM** — ticket binder `status` extended in place (`queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed`, legacy `open` warns) + new sections `## Approach`, `## Anticipated decisions`, `## Decision journal`, `## Pending decisions`, `## Attempts`; `validate-lattice-artifacts.py` gains warning-level findings and status/transition checks.
+- **`review-delivery` skill** — artifact-only chain review (A*→evidence fidelity, cross-PR coherence with throwaway integration build, decision-ratification queue, per-PR findings) + `build-review-context.sh` manifest builder + ranked morning digest with per-axis attestation. Never merges; never a gate.
+- **Team preferences** — `ensure-lattice.sh` scaffolds `.lattice/preferences.md` (INVARIANT/DEFAULT/HINT) with promotion (×2-ratified) and supersede-with-date lifecycle. ADR-004 §3.
+- **`create-tickets` anticipated-decisions scan** — per-ticket read-only dry-run at split time emits dispositioned decision points + `## Approach` sketch; dispositions ride the single delivery-meta batch.
+- **Re-entry edges** — `start-work` resume honors `rework` (findings-as-brief, same PR), `parked` (atomic ratify → queued), `stuck` (operator-chosen exits); `finish-work` voids review verdicts on materially changed base updates and stamps `rework` on Hold-with-findings.
+- **`batch-work` night upgrades** — decision/fallback/evidence contracts injected into spawn briefs, per-ticket watchdog/timebox, layer fuse with graceful drain, `--with-review` chaining review-delivery with a bounded fix loop.
+- **Docs** — `docs/workflow-fsm.md` (three coupled machines, transition owners, bounded-loop invariant) and `docs/day-phase.md` (attended planning recipe). ADR-004.
 
 - **`batch-work` skill** — DAG-orchestrated fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, RAM threshold gate, failure isolation. Agents stop at `create-pr`; human reviews then `finish-work` per PR.
 - **`run-e2e` skill** — reference pattern for writing ego-browser heredoc JS e2e stories: one Bash invocation per story, fail-loud auth check, structured JSON output via `console.log`. Not a YAML runner; the story file is the test.

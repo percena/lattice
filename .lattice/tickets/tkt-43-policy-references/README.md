@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-43-policy-references |
 | worktree | sibling …/lattice.worktrees/tkt-43-policy-references/ |
-| prs | (none) |
+| prs | https://github.com/percena/lattice/pull/52 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** decision-policy.md defines the resolution chain (ticket AC/binder Approach → Spec Decisions → ADR → `.lattice/preferences.md` → default heuristics: codebase convention > minimal public surface > most reversible → park & pivot), the reversibility × blast-radius matrix (reversible+local → self-decide + journal; irreversible or cross-contract → attended PCA / unattended park & pivot), and the journal contract (every self-decision cites its resolution source); start-work references it
-- [ ] **A2** fallback-policy.md defines pivot-over-retry with the articulated-difference rule (no retry without written cause + delta in `## Attempts`), caps (≤2 tries/path, ≤3 paths/ticket, per-ticket timebox), early-stop signals (same error twice; scope escape beyond ticket `paths`), batch fuse + graceful drain, and stuck-with-ledger framing — content only; batch-work brief injection lands with tkt-50
+- [x] **A1** decision-policy.md defines the resolution chain (ticket AC/binder Approach → Spec Decisions → ADR → `.lattice/preferences.md` → default heuristics: codebase convention > minimal public surface > most reversible → park & pivot), the reversibility × blast-radius matrix (reversible+local → self-decide + journal; irreversible or cross-contract → attended PCA / unattended park & pivot), and the journal contract (every self-decision cites its resolution source); start-work references it
+- [x] **A2** fallback-policy.md defines pivot-over-retry with the articulated-difference rule (no retry without written cause + delta in `## Attempts`), caps (≤2 tries/path, ≤3 paths/ticket, per-ticket timebox), early-stop signals (same error twice; scope escape beyond ticket `paths`), batch fuse + graceful drain, and stuck-with-ledger framing — content only; batch-work brief injection lands with tkt-50
 
 ## Notes
 
@@ -53,7 +53,7 @@
 - Blocked by: (none)
 - Parallel group: **G1 (parallel)**
 - Worktree bind: `tkt-43-policy-references`
-- Child PRs: (none yet)
+- Child PRs: [PR #52](https://github.com/percena/lattice/pull/52)
 
 ## Assets
 
