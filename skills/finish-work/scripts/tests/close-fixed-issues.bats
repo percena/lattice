@@ -63,9 +63,11 @@ EOF
 }
 
 make_fake_gh() {
-  # Fallback for pre-1.4 bats where BATS_TEST_TMPDIR is unset (would expand
-  # to / and leak state across runs).
-  local tmp="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  # Always self-managed per call: a shared BATS_TEST_TMPDIR (pre-1.4 bats
+  # shims set one dir per suite, not per test) would accumulate gh.log
+  # across tests and false-fail the dry-run log assertions.
+  local tmp
+  tmp="$(mktemp -d)"
   export FAKE_GH_LOG="$tmp/gh.log"
   export GH_BIN="$tmp/gh"
   cat >"$GH_BIN" <<'EOF'

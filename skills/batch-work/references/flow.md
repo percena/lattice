@@ -128,8 +128,10 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      paths/ticket, the timebox above; early-stop on same-error-twice or scope
      escape; stop-with-ledger + one well-formed question is a deliverable.
 
-     EVIDENCE CONTRACT: paste fresh test/validator output in the PR body (no
-     stale or paraphrased runs); decision journal entries live in the binder;
+     EVIDENCE CONTRACT: paste fresh `bash tools/ci-local.sh` output (summary
+     table) in the PR body (engine repo; in a consumer repo, the repo's
+     CI-parity command when one exists, else its test/validator runs). No
+     stale or paraphrased runs; decision journal entries live in the binder;
      e2e evidence when UI is touched.
 
      SCRATCH: the scratchpad is shared across parallel agents — suffix every
