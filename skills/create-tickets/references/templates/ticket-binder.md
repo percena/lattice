@@ -6,7 +6,7 @@
      optional (parallel / C): blocked_by, parallel_group, paths, solo_merge, related_tickets -->
 
 > **TL;DR:** <one sentence slice — standalone>
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** queued · **Priority:** P2
 > **Path:** spc-N → tkt-<id> → (pr-…)
 
 | Field | Value |
@@ -15,7 +15,7 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/<org>/<repo>/issues/<id> |
-| status | open |
+| status | queued | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it; merged vs closed-without-merge read from ## Finish mergedAt) · legacy: open (coarse — validator warns) |
 | adopted | false | true — **true** when GH issue body is hand-created / append-only; land uses binder-first Acceptance |
 | summary | ≤120 chars |
 | spec | spc-N — <one-line> (path: ../../specs/spc-N-<slug>.md) |
@@ -35,6 +35,27 @@
 <!-- Mirror Spec A* ids this ticket owns (light RTM). Do not re-grill whole Spec here. -->
 - [ ] **A1** <slice criterion>
 - [ ] **A2** <slice criterion>
+
+## Approach
+
+<!-- Authored at split time: 5–10 line sketch + touch-set (files this slice edits). -->
+
+## Anticipated decisions
+
+<!-- One line each: <item> — disposition: pre-resolved(<source>) | agent-decides | must-ask. -->
+
+## Decision journal
+
+<!-- Append-only during execution. Each entry cites its resolution source per decision-policy:
+     <decision> → <choice> (source: pre-resolved | preference | spec/ADR | agent-judgment). -->
+
+## Pending decisions
+
+<!-- Parked must-ask questions for morning ratification: question · context · default-if-unanswered. -->
+
+## Attempts
+
+<!-- Fallback ledger, one entry per attempt: approach · what failed · evidence (path/log) · why next differs. -->
 
 ## Notes
 
