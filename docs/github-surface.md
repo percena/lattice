@@ -20,48 +20,47 @@ Automation/daemon trigger plane (Ready column, leases) is separate.
 
 ### Kind labels
 
-| Label | Color (suggested) | Description |
+Canon follows the **live** label set (`gh label list`) — ratified default (tkt-65): docs track the labels actually on the repo; renaming repo labels is a separate deliberate migration, never a doc side effect.
+
+| Label | Color (live) | Description |
 | --- | --- | --- |
-| `feat` | `#1D76DB` | New user-visible capability |
-| `bug` | `#D73A4A` | Incorrect behavior |
-| `chore` | `#FEF2C0` | Tooling, deps, repo hygiene |
-| `docs` | `#0075CA` | Documentation only |
-| `refactor` | `#D4C5F9` | Behavior-preserving restructure |
-| `perf` | `#F9D0C4` | Performance |
-| `test` | `#BFDADC` | Tests only |
-| `spike` | `#E4E669` | Time-boxed research |
-| `epic` | `#3E4B9E` | Spec primary / umbrella parent (filter all Spec trackers) |
+| `bug` | `#D73A4A` | Something isn't working |
+| `documentation` | `#0075CA` | Improvements or additions to documentation |
+| `enhancement` | `#A2EEEF` | New feature or request |
+| `chore` | `#C5DEF5` | Maintenance / non-feature work |
+| `epic` | `#5319E7` | Spec primary / multi-ticket epic (filter all Spec trackers) |
+| `spec` | `#0E8A16` | Lattice Spec (spc-N) |
+| `adr` | `#BFD4F2` | Architecture Decision Record |
 
-Map Lattice `kind: bug` → label `bug`; PR/commit type becomes **`fix:`**.
-
-Alias: if a repo already uses GitHub’s default `enhancement`, treat it as `feat` and prefer migrating to `feat`.
+Map Lattice kinds → labels: `feat` → `enhancement` · `docs` → `documentation` · `bug` → `bug` (PR/commit type becomes **`fix:`**) · `chore` → `chore`. Kinds without a dedicated live label (`refactor`, `perf`, `test`, `spike`) file under `chore`; keep the precise kind in the binder/front-matter `kind` field.
 
 ### Priority labels
 
-| Label | Color (suggested) | Meaning |
+| Label | Color (live) | Meaning |
 | --- | --- | --- |
-| `P0` | `#B60205` | Urgent / production broken |
-| `P1` | `#FF8C00` | Current milestone |
-| `P2` | `#FBCA04` | Default schedulable work |
-| `P3` | `#C5DEF5` | Backlog / nice-to-have |
+| `P1` | `#B60BF0` | Priority 1 (high) |
+| `P2` | `#BFD4F2` | Priority 2 (medium) |
+| `P3` | `#EAEAEA` | Priority 3 (low) |
 
-Default when unspecified: **P2**.
+Default when unspecified: **P2**. There is no live `P0`: urgent work is `P1` with the urgency called out in the issue body.
 
 ### Optional process labels (not kind)
 
 | Label | Use |
 | --- | --- |
 | `good first issue` | Onboarding |
-| `blocked` | Waiting on dependency |
+| `help wanted` | Extra attention needed |
+| `question` | Further information requested |
 | `wontfix` | Closed without work |
 | `duplicate` | Closed as dup |
+| `invalid` | Doesn't seem right |
 
 Do **not** overload these as substitutes for `kind`.
 
 ### Apply with `gh`
 
 ```bash
-gh issue create --title "…" --label "feat,P1" --body "…"
+gh issue create --title "…" --label "enhancement,P1" --body "…"
 gh issue edit 12 --add-label "bug,P0"
 gh label list
 ```

@@ -16,20 +16,20 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 # name|color|description
+# Canon = live label set (docs/github-surface.md §1, ratified default tkt-65):
+# kinds map feat→enhancement, docs→documentation; refactor/perf/test/spike
+# file under chore. No P0 — urgent work is P1 with the urgency in the body.
 LABELS=$(cat <<'EOF'
-feat|1D76DB|New user-visible capability (Lattice kind: feat)
-bug|D73A4A|Incorrect behavior (Lattice kind: bug)
-chore|FEF2C0|Tooling, deps, repo hygiene
-docs|0075CA|Documentation only
-refactor|D4C5F9|Behavior-preserving restructure
-perf|F9D0C4|Performance
-test|BFDADC|Tests only
-spike|E4E669|Time-boxed research
-epic|3E4B9E|Spec primary / umbrella parent
-P0|B60205|Priority: urgent / production broken
-P1|FF8C00|Priority: current milestone
-P2|FBCA04|Priority: default schedulable
-P3|C5DEF5|Priority: backlog / nice-to-have
+bug|D73A4A|Something isn't working (Lattice kind: bug)
+documentation|0075CA|Improvements or additions to documentation (Lattice kind: docs)
+enhancement|A2EEEF|New feature or request (Lattice kind: feat)
+chore|C5DEF5|Maintenance / non-feature work
+epic|5319E7|Spec primary / multi-ticket epic
+spec|0E8A16|Lattice Spec (spc-N)
+adr|BFD4F2|Architecture Decision Record
+P1|B60BF0|Priority 1 (high)
+P2|BFD4F2|Priority 2 (medium)
+P3|EAEAEA|Priority 3 (low)
 EOF
 )
 

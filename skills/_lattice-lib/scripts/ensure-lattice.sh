@@ -132,7 +132,27 @@ PY
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the physical installed script directory, including when the
+# entrypoint itself was reached through a symlink (same pattern as
+# lattice-init.sh resolve_script_dir): the lexical BASH_SOURCE directory would
+# let a consumer checkout place a fake lattice-init.sh / references tree
+# beside a symlink to this trusted script.
+resolve_script_dir() {
+  local source="$1"
+  local dir target
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    target="$(readlink "$source")"
+    if [[ "$target" == /* ]]; then
+      source="$target"
+    else
+      source="$dir/$target"
+    fi
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_script_dir "${BASH_SOURCE[0]}")"
 INIT="$SCRIPT_DIR/lattice-init.sh"
 if [[ ! -f "$INIT" ]]; then
   echo "Error: lattice-init.sh not found next to ensure-lattice.sh" >&2

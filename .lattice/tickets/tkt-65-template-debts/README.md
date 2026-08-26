@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/65 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | six small template/validator/docs debts from the batch run, landed or explicitly deferred each |
 | spec | none — hygiene from dogfood review |
@@ -23,16 +23,16 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-65-template-debts |
 | worktree | sibling …/lattice.worktrees/tkt-65-template-debts/ |
-| prs | (none) |
+| prs | pr-71 — https://github.com/percena/lattice/pull/71 |
 
 ## Acceptance (this slice)
 
-- [ ] Binder template: header `**Status:**` copy dropped/derived (field table SoT); canonical filled `prs` format documented
-- [ ] validate-lattice-artifacts: warn on header/table status contradiction; optional prs-format check; bats green
-- [ ] workflow-fsm.md: fuse-edge clarifying sentence (fused → stay `queued`; `deferred` = human deschedule stamp)
-- [ ] Label taxonomy reconciled (docs/github-surface.md + sync-github-labels)
-- [ ] ensure-lattice SCRIPT_DIR symlink resolution aligned with lattice-init; preferences.md in managed-paths list
-- [ ] New find-spec.sh (spec file by N regardless of slug); bats
+- [x] Binder template: header `**Status:**` copy dropped/derived (field table SoT); canonical filled `prs` format documented
+- [x] validate-lattice-artifacts: warn on header/table status contradiction; ~~optional prs-format check~~ (deferred, see Notes); bats green
+- [x] workflow-fsm.md: fuse-edge clarifying sentence (fused → stay `queued`; `deferred` = human deschedule stamp)
+- [x] Label taxonomy reconciled (docs/github-surface.md + sync-github-labels)
+- [ ] ensure-lattice SCRIPT_DIR symlink resolution aligned with lattice-init (done); preferences.md in managed-paths list (deferred — lattice-init.sh out of paths row, see Notes)
+- [x] New find-spec.sh (spec file by N regardless of slug); bats
 
 ## Approach
 
@@ -45,15 +45,23 @@ Six independent micro-changes; land in one PR, each item its own commit or clear
 
 ## Decision journal
 
+- Label taxonomy direction → docs follow live labels; no repo label renames (source: pre-resolved — parked must-ask ratified by default per batch brief; rename option flagged in PR body)
+- Header `**Status:**` drop vs keep-derived → drop, terse template comment points at the field table (source: pre-resolved — binder anticipated-decision, agent-decides)
+- header_status_mismatch check: legacy-coarse `open` headers exempt → 12 pre-FSM binders carry `**Status:** open` against FSM table values; that is lazy-migration territory (legacy_open_status owns it), not dual-maintenance drift — exempting keeps the real repo at 0 new warnings (source: agent-judgment)
+- header check scoped to TL;DR blockquote lines above the binder card → full-text regex would match prose mentions of the literal marker (this very binder's acceptance line would have yielded status "copy") (source: agent-judgment)
+- Optional prs-row format validator check → deferred: live prs rows are heterogeneous historical ledger (`pr-11`, `#37 · pr-37 — URL`, `pr-9 (URL, …)`); canonical format now documented in the template — a warning without a migration is pure noise (source: agent-judgment, P3 timebox)
+
 ## Pending decisions
 
-- Label taxonomy direction (docs-follow-labels vs labels-follow-docs) — default if unanswered: docs follow live labels
+- ~~Label taxonomy direction (docs-follow-labels vs labels-follow-docs)~~ — ratified by default 2026-08-26: docs follow live labels
 
 ## Attempts
 
 ## Notes
 
 - P3: schedule after the P2 row; safe to batch with them in one night run (paths disjoint from tkt-60…64)
+- Deferred: optional validator prs-row format check — canonical `pr-N — <URL>` documented in the template instead; existing rows too heterogeneous to warn on without a migration
+- Deferred (out of paths row): add `preferences.md` to lattice-init's `assert_managed_paths_safe` list — lattice-init.sh not in this ticket's paths; ensure-lattice already refuses a symlinked preferences.md itself; follow-up flagged in PR body
 
 ## References
 
@@ -63,7 +71,7 @@ Six independent micro-changes; land in one PR, each item its own commit or clear
 
 - Parent spec: none (ticket-only)
 - Primary ticket: **tkt-65** · Covers: Finding 6 · Parallel group: **G1** · Worktree bind: `tkt-65-template-debts`
-- Child PRs: (none yet)
+- Child PRs: pr-71 — https://github.com/percena/lattice/pull/71
 
 ## Finish
 

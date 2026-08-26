@@ -6,14 +6,14 @@
      optional (parallel / C): blocked_by, parallel_group, paths, solo_merge, related_tickets -->
 
 > **TL;DR:** <one sentence slice — standalone>
-> **Kind:** feat · **Status:** queued · **Priority:** P2
+> **Kind:** feat · **Priority:** P2 <!-- status lives in the field table -->
 > **Path:** spc-N → tkt-<id> → (pr-…)
 
 | Field | Value |
 | --- | --- |
 | kind | feat |
 | priority | P2 |
-| labels | feat, P2 |
+| labels | enhancement, P2 |
 | github | https://github.com/<org>/<repo>/issues/<id> |
 | status | queued | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it; merged vs closed-without-merge read from ## Finish mergedAt) · legacy: open (coarse — validator warns) |
 | adopted | false | true — **true** when GH issue body is hand-created / append-only; land uses binder-first Acceptance |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none \| tkt-… sub/Refs tickets on the same PR) |
 | **worktree_bind** | `tkt-<id>-<slug>` \| `spc-<n>-<slug>` \| full branch name (open-time bind; rebind optional) |
 | worktree | sibling `…/<repo>.worktrees/<worktree_bind or branch>/` (**default for shippable**) |
-| prs | (none \| pr-P / URL) |
+| prs | (none) | filled format, one per PR: `pr-N — <URL>` (em dash), e.g. `pr-41 — https://github.com/<org>/<repo>/pull/41` |
 
 ## Acceptance (this slice)
 
