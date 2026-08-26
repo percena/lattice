@@ -16,6 +16,7 @@ Labels: **INVARIANT** · **DEFAULT** · **HINT**.
 - [2.6 Land-time Spec drift (INVARIANT when Spec applies)](#26-land-time-spec-drift-invariant-when-spec-applies)
 - [2.7 Mini-review scan (DEFAULT-on, advice-only — embedded)](#27-mini-review-scan-default-on-advice-only--embedded)
 - [3. Merge or close](#3-merge-or-close)
+- [3.4 Merge trains (DEFAULT when landing a queue of PRs)](#34-merge-trains-default-when-landing-a-queue-of-prs)
 - [3.5 Close Fixes issues (mandatory after successful **merge**)](#35-close-fixes-issues-mandatory-after-successful-merge)
 - [3.6 Spec primary close (completion-causal)](#36-spec-primary-close-completion-causal--after-last-honest-delivery-land)
 - [4. Cleanup workspace (mandatory after merge|close)](#4-cleanup-workspace-mandatory-after-mergeclose)
@@ -63,7 +64,7 @@ bash "$SKILL_ROOT/scripts/update-pr-base.sh" --pr "<PR_N>"
 | fork/default-head/OID mismatch/unknown or still-behind state | **Stop**; refresh PR identity/state or use the owning checkout; never infer success from error text |
 | `--no-update-branch` | Skip script; still refuse CONFLICTING |
 
-**Record whether the update materially changed the diff** — merge/rebase hit conflicts, or the post-update diff differs from the previously reviewed diff beyond trivial context lines. §2.7 uses this to decide verdict validity (rebase-verdict rule, ADR-004 §4). HINT: `git range-diff <old-base>..<old-head> <new-base>..<new-head>` helps judge triviality.
+**Machine signal (verdict-void wiring):** the script's success JSON carries `diff_changed` (true when the update changed the PR's effective `git diff base...HEAD` content vs before; false on noop or a content-identical clean update; probe failure degrades to true) and `conflict` (true when the merge/rebase hit conflicts — also stamped on the conflict-shaped failure JSONs). **Record both.** §2.7 uses them to decide verdict validity (rebase-verdict rule, ADR-004 §4): `diff_changed:true` **or** `conflict:true` ⇒ any prior review verdict is **VOID** — re-run the mini-review; both false ⇒ the verdict carries. `diff_changed` is an any-change flag — materiality judgment (trivial context shift vs real delta) stays with the operator/mini-review. HINT: `git range-diff <old-base>..<old-head> <new-base>..<new-head>` helps judge triviality when deciding how deep the re-review must go.
 
 ## 2.5 Artifact alignment (INVARIANT before merge)
 
@@ -127,9 +128,13 @@ Report residual gaps to the user. `alignment-check` may HARD on machine-decidabl
 
 ## 2.7 Mini-review scan (DEFAULT-on, advice-only — embedded)
 
+**This section is the authoritative full text of the embedded mini-review.** `../SKILL.md` carries only the compact contract summary + a pointer here — when running the scan, load this section, not the summary.
+
 A bounded code-review scan at the merge decision point — a **compressed projection** of the standalone `/review-code` finding contract (same stance, same material bar, compressed axes/output). Runs **after** §2.5/§2.6 alignment (the HARD gate) and **before** §3 merge. **Never** a HARD gate; the HARD gate stays `alignment-check.sh`.
 
 **Why embedded:** operators almost always want a quick correctness scan of the diff before merge but rarely invoke `/review-code` at merge time. The embedded mini removes that friction without weakening gate discipline — findings are advice, the operator decides.
+
+**Why this and `/review-code` both exist:** this scan is a last-gate sanity pass at merge time (5 axes, no persistence, advice-only). `/review-code` is the full-function skill for pre-`create-pr` or dedicated review passes (full axes, Confidence field, PR comment / `rev` persistence, hard-stop-for-fixes). Overlap is intentional — this is a bounded subset of the same finding contract, not a parallel one.
 
 ### Unit
 
@@ -143,6 +148,7 @@ Reuse the PR diff already resolved in §1 (no separate target resolution): `gh p
 | High-cost failure (if touched) | authz/trust · data loss/corruption · retry/idempotency · races · empty/timeout · schema/compat when migrations change — short list only |
 | Tests | Clear gaps for **new** behavior; missing regression for a bug fix |
 | Dig deeper | empty/null paths · partial failure/idempotency · stale state/ordering · rollback/irreversible writes — only where the diff touches |
+| Privacy/Secrets | Scan diff, PR body, ticket binders, and commit messages for: local filesystem paths (`/Users/`, `/home/`, `C:\`, `/root/`); API keys, tokens, passwords, private keys (grep: `api[_-]?key`, `secret`, `password`, `token`, `BEGIN.*PRIVATE`); closed-source project names or internal hostnames in public-repo artifacts; DB schema details of external services (table/column names in non-migration context); personal email/phone in non-standard contexts. **Credentials/secrets → high (default Hold).** Local paths/project names → med (recommend cleanup). If sensitive content is unavoidable → `AskUserQuestion`: "This diff contains `<type>` — clean up first or confirm it is safe to commit?" |
 
 Skip deep threat modeling, load testing, full coverage matrices (`review-production`).
 
@@ -165,14 +171,15 @@ Report only **material** findings. Each row = severity + one-line failure scenar
 
 ### Verdict validity across base updates (rebase-verdict rule)
 
-A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratify-then-pass`) or an earlier mini-review `proceed` — stands **only over the diff it reviewed** (ADR-004 §4):
+A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratify-then-pass`) or an earlier mini-review `proceed` — stands **only over the diff it reviewed** (ADR-004 §4). The trigger is **machine-readable**: read `diff_changed` and `conflict` from the §2.4 `update-pr-base.sh` JSON.
 
-| §2.4 base update was… | Verdict |
+| §2.4 JSON says… | Verdict |
 | --- | --- |
-| **Material** — conflicts during merge/rebase, or post-update diff differs beyond trivial context lines | **VOID** — re-run this mini-review before §3 merge; do not merge on the stale verdict |
-| **Clean** — no conflicts, diff unchanged beyond context lines | Carries unchanged — do not re-review out of ritual |
+| `diff_changed:true` **or** `conflict:true` (or the update failed conflict-shaped) | **VOID** — re-run this mini-review before §3 merge; do not merge on the stale verdict |
+| `diff_changed:false` **and** `conflict:false` (clean/noop update) | Carries unchanged — do not re-review out of ritual |
+| No JSON (update skipped via `--no-update-branch`, or signal lost) | Treat as unknown → **VOID** unless the operator asserts the diff is unchanged |
 
-This is a validity condition on advice, not a new gate — the HARD gate stays `alignment-check.sh`.
+`diff_changed` is an any-change flag; how deep the re-review must go (trivial context shift vs real delta) is the operator/mini-review's judgment — HINT: `git range-diff`. This is a validity condition on advice, not a new gate — the HARD gate stays `alignment-check.sh`.
 
 ### Decision (advice, never auto-block / never auto-fix)
 
@@ -181,7 +188,8 @@ This is a validity condition on advice, not a new gate — the HARD gate stays `
   - `Merge anyway` — operator accepts the risk
   - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (`docs/workflow-fsm.md`); `start-work` resume loads them as the brief and fixes on the same PR (fix cycle ≤2). The stamp records the operator's decision on a durable artifact — bookkeeping, not a gate.
   - `Invoke full /review-code` — deeper pass before deciding
-- Any **high** finding → default recommended option `Hold`; only med/low → default `Merge anyway`.
+- Any **high** finding (including credential/secret leak) → default recommended option `Hold`; only med/low → default `Merge anyway`.
+- **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), default to `Hold` regardless of other axes. If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.
 - **Hard stop on edits:** present findings and stop. Do **not** auto-fix even if "obvious". Edit the tree only when the operator explicitly names which findings to fix (then smallest change in the change set's modules; fresh test output if tests requested).
 - The HARD merge gate is unchanged — `alignment-check.sh`. Findings are advice; the operator may still choose `Merge anyway`.
 
@@ -209,6 +217,22 @@ gh pr close <N> --comment "Closing without merge; cleaning workspace."
 | `gh --delete-branch` fails (branch in use by worktree) | **Expected** with sibling worktrees — §4 removes worktree then deletes remote |
 
 **INVARIANT:** `gh pr merge --delete-branch` is **not** the cleanup step. Many remotes have `delete_branch_on_merge: false`. Always continue to §4.
+
+## 3.4 Merge trains (DEFAULT when landing a queue of PRs)
+
+Landing several PRs into the same integration branch in sequence (a release train) repeats §2–§4 per PR. The train loop MUST NOT skip per-PR discipline for throughput. Five rules, each grounded in a live incident:
+
+1. **CI-checks gate (per train merge).** Before **each** merge, fetch the checks rollup: `gh pr checks <N>`. On `fail`/`pending` → **surface to the operator** — distinguish **known train-transient reds** (e.g. validate-plugin-versions "changed without increment" on a branch cut before the train's version bump lands — expected pre-train-mode) from **real failures** — and let the operator decide. **Never merge blind on `mergeable`/`MERGEABLE` alone**: mergeability is a git-tree statement, not a CI verdict, and train automation that polls only `mergeable` merges red PRs (observed live 2026-08-26).
+
+2. **File-explicit conflict law (INVARIANT).** When a train merge/base-update hits conflicts, resolution goes **path by path**: identify each conflicted file (`git diff --name-only --diff-filter=U`), decide per file, and take a side only via `git checkout --ours <named path>` / `git checkout --theirs <named path>` (or hand-edit that named file), then `git add <named path>`. **`git add -A` during conflict resolution is FORBIDDEN** — it stages unresolved conflict markers wholesale (live incident: markers reached `dev` via PR #59's merge automation; repair commit `628e4cb`). **Superset rule for shared train files:** when successive train PRs touch the same file, neither `--ours` nor `--theirs` may drop the earlier PR's landed changes — the resolved content must be the superset carrying both; verify the merged content, do not assume a side wins.
+
+3. **Post-merge marker sweep.** After each train merge, on the integration branch: `grep -rn '<<<<<<<'` over the PR's touched paths (`gh pr view <N> --json files`). Any hit → **stop the train**; repair before the next merge (markers compound across subsequent merges).
+
+4. **Orphaned-run hygiene at branch deletion.** A resolution commit pushed just before merging leaves in-flight CI runs on the head branch; merging with `--delete-branch` kills them as `failure`/`startup_failure` on the deleted ref (observed: runs 32984498741 / 32984662279 — no failing steps, just a vanished checkout — a dishonest red Actions tab). Either **wait for the new head's checks** to finish before merging, or **cancel in-flight runs** (`gh run list --branch <head>` + `gh run cancel <id>`) as part of cleanup before the branch deletion.
+
+5. **`--no-update-branch` when GitHub reports clean.** When the next train PR shows `mergeable: MERGEABLE` + clean state, pass `--no-update-branch` rather than forcing an update cycle — an unneeded update only churns the head, spawns new CI runs (see rule 4), and voids review verdicts for nothing. The CONFLICTING refusal still applies.
+
+**Verdict-void wiring:** each train base update returns the §2.4 machine signal — `diff_changed:true` **or** `conflict:true` ⇒ that PR's prior review verdict is **VOID** → re-run the §2.7 mini-review before its merge; both false ⇒ the verdict carries. Advice discipline is unchanged: findings never auto-block; the HARD gate stays `alignment-check.sh`.
 
 ## 3.5 Close Fixes issues (mandatory after successful **merge**)
 
