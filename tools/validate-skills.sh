@@ -30,6 +30,7 @@ USER_FACING=(
   generate-wiki
   review-code
   review-production
+  review-delivery
   create-adr
 )
 
@@ -46,6 +47,7 @@ LIFECYCLE_SIX=(
 QUALITY_SIDE_PATHS=(
   review-code
   review-production
+  review-delivery
 )
 
 need_heading() {
