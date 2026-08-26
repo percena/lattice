@@ -1,7 +1,7 @@
 # tkt-43-policy-references
 
 > **TL;DR:** decision-policy.md + fallback-policy.md in `_lattice-lib/references` — the total decision-resolution function and bounded-fallback law for unattended agents
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** closed · **Priority:** P2
 > **Path:** spc-42 → tkt-43 → (pr-…)
 
 | Field | Value |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-43-policy-references |
 | worktree | sibling …/lattice.worktrees/tkt-43-policy-references/ |
-| prs | https://github.com/percena/lattice/pull/52 · pr-52 — https://github.com/percena/lattice/pull/52 |
+| prs | pr-52 — https://github.com/percena/lattice/pull/52 |
 
 ## Acceptance (this slice)
 

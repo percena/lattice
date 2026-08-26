@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/73 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | legacy binder FSM migration (tkt-8/13/14/15/16) + prs-row canonicalization (tkt-43, tkt-5) |
 | spec | none — hygiene from round-1/2 digests |
@@ -39,6 +39,12 @@ For each of the 5 legacy binders: `gh pr view` / `gh issue view` the linked PR/i
 - A binder whose PR facts are ambiguous (e.g. closed-without-merge) — disposition: agent-decides (record exactly what GH says; `closed` only when the closing issue actually closed, per finish-ledger semantics)
 
 ## Decision journal
+
+- tkt-8 has no delivery PR (cleanup ticket: closes Dependabot #1/#2/#3) and `finish-ledger.sh` requires `--pr` → hand-wrote its `## Finish` from `gh pr view 1/2/3` + `gh issue view 8` facts (PRs closed-not-merged 2026-08-01, issue #8 closed COMPLETED 2026-08-01T10:31:34Z). Source: binder Approach + "invent nothing" rule; reversible/local.
+- finish-ledger.sh appended `pr-N — URL` to prs rows without removing the `(none)` placeholder → stripped `(none) · ` by hand in tkt-13/14/15/16 (acceptance requires canonical rows). Helper wart noted, not fixed here (out of paths).
+- tkt-5 prs-row notes `(base dev, all CI green)` dropped rather than moved to Notes — CI-green is already recorded by its A4 checkbox; nothing factual lost. Reversible/local.
+- Header-blockquote `**Status:** open` → `closed` in the 7 in-scope binders (stale vs field-table SoT); the same decorative label exists in ~25 binders repo-wide — left untouched (out of paths).
+- tkt-8 prs row left as `(none — closes #1/#2/#3)` — truthful; canonical `pr-N — URL` form applies only to rows that reference an actual PR.
 
 ## Pending decisions
 

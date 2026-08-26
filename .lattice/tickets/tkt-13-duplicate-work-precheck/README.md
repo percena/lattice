@@ -1,7 +1,7 @@
 # tkt-13-duplicate-work-precheck
 
 > **TL;DR:** New check-duplicate-work.sh script in _lattice-lib + integration into create-tickets and start-work pre-flight
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Status:** closed · **Priority:** P2
 > **Path:** spc-12 → tkt-13 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/13 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | duplicate-work precheck script + create-tickets/start-work integration |
 | spec | spc-12 — Lattice skill-gap bridge (path: ../../specs/spc-12-skill-gap-bridge.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-14 (bug repro loop, same PR) |
 | **worktree_bind** | tkt-13-duplicate-work-precheck |
 | worktree | sibling …/lattice.worktrees/tkt-13-duplicate-work-precheck/ |
-| prs | (none) |
+| prs | pr-19 — https://github.com/percena/lattice/pull/19 |
 
 ## Acceptance (this slice)
 
@@ -61,4 +61,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-19 merged: 2026-08-25T08:42:46Z — https://github.com/percena/lattice/pull/19 (base merge)
+- issue #13 closed: 2026-08-25T08:42:52Z — https://github.com/percena/lattice/issues/13
