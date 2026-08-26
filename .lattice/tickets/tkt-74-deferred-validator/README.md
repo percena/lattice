@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/74 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | deferred validator items from tkt-65 + 0.2.2 bump (only bundled-touching ticket this round) |
 | spec | none — deferred-from tkt-65 (#65, PR #71) |
@@ -23,13 +23,13 @@
 | **related_tickets** | tkt-73 (canonicalizes existing rows; this check stays warning-level so merge order is irrelevant) |
 | **worktree_bind** | tkt-74-deferred-validator |
 | worktree | sibling …/lattice.worktrees/tkt-74-deferred-validator/ |
-| prs | (none) |
+| prs | pr-79 — https://github.com/percena/lattice/pull/79 |
 
 ## Acceptance (this slice)
 
-- [ ] prs-format warning fires on a malformed filled row fixture, silent on canonical `pr-N — <URL>` and on placeholders `(none…)`; bats green
-- [ ] lattice-init refuses a symlinked `preferences.md` (managed-paths list); bats green
-- [ ] 0.2.2 bump (plugin.json + marketplace.json) + CHANGELOG entry in this PR
+- [x] prs-format warning fires on a malformed filled row fixture, silent on canonical `pr-N — <URL>` and on placeholders `(none…)`; bats green
+- [x] lattice-init refuses a symlinked `preferences.md` (managed-paths list); bats green
+- [x] 0.2.2 bump (plugin.json + marketplace.json) + CHANGELOG entry in this PR
 
 ## Approach
 
