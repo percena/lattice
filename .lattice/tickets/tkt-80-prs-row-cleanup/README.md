@@ -1,0 +1,61 @@
+# tkt-80-prs-row-cleanup
+
+> **TL;DR:** Canonicalize the 13 legacy prs rows flagged by the new prs_row_format warning — format only, facts untouched, warnings to zero
+> **Kind:** chore · **Priority:** P3
+> **Path:** (ticket-only) → tkt-80 → (pr-…)
+
+| Field | Value |
+| --- | --- |
+| kind | chore |
+| priority | P3 |
+| labels | chore, P3 |
+| github | https://github.com/percena/lattice/issues/80 |
+| status | queued |
+| adopted | false |
+| summary | 13 binder prs rows → canonical `pr-N — <URL>`; zero prs_row_format warnings |
+| spec | none — digest finding (rev-20260826-172600Z F1) |
+| covers | digest F1 |
+| blocked_by | #74 (the warning must be merged so the zero-count is verifiable) |
+| parallel_group | G1 (parallel) |
+| paths | .lattice/tickets/tkt-6-*/README.md, tkt-7-*, tkt-10-*, tkt-31-*, tkt-32-*, tkt-33-*, tkt-34-*, tkt-35-review-code-extended-axes/, tkt-35-split-lint-heavy/, tkt-40-*, tkt-45-*, tkt-46-*, tkt-49-*, tkt-50-* (flagged rows only) |
+| solo_merge | yes |
+| **primary_ticket** | tkt-80 (this issue) |
+| **related_tickets** | (none) |
+| **worktree_bind** | tkt-80-prs-row-cleanup |
+| worktree | sibling …/lattice.worktrees/tkt-80-prs-row-cleanup/ |
+| prs | (none) |
+
+## Acceptance (this slice)
+
+- [ ] `validate-lattice-artifacts` emits 0 prs_row_format warnings repo-wide
+- [ ] Row facts unchanged — format-only edits (comma-join multiples per tkt-74 grammar; genuine `(none…)` placeholders untouched)
+
+## Approach
+
+Run the validator, collect the exact flagged rows, rewrite each to `pr-N — <URL>` (comma-joined when multiple), keeping any factual annotations by moving them to the binder's Notes if worth keeping. Re-run to zero. No GH calls needed — URLs already present in the rows.
+
+## Anticipated decisions
+
+- A row whose PR reference is genuinely ambiguous — disposition: agent-decides (verify via `gh pr view` read-only; journal)
+
+## Decision journal
+
+## Pending decisions
+
+## Attempts
+
+## Notes
+
+- blocked_by #74 is about verifiability (the warning ships with it); if #74 merged already, base has it — check at start
+
+## References
+
+- Digest: `rev-20260826-172600Z` Finding 1
+
+## Lineage
+
+- Parent spec: none (ticket-only) · Primary ticket: **tkt-80** · Parallel group: **G1** · Worktree bind: `tkt-80-prs-row-cleanup`
+
+## Finish
+
+- (none yet)
