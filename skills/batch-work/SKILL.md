@@ -75,6 +75,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | Per-ticket timebox per mode: S 30 min / M 60 min / C 120 min | `.lattice/config.yaml` keys `batch_timebox_S/M/C` (minutes) |
 | Fuse threshold 50% failed+stuck per layer | `.lattice/config.yaml` key `batch_fuse_threshold` (percent) |
 | No chained review | `--with-review` chains `review-delivery` after the last layer (advice-only; see flow) |
+| Operator states a durable work preference while directing the batch → the orchestrator writes it to `.lattice/preferences.md` at utterance time + one-line confirm (`../_lattice-lib/references/decision-policy.md` §Capture duty) | Feature-scoped / system-shape statements route per the capture-duty heuristic |
 
 ## Spawn-brief contract (INVARIANT)
 

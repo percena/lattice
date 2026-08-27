@@ -18,6 +18,18 @@ Applies to any EXECUTE-state agent (start-work, batch-work spawn briefs). Attend
 
 Cite the winning source (see journal contract). If two sources conflict, the lower number wins.
 
+## Capture duty — INVARIANT
+
+Chain source #4 only resolves what actually reaches the file. When the operator states a **durable work preference** mid-session (stack choice, process policy, taste), the **active skill** writes it to `.lattice/preferences.md` **at utterance time** — dated, provenance `operator-stated` (a direct entry; the ×2 promotion path is only for journal-derived candidates) — and confirms to the operator in one line. Never wait to be reminded: a preference file the operator must maintain by reminder defeats its purpose.
+
+What counts — capture **routes**, never swallows:
+
+| Operator statement is… | Destination |
+| --- | --- |
+| Durable + cross-ticket (stack choice, process policy, taste) | `.lattice/preferences.md` — write now, at utterance time |
+| Feature-scoped decision (this Spec's shape) | Spec `## Decisions` |
+| System-shape law (cross-feature architecture) | ADR |
+
 ## Reversibility × blast-radius matrix — INVARIANT
 
 Classify the decision before acting:
@@ -65,6 +77,7 @@ Every self-decision gets a binder `## Decision journal` entry that **cites which
 | "I'll journal the batch of decisions at the end" | Journal at decision time; end-of-run reconstruction drops citations |
 | "Preferences say X but the Spec implies Y" | Spec/ADR outrank preferences — chain order is the law |
 | "Parking means the ticket failed" | Parked-with-seam + pending question is delivered work (see `fallback-policy.md`) |
+| "Operator stated a preference — I'll note it in the PR body" | PR bodies aren't the lookup chain; a preference not in `.lattice/preferences.md` never resolves a future decision. Capture at utterance time (§Capture duty) |
 
 ## Verification
 
@@ -75,5 +88,6 @@ Before claiming EXECUTE handled its decisions correctly:
 - [ ] Irreversible / cross-contract items sit in `## Pending decisions` with a reversible seam in the code, not a guess
 - [ ] PR carries `needs-decision` when pending decisions exist
 - [ ] Unattended run never stopped to wait on a human answer
+- [ ] Operator-stated durable preferences were written to `.lattice/preferences.md` at utterance time (dated, `operator-stated`) with a one-line confirmation — none left in chat, memory, or the PR body
 
 See `constraint-language.md` for severity semantics · `fallback-policy.md` for when to stop trying.

@@ -89,6 +89,7 @@ Finish **does not invent** which PR to merge.
 10. Base update via `update-pr-base.sh` unless `--no-update-branch` / `--close`.
 11. Report must include cleanup JSON: `deleted_remote_branch` / `remote_residual` / `ok`. If `ok:false` or remote head still listed → treat finish as **failed**, fix residual, re-run cleanup.
 12. **After every successful merge (mandatory):** run `close-fixed-issues.sh --pr <N> --expected-closing-ids <pre-merge alignment set>`. A changed set fails closed before issue operations. Do not trust GitHub auto-close when PR base ≠ repo default branch.
+13. Operator states a durable work preference during merge/hold decisions → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`../_lattice-lib/references/decision-policy.md` §Capture duty).
 
 ### HINT
 

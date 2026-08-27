@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/84 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | capture INVARIANT in decision-policy + one-line wiring in start-work/finish-work/batch-work |
 | spec | none — operator feedback 2026-08-26 (preferences.md meta-entry added same day) |
@@ -23,13 +23,13 @@
 | **related_tickets** | tkt-81 (shares the identical 0.2.3 train cut — first live train-mode exercise) |
 | **worktree_bind** | tkt-84-preference-capture |
 | worktree | sibling …/lattice.worktrees/tkt-84-preference-capture/ |
-| prs | (none) |
+| prs | pr-88 — https://github.com/percena/lattice/pull/88 |
 
 ## Acceptance (this slice)
 
-- [ ] decision-policy.md: capture INVARIANT under chain source #4 (write at utterance time, date + operator-stated provenance, direct entry — ×2 promotion is for journal-derived candidates only; one-line confirmation to the operator) + a "what counts" heuristic (durable + cross-ticket; feature-scoped → Spec Decisions; system law → ADR — capture routes, never swallows)
-- [ ] start-work, finish-work, batch-work SKILL.md each carry a one-line citation of the rule (minimal, style-matched)
-- [ ] validate-skills green
+- [x] decision-policy.md: capture INVARIANT under chain source #4 (write at utterance time, date + operator-stated provenance, direct entry — ×2 promotion is for journal-derived candidates only; one-line confirmation to the operator) + a "what counts" heuristic (durable + cross-ticket; feature-scoped → Spec Decisions; system law → ADR — capture routes, never swallows)
+- [x] start-work, finish-work, batch-work SKILL.md each carry a one-line citation of the rule (minimal, style-matched)
+- [x] validate-skills green
 
 ## Approach
 
@@ -41,6 +41,9 @@ decision-policy.md gains a short "Capture duty" subsection beside the resolution
 - Version handling — pre-resolved: do NOT bump; the orchestrator places tkt-81's identical 0.2.3 cut on this branch after the PR opens (live test of tkt-60 train mode)
 
 ## Decision journal
+
+- "What counts" heuristic wording: 3 rows keyed on statement kind (durable+cross-ticket → preferences.md write-now; feature-scoped → Spec `## Decisions`; system-shape → ADR), framed "capture routes, never swallows" — chain source 1 (binder Approach: heuristic table + routing note, ≤3 rows); reversible, ticket-local.
+- Wiring placement: start-work step-7 DEFAULT bullet (beside the existing decision-policy cite), finish-work Core-rules DEFAULT #13 (merge-time operator-decision area), batch-work Defaults-and-escapes row (orchestrator duty) — chain source 1 (binder Approach names these three interaction points); reversible, ticket-local.
 
 ## Pending decisions
 
