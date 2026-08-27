@@ -11,6 +11,8 @@ comma-joined for multi-PR tickets. The ` · ` joiner is the legacy shape
 tkt-73/tkt-80 canonicalized away; writers must never emit it.
 """
 
+from __future__ import annotations
+
 import re
 
 # Any row that is entirely a `(none…)` parenthetical is a placeholder —
