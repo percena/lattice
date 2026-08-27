@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/143 |
-| status | pr-open |
+| status | closed-open |
 | adopted | false |
 | summary | binder_rows.py int\|str union fails on Python 3.9 — add from __future__ import annotations |
 | spec | none — ticket-only |
@@ -46,4 +46,6 @@ Add `from __future__ import annotations` as the first import (after the module d
 
 ## Finish
 
-- (none yet)
+- pr-144 merged: 2026-08-27 — https://github.com/percena/lattice/pull/144 (squash merge)
+- issue #143 closed: 2026-08-27 — https://github.com/percena/lattice/issues/143
+
