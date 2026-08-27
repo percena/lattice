@@ -1,0 +1,15 @@
+{
+  "skill_name": "run-e2e",
+  "aliases": ["端到端浏览器测试", "e2e 故事脚本", "browser e2e story", "真实浏览器测试"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Write an e2e browser story for the login flow with ego-browser", "top_k": 1 },
+      { "prompt": "Author a heredoc JS end-to-end test script that drives a real Chromium browser against the deployed web app", "top_k": 1 },
+      { "prompt": "帮我写一个驱动真实 Chromium 浏览器的端到端 e2e 测试故事脚本", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Review PR 42 for material bugs and regressions", "owner": "review-code" },
+      { "prompt": "Is this PR production ready including security and rollback", "owner": "review-production" }
+    ]
+  }
+}

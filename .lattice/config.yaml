@@ -5,4 +5,9 @@
 #            bind law still requires tkt-/spc- (no unbound)
 # Override for one shell: export LATTICE_PROFILE=light
 # long_lived_patterns: [integration, trunk]   # additive to main/master/dev/develop/release/*/rc/*
+# batch-work tunables (flat keys; all DEFAULT — absent = defaults shown):
+# batch_timebox_S: 30        # per-ticket wall-clock timebox, minutes, mode S
+# batch_timebox_M: 60        # mode M
+# batch_timebox_C: 120       # mode C
+# batch_fuse_threshold: 50   # layer failed+stuck percentage that trips the fuse
 profile: strict

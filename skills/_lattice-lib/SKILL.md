@@ -1,6 +1,6 @@
 ---
 name: _lattice-lib
-description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the six user-facing Lattice skills."
+description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the thirteen user-facing Lattice skills."
 user-invocable: false
 disable-model-invocation: true
 metadata:
@@ -10,9 +10,11 @@ metadata:
 
 # `_lattice-lib` (library install-unit)
 
-**Not a navigation skill.** User surface remains:
+**Not a navigation skill.** User surface is the thirteen user-facing skills — the lifecycle six:
 
 `start-work` · `create-spec` · `create-review` · `create-tickets` · `create-pr` · `finish-work`
+
+plus the optional companions and side-paths: `batch-work`, `create-adr`, `run-e2e`, `review-code`, `review-production`, `review-delivery`, `generate-wiki`. Of those, `batch-work`, `create-adr`, and `review-delivery` also co-install this library (per README); the others do not depend on it.
 
 This package is an **install unit** for shared scripts + portable policy so partial installs and relative `../start-work` paths are unnecessary. Leading **`_`** = internal shared package.
 
@@ -31,6 +33,13 @@ This package is an **install unit** for shared scripts + portable policy so part
 | `github-project-add.sh` | Optional Project item-add after issue/PR create (soft-fail; env / `.env`) |
 | `github-issue-parent-add.sh` | Soft-fail link child issue as GH sub-issue of Spec primary |
 | `resolve-lattice-lib.sh` | Print this scripts dir (resolve order) |
+| `stamp-pr-open.sh` | Stamp binder + GitHub issue right after `gh pr create` (prs row, `pr-open` status, acceptance mirror) |
+| `finish-ledger.sh` | Stamp a binder's `## Finish` ledger with firm GitHub dates + prs + status after merge |
+| `build-review-context.sh` | Build the artifact-only context manifest for a review-delivery chain review |
+| `list-board-items.sh` | List GitHub Project board items as `tkt-N` candidates (automation trigger plane) |
+| `find-spec.sh` | Resolve a Lattice Spec file path by number, regardless of slug |
+| `check-duplicate-work.sh` | Check open issues / worktrees / open PRs for duplicate work before ticket-create or start |
+| `resolve-integration-branch.sh` | Resolve the integration branch a feature worktree should PR into |
 
 **Consumer bootstrap:** skills call `ensure-lattice.sh` at entry. Users never run init scripts.  
 **L0 pollution guard (DEFAULT):** before shippable Spec / ticket binder / product code / new ADR writes, agents run `assert-shippable-cwd.sh` (or only write after `ensure-workspace` + `cd` into worktree). A clean base checkout may pass only through `--allow-base-write --reason` after explicit user authorization. **`create-review` Review-only is exempt**; same-pass co-create defaults to one shippable worktree.
@@ -59,11 +68,11 @@ Legacy install dir `lattice-lib` is **not** accepted (migration window closed).
 
 ## Install
 
-Install **with** the six user skills (whole package or explicit `--skill _lattice-lib`).
+Install **with** the user-facing skills (whole package or explicit `--skill _lattice-lib`). Required by the lifecycle six plus `batch-work`, `create-adr`, and `review-delivery`.
 
 ```bash
 npx skills add percena/lattice -a claude-code -a codex -g -y
-# or explicit:
+# or explicit (lifecycle six + this library; add the optional skills you use):
 npx skills add percena/lattice \
   --skill _lattice-lib \
   --skill start-work --skill create-spec --skill create-review \
