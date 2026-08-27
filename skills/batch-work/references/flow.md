@@ -159,6 +159,7 @@ Failure isolation covered crashes; the watchdog extends it to **hangs**.
 - Each ticket's timebox comes from its spawn brief: DEFAULT per ticket mode — `batch_timebox_S/M/C` minutes from `.lattice/config.yaml` (30/60/120 when unset).
 - While waiting at a barrier, check wall-clock elapsed per still-running ticket (`now − spawn timestamp`).
 - Elapsed > timebox → mark the ticket `failed` (reason `timeout`), stop waiting on it, and move on. Do not let one hung agent hold the barrier past its timebox.
+- **At trip time, stamp the binder `status: stuck` + `wait_reason: unblock`** (FSM-2b, tkt-132) so the SoT reflects "needs human investigation," not "active work." Morning triage routes it through the existing stuck exits (unblock / re-scope / cancel). The binder is never left at `in-progress` after a timeout — that would be an abandoned-ticket blind spot across runs (no durable failure signal; `--groups` re-spawns it with undefined behavior).
 - Leave the worktree and binder **intact** — whatever `## Attempts` / `## Decision journal` ledger the agent wrote is the morning deliverable. Never delete or reset a timed-out worktree.
 - A timed-out ticket counts toward the layer's fuse ratio (below) and marks its dependents `blocked-by-failure`.
 
@@ -183,13 +184,13 @@ At every wave/layer barrier:
 2. Ratio > `batch_fuse_threshold` (DEFAULT 50%) → **trip**:
    - **Halt** all subsequent waves and layers — nothing new spawns into a broken base.
    - **Graceful-drain** in-flight agents: let each finish its current attempt and write its ledgers; **no mid-write kills**. Apply the watchdog timebox as the outer bound on the drain.
-   - Record every never-spawned ticket as `fuse-halted` in the report. Its binder `status` stays `queued` — the report note is the record; do not invent new enum values (a human may later stamp `deferred` per `docs/workflow-fsm.md`'s deschedule edge).
+   - Record every never-spawned ticket as `fuse-halted` in the report. **Stamp its binder `status: deferred` + reason `fuse-halt`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). No new enum values — `deferred` already exists.
    - Emit the partial REPORT (all completed results + the trip: layer, ratio, threshold) and stop the batch.
 3. Ratio ≤ threshold → continue normally.
 
 ## NEXT-LAYER DEPENDENCY CHECK
 
-Before spawning a ticket whose `blocked_by` includes a failed ticket: mark it `blocked-by-failure` and skip. Do not spawn.
+Before spawning a ticket whose `blocked_by` includes a failed ticket: mark it `blocked-by-failure` and skip. Do not spawn. **Stamp its binder `status: deferred` + reason `blocked-by-failure`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition.
 
 ## STACKED DEPENDENCY BASES (blocked_by layers)
 
@@ -243,7 +244,7 @@ Human reviews open PRs, then runs finish-work per PR.
 The .lattice/.batch-work-active marker ensured no agent merged.
 ```
 
-Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by the agents: `queued → in-progress → pr-open` (or `stuck`/`parked` per policy); `fuse-halted`/never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
+Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by the agents: `queued → in-progress → pr-open` (or `stuck`/`parked` per policy); **fuse-halted tickets stamp `deferred`+reason `fuse-halt`** (ADR-004 amd tkt-136 Option B), **blocked-by-failure dependents stamp `deferred`+reason `blocked-by-failure`**, **watchdog-timeout stamps `stuck`+`wait_reason: unblock`** (FSM-2b, tkt-132); never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
 
 ## Failure-isolation contract
 
