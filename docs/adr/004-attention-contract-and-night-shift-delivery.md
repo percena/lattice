@@ -55,6 +55,14 @@ Rejected alternatives and the full audit live in `rev-20260826-141124Z` (`.latti
 
 §6's closing claim ("validators reject illegal transitions") overstated the shipped check: `validate-lattice-artifacts.py` validates state **snapshots**, not transition history — unknown status values, `closed` without a Finish ledger, a merged Finish ledger without terminal status (`finish_without_terminal_status`, added by tkt-90 after 19 binders stranded at `pr-open` went undetected), and duplicate ticket ids (`duplicate_ticket_id`). Edge legality between two valid snapshots is owned by the skills that perform the transitions (`docs/workflow-fsm.md` §5). §3's promotion path also gained a direct edge after acceptance: an explicit operator-stated preference is written at utterance time by the active skill (Capture duty, `decision-policy.md`, pr-88) — the ×2 promotion remains the path for journal-derived candidates.
 
+## Amendment (2026-08-27, tkt-136)
+
+Two design-level FSM gaps from `rev-20260827-064527Z` (reaffirmed `rev-20260827-102420Z` F7) resolved with operator-chosen options:
+
+- **FSM-2 (fuse-halt / blocked-by-failure SoT honesty) — Option B chosen.** Fuse-halt and blocked-by-failure currently leave the binder `queued` (report-level only); the SoT says "schedulable" and the real state is "not schedulable." Option B: batch-work stamps `deferred` + a reason (`fuse-halt` | `blocked-by-failure`) at trip time so the binder reflects "not schedulable." The binder enum stays unchanged — `deferred` already exists; `deferred → queued` remains a human transition (re-schedule into a later batch). The agent stamps the initial `deferred` at trip time, narrowing the SoT-honesty window. Pairs with FSM-2b (tkt-132: watchdog-timeout stamps `stuck`). Implementation: `tkt-137`.
+
+- **FSM-4 (`parked → queued` atomicity) — Option A chosen.** `start-work:89` claims ratification "atomically writes the decision into `## Decision journal` **and** flips `parked → queued` (one write — never a re-queued binder without its recorded decision)." But a Markdown file edit is not atomic; a crash between the two writes yields the "never" state. Option A: a new `ratify.sh` script (`_lattice-lib/scripts/`) writes both edits in one git commit, narrowing the crash window to a single reviewable commit. The "atomically...one write — never" claim in `start-work:89` and `workflow-fsm.md` §2 is updated to "single-commit (reviewable pair); crash window narrowed, not eliminated." Implementation: `tkt-138`.
+
 ---
 
 _Not a Lattice bloodline/graph node. Cite from Spec/PR/Review with `ADR-004` or this path._
