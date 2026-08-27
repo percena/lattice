@@ -8,8 +8,8 @@
     {
       "name": "lattice",
       "source": "./plugins/lattice",
-      "description": "Full Lattice loop for Claude: start-work, create-spec, create-review, create-tickets, batch-work, create-pr, finish-work, _lattice-lib, create-adr, run-e2e, generate-wiki, and the review-code/review-production/review-delivery side-paths. Optional hooks advise on bare gh pr create/merge; strict mode opts into marker gates.",
-      "version": "0.2.4",
+      "description": "Full Lattice loop for Claude: start-work, create-spec, create-review, create-tickets, batch-work, create-pr, finish-work, _lattice-lib, create-adr, run-e2e, verify-features, generate-wiki, and the review-code/review-production/review-delivery side-paths. Optional hooks advise on bare gh pr create/merge; strict mode opts into marker gates.",
+      "version": "0.3.0",
       "keywords": [
         "lattice",
         "workflow",
@@ -22,6 +22,7 @@
         "finish-work",
         "create-adr",
         "run-e2e",
+        "verify-features",
         "generate-wiki",
         "review-code",
         "review-production",

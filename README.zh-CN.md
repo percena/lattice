@@ -80,13 +80,14 @@ npx skills add percena/lattice -g -y
 | [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、默认开启的 mini-review 扫描、合并、清理 | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | 支撑上述技能的共享脚本（共装，非 slash 入口） | — |
 
-非交付循环——分五类，均不产生血缘节点：
+非交付循环——分六类，均不产生血缘节点：
 
 | 类别 | 技能 | 说明 |
 | --- | --- | --- |
 | PR 范围质量旁路 | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | 可选，在 `/create-pr` 前后；不依赖 `_lattice-lib` |
 | 链路审查旁路 | [`review-delivery`](./skills/review-delivery/) | 仅产出 artifact 的审查，面向一组已交付 ticket（Spec A* 保真度、跨 PR 连贯性、决策队列、逐 PR 发现）→ 带逐轴 attestation、按优先级排序的晨间摘要；共装 `_lattice-lib`；绝不执行合并，也绝非合并门禁 |
 | E2e 参考模式 | [`run-e2e`](./skills/run-e2e/) | ego-browser heredoc JS story 模式；一次 Bash 调用一个 story，fail-loud 认证，结构化 JSON；非 runner，非循环入口 |
+| 运行时验证支线 | [`verify-features`](./skills/verify-features/) | 基于 `.lattice/feature-map.md` 的全功能 bug 排查——从 lineage 挖掘 oracle（Spec A* 即预期行为），在 `run-e2e` story 上有界分波执行，发现的 bug 以带复现步骤的 ticket 归档；共装 `_lattice-lib`；只发现不修复、绝不合并 |
 | 独立文档工具 | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`；随时可跑；不依赖 `_lattice-lib` |
 | 带外伴生（`create-*` 家族） | [`create-adr`](./skills/create-adr/) | 写 `docs/adr/NNN`；共装 `_lattice-lib`；**非血缘节点**——与 `/create-spec`/`/create-review` 同 pass 同 worktree 调用（提升跨特性决策）；绝非循环入口或 Spec 替代品 |
 

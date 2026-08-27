@@ -59,7 +59,7 @@ Lattice is **discipline-first**, not a silent IDE theme. Default profile is **st
 | `finish-work` | skill | Align + merge + cleanup |
 | `lattice@percena` | Claude plugin | Packages **every** shipped skill (lifecycle six + side-paths + `_lattice-lib`); gates bare `gh pr create` / `gh pr merge` |
 
-Full path = **`_lattice-lib` + six user skills**, and on Claude **`lattice@percena`** (one plugin). The optional side-paths — `review-code` · `review-production` · `review-delivery` (quality), `run-e2e` (e2e reference), `generate-wiki` · `create-adr` (doc tools) — are mapped in their "Optional" sections below.
+Full path = **`_lattice-lib` + six user skills**, and on Claude **`lattice@percena`** (one plugin). The optional side-paths — `review-code` · `review-production` · `review-delivery` (quality), `run-e2e` (e2e reference) · `verify-features` (runtime verification), `generate-wiki` · `create-adr` (doc tools) — are mapped in their "Optional" sections below.
 
 ## 1. Install the full pack (once per machine)
 
@@ -104,10 +104,12 @@ Two additional skills extend the loop for parallel delivery and browser e2e:
 | --- | --- | --- |
 | `/batch-work` | Yes (co-install) | DAG-orchestrated unattended fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, failure isolation |
 | `/run-e2e` | No (reference pattern) | Heredoc JS story pattern for ego-browser — one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
+| `/verify-features` | Yes | Full-feature runtime verification: builds/refreshes `.lattice/feature-map.md` (lineage-mined oracles), runs bounded e2e waves on `run-e2e` stories, files bugs as tickets with repro steps |
 
 ```bash
 npx skills add percena/lattice --skill batch-work        # co-installs _lattice-lib
 npx skills add percena/lattice --skill run-e2e            # standalone reference
+npx skills add percena/lattice --skill verify-features --skill _lattice-lib  # runtime verification (needs the lib)
 ```
 
 **batch-work** spawns agents that stop at `create-pr` (human reviews, then `finish-work` per PR). A `.lattice/.batch-work-active` marker in each worktree blocks `finish-work` merge until the human runs it.
