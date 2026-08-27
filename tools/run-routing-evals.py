@@ -24,17 +24,22 @@ SKILLS_DIR = ROOT / "skills"
 CASES_DIR = ROOT / "evals" / "routing"
 
 # All user-facing skills with routing cases. Internal `_` packages are excluded.
+# Must stay set-equal to USER_FACING in tools/validate-skills.sh — asserted by
+# tools/tests/routing-catalog-parity.bats.
 CATALOG = [
     "start-work",
     "create-spec",
     "create-review",
     "create-tickets",
+    "batch-work",
     "create-pr",
     "finish-work",
     "generate-wiki",
     "create-adr",
+    "run-e2e",
     "review-code",
     "review-production",
+    "review-delivery",
 ]
 
 LATIN_TOKEN_RE = re.compile(r"[a-z0-9]+", re.I)

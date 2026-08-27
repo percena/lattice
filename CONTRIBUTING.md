@@ -44,14 +44,22 @@ bats plugins/lattice/scripts/tests/
 
 ## Adding a new skill
 
-"Register a new skill" spans five surfaces; missing any one of them ships a silent gap. Work through the checklist — `bash tools/validate-skills.sh` enforces 1, 2, and 4:
+"Register a new skill" spans many surfaces; missing any one of them ships a silent gap — every drifted surface in audit rev-20260827-033352Z F6 was exactly a surface this checklist used to omit. Work through the checklist, one surface per line — `bash tools/validate-skills.sh` enforces 1, 2, and 4–7; `tools/tests/routing-catalog-parity.bats` enforces 12:
 
 1. [ ] `skills/<name>/` — `SKILL.md` with frontmatter (`name:`, `description:`, `metadata.agents: "claude-code,codex"`) and anatomy headings (`## Common Rationalizations`, `## Red Flags`, `## Verification`)
 2. [ ] `tools/validate-skills.sh` — add the skill to `USER_FACING` (or, for internal install-units only, the documented `EXEMPT` list)
 3. [ ] `tools/tests/validate-skills.bats` — add the skill to the `build_green_tree` user-facing fixture list (the suite fails otherwise)
-4. [ ] Plugin bundle — `plugins/lattice/skills/<name>` symlink (3-level relative: `../../../skills/<name>`) + `plugins/lattice/.claude-plugin/plugin.json` description/keywords
-5. [ ] Docs — README and `docs/getting-started.md` skill tables
-6. [ ] Version bump per release rules — `plugins/lattice/CHANGELOG.md` + plugin version (train rule when batched)
+4. [ ] Plugin bundle — `plugins/lattice/skills/<name>` symlink (3-level relative: `../../../skills/<name>`)
+5. [ ] `plugins/lattice/.claude-plugin/plugin.json` — description + `keywords` entry
+6. [ ] `.claude-plugin/marketplace.json` — plugin description + `keywords` entry (must agree with plugin.json)
+7. [ ] `plugins/lattice/README.md` — component table row, Skills bullet, install example
+8. [ ] `README.md` — skill table row
+9. [ ] `README.zh-CN.md` — mirrored skill table row
+10. [ ] `docs/getting-started.md` — skill table
+11. [ ] `llms.txt` — skills list one-liner
+12. [ ] Routing — `tools/run-routing-evals.py` `CATALOG` entry + `evals/routing/<name>.json` case (catalog parity with `USER_FACING` is bats-enforced)
+13. [ ] `skills/_lattice-lib/SKILL.md` — script-table row for any new `_lattice-lib` runtime script the skill ships
+14. [ ] Version bump per release rules — `plugins/lattice/CHANGELOG.md` + plugin version (train rule when batched)
 
 ## Testing
 
