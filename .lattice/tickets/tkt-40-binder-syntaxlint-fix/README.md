@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-40 (this issue) |
 | **related_tickets** | tkt-35 (split-lint-heavy) |
 | **worktree_bind** | tkt-40-binder-syntaxlint-fix |
-| prs | (none) · pr-41 — https://github.com/percena/lattice/pull/41 |
+| prs | pr-41 — https://github.com/percena/lattice/pull/41 |
 
 ## Acceptance (this slice)
 

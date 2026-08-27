@@ -40,6 +40,10 @@ Run the validator, collect the exact flagged rows, rewrite each to `pr-N — <UR
 
 ## Decision journal
 
+- 2026-08-27 — tkt-10 prs row was bare `pr-11` with no URL (the one row lacking a self-contained URL). Verified read-only via `gh pr view 11`: MERGED, "docs: refine README positioning + add Acknowledgements" — matches the ticket. Appended the canonical URL. (Chain: binder Anticipated decisions → agent-decides.)
+- 2026-08-27 — tkt-6/tkt-7 rows carried annotation `(none — rides tkt-5 PR)`. Dropped rather than moved to Notes: both binders' Notes already state the ticket lands inside the tkt-5 PR, so moving it would duplicate. Verified read-only via `gh pr view 9`: MERGED, "chore(ci): land v7 action bumps + Dependabot grouping + ADR-001 (spc-4)" — confirms pr-9 is the tkt-5 combined PR.
+- 2026-08-27 — Other prefixes dropped (`(none) · `, `#37 · `, duplicate bare URL before ` · `): stale placeholders/duplicates of the canonical entry that follows, zero factual content — format-only removal per ticket scope.
+
 ## Pending decisions
 
 ## Attempts

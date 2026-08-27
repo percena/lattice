@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-5, tkt-7 |
 | **worktree_bind** | `spc-4-gh-actions-v7-upgrade` |
 | worktree | sibling `…/lattice.worktrees/spc-4-gh-actions-v7-upgrade/` |
-| prs | (none — rides tkt-5 PR) · pr-9 — https://github.com/percena/lattice/pull/9 |
+| prs | pr-9 — https://github.com/percena/lattice/pull/9 |
 
 ## Acceptance (this slice)
 

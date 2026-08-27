@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-47 (digest promotion-proposal rendering completes A3) |
 | **worktree_bind** | tkt-46-preferences |
 | worktree | sibling …/lattice.worktrees/tkt-46-preferences/ |
-| prs | https://github.com/percena/lattice/pull/55 · pr-55 — https://github.com/percena/lattice/pull/55 |
+| prs | pr-55 — https://github.com/percena/lattice/pull/55 |
 
 ## Acceptance (this slice)
 

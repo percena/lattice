@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-10-readme-positioning-acknowledgements` |
 | worktree | sibling `…/lattice.worktrees/tkt-10-readme-positioning-acknowledgements/` |
-| prs | pr-11 |
+| prs | pr-11 — https://github.com/percena/lattice/pull/11 |
 
 ## Acceptance (this slice)
 

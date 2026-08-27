@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-31 (this issue) |
 | **related_tickets** | tkt-32, tkt-33, tkt-34 (same PR) |
 | **worktree_bind** | tkt-31-run-e2e-symlink-fix |
-| prs | (none) · pr-36 — https://github.com/percena/lattice/pull/36 |
+| prs | pr-36 — https://github.com/percena/lattice/pull/36 |
 
 ## Acceptance (this slice)
 
