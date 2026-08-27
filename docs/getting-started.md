@@ -43,7 +43,7 @@ Lattice is **discipline-first**, not a silent IDE theme. Default profile is **st
 | `jq` | JSON in scripts |
 | `python3` | Alignment / plugin transcript helpers |
 | `curl` | Asset upload |
-| Agent with [Agent Skills](https://agentskills.io/) or Claude Code plugins | Run the six user skills |
+| Agent with [Agent Skills](https://agentskills.io/) or Claude Code plugins | Run the user-facing skills |
 
 ## Skill + plugin map (what to install)
 
@@ -54,12 +54,12 @@ Lattice is **discipline-first**, not a silent IDE theme. Default profile is **st
 | `create-spec` | skill | Persist `spc-n` |
 | `create-review` | skill | Persist `rev-YYYYMMDD-HHMMSSZ` (not GitHub PR review) |
 | `create-tickets` | skill | Issues + binders |
-| `batch-work` | skill (optional) | DAG-orchestrated parallel fan-out of `start-work` agents on sibling worktrees |
+| `batch-work` | skill (optional) | DAG-orchestrated unattended parallel fan-out of `start-work` agents on sibling worktrees |
 | `create-pr` | skill | Open/update PR |
 | `finish-work` | skill | Align + merge + cleanup |
-| `lattice@percena` | Claude plugin | Packages all six skills; gates bare `gh pr create` / `gh pr merge` |
+| `lattice@percena` | Claude plugin | Packages **every** shipped skill (lifecycle six + side-paths + `_lattice-lib`); gates bare `gh pr create` / `gh pr merge` |
 
-Full path = **`_lattice-lib` + six user skills**, and on Claude **`lattice@percena`** (one plugin).
+Full path = **`_lattice-lib` + six user skills**, and on Claude **`lattice@percena`** (one plugin). The optional side-paths — `review-code` · `review-production` · `review-delivery` (quality), `run-e2e` (e2e reference), `generate-wiki` · `create-adr` (doc tools) — are mapped in their "Optional" sections below.
 
 ## 1. Install the full pack (once per machine)
 
@@ -80,7 +80,7 @@ npx skills add percena/lattice \
 
 ### Optional: quality side-paths (PR-scoped)
 
-The six lifecycle skills alone are a **complete** demo/universal loop. For **PR-level** code or production checks, install optional side-paths (not packaged in `lattice@percena` for v1):
+The six lifecycle skills alone are a **complete** demo/universal loop. For **PR-level** code or production checks, install optional side-paths (already bundled in the `lattice@percena` plugin; portable installs add them explicitly):
 
 ```bash
 npx skills add percena/lattice --skill review-code --skill review-production
@@ -102,7 +102,7 @@ Two additional skills extend the loop for parallel delivery and browser e2e:
 
 | Skill | Needs `_lattice-lib`? | Role |
 | --- | --- | --- |
-| `/batch-work` | Yes (co-install) | DAG-orchestrated fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, failure isolation |
+| `/batch-work` | Yes (co-install) | DAG-orchestrated unattended fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, failure isolation |
 | `/run-e2e` | No (reference pattern) | Heredoc JS story pattern for ego-browser — one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
 
 ```bash

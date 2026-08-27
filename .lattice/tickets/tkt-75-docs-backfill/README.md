@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/75 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | human-facing docs catch up with the registered 13-skill reality |
 | spec | none — noticed-by tkt-61 (#61, PR #67) |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-75-docs-backfill |
 | worktree | sibling …/lattice.worktrees/tkt-75-docs-backfill/ |
-| prs | (none) |
+| prs | pr-77 — https://github.com/percena/lattice/pull/77 |
 
 ## Acceptance (this slice)
 
-- [ ] Every skill in `tools/validate-skills.sh` USER_FACING appears correctly in README's skill tables and getting-started's skill map (right tier, current one-line purpose) — or an explicit tier note covers it
-- [ ] CONTRIBUTING `npx skills add` example matches the shipped skill set (full list or maintainable "all skills" form)
+- [x] Every skill in `tools/validate-skills.sh` USER_FACING appears correctly in README's skill tables and getting-started's skill map (right tier, current one-line purpose) — or an explicit tier note covers it
+- [x] CONTRIBUTING `npx skills add` example matches the shipped skill set (full list or maintainable "all skills" form)
 
 ## Approach
 
@@ -39,6 +39,11 @@ Source of truth = USER_FACING in tools/validate-skills.sh (13 skills). Diff each
 - Whether getting-started's per-skill map lists side-paths individually or by tier — disposition: agent-decides (follow the table's existing structure)
 
 ## Decision journal
+
+- 2026-08-26 CONTRIBUTING install example: chose the maintainable all-skills form (`npx skills add . -a claude-code -a codex -y`, no `--skill` flags) over listing 14 units — mirrors the README quickstart's flagless form, and a name list would drift every time a skill lands; comment points at `tools/validate-skills.sh` USER_FACING as the canonical list.
+- 2026-08-26 getting-started side-path placement: kept the "Skill + plugin map" table core-loop-only (its existing structure) and covered the six side-paths with an explicit tier note under the table pointing to their "Optional" sections — per binder disposition "follow the table's existing structure".
+- 2026-08-26 Stale plugin-packaging claims in getting-started ("Packages all six skills", "not packaged in lattice@percena for v1") corrected to every-shipped-skill reality (verified `plugins/lattice/skills/` holds all 13 + `_lattice-lib`; CONTRIBUTING ground rule + validator registration-integrity agree). In-scope file, table row + directly contradicting adjacent line only — no restructuring.
+- 2026-08-26 README finish-work row gained "default-on mini-review scan" (SKILL.md description claims it since merge-train hardening); batch-work rows in both docs gained "unattended" (SKILL.md: "DAG-orchestrated unattended batch delivery").
 
 ## Pending decisions
 
