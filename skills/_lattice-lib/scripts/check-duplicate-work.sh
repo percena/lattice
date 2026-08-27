@@ -227,7 +227,10 @@ else
       ISSUE_TITLE=$(printf '%s' "$line" | jq -r '.title // empty' 2>/dev/null || echo "")
       ISSUE_URL=$(printf '%s' "$line" | jq -r '.url // empty' 2>/dev/null || echo "")
 
-      [[ -z "$ISSUE_NUM" ]] && continue
+      # numeric guard: a non-numeric .number (gh wrapper/schema drift) must not
+      # reach `jq --argjson` — under set -e that kills the script and breaks the
+      # advisory exit-0 contract (pre-merge review of pr-99).
+      [[ "$ISSUE_NUM" =~ ^[0-9]+$ ]] || continue
 
       # Tokenize candidate title
       ISSUE_TOKS_STR=""
@@ -330,7 +333,7 @@ else
     PR_TITLE=$(printf '%s' "$line" | jq -r '.title // empty' 2>/dev/null || echo "")
     PR_URL=$(printf '%s' "$line" | jq -r '.url // empty' 2>/dev/null || echo "")
 
-    [[ -z "$PR_NUM" ]] && continue
+    [[ "$PR_NUM" =~ ^[0-9]+$ ]] || continue
 
     PR_TOKS_STR=""
     while IFS= read -r tok; do

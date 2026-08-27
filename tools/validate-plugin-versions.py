@@ -232,6 +232,44 @@ def train_cut_shared(root: Path, base_oid: str, head_oid: str, manifest_path: st
         merge_base = git(root, "merge-base", base_oid, head_oid).strip()
     except RuntimeError:
         return False
+    if merge_base == base_oid and merge_base != head_oid:
+        # Linear push (base is an ancestor — e.g. a push event on the
+        # integration branch as train members squash-merge in). The divergent
+        # blob test below can never hold here, so accept the equal version iff
+        # the version files are byte-identical base↔head AND base itself
+        # already carries an unreleased train bump relative to the default
+        # branch. Once the integration branch promotes (release), the guard
+        # fails and the strict per-landing law fires again for true bump-less
+        # pushes. Cannot resolve the default branch → stay strict. (tkt-114:
+        # dev lint-heavy went red on every train merge after the first.)
+        for path in version_paths:
+            head_blob = blob_oid(root, head_oid, path)
+            if head_blob is None or blob_oid(root, base_oid, path) != head_blob:
+                return False
+            try:
+                if load_json(root / path) != load_json_at(root, head_oid, path):
+                    return False
+            except (OSError, ValueError, json.JSONDecodeError):
+                return False
+        for release_ref in ("origin/main", "main"):
+            try:
+                release_base = git(root, "merge-base", release_ref, base_oid).strip()
+            except RuntimeError:
+                continue
+            try:
+                released = load_json_at(root, release_base, manifest_path)
+                at_base = load_json_at(root, base_oid, manifest_path)
+            except (ValueError, json.JSONDecodeError):
+                return False
+            released_version = released.get("version") if released else None
+            base_version = at_base.get("version") if at_base else None
+            if not isinstance(released_version, str) or not isinstance(base_version, str):
+                return False
+            try:
+                return semver_key(base_version) > semver_key(released_version)
+            except ValueError:
+                return False
+        return False
     for path in version_paths:
         head_blob = blob_oid(root, head_oid, path)
         if head_blob is None:
