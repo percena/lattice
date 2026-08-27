@@ -1,7 +1,7 @@
 # tkt-7-adr-001-policy
 
 > **TL;DR:** Land ADR-001 codifying the SHA-pin + weekly + grouped + major-bump-validation policy.
-> **Kind:** docs · **Status:** open · **Priority:** P2
+> **Kind:** docs · **Priority:** P2
 > **Path:** spc-4 → tkt-7 → (pr-… rides tkt-5 PR)
 
 | Field | Value |

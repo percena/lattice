@@ -154,6 +154,20 @@ def has_finish_ledger(text: str) -> bool:
     return False
 
 
+def finish_ledger_merged(text: str) -> bool:
+    """True when the ``## Finish`` ledger records at least one PR merge.
+
+    finish-ledger.sh writes ``pr-P merged: <ISO date> — <URL>`` lines; a
+    closed-without-merge ledger (cancel path) has no ``merged:`` line and is
+    exempt from the terminal-status requirement.
+    """
+    m = FINISH_SECTION_RE.search(text)
+    if not m:
+        return False
+    body = HTML_COMMENT_RE.sub("", m.group(1))
+    return re.search(r"\bmerged:\s", body) is not None
+
+
 def spec_acceptance_ids(text: str) -> set[str]:
     """Collect **A-N** ids only from Acceptance section(s).
 
@@ -272,11 +286,14 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                 }
             )
 
+    ticket_dirs_by_id: dict[str, list[Path]] = {}
     for path in iter_tickets(home):
         text = load_text(path)
         # id from directory tkt-N-slug
         m = re.match(r"(tkt-[1-9][0-9]*)-", path.parent.name)
         tid = m.group(1) if m else ""
+        if tid:
+            ticket_dirs_by_id.setdefault(tid, []).append(path)
         if not tid or not TKT_ID_RE.fullmatch(tid):
             findings.append(
                 {
@@ -362,6 +379,23 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "detail": f"status {st!r} but ## Finish ledger is missing or placeholder-only",
                 }
             )
+        # Inverse of closed_without_finish: a merged ## Finish ledger is
+        # terminal evidence, so a working/legacy status contradicts the
+        # binder's own single source of truth (spc-42:76). Error-level — this
+        # is exactly the breach that stranded 19 binders at `pr-open`
+        # (tkt-90; audit rev-20260827-033352Z F1/F2).
+        if st is not None and st not in STATUS_TERMINAL and finish_ledger_merged(text):
+            findings.append(
+                {
+                    "code": "finish_without_terminal_status",
+                    "path": str(path),
+                    "detail": (
+                        f"## Finish records a merge but status is {st!r}; "
+                        "a merged ledger requires terminal status "
+                        "(finish-ledger stamps `closed`)"
+                    ),
+                }
+            )
 
         # covers vs Spec Acceptance (spec row from the binder card only)
         sm = SPEC_REF_RE.search(first_table_block(text))
@@ -397,6 +431,20 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                         "detail": f"{tid} references {sid} but {sid}.tickets does not list {tid}",
                     }
                 )
+
+    # One binder directory per ticket id: `tkt-N` is the lineage key, so two
+    # dirs sharing it fork the chain (tkt-90; the historical tkt-35 collision
+    # went unnoticed for four rounds without this check).
+    for dup_tid, dup_paths in sorted(ticket_dirs_by_id.items()):
+        if len(dup_paths) > 1:
+            dirs = ", ".join(sorted(p.parent.name for p in dup_paths))
+            findings.append(
+                {
+                    "code": "duplicate_ticket_id",
+                    "path": str(dup_paths[0]),
+                    "detail": f"{dup_tid} is claimed by {len(dup_paths)} binder dirs: {dirs}",
+                }
+            )
 
     return findings
 

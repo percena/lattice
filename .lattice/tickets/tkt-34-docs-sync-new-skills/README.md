@@ -1,7 +1,7 @@
 # tkt-34-docs-sync-new-skills
 
 > **TL;DR:** Sync README, README.zh-CN, getting-started, CHANGELOG, plugin.json for new skills (batch-work, run-e2e) and feature additions
-> **Kind:** docs · **Status:** open · **Priority:** P2
+> **Kind:** docs · **Priority:** P2
 
 | Field | Value |
 | --- | --- |

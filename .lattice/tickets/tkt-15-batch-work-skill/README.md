@@ -1,7 +1,7 @@
 # tkt-15-batch-work-skill
 
 > **TL;DR:** New batch-work skill — DAG orchestration on sibling worktrees using parallel_group + independence gates
-> **Kind:** feat · **Status:** closed · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-15 → (pr-…)
 
 | Field | Value |

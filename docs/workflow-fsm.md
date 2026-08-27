@@ -44,6 +44,8 @@ stateDiagram-v2
     stuck --> queued: unblock
     pr --> rework: findings returned (new brief)
     rework --> ip: fix cycle (≤2)
+    rework --> pr: fix pushed (re-review)
+    stuck --> [*]: re-scope → M1 (Spec/ticket revision)
     pr --> closed: human merge (day)
     stuck --> closed: cancel
     closed --> [*]
@@ -61,9 +63,14 @@ decision journal entry (cites its resolution source)
    → promotion proposal (in the digest)
    → .lattice/preferences.md entry (INVARIANT / DEFAULT / HINT)
    → superseded with a date (never deleted)
+
+operator-stated preference (mid-session utterance)
+   → written to .lattice/preferences.md AT UTTERANCE TIME by the active skill
+     (Capture duty, decision-policy.md — provenance `operator-stated`; pr-88)
+   → superseded with a date (never deleted)
 ```
 
-Spec/ADR always outrank preferences.
+The ×2-promotion path is for journal-derived candidates; an explicit operator directive takes the direct edge — the agent writes it immediately with provenance and confirms in one line. Spec/ADR always outrank preferences.
 
 ---
 
@@ -97,6 +104,7 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | stuck → M1 | re-scope: **Spec revision** / ticket revision | human |
 | pr-open → rework | PR returned with findings (findings become the new brief) | system |
 | rework → in-progress | re-enters the queue, address-review shape, fix cycle ≤2 | system |
+| rework → pr-open | fix pushed to the PR branch → re-review (start-work re-entry) | system |
 | pr-open → pr-open (verdict voided) | materially changed rebase → re-review; clean rebase carries the verdict | system |
 | pr-open → closed (merged) | **merge** — day only; `finish-ledger.sh` stamps `mergedAt` | human |
 | any → closed (without merge) | **cancel** | human |
@@ -109,6 +117,7 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | journal entry → ratified | morning **decision ratification** | human |
 | ratified ×2 → promotion proposal | digest proposes promotion to preferences | system |
 | proposal → preferences entry | human accepts | human |
+| operator utterance → preferences entry | **Capture duty** — durable operator-stated preference written at utterance time, provenance `operator-stated` (decision-policy.md, pr-88) | agent |
 | preferences entry → superseded | replaced with a dated supersede (never deleted) | human |
 
 ---
@@ -139,4 +148,4 @@ A **closed white-list** — everything not on it is delegable under policy (ADR-
 
 ## 5. Where M2 state lives
 
-The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6): working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` — merged vs closed-without-merge is read from the `## Finish` ledger's `mergedAt`, not from a separate status value. Legacy `open` is accepted as a coarse value during lazy migration (validator warns). State is never inferred from PR, marker, or worktree existence alone; `validate-lattice-artifacts.py` rejects unknown values and illegal transitions.
+The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6): working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` — merged vs closed-without-merge is read from the `## Finish` ledger's `mergedAt`, not from a separate status value. Legacy `open` is accepted as a coarse value during lazy migration (validator warns). State is never inferred from PR, marker, or worktree existence alone. `validate-lattice-artifacts.py` enforces this statically per snapshot — unknown status values (`invalid_ticket_status`), terminal status without a Finish ledger (`closed_without_finish`), a merged Finish ledger without terminal status (`finish_without_terminal_status`), and duplicate ticket ids (`duplicate_ticket_id`); it does not replay transition history, so edge legality between two valid snapshots is owned by the skills that perform the transitions (amended 2026-08-27, tkt-90 — the earlier "rejects illegal transitions" claim overstated the check).

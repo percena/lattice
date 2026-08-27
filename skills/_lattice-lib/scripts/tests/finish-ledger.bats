@@ -402,3 +402,34 @@ EOF
   [ "$(printf '%s' "$prs_row" | grep -o 'pr-12' | wc -l)" -eq 1 ]
   [ "$(printf '%s' "$prs_row" | grep -o 'pr-11' | wc -l)" -eq 1 ]
 }
+
+# tkt-90: the flip must cover the FSM working vocabulary, not just legacy `open`
+# — stamp-pr-open stamps `pr-open`, which stranded 19 merged binders.
+
+@test "pr-open binder: status flips to closed when issue closed" {
+  write_fresh_binder
+  sed -i 's#| status | open |#| status | pr-open |#' "$BINDER"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+@test "in-progress and rework binders: status flips to closed" {
+  for st in in-progress rework; do
+    write_fresh_binder
+    sed -i "s#| status | open |#| status | $st |#" "$BINDER"
+    bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+      --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+    grep -qE '\| status \| closed \|' "$BINDER"
+  done
+}
+
+@test "parked binder: status is NOT auto-flipped (needs human attention)" {
+  write_fresh_binder
+  sed -i 's#| status | open |#| status | parked |#' "$BINDER"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| parked \|' "$BINDER"
+}

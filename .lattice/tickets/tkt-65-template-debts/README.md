@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/65 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | six small template/validator/docs debts from the batch run, landed or explicitly deferred each |
 | spec | none — hygiene from dogfood review |
@@ -31,7 +31,7 @@
 - [x] validate-lattice-artifacts: warn on header/table status contradiction; ~~optional prs-format check~~ (deferred, see Notes); bats green
 - [x] workflow-fsm.md: fuse-edge clarifying sentence (fused → stay `queued`; `deferred` = human deschedule stamp)
 - [x] Label taxonomy reconciled (docs/github-surface.md + sync-github-labels)
-- [ ] ensure-lattice SCRIPT_DIR symlink resolution aligned with lattice-init (done); preferences.md in managed-paths list (deferred — lattice-init.sh out of paths row, see Notes)
+- [x] ensure-lattice SCRIPT_DIR symlink resolution aligned with lattice-init (done); preferences.md in managed-paths list (the deferred half was delivered by tkt-74, pr-79 — box re-checked by tkt-90)
 - [x] New find-spec.sh (spec file by N regardless of slug); bats
 
 ## Approach

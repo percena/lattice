@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/75 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | human-facing docs catch up with the registered 13-skill reality |
 | spec | none — noticed-by tkt-61 (#61, PR #67) |

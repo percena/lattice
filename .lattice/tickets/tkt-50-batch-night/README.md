@@ -1,7 +1,7 @@
 # tkt-50-batch-night
 
 > **TL;DR:** batch-work becomes a safe night shift — decision/fallback protocols + evidence contract in spawn briefs, watchdog/timebox, batch fuse + graceful drain, `--with-review` chaining review-delivery with a bounded fix loop
-> **Kind:** feat · **Status:** pr-open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-42 → tkt-50 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/50 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | batch-work night upgrades: brief injection, watchdog, fuse, drain, --with-review + ≤2-cycle fix loop |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |

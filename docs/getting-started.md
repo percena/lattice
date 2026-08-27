@@ -147,6 +147,7 @@ Lattice is a **delivery-graph engine** (Spec / tickets / worktree / PR / finish)
 | Pre-merge quality pass | `code-review-and-quality` (and/or security persona if risk warrants) |
 
 These stay **optional**. Lattice correctness does not depend on them. Prefer thin `/review-*` for PR scope; use packs for depth. Do **not** vendor a full external catalog into every consumer repo “to make Lattice complete.”
+
 ### B. Claude Code plugins (skills + optional hooks)
 
 ```text
@@ -212,6 +213,7 @@ What `ensure-lattice` does (idempotent):
 | --- | --- |
 | Skeleton | `.lattice/{specs,reviews,tickets}` |
 | Config | `.lattice/config.yaml` with `profile: strict` if missing (**never** overwrites existing profile) |
+| Preferences | `.lattice/preferences.md` scaffolded from the shipped template (minimal heredoc fallback when the references tree is absent) if missing — **never** overwrites an existing file, refuses a symlinked path |
 | Gitignore | merges Lattice snippet into `.gitignore` when markers absent (default) |
 | Labels | **not** synced by default; agent may pass `--sync-labels` or run `create-tickets` `sync-github-labels.sh` when `gh` fails |
 
@@ -316,6 +318,7 @@ Or one shell: `export LATTICE_PROFILE=light`.
 | --- | --- |
 | `.lattice/specs`, `reviews`, `tickets/*/README.md` | Usually **yes** |
 | `.lattice/config.yaml` | **yes** (team profile) |
+| `.lattice/preferences.md` | **yes** (team preference SoT) |
 | `.lattice/lineage/`, `BOARD.md` | **no** — not product; do not create (gitignored) |
 | `.lattice/.ids/`, ticket `assets/*` | **no** (gitignore) |
 | Physical worktrees | Outside repo (`../<repo>.worktrees/`) |
@@ -371,3 +374,5 @@ cd /path/to/your-app
 | --- | --- |
 | [README](../README.md) | Install matrix + system map |
 | [github-surface.md](./github-surface.md) | Label catalog |
+| [workflow-fsm.md](./workflow-fsm.md) | Three coupled state machines, transition owners, bounded-loop invariant |
+| [day-phase.md](./day-phase.md) | Attended planning recipe: requirement → proposal rev → spec → adr → tickets |

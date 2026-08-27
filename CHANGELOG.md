@@ -6,9 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-08-27
+
+Post-round-4 verified audit batch (rev-20260827-033352Z, #90–#96): released as a shared train cut — #90 owns the bump and this entry; the other bundled PRs of the round carry byte-identical version files (canonical manifest blobs owned by #94). Merge-time bullets for the train's other tickets are appended below their PR merges.
+
+### Fixed
+
+- **Binder lifecycle closure (tkt-90, #90)** — `finish-ledger.sh` now flips any working status (`open`, `queued`, `in-progress`, `pr-open`, `rework`) to `closed` at ledger time; previously only the legacy `open` literal matched, so every binder stamped `pr-open` by `stamp-pr-open.sh` stayed stranded after merge — 19 binders restamped `closed`, `spc-12` land-stamped retroactively, and the historical `tkt-35` id collision resolved by renaming the impostor to its true id (`tkt-38`, per its own issue row).
+
+### Added
+
+- **Validator: `finish_without_terminal_status` + `duplicate_ticket_id` (tkt-90, #90)** — error-level findings: a merged `## Finish` ledger with a non-terminal status, and two binder dirs claiming one `tkt-N`. `docs/workflow-fsm.md` §5 and ADR-004 §6 amended to state exactly what the validator checks (static snapshot coherence, not transition-history replay).
+
 ## [0.2.3] - 2026-08-26
 
-Helper polish from the first unattended consumption (digest rev-20260826-172600Z Findings 3–6, #81): single-PR bump.
+Helper polish from the first unattended consumption (digest rev-20260826-172600Z Findings 3–6, #81) plus the tkt-84 preference-capture law (#88): two-PR shared train cut — #89 owned the version bump, #88 carried the byte-identical cut.
 
 ### Added
 

@@ -1,7 +1,7 @@
 # tkt-8-close-dependabot-prs
 
 > **TL;DR:** After the combined v7 commit lands, close Dependabot PRs #1/#2/#3 (superseded) so the next cycle sees resolved versions + grouped config.
-> **Kind:** chore · **Status:** closed · **Priority:** P2
+> **Kind:** chore · **Priority:** P2
 > **Path:** spc-4 → tkt-8 → (cleanup, no PR of its own)
 
 | Field | Value |

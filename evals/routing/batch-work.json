@@ -1,0 +1,15 @@
+{
+  "skill_name": "batch-work",
+  "aliases": ["批量并行交付", "并行跑多个 ticket", "无人值守批量执行", "parallel ticket fan-out"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Run tickets 12, 13 and 14 in parallel overnight — unattended batch fan-out across worktrees", "top_k": 1 },
+      { "prompt": "Fan out the spec's parallel groups to multiple start-work agents on sibling worktrees", "top_k": 1 },
+      { "prompt": "把这批独立 ticket 用并行 agent 无人值守批量跑完", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Start work on ticket 12 and resume where I left off", "owner": "start-work" },
+      { "prompt": "Split this locked spec into GitHub issue tickets", "owner": "create-tickets" }
+    ]
+  }
+}

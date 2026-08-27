@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/74 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | deferred validator items from tkt-65 + 0.2.2 bump (only bundled-touching ticket this round) |
 | spec | none — deferred-from tkt-65 (#65, PR #71) |

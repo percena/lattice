@@ -1,7 +1,7 @@
 # tkt-43-policy-references
 
 > **TL;DR:** decision-policy.md + fallback-policy.md in `_lattice-lib/references` — the total decision-resolution function and bounded-fallback law for unattended agents
-> **Kind:** feat · **Status:** closed · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-42 → tkt-43 → (pr-…)
 
 | Field | Value |
