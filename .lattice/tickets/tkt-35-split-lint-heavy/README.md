@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-35 |
 | **related_tickets** | tkt-31 |
 | **worktree_bind** | tkt-35-split-lint-heavy |
-| prs | #37 · pr-37 — https://github.com/percena/lattice/pull/37 |
+| prs | pr-37 — https://github.com/percena/lattice/pull/37 |
 
 ## Acceptance (this slice)
 

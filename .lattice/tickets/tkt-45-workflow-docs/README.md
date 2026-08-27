@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-45-workflow-docs |
 | worktree | sibling …/lattice.worktrees/tkt-45-workflow-docs/ |
-| prs | https://github.com/percena/lattice/pull/53 · pr-53 — https://github.com/percena/lattice/pull/53 |
+| prs | pr-53 — https://github.com/percena/lattice/pull/53 |
 
 ## Acceptance (this slice)
 

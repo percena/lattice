@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-50-batch-night |
 | worktree | sibling …/lattice.worktrees/tkt-50-batch-night/ |
-| prs | https://github.com/percena/lattice/pull/59 · pr-59 — https://github.com/percena/lattice/pull/59 |
+| prs | pr-59 — https://github.com/percena/lattice/pull/59 |
 
 ## Acceptance (this slice)
 

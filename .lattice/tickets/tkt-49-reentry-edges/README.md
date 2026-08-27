@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-49-reentry-edges |
 | worktree | sibling …/lattice.worktrees/tkt-49-reentry-edges/ |
-| prs | https://github.com/percena/lattice/pull/57 · pr-57 — https://github.com/percena/lattice/pull/57 |
+| prs | pr-57 — https://github.com/percena/lattice/pull/57 |
 
 ## Acceptance (this slice)
 
