@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/123 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | binder FSM observability + bounded-loop enforcement (counter field, rework-edge cleanup, stuck wait-reason) |
 | spec | (none — standalone process-hardening from state-machine audit) |
@@ -94,4 +94,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-129 merged: 2026-08-27T07:30:12Z — https://github.com/percena/lattice/pull/129 (base merge)
+- issue #123 closed: 2026-08-27T07:30:19Z — https://github.com/percena/lattice/issues/123
