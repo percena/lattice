@@ -197,3 +197,16 @@ setup_file() {
   [[ "$output" != *covers_not_on_spec* ]]
   [[ "$output" != *tkt-202* ]]
 }
+
+# tkt-123: bounded-loop invariant — fix_cycles field-table row + cap (>2 warns).
+
+@test "fix_cycles >2 warns (bounded-loop cap); ≤2 and missing are clean" {
+  # tkt-203 has fix_cycles 3 → fix_cycles_exceeded warning (run still passes —
+  # warning level). tkt-204 has fix_cycles 2 → no warning.
+  run python3 "$VAL" --home "$FIX/fix-cycles" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" == *fix_cycles_exceeded* ]]
+  [[ "$output" == *tkt-203-over* ]]
+  [[ "$output" != *tkt-204-ok* ]]
+}
