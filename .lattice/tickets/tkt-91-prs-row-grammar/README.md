@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/91 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | binder_rows shared definition + writer canon emission + build-review-context predicate fix |
 | spec | none — audit rev-20260827-033352Z F4 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-90 (base), tkt-74 (canon author), tkt-80 (warning cleanup this protects) |
 | **worktree_bind** | tkt-91-prs-row-grammar |
 | worktree | sibling …/lattice.worktrees/tkt-91-prs-row-grammar/ |
-| prs | (none yet) |
+| prs | pr-103 — https://github.com/percena/lattice/pull/103 |
 
 ## Acceptance (this slice)
 
