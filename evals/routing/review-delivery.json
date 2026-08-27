@@ -1,0 +1,16 @@
+{
+  "skill_name": "review-delivery",
+  "aliases": ["链式审查昨夜交付", "morning digest", "批量交付审查", "chain review delivered tickets"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Chain-review last night's delivered tickets and give me a morning digest", "top_k": 1 },
+      { "prompt": "Run an artifact-only chain review of the batch delivery for spc-7 before I merge anything", "top_k": 1 },
+      { "prompt": "对昨晚批量交付的 ticket 做链式审查，给我一份早晨 digest", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Review PR 42 for material bugs and regressions", "owner": "review-code" },
+      { "prompt": "Merge PR 42 and clean up the worktree", "owner": "finish-work" },
+      { "prompt": "Persist a durable architecture Review with spawn_spec outcome", "owner": "create-review" }
+    ]
+  }
+}

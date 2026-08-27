@@ -209,6 +209,37 @@ for dir in "$SKILLS_DIR"/*/; do
   fi
 done
 
+# Registration surfaces (rev-20260827-033352Z F6): every USER_FACING skill must
+# be named in BOTH manifests' `keywords` arrays and appear somewhere in
+# plugins/lattice/README.md — surfaces without a validator rot. Each file is
+# checked only when it exists, so fixture trees (LATTICE_SKILLS_DIR) and
+# consumer installs without the monorepo packaging still validate.
+REPO_BASE="$(dirname "$SKILLS_DIR")"
+MARKETPLACE_JSON="${REPO_BASE}/.claude-plugin/marketplace.json"
+PLUGIN_JSON="${REPO_BASE}/plugins/lattice/.claude-plugin/plugin.json"
+PLUGIN_README="${REPO_BASE}/plugins/lattice/README.md"
+
+# Print the contents of every `"keywords": [ ... ]` array in a JSON file
+# (grep-style on purpose: no jq dependency, matches the rest of this script).
+keywords_block() {
+  sed -n '/"keywords"[[:space:]]*:[[:space:]]*\[/,/\]/p' "$1"
+}
+
+for name in "${USER_FACING[@]}"; do
+  if [[ -f "$MARKETPLACE_JSON" ]] && ! keywords_block "$MARKETPLACE_JSON" | grep -qF "\"${name}\""; then
+    echo "ERROR: .claude-plugin/marketplace.json keywords missing \"${name}\" — every user-facing skill registers on every surface" >&2
+    ERR=1
+  fi
+  if [[ -f "$PLUGIN_JSON" ]] && ! keywords_block "$PLUGIN_JSON" | grep -qF "\"${name}\""; then
+    echo "ERROR: plugins/lattice/.claude-plugin/plugin.json keywords missing \"${name}\" — every user-facing skill registers on every surface" >&2
+    ERR=1
+  fi
+  if [[ -f "$PLUGIN_README" ]] && ! grep -qF "$name" "$PLUGIN_README"; then
+    echo "ERROR: plugins/lattice/README.md does not mention ${name} — document every shipped unit" >&2
+    ERR=1
+  fi
+done
+
 if [[ "$ERR" -ne 0 ]]; then
   echo "validate-skills: FAILED" >&2
   exit 1
