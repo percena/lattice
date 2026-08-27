@@ -162,3 +162,38 @@ setup_file() {
   [[ "$output" == *"'verified'"* ]]
   [[ "$output" == *feature_map_row_format* ]]
 }
+
+# tkt-121: three latent validator defects — status fallback scope, finish
+# placeholder family, acceptance-heading A-ids.
+
+@test "status fallback is scoped — body prose **Status:** is not misread as status" {
+  # tkt-200: binder card (first table) has no status row; body acceptance prose
+  # mentions the literal **Status:** marker. The scoped fallback
+  # (tldr_header_status, blockquote lines before the first table) finds none,
+  # so no invalid_ticket_status fires.
+  run python3 "$VAL" --home "$FIX/status-prose-mention" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" != *invalid_ticket_status* ]]
+  [[ "$output" != *tkt-200* ]]
+}
+
+@test "finish ledger exempts the whole (none…) placeholder family" {
+  # tkt-201: status closed, ## Finish carries "(none — rides tkt-5 PR)" — a
+  # placeholder (PRS_PLACEHOLDER_RE), not the literal "(none yet)". The family
+  # is exempt, so has_finish_ledger returns False and closed_without_finish fires.
+  run python3 "$VAL" --home "$FIX/finish-placeholder-family" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *closed_without_finish* ]]
+  [[ "$output" == *tkt-201-placeholder* ]]
+}
+
+@test "A-ids inline on the Acceptance heading line are coverable" {
+  # spc-202 declares "## Acceptance — **A1**, **A2**"; tkt-202 covers A1.
+  # Heading-line A-ids must register, so covers_not_on_spec must NOT fire.
+  run python3 "$VAL" --home "$FIX/acceptance-heading-aids" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" != *covers_not_on_spec* ]]
+  [[ "$output" != *tkt-202* ]]
+}
