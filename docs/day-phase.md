@@ -1,7 +1,7 @@
 # Day phase (attended planning recipe)
 
 How a business requirement becomes a night-executable ticket batch, spending human attention only where it is irreplaceable. The goal: **front-load the night's questions into the cheap attended window** — path divergence at night comes from missing shared priors, not agent weakness.
-Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260826-141124Z` (Finding 2). State-machine view: [workflow-fsm.md](./workflow-fsm.md) (M1).
+Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260826-141124Z` (Finding 2). State-machine view: [workflow-fsm.md](./workflow-fsm.md) (M1). Morning triage (the attended counterpart — consuming the night's batch): [morning-triage.md](./morning-triage.md).
 
 ---
 

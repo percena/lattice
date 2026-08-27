@@ -123,6 +123,7 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 ## 3. Human-owned transitions (attention contract)
 
 A **closed white-list** — everything not on it is delegable under policy (ADR-004 §1):
+Morning triage recipe: [morning-triage.md](./morning-triage.md).
 
 1. **Macro sign-off** (proposal rev → Spec)
 2. **Decision ratification** (journal / parked wake-up)
