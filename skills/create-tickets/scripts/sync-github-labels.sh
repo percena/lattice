@@ -20,7 +20,7 @@ fi
 # kinds map feat→enhancement, docs→documentation; refactor/perf/test/spike
 # file under chore. No P0 — urgent work is P1 with the urgency in the body.
 LABELS=$(cat <<'EOF'
-bug|D73A4A|Something isn't working (Lattice kind: bug)
+bug|D73A4A|Something is not working (Lattice kind: bug)
 documentation|0075CA|Improvements or additions to documentation (Lattice kind: docs)
 enhancement|A2EEEF|New feature or request (Lattice kind: feat)
 chore|C5DEF5|Maintenance / non-feature work

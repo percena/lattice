@@ -237,8 +237,9 @@ elif ! have bats; then
   echo "==> bats"
   echo "    FAIL: bats not installed (CI installs it; apt-get install bats)"
 else
-  # lattice-scripts.yml discovery, verbatim.
-  mapfile -t suites < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
+  # lattice-scripts.yml discovery, verbatim. Portable read (no mapfile, which
+  # is bash 4+ — macOS default /bin/bash is 3.2 and lacks it).
+  suites=(); while IFS= read -r _s; do suites+=("$_s"); done < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
   for suite in "${suites[@]}"; do
     run_step "bats $suite" bats_shimmed "$suite" .
   done

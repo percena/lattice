@@ -152,7 +152,8 @@ MD
 @test "adopted binder: one comment, body never edited" {
   write_fresh_binder
   write_issue_body
-  sed -i 's/| adopted | false |/| adopted | true |/' "$BINDER"
+  sed -i.bak 's/| adopted | false |/| adopted | true |/' "$BINDER"
+  rm -f "$BINDER.bak"
   cp "$ISSUE_BODY" "$TEST_DIR/body-before.md"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
@@ -174,9 +175,11 @@ MD
 @test "id-less binder items mirror by ordinal position" {
   write_fresh_binder
   # strip ids from binder AND issue (hand-styled acceptance lists)
-  sed -i 's/\*\*A1\*\* //; s/\*\*A2\*\* //' "$BINDER"
+  sed -i.bak 's/\*\*A1\*\* //; s/\*\*A2\*\* //' "$BINDER"
+  rm -f "$BINDER.bak"
   write_issue_body
-  sed -i 's/\*\*A1\*\* first thing done/marker whitelist lands/; s/\*\*A2\*\* second thing not done/helper documented/' "$ISSUE_BODY"
+  sed -i.bak 's/\*\*A1\*\* first thing done/marker whitelist lands/; s/\*\*A2\*\* second thing not done/helper documented/' "$ISSUE_BODY"
+  rm -f "$ISSUE_BODY.bak"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
   grep -q -- '- \[x\] marker whitelist lands' "$TEST_DIR/edited-body.md"
@@ -259,7 +262,8 @@ EOF
   write_fresh_binder
   write_issue_body
   # a deliberately-open box with a deferral note (parked scope)
-  sed -i 's/- \[ \] \*\*A2\*\* second thing not done/- [ ] **A2** second thing not done — deferred to tkt-99/' "$BINDER"
+  sed -i.bak 's/- \[ \] \*\*A2\*\* second thing not done/- [ ] **A2** second thing not done — deferred to tkt-99/' "$BINDER"
+  rm -f "$BINDER.bak"
   cp "$BINDER" "$TEST_DIR/binder-before.md"
   run_spo --pr 12 --binder "$BINDER" --check-all
   [ "$status" -eq 1 ]

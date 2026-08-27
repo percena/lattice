@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/122 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | shell portability — ci-local.sh + bats suites fail on macOS default bash 3.2 (sed -i, apostrophe, mapfile) |
 | spec | (none — standalone process-hardening bug) |
