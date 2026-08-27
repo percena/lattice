@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/84 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | capture INVARIANT in decision-policy + one-line wiring in start-work/finish-work/batch-work |
 | spec | none — operator feedback 2026-08-26 (preferences.md meta-entry added same day) |
@@ -41,6 +41,9 @@ decision-policy.md gains a short "Capture duty" subsection beside the resolution
 - Version handling — pre-resolved: do NOT bump; the orchestrator places tkt-81's identical 0.2.3 cut on this branch after the PR opens (live test of tkt-60 train mode)
 
 ## Decision journal
+
+- "What counts" heuristic wording: 3 rows keyed on statement kind (durable+cross-ticket → preferences.md write-now; feature-scoped → Spec `## Decisions`; system-shape → ADR), framed "capture routes, never swallows" — chain source 1 (binder Approach: heuristic table + routing note, ≤3 rows); reversible, ticket-local.
+- Wiring placement: start-work step-7 DEFAULT bullet (beside the existing decision-policy cite), finish-work Core-rules DEFAULT #13 (merge-time operator-decision area), batch-work Defaults-and-escapes row (orchestrator duty) — chain source 1 (binder Approach names these three interaction points); reversible, ticket-local.
 
 ## Pending decisions
 
