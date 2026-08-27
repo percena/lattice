@@ -375,3 +375,30 @@ EOF
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 0 ]
 }
+
+@test "a (none) prs placeholder is replaced, never appended beside" {
+  # digest rev-20260826-172600Z Findings 4: appending left "(none) · pr-N …"
+  for placeholder in '(none)' '(none yet)' '(none — pending)'; do
+    write_fresh_binder
+    sed -i "s/| prs | (none yet) |/| prs | $placeholder |/" "$BINDER"
+    run bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+      --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
+    [ "$status" -eq 0 ]
+    grep -q '| prs | pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
+    ! grep -qF "$placeholder ·" "$BINDER"
+  done
+}
+
+@test "a filled prs row appends once and re-runs stay idempotent" {
+  write_fresh_binder
+  sed -i 's#| prs | (none yet) |#| prs | pr-11 — https://github.com/percena/lattice/pull/11 |#' "$BINDER"
+  bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  grep -q '| prs | pr-11 — https://github.com/percena/lattice/pull/11 · pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
+  # idempotent: second run for the same PR leaves a single pr-12 entry
+  bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  prs_row="$(grep -m1 '^| prs |' "$BINDER")"
+  [ "$(printf '%s' "$prs_row" | grep -o 'pr-12' | wc -l)" -eq 1 ]
+  [ "$(printf '%s' "$prs_row" | grep -o 'pr-11' | wc -l)" -eq 1 ]
+}

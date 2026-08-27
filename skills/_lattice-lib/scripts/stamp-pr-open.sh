@@ -8,6 +8,10 @@
 #           Lattice-template issues. Adopted binders (`adopted: true`) mark the
 #           issue body hand-created/append-only: post ONE comment instead.
 #
+# ORDER MATTERS: check binder acceptance boxes, then stamp — the issue sync
+# mirrors only checked boxes. `--check-all` checks every unchecked binder box
+# first (refused when the Acceptance section carries a deferral note).
+#
 # Mirroring is by A*-id match (`**A1**` in the binder item ↔ `A1` in the issue
 # line); items without ids fall back to ordinal position within the Acceptance
 # section. One-directional: boxes are only checked, never unchecked.
@@ -17,7 +21,8 @@
 # No-op + note when the binder is missing (ticket-only flow) — does NOT fail.
 #
 # Usage:
-#   stamp-pr-open.sh --pr <N> [--issue <M>] [--binder <path>] [--repo <owner/repo>] [--dry-run]
+#   stamp-pr-open.sh --pr <N> [--issue <M>] [--binder <path>] [--repo <owner/repo>]
+#                    [--check-all] [--dry-run]
 #   Exits 0 on success or no-binder-skip; 1 on gh/IO failure; 2 on usage.
 set -euo pipefail
 
@@ -26,16 +31,26 @@ ISSUE_M=""
 BINDER=""
 REPO=""
 DRY_RUN=false
+CHECK_ALL=false
 
 usage() {
   cat >&2 <<'EOF'
-Usage: stamp-pr-open.sh --pr <N> [--issue <M>] [--binder <path>] [--repo <owner/repo>] [--dry-run]
-  --pr      PR number (required). URL + state resolved via gh.
-  --issue   issue number (optional; default: parsed from the binder's github row).
-  --binder  path to binder README.md (optional; default: located from the
-            current branch's tkt-<id>- worktree bind).
-  --repo    owner/repo for gh (optional; defaults to origin).
-  --dry-run report what would change; mutate nothing (binder or GitHub).
+Usage: stamp-pr-open.sh --pr <N> [--issue <M>] [--binder <path>] [--repo <owner/repo>]
+                        [--check-all] [--dry-run]
+
+Order matters: check binder acceptance boxes, then stamp — the issue sync
+mirrors only checked boxes (unchecked binder boxes sync nothing).
+
+  --pr        PR number (required). URL + state resolved via gh.
+  --issue     issue number (optional; default: parsed from the binder's github row).
+  --binder    path to binder README.md (optional; default: located from the
+              current branch's tkt-<id>- worktree bind).
+  --repo      owner/repo for gh (optional; defaults to origin).
+  --check-all check ALL unchecked binder acceptance boxes, then mirror.
+              REFUSED when the Acceptance section carries a deferral note
+              (a line containing "defer") — deferred items force explicit
+              per-box checking.
+  --dry-run   report what would change; mutate nothing (binder or GitHub).
 EOF
   exit 2
 }
@@ -46,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --issue) ISSUE_M="${2:-}"; shift 2 ;;
     --binder) BINDER="${2:-}"; shift 2 ;;
     --repo) REPO="${2:-}"; shift 2 ;;
+    --check-all) CHECK_ALL=true; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
     -h|--help) usage ;;
     *) echo "Unknown: $1" >&2; usage ;;
@@ -149,6 +165,30 @@ LEDGERPATH
   exit 1
 fi
 
+# --- --check-all guard: deferral notes force explicit per-box checking --------
+# Runs BEFORE any mutation (binder or GitHub). A deferral note in the
+# Acceptance section means some boxes are deliberately open; blanket-checking
+# would erase that intent, so refuse and make the caller check per box.
+if $CHECK_ALL; then
+  DEFER_LINES=$(python3 - "$BINDER" <<'PY'
+import re, sys
+
+s = open(sys.argv[1], encoding="utf-8").read()
+m = re.search(r'^#{2,4} Acceptance\b.*?\n(.*?)(?=\n#{1,4} |\Z)', s, re.DOTALL | re.MULTILINE)
+if m:
+    for line in m.group(1).splitlines():
+        if re.search(r'defer', line, re.IGNORECASE):
+            print(line.strip())
+PY
+)
+  if [[ -n "$DEFER_LINES" ]]; then
+    echo "Error: --check-all refused — the binder Acceptance section contains deferral note(s):" >&2
+    printf '%s\n' "$DEFER_LINES" | sed 's/^/  /' >&2
+    echo "  deferred items must stay unchecked; check the delivered boxes explicitly, then re-run without --check-all" >&2
+    exit 1
+  fi
+fi
+
 # --- Repo identity binding (refuse-foreign-repo, as finish-ledger.sh) ---------
 repo_identity_from_url() {
   python3 - "$1" <<'PY'
@@ -247,11 +287,13 @@ fi
 
 # --- Stamp the binder (locked + atomic, finish-ledger conventions) ------------
 STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
-python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" <<'PY'
+CHECK_ALL_MODE=$($CHECK_ALL && echo "check-all" || echo "keep-boxes")
+python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" <<'PY'
 import sys, re, os, stat, fcntl
 
-binder, pr_n, pr_url, mode = sys.argv[1:5]
+binder, pr_n, pr_url, mode, box_mode = sys.argv[1:6]
 dry_run = mode == "dry-run"
+check_all = box_mode == "check-all"
 
 # Exclusive lock on the containing directory for the whole read-modify-write
 # (stable inode across atomic replaces; no untracked lock artifact).
@@ -269,18 +311,34 @@ orig = s
 prs_entry = f"pr-{pr_n} — {pr_url}"
 
 # prs row: canonical `pr-N — URL` (idempotent; append for multiple PRs).
+# Any `(none…)` placeholder variant is REPLACED, never appended beside
+# (same law as finish-ledger.sh — digest rev-20260826-172600Z Findings 4).
 prs_row = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
 m_prs = prs_row.search(s)
 if m_prs:
     cur = m_prs.group(2)
     if f"pr-{pr_n}" in cur:
         pass  # already recorded (idempotent)
-    elif cur in ("", "(none)", "(none yet)"):
+    elif cur == "" or re.fullmatch(r'\(none[^)]*\)', cur):
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {prs_entry} {mm.group(3)}", s, count=1)
     else:
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {cur} · {prs_entry} {mm.group(3)}", s, count=1)
 else:
     print("stamp-pr-open: WARNING — binder has no `| prs |` row; not stamped", file=sys.stderr)
+
+# --check-all: check every unchecked box in the Acceptance section. The
+# deferral guard already refused before this point when a deferral note exists.
+boxes_checked = 0
+if check_all:
+    m_acc = re.search(r'^#{2,4} Acceptance\b.*?\n(.*?)(?=\n#{1,4} |\Z)', s, re.DOTALL | re.MULTILINE)
+    if m_acc:
+        section = m_acc.group(1)
+        new_section, boxes_checked = re.subn(
+            r'^(\s*- \[) (\] )', r'\1x\2', section, flags=re.MULTILINE)
+        if boxes_checked:
+            s = s[:m_acc.start(1)] + new_section + s[m_acc.end(1):]
+    else:
+        print("stamp-pr-open: --check-all — binder has no Acceptance section; nothing to check", file=sys.stderr)
 
 # status row → pr-open. Never regress a closed ticket (finish-ledger owns that).
 m_status = re.search(r'\| status \|\s*(.*?)\s*\|', s)
@@ -306,12 +364,13 @@ if s != orig and not dry_run:
             os.unlink(tmp)
         raise
 
+box_note = f" + {boxes_checked} acceptance box(es) checked" if boxes_checked else ""
 if s == orig:
     print("stamp-pr-open: binder no change (idempotent)")
 elif dry_run:
-    print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{prs_entry}` + status pr-open")
+    print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{prs_entry}` + status pr-open{box_note}")
 else:
-    print(f"stamp-pr-open: binder stamped ({prs_entry}, status pr-open)")
+    print(f"stamp-pr-open: binder stamped ({prs_entry}, status pr-open{box_note})")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
@@ -328,10 +387,13 @@ fi
 # Checked binder acceptance items, one per line: "<ordinal>\t<A-id or ->\t<text>".
 # Ordinals count ALL checkbox items in the binder's Acceptance section, so a
 # checked item keeps its position for the id-less ordinal fallback.
-CHECKED_ITEMS=$(python3 - "$BINDER" <<'PY'
+# Under --check-all every item counts as checked (the stamp above checked them;
+# in --dry-run the file is untouched, so the mode flag keeps the report honest).
+CHECKED_ITEMS=$(python3 - "$BINDER" "$CHECK_ALL_MODE" <<'PY'
 import re, sys
 
 s = open(sys.argv[1], encoding="utf-8").read()
+check_all = sys.argv[2] == "check-all"
 m = re.search(r'^#{2,4} Acceptance\b.*?\n(.*?)(?=\n#{1,4} |\Z)', s, re.DOTALL | re.MULTILINE)
 if not m:
     raise SystemExit(0)
@@ -341,7 +403,7 @@ for line in m.group(1).splitlines():
     if not box:
         continue
     ordinal += 1
-    if box.group(1) in ("x", "X"):
+    if check_all or box.group(1) in ("x", "X"):
         text = box.group(2).strip()
         mid = re.match(r'\*\*(A[0-9]+)\*\*', text)
         print(f"{ordinal}\t{mid.group(1) if mid else '-'}\t{text}")

@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/81 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | helper polish batch (stamp-pr-open, finish-ledger, build-review-context, batch-work brief line) + 0.2.3 |
 | spec | none — digest findings (rev-20260826-172600Z F3–F6) |
@@ -43,11 +43,20 @@ Each helper change is additive and small; reuse each script's existing test harn
 
 ## Decision journal
 
+- `--check-all` × deferral notes: implemented the parked default — REFUSE (exit 1, before any mutation) when the binder Acceptance section contains a line matching "defer" — **ratified-by-default** (parked in Anticipated/Pending decisions, unobjected overnight; source: binder parked default, decision-policy chain #1 ticket AC)
+- Deferral-note match is case-insensitive (`defer`, `Deferred`, `DEFER…`): the spec said "a line containing 'defer'"; the safe direction is the broader match (refusing too often beats blanket-checking a deferred box) — reversible + ticket-local (source: 5 — default heuristic, safety-first)
+- stamp-pr-open's prs row got the same `(none…)`-placeholder replacement law as finish-ledger (scope letter (b) named only finish-ledger, but stamp-pr-open is in the paths row, had the identical `("", "(none)", "(none yet)")` tuple gap, and is the same F4 duplication class) — reversible + ticket-local (source: covers digest F4)
+- `--from-heads` bats use a REAL fixture remote: a bare repo on a local path (`git init --bare` + push), so `git fetch`/`git show FETCH_HEAD:` run for real and no documented skip is needed — cheap (~1s), deterministic, no network (source: ticket AC option 1 of 2)
+- `--from-heads` PR-number gh fallback searches `--state open` (not the manifest fallback's `--state all`): only an open PR has a head worth fetching; non-open PRs report `local (pr-N is <STATE> — not an open head)` — reversible + ticket-local (source: 5 — default heuristic)
+- head `headRefName` is validated (`^[A-Za-z0-9][A-Za-z0-9._/-]*$`) before reaching the `git fetch` command line — gh output is external input; same identifier-hygiene law the sibling helpers apply to --pr/--repo (source: sibling-script convention, finish-ledger.sh)
+
 ## Pending decisions
 
-- `--check-all` vs deferred-note interaction — default if unanswered: refuse when deferral notes present
+- ~~`--check-all` vs deferred-note interaction — default if unanswered: refuse when deferral notes present~~ resolved 2026-08-27: default ratified by silence; implemented + journaled above
 
 ## Attempts
+
+- single path per item, no fallback-ledger entries: all three suites green on first run (56/56 across stamp-pr-open 12, finish-ledger 28, build-review-context 16); one test-authoring slip (sed delimiter colliding with `|` in the prs-row pattern) caught and fixed before the run
 
 ## Notes
 

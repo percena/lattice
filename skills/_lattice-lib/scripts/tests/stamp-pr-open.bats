@@ -237,3 +237,44 @@ EOF
   [[ "$output" == *"different repository"* ]]
   grep -q '| prs | (none) |' "$BINDER"
 }
+
+@test "--check-all checks every unchecked binder box, then mirrors all items" {
+  write_fresh_binder
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER" --check-all
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"1 acceptance box(es) checked"* ]]
+  # binder: A2 now checked too; canonical stamp still applied
+  grep -q -- '- \[x\] \*\*A1\*\* first thing done' "$BINDER"
+  grep -q -- '- \[x\] \*\*A2\*\* second thing not done' "$BINDER"
+  grep -q '| prs | pr-12 — https://github.com/acme/repo/pull/12 |' "$BINDER"
+  grep -q '| status | pr-open |' "$BINDER"
+  # issue: BOTH boxes mirrored in one pass
+  grep -q -- '- \[x\] \*\*A1\*\* first thing done' "$TEST_DIR/edited-body.md"
+  grep -q -- '- \[x\] \*\*A2\*\* second thing not done' "$TEST_DIR/edited-body.md"
+  [[ "$output" == *"checked 2 acceptance box(es) on issue #7"* ]]
+}
+
+@test "--check-all refuses when the Acceptance section carries a deferral note" {
+  write_fresh_binder
+  write_issue_body
+  # a deliberately-open box with a deferral note (parked scope)
+  sed -i 's/- \[ \] \*\*A2\*\* second thing not done/- [ ] **A2** second thing not done — deferred to tkt-99/' "$BINDER"
+  cp "$BINDER" "$TEST_DIR/binder-before.md"
+  run_spo --pr 12 --binder "$BINDER" --check-all
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"--check-all refused"* ]]
+  [[ "$output" == *"deferred to tkt-99"* ]]
+  # nothing mutated: binder byte-identical, no gh issue traffic
+  cmp -s "$BINDER" "$TEST_DIR/binder-before.md"
+  ! grep -q -- 'issue edit' "$GH_LOG"
+  ! grep -q -- 'issue comment' "$GH_LOG"
+}
+
+@test "usage header states the ordering law (check boxes, then stamp)" {
+  run_spo --help
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"check binder acceptance boxes, then stamp"* ]]
+  [[ "$output" == *"mirrors only checked boxes"* ]]
+  [[ "$output" == *"--check-all"* ]]
+}
