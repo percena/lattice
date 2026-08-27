@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/137 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Stamp deferred+reason on fuse-halt/blocked-by-failure at trip time (FSM-2 Option B) |
 | spec | none — ticket-only from tkt-136 decision |
@@ -51,4 +51,5 @@ In batch-work flow.md FUSE CHECK + NEXT-LAYER DEPENDENCY CHECK: at trip time, st
 
 ## Finish
 
-- (none yet)
+- pr-142 merged: 2026-08-27 — https://github.com/percena/lattice/pull/142 (squash merge, covers tkt-132/135/137/138)
+

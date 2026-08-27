@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/132 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Stamp stuck+wait_reason on watchdog-timeout (FSM-2b in-progress recovery) |
 | spec | none — ticket-only from rev-20260827-102420Z F2 |
@@ -53,4 +53,5 @@ In batch-work flow.md WATCHDOG/TIMEBOX section: at trip time, the host stamps th
 
 ## Finish
 
-- (none yet)
+- pr-142 merged: 2026-08-27 — https://github.com/percena/lattice/pull/142 (squash merge, covers tkt-132/135/137/138)
+

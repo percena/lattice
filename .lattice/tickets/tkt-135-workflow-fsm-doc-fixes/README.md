@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/135 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | M1 row add Spec done terminal + mermaid any→closed (F5+F6) |
 | spec | none — ticket-only from rev-20260827-102420Z F5+F6 |
@@ -51,4 +51,5 @@ Edit docs/workflow-fsm.md: M1 states row (:12) add → Spec done; M1 diagram (:2
 
 ## Finish
 
-- (none yet)
+- pr-142 merged: 2026-08-27 — https://github.com/percena/lattice/pull/142 (squash merge, covers tkt-132/135/137/138)
+
