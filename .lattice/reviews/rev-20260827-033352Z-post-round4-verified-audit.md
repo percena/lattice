@@ -10,14 +10,14 @@ created: 2026-08-27
 updated: 2026-08-27
 related_specs: []
 related_tickets: [tkt-90, tkt-91, tkt-92, tkt-93, tkt-94, tkt-95, tkt-96]
-related_prs: []
+related_prs: [pr-97, pr-98, pr-99, pr-100, pr-101, pr-102, pr-103]
 ---
 
 # Review: Post-round-4 verified audit
 
 > **TL;DR:** Operator-requested audit of the last 24h of delivery (rounds 1–4, PRs #52–#89). Every finding below was hand-verified against the working tree at `f9568a3` — line numbers cited are real. One systemic contract breach (F1), one systemic enforcement gap (F3), and a family of surface drifts that share a single root cause: **surfaces with a validator stay fresh; surfaces without one rot.** Outcome: seven tickets.
 > **Kind:** findings · **Status:** concluded · **Outcome:** spawn_tickets
-> **Next:** tkt-90…tkt-96 (wave plan below)
+> **Next:** tkt-90…tkt-96 — delivered same day as PRs #97–#103 (order: #100→#103, #101→#102; #97/#98/#99 free); merges are the operator's
 
 ## Method
 
