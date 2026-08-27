@@ -175,7 +175,7 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 }
 
 @test "bash no-exec boundary parsing never executes substitution content" {
-  marker="${BATS_TEST_TMPDIR}/normalizer-must-not-execute"
+  marker="${BATS_TEST_TMPDIR:-$(mktemp -d)}/normalizer-must-not-execute"
   printf -v input 'echo "$(touch %q; gh pr create)"' "$marker"
   result=$(run_helper "$input")
   [ ! -e "$marker" ]
@@ -194,7 +194,7 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 }
 
 @test "parse-budget exhaustion still does not execute substitution content" {
-  marker="${BATS_TEST_TMPDIR}/fail-closed-must-not-execute"
+  marker="${BATS_TEST_TMPDIR:-$(mktemp -d)}/fail-closed-must-not-execute"
   printf -v input 'echo "$(touch %q; gh pr create)"' "$marker"
   LATTICE_STRIP_PAREN_BUDGET_SECONDS=0 run run_helper "$input"
   result="$output"

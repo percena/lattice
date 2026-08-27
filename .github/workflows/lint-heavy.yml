@@ -2,7 +2,7 @@ name: lint-heavy
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "skills/**"
       - "tools/**"

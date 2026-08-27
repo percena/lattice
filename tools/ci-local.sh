@@ -7,7 +7,8 @@
 #                       validate + fake-provider smoke, claude plugin validate
 # - lattice-scripts.yml every discovered bats suite under skills/ and tools/
 # - plugin-hooks.yml    bats from plugins/lattice (its working-directory)
-# Plus tools/validate-lattice-artifacts.py (L0 contract check).
+# Plus tools/validate-lattice-artifacts.py (L0 contract check; CI parity via
+# .github/workflows/artifacts.yml on pull_request + push to main/dev — tkt-92).
 #
 # Usage: bash tools/ci-local.sh [--base-ref REF] [--fast]
 #   --base-ref REF  base for validate-plugin-versions and its path-filter skip
