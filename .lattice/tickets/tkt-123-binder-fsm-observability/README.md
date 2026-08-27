@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/123 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | binder FSM observability + bounded-loop enforcement (counter field, rework-edge cleanup, stuck wait-reason) |
 | spec | (none — standalone process-hardening from state-machine audit) |
@@ -29,11 +29,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** The ticket-binder template gains a structured bounded-loop counter (e.g. a `fix_cycles` field-table row + a parseable marker in `## Attempts` recording review-fix cycles and retry counts) so caps are machine-readable, not append-only prose.
-- [ ] **A2** `docs/workflow-fsm.md` documents a **single** `rework` exit path (`rework → in-progress → fix → pr-open`); the redundant direct `rework → pr-open` edge is removed or clarified with the condition that distinguishes it; the ≤2 cycle counter is tied to the A1 field.
-- [ ] **A3** The binder template gains a `wait_reason: unblock | re-scope` convention (field or `## Notes` marker) so morning triage can route `stuck` tickets: unblock (needs an answer) vs re-scope (needs Spec/ticket revision, routed to M1). `start-work`/`workflow-fsm.md` reference it.
-- [ ] **A4** `validate-lattice-artifacts.py` statically flags a bounded-loop counter exceeding its declared bound (e.g. `fix_cycles > 2`), reusing the warning posture from legacy-status lazy migration.
-- [ ] **A5** Live `.lattice/` tree passes the validator (existing binders without the new field warn, not fail — lazy migration precedent).
+- [x] **A1** The ticket-binder template gains a structured bounded-loop counter (e.g. a `fix_cycles` field-table row + a parseable marker in `## Attempts` recording review-fix cycles and retry counts) so caps are machine-readable, not append-only prose.
+- [x] **A2** `docs/workflow-fsm.md` documents a **single** `rework` exit path (`rework → in-progress → fix → pr-open`); the redundant direct `rework → pr-open` edge is removed or clarified with the condition that distinguishes it; the ≤2 cycle counter is tied to the A1 field.
+- [x] **A3** The binder template gains a `wait_reason: unblock | re-scope` convention (field or `## Notes` marker) so morning triage can route `stuck` tickets: unblock (needs an answer) vs re-scope (needs Spec/ticket revision, routed to M1). `start-work`/`workflow-fsm.md` reference it.
+- [x] **A4** `validate-lattice-artifacts.py` statically flags a bounded-loop counter exceeding its declared bound (e.g. `fix_cycles > 2`), reusing the warning posture from legacy-status lazy migration.
+- [x] **A5** Live `.lattice/` tree passes the validator (existing binders without the new field warn, not fail — lazy migration precedent).
 
 ## Approach
 

@@ -43,8 +43,7 @@ stateDiagram-v2
     ip --> stuck: fallback bounds hit
     stuck --> queued: unblock
     pr --> rework: findings returned (new brief)
-    rework --> ip: fix cycle (≤2)
-    rework --> pr: fix pushed (re-review)
+    rework --> ip: fix cycle (fix_cycles ≤2; then ip→pr on push)
     stuck --> [*]: re-scope → M1 (Spec/ticket revision)
     pr --> closed: human merge (day)
     stuck --> closed: cancel
@@ -99,12 +98,11 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | in-progress → pr-open | `create-pr` opens the PR | agent |
 | in-progress → parked | irreversible / cross-contract decision, unattended → park & pivot | agent |
 | parked → queued | **decision ratification** (atomically writes decision + re-queues) | human |
-| in-progress → stuck | fallback bounds hit; Attempts ledger complete + one well-formed question | agent |
-| stuck → queued | unblock (answer / env fix) | human |
-| stuck → M1 | re-scope: **Spec revision** / ticket revision | human |
+| in-progress → stuck | fallback bounds hit; Attempts ledger complete + one well-formed question; binder `wait_reason` stamped (`unblock` \| `re-scope`) so morning triage routes the two different dispositions | agent |
+| stuck → queued | unblock (answer / env fix) — `wait_reason: unblock` | human |
+| stuck → M1 | re-scope: **Spec revision** / ticket revision — `wait_reason: re-scope` | human |
 | pr-open → rework | PR returned with findings (findings become the new brief) | system |
-| rework → in-progress | re-enters the queue, address-review shape, fix cycle ≤2 | system |
-| rework → pr-open | fix pushed to the PR branch → re-review (start-work re-entry) | system |
+| rework → in-progress | re-enters the queue, address-review shape; `fix_cycles` row stamps the round (ADR-004 §5 cap ≤2). The path is `rework → in-progress → (implement fix) → pr-open` — there is no direct `rework → pr-open`; on push, `in-progress → pr-open` fires (the existing transition), and `fix_cycles` increments | system |
 | pr-open → pr-open (verdict voided) | materially changed rebase → re-review; clean rebase carries the verdict | system |
 | pr-open → closed (merged) | **merge** — day only; `finish-ledger.sh` stamps `mergedAt` | human |
 | any → closed (without merge) | **cancel** | human |

@@ -62,6 +62,10 @@ PRS_PLACEHOLDER_RE = re.compile(r"^\(none.*\)$", re.I)
 _PRS_ENTRY = r"pr-[1-9][0-9]* — https?://[^\s,]+"
 PRS_ROW_CANON_RE = re.compile(rf"^{_PRS_ENTRY}(?:,\s*{_PRS_ENTRY})*$")
 TICKETS_LIST_RE = re.compile(r"^tickets:\s*\[(.*?)\]\s*$", re.M)
+# Binder fix_cycles field-table row (ADR-004 §5 / tkt-123). Missing row is OK
+# (lazy migration — never fails); an explicit value >2 exceeds the review-fix
+# cap and warns (mirror legacy_open_status posture).
+FIX_CYCLES_RE = re.compile(r"^\|\s*fix_cycles\s*\|\s*([0-9]+)\s*\|", re.I | re.M)
 
 
 def parse_front_matter(text: str) -> dict[str, Any]:
@@ -336,6 +340,28 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "detail": f"status {st!r} is legacy-coarse; migrate to the FSM enum ({' | '.join(STATUS_WORKING_ORDER)} | closed)",
                 }
             )
+        # Bounded-loop invariant (ADR-004 §5 / tkt-123): the binder field-table
+        # `fix_cycles` row records review-fix rounds; cap is ≤2. An explicit
+        # value >2 exceeds the bound — warning (lazy-migration posture: missing
+        # row = 0, never fails; the cap is agent-discipline, the validator
+        # surfaces drift, not blocks).
+        fc_m = FIX_CYCLES_RE.search(first_table_block(text))
+        if fc_m:
+            fc_val = int(fc_m.group(1))
+            if fc_val > 2:
+                findings.append(
+                    {
+                        "code": "fix_cycles_exceeded",
+                        "level": "warning",
+                        "path": str(path),
+                        "detail": (
+                            f"fix_cycles {fc_val} exceeds the review-fix cap "
+                            "of 2 (ADR-004 §5); the bound is declared law — "
+                            "either resolve the findings (deep-review) or "
+                            "file a Spec/ticket revision"
+                        ),
+                    }
+                )
         # Header **Status:** copy vs field-table status. The template dropped
         # the header copy (field table is SoT); a stale survivor that
         # contradicts the table is dual-maintenance drift. Legacy-coarse

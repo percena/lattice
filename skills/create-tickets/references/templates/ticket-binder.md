@@ -16,6 +16,8 @@
 | labels | enhancement, P2 |
 | github | https://github.com/<org>/<repo>/issues/<id> |
 | status | queued | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it; merged vs closed-without-merge read from ## Finish mergedAt) · legacy: open (coarse — validator warns) |
+| fix_cycles | 0 | review-fix cycles on this PR (ADR-004 §5 cap ≤2; validator warns >2). Stamp +1 on each pr-open → rework → pr-open round (review-delivery/batch-work --with-review loop). Missing row = 0 (lazy migration — never fails) |
+| wait_reason | (none) | when status is stuck: unblock (needs an answer/env fix — human) \| re-scope (needs Spec/ticket revision → M1 — planning defect). Routes morning triage: two different dispositions from one state. Missing/`(none)` = the stuck ticket is unspecified |
 | adopted | false | true — **true** when GH issue body is hand-created / append-only; land uses binder-first Acceptance |
 | summary | ≤120 chars |
 | spec | spc-N — <one-line> (path: ../../specs/spc-N-<slug>.md) |
@@ -61,7 +63,10 @@
 
 ## Attempts
 
-<!-- Fallback ledger, one entry per attempt: approach · what failed · evidence (path/log) · why next differs. -->
+<!-- Fallback ledger, one entry per attempt: approach · what failed · evidence (path/log) · why next differs.
+     For review-fix cycles, prefix the round's entry with `cycle: N` (N starts at 1) so the bound is
+     machine-readable; the field-table `fix_cycles` row mirrors the latest N. Retry caps (ADR-004 §5):
+     ≤2 tries/path, ≤3 paths/ticket — this ledger is the counter inherited across sessions. -->
 
 ## Notes
 
