@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | chore, P1 |
 | github | https://github.com/percena/lattice/issues/92 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | validate-lattice-artifacts in CI + dev push triggers + red-run disposition duty in finish-work + BATS_TEST_TMPDIR guards |
 | spec | none — audit rev-20260827-033352Z F3/F8 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-62 (ci-local author; its journal named the vacuous bats lines), tkt-60 (train gate whose races surface here) |
 | **worktree_bind** | tkt-92-ci-enforcement |
 | worktree | sibling …/lattice.worktrees/tkt-92-ci-enforcement/ |
-| prs | (none yet) |
+| prs | pr-101 — https://github.com/percena/lattice/pull/101 |
 
 ## Acceptance (this slice)
 
