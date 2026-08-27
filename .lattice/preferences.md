@@ -24,6 +24,9 @@ Conflict with one of these → park (binder `## Pending decisions`); never silen
 
 Apply + journal the use; skip only with a stated equivalent-proof reason.
 
+- CI anomalies: retry intelligently before escalating — cheapest probe first (re-check state / wait for platform recovery), then re-trigger (fresh push or close-reopen), and hand to a human only when self-service is exhausted; always record what was tried and why the red was judged transient vs real (added 2026-08-26, operator-stated — direct entry, ×2 promotion not required for explicit operator directives)
+- Label taxonomy: docs and sync tooling follow the repo's live label set; renaming repo labels needs an explicit operator decision (added 2026-08-26, ratified-by-default in tkt-65, unobjected)
+
 <!-- - New scripts: bash + `set -euo pipefail`, mirror sibling script style (added 2026-08-26) -->
 <!-- - HTTP client: stdlib, not a new library (added 2026-08-26) -->
 
