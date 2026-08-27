@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/138 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Add ratify.sh single-commit script for parked→queued atomicity (FSM-4 Option A) |
 | spec | none — ticket-only from tkt-136 decision |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-138 (this issue) |
 | **related_tickets** | tkt-132 (G2 serial) |
 | **worktree_bind** | tkt-138-fsm4-option-a-ratify-sh |
-| prs | (none) |
+| prs | pr-142 — https://github.com/percena/lattice/pull/142 |
 
 ## Acceptance (this slice only)
 

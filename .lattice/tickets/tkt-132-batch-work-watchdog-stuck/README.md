@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/132 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Stamp stuck+wait_reason on watchdog-timeout (FSM-2b in-progress recovery) |
 | spec | none — ticket-only from rev-20260827-102420Z F2 |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-132 (this issue) |
 | **related_tickets** | tkt-135 (G2 serial, same PR) |
 | **worktree_bind** | tkt-132-batch-work-watchdog-stuck |
-| prs | (none) |
+| prs | pr-142 — https://github.com/percena/lattice/pull/142 |
 
 ## Acceptance (this slice)
 
