@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/90 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | finish-ledger status flip for all working statuses + validator finish_without_terminal_status / duplicate_ticket_id + restamp + doc-claim honesty |
 | spec | none — audit rev-20260827-033352Z F1/F2/F8 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-91 (stacked on this branch — shares finish-ledger.sh + validator), tkt-44/tkt-63 (the two round-1 tickets that broke each other) |
 | **worktree_bind** | tkt-90-binder-lifecycle-closure |
 | worktree | sibling …/lattice.worktrees/tkt-90-binder-lifecycle-closure/ |
-| prs | (none yet) |
+| prs | pr-100 — https://github.com/percena/lattice/pull/100 |
 
 ## Acceptance (this slice)
 
