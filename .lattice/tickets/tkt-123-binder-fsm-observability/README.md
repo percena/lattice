@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/123 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | binder FSM observability + bounded-loop enforcement (counter field, rework-edge cleanup, stuck wait-reason) |
 | spec | (none — standalone process-hardening from state-machine audit) |
@@ -25,7 +25,7 @@
 | **related_tickets** | tkt-121 (shares validator file — stacked after) |
 | **worktree_bind** | `tkt-123-binder-fsm-observability` |
 | worktree | sibling `…/lattice.worktrees/tkt-123-binder-fsm-observability/` (default for shippable) |
-| prs | (none) |
+| prs | pr-129 — https://github.com/percena/lattice/pull/129 |
 
 ## Acceptance (this slice)
 
