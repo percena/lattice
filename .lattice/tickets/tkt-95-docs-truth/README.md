@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/95 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | ADR-002 dated amendment (env gate → marker) + README/getting-started/day-phase/CHANGELOG/config corrections |
 | spec | none — audit rev-20260827-033352Z F7 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-82 (zh sync that caught the tier count), tkt-33 (marker mechanism ADR-002 must now cite) |
 | **worktree_bind** | tkt-95-docs-truth |
 | worktree | sibling …/lattice.worktrees/tkt-95-docs-truth/ |
-| prs | (none yet) |
+| prs | pr-97 — https://github.com/percena/lattice/pull/97 |
 
 ## Acceptance (this slice)
 
