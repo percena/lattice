@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/118 |
-| status | in-progress |
+| status | closed |
 | adopted | false |
 | summary | Retire train docs from 3 skills; add finish-work dev→main version-bump check step |
 | spec | spc-116 — retire release-train mechanism (path: ../../specs/spc-116-retire-release-train.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-118-retire-train-skill-docs` |
 | worktree | sibling `…/lattice.worktrees/tkt-118-retire-train-skill-docs/` |
-| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
+| prs | pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 

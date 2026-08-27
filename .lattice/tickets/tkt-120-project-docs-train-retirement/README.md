@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | documentation, P1 |
 | github | https://github.com/percena/lattice/issues/120 |
-| status | in-progress |
+| status | closed |
 | adopted | false |
 | summary | Project docs reflect release-boundary version enforcement + CHANGELOG records train retirement |
 | spec | spc-116 — retire release-train mechanism (path: ../../specs/spc-116-retire-release-train.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-120-project-docs-train-retirement` |
 | worktree | sibling `…/lattice.worktrees/tkt-120-project-docs-train-retirement/` |
-| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
+| prs | pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 

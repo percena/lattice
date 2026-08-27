@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/117 |
-| status | in-progress |
+| status | closed |
 | adopted | false |
 | summary | Delete train mechanism from validator; enforce version-bump only at dev→main release boundary |
 | spec | spc-116 — retire release-train mechanism (path: ../../specs/spc-116-retire-release-train.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-117-retire-train-validator-core` |
 | worktree | sibling `…/lattice.worktrees/tkt-117-retire-train-validator-core/` |
-| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
+| prs | pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 

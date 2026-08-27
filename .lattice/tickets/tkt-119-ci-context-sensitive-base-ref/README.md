@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/119 |
-| status | in-progress |
+| status | closed |
 | adopted | false |
 | summary | CI + ci-local pass correct base-ref: fork point for dev (lenient), origin/main for main (strict) |
 | spec | spc-116 — retire release-train mechanism (path: ../../specs/spc-116-retire-release-train.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-119-ci-context-sensitive-base-ref` |
 | worktree | sibling `…/lattice.worktrees/tkt-119-ci-context-sensitive-base-ref/` |
-| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
+| prs | pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 
