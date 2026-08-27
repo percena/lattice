@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/93 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | fail-loud coverage-gap reporting + pipefail + CJK OR-branch + arg guards + bats |
 | spec | none — audit rev-20260827-033352Z F5; original contract spc-12 A1 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-13/tkt-32 (script origin + earlier json fix) |
 | **worktree_bind** | tkt-93-dup-work-fail-loud |
 | worktree | sibling …/lattice.worktrees/tkt-93-dup-work-fail-loud/ |
-| prs | (none yet) |
+| prs | pr-99 — https://github.com/percena/lattice/pull/99 |
 
 ## Acceptance (this slice)
 
