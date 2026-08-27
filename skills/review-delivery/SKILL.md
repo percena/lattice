@@ -107,7 +107,7 @@ Every PR gets exactly one triage class, ranked, with a DAG-respecting recommende
 ## Trust calibration (documented hooks; tooling out of spc-42 scope)
 
 - **Sampling convention:** the team periodically hand-reviews a random `auto-pass` PR (suggested ≥1 per digest week) and records disagreement in the next digest — attestation is only trustworthy while sampled.
-- **Escaped-defect metric:** when a bug ticket traces (via lineage) to a PR a digest auto-passed, note the digest id in the bug ticket binder. Accumulated escapes calibrate how much `auto-pass` may be trusted; the metric tooling itself is a later ticket.
+- **Escaped-defect metric (shipped — spc-104/tkt-107):** bug binders carry `found_by` / `escaped_from: pr-N — digest rev-… (auto-pass)` lineage rows, written by the verify-features tracing recipe (`../verify-features/references/triage.md` §Escape tracing) — never guessed. Every digest counts escapes (since-last + cumulative, `auto-pass` vs `ratify-then-pass`) in its "Escaped defects" block; recipe in `references/axes.md` §Escaped-defect count. Accumulated escapes calibrate how much `auto-pass` may be trusted.
 
 ## Relationship
 

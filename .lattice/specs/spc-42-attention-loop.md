@@ -86,6 +86,7 @@ Teams running Lattice in a day/night cycle (attended planning by day, unattended
 - Overnight fix-loop dispatch mechanics (re-spawning implementer agents post-review) need verification in the target agent runtimes — mitigated by `--with-review` being opt-in and dry-run-able
 - Semantic A*→evidence fidelity is judgment work; attestation + human sampling guard against rubber-stamping, but calibration needs the escaped-defect metric to accumulate before auto-pass trust is data-backed
 - Pre-merge integration build assumes a cheap throwaway branch build; very slow suites may need a subset profile
+- **Amendment (2026-08-27 — spc-104 tkt-107):** the escaped-defect metric mechanics landed — bug binders carry `found_by`/`escaped_from` lineage rows (verify-features tracing) and every digest counts escapes per class (`auto-pass` vs `ratify-then-pass`). The "revisit risk-tiered auto-merge only after escaped-defect metric exists and is trusted" trigger (Out of scope) is now armed; auto-merge itself stays out of scope until escapes accumulate and trust is data-backed
 
 ## References
 
