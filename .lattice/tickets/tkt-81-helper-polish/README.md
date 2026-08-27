@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/81 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | helper polish batch (stamp-pr-open, finish-ledger, build-review-context, batch-work brief line) + 0.2.3 |
 | spec | none — digest findings (rev-20260826-172600Z F3–F6) |
@@ -23,15 +23,15 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-81-helper-polish |
 | worktree | sibling …/lattice.worktrees/tkt-81-helper-polish/ |
-| prs | (none) |
+| prs | pr-89 — https://github.com/percena/lattice/pull/89 |
 
 ## Acceptance (this slice)
 
-- [ ] stamp-pr-open: usage-header ordering hint + `--check-all` (check binder acceptance boxes, then mirror); bats
-- [ ] finish-ledger: replaces a `(none…)` prs placeholder instead of appending beside it; bats regression
-- [ ] build-review-context: `--from-heads` reads binder state from each ticket's open PR head (local fallback); bats
-- [ ] batch-work flow spawn-brief template: "never `git add -A`; stage named paths" line
-- [ ] 0.2.3 bump (plugin.json + marketplace.json) + CHANGELOG entry in this PR
+- [x] stamp-pr-open: usage-header ordering hint + `--check-all` (check binder acceptance boxes, then mirror); bats
+- [x] finish-ledger: replaces a `(none…)` prs placeholder instead of appending beside it; bats regression
+- [x] build-review-context: `--from-heads` reads binder state from each ticket's open PR head (local fallback); bats
+- [x] batch-work flow spawn-brief template: "never `git add -A`; stage named paths" line
+- [x] 0.2.3 bump (plugin.json + marketplace.json) + CHANGELOG entry in this PR
 
 ## Approach
 
