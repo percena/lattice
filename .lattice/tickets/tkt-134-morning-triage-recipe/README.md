@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/134 |
-| status | queued |
+| status | closed |
 | adopted | false |
 | summary | Add morning-triage recipe doc (digest → ratify → disposition → merge) |
 | spec | none — ticket-only from rev-20260827-102420Z F4 |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-134 (this issue) |
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-134-morning-triage-recipe |
-| prs | (none) |
+| prs | pr-139 — https://github.com/percena/lattice/pull/139 |
 
 ## Acceptance (this slice)
 
@@ -50,4 +50,6 @@ New file docs/morning-triage.md. Six sections: (1) read review-delivery digest (
 
 ## Finish
 
-- (none yet)
+- pr-139 merged: 2026-08-27 — https://github.com/percena/lattice/pull/139 (squash merge)
+- issue #134 closed: 2026-08-27 — https://github.com/percena/lattice/issues/134
+
