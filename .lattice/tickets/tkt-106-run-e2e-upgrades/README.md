@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/106 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | httpErrors in schema+pattern, story header (feature id/oracle/mutations), round-trip recipe, .lattice/e2e/stories/ catalog |
 | spec | spc-104 — runtime verification loop |
@@ -23,14 +23,14 @@
 | **related_tickets** | tkt-105 (map/story linkage), tkt-16/tkt-31 (skill origin) |
 | **worktree_bind** | tkt-106-run-e2e-upgrades |
 | worktree | sibling …/lattice.worktrees/tkt-106-run-e2e-upgrades/ |
-| prs | (none yet) |
+| prs | pr-113 — https://github.com/percena/lattice/pull/113 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `httpErrors` array in the JSON schema (first-party 4xx/5xx via `page.on('response')` + `requestfailed`), subscription registered before navigation, wired through Core rules / Flow / Verification / template / example; allowlist note for expected failures
-- [ ] **A2** story header convention (feature id, oracle citation, `mutations: none|safe|destructive`) in template + example
-- [ ] **A3** mutation round-trip recipe (create → reload → assert persisted) + story catalog convention `.lattice/e2e/stories/*.story.md`
-- [ ] **A4** ci-local green; carries the shared 0.3.0 cut byte-identically
+- [x] **A1** `httpErrors` array in the JSON schema (first-party 4xx/5xx via `page.on('response')` + `requestfailed`), subscription registered before navigation, wired through Core rules / Flow / Verification / template / example; allowlist note for expected failures
+- [x] **A2** story header convention (feature id, oracle citation, `mutations: none|safe|destructive`) in template + example
+- [x] **A3** mutation round-trip recipe (create → reload → assert persisted) + story catalog convention `.lattice/e2e/stories/*.story.md`
+- [x] **A4** ci-local green; carries the shared 0.3.0 cut byte-identically
 
 ## Approach
 
@@ -42,6 +42,11 @@ Additive edits keeping run-e2e a pattern, not a runner (ADR-002 §2). httpErrors
 - Whether 4xx on expected-negative stories fails — pre-resolved: the story's own oracle decides; the bundle default treats unexpected 4xx/5xx as fail, header may allowlist
 
 ## Decision journal
+
+- 2026-08-27 — **First-party definition:** same origin as `STORY_URL` (the app under test) **plus** origins listed in the story header `origins_allow` (APIs on other ports/hosts). Everything else (analytics, CDNs) is excluded from `httpErrors` entirely — third-party noise never enters the array. Templates carry an `isFirstParty(url)` helper mirroring this.
+- 2026-08-27 — **`http_allow` semantics:** allowlist entries are `"<METHOD> <url-substring> <status>"` (e.g. `"POST /api/login 422"`). Allowlisted entries **stay in the `httpErrors` array** (evidence is never filtered); only the `no unexpected http errors` assertion filters through the allowlist — same semantics as `console_allow` in verify-features' story-design (bundle default: unexpected first-party 4xx/5xx fail, per binder pre-resolution the story's own oracle decides via the allowlist).
+- 2026-08-27 — **Header placement:** header documented as a fenced yaml block at the top of `*.story.md` (docs convention, unparsed); the heredoc mirrors `origins_allow`/`http_allow` as `ORIGINS_ALLOW`/`HTTP_ALLOW` constants so the header states intent and the script enforces it — keeps run-e2e a pattern, not a runner (ADR-002 §2, no parsing layer).
+- 2026-08-27 — **Round-trip weight:** documented as DEFAULT (per spc-104 Decision 2's invariant bundle wording, "mutation stories assert the round-trip"), placed as its own section directly after the fail-loud auth INVARIANT; destructive-authorization policy stays in verify-features — run-e2e only defines the pattern.
 
 ## Pending decisions
 
