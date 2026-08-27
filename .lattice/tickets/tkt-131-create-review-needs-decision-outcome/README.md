@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/131 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Add needs_decision outcome to create-review for design-level undecided reviews |
 | spec | none — ticket-only from rev-20260827-102420Z F1 |
