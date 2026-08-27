@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.2.3] - 2026-08-26
 
-Helper polish from the first unattended consumption (digest rev-20260826-172600Z Findings 3–6, #81): single-PR bump.
+Helper polish from the first unattended consumption (digest rev-20260826-172600Z Findings 3–6, #81) plus the tkt-84 preference-capture law (#88): two-PR shared train cut — #89 owned the version bump, #88 carried the byte-identical cut.
 
 ### Added
 

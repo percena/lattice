@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-08-25
 - **Deciders:** maintainers
-- **Related:** `tkt-35`, `pr-N` (to be opened)
+- **Related:** `tkt-38`, `pr-39`
 - **Related ADRs:** —
 
 ## Context
@@ -61,7 +61,7 @@ The `finish-work` mini-review stays a bounded 5-axis projection (Correctness, Hi
   - Syntax/lint depends on tool availability; if tools are missing, checks are skipped (transparent, not silent).
 
 - **Follow-ups:**
-  - `tkt-35` — implement the changes (this ticket).
+  - `tkt-38` — implement the changes (this ticket).
   - Consider adding a `--quick` flag or stance that skips CI/lint/docs/interface for operators who only want correctness review (future ticket if needed).
 
 - **Verification:**
