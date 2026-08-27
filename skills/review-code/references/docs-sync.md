@@ -28,6 +28,7 @@ Compare the diff's **intent** against the doc's current content:
 2. Open the related doc section.
 3. If the doc **does not mention** or **contradicts** the new behavior → **stale**.
 4. If the doc already reflects the new behavior → **in sync**.
+5. **Claim reconciliation:** a doc/comment sentence in the change set that **promises tool or code behavior** ("the validator rejects X", "the flag defaults to Y") is checked against the implementation — read the code at the promise, or execute it when cheap — not just for staleness of names/paths. Doc–code disagreement is a finding regardless of which side is right.
 
 Do not flag docs as stale just because code near them changed — the doc must actually describe the thing that changed.
 

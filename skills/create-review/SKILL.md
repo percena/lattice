@@ -22,6 +22,7 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
 | --- | --- |
 | Homes, outcomes, lineage policy | `references/policy.md` |
 | Review file shape | `references/templates/review.md` |
+| Repo/system audit (fan-out, verify-then-report, enforcement coverage) | `references/audit-recipe.md` |
 | Delegation and accountable ownership | `../_lattice-lib/references/orchestration-patterns.md` |
 
 ## When to use / When NOT
@@ -48,6 +49,7 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
    - **Review-only** (user only asked for a Review / `inform_only`; no Spec, ticket binder, or new ADR in the same request) → **team-base write OK** (`.lattice/reviews/`). Do **not** open a worktree just to record a Review; commit on `dev`/`main`/… is fine.  
    - **Review + Spec and/or ticket binder and/or new ADR** in the same pass defaults to **one** shippable worktree and co-created artifacts. A reasoned unbound workspace or explicitly authorized clean base-direct path is permitted.
    - Still **never** bind a shippable worktree to `rev-` alone. Spec / ticket binders / product code need a shippable path with default bind or explicit reasoned-unbound evidence.
+9. **Verify-then-report (DEFAULT — findings-class reviews):** a delegated sweep's claim enters Findings only after the accountable owner re-verifies it against the tree (exact file:line, command output); non-reproducing claims are dropped and the dropped count recorded in Method. Full recipe: `references/audit-recipe.md`.
 
 ## Flow
 
@@ -87,7 +89,7 @@ Front matter: `id: rev-${N}` (full bare id including `rev-` prefix + token).
 
 | Field | Notes |
 | --- | --- |
-| `kind` | design / research / dogfood / … |
+| `kind` | design / research / dogfood / audit (repo/system audit → `references/audit-recipe.md`) / … |
 | `status` | open → concluded |
 | `outcome` | required when concluded |
 | `related_specs` / `related_tickets` / `related_prs` | bare ids |
