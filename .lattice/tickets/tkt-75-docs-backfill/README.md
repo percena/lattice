@@ -64,4 +64,6 @@ Source of truth = USER_FACING in tools/validate-skills.sh (13 skills). Diff each
 
 ## Finish
 
-- (none yet)
+
+- pr-77 merged: 2026-08-27T02:12:32Z — https://github.com/percena/lattice/pull/77 (base merge)
+- issue #75 closed: 2026-08-27T02:12:37Z — https://github.com/percena/lattice/issues/75

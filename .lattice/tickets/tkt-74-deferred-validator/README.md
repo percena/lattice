@@ -62,4 +62,6 @@ validate-lattice-artifacts: extend the binder field-table pass with a `prs_row_f
 
 ## Finish
 
-- (none yet)
+
+- pr-79 merged: 2026-08-27T02:12:11Z — https://github.com/percena/lattice/pull/79 (base merge)
+- issue #74 closed: 2026-08-27T02:12:16Z — https://github.com/percena/lattice/issues/74

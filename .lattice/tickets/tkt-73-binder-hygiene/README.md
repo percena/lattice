@@ -65,4 +65,6 @@ For each of the 5 legacy binders: `gh pr view` / `gh issue view` the linked PR/i
 
 ## Finish
 
-- (none yet)
+
+- pr-78 merged: 2026-08-27T02:11:50Z — https://github.com/percena/lattice/pull/78 (base merge)
+- issue #73 closed: 2026-08-27T02:11:55Z — https://github.com/percena/lattice/issues/73
