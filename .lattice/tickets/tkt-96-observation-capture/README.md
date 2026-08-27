@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/96 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | decision-policy "Observation duty" (DEFAULT) + NOTICED: canonical form + 3-skill wiring + review-delivery sweep step |
 | spec | none — audit rev-20260827-033352Z process observation #3 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-84 (pattern precedent — operator-preference capture duty, pr-88) |
 | **worktree_bind** | tkt-96-observation-capture |
 | worktree | sibling …/lattice.worktrees/tkt-96-observation-capture/ |
-| prs | (none yet) |
+| prs | pr-102 — https://github.com/percena/lattice/pull/102 |
 
 ## Acceptance (this slice)
 
