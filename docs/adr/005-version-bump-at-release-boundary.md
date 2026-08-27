@@ -1,6 +1,6 @@
 # ADR 005: Version bump enforced at dev→main release boundary, not per-PR on dev
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-27
 - **Deciders:** maintainer (M1n9X)
 - **Related:** `tools/validate-plugin-versions.py`, `tools/ci-local.sh`, `.github/workflows/lint-heavy.yml`, `skills/batch-work/`, `skills/finish-work/`, tkt-60, tkt-114, rev-20260826-145922Z-18p
