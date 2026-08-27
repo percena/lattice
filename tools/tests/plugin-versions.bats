@@ -299,3 +299,47 @@ train_cut_fixture() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"escapes repository root"* ]]
 }
+
+# tkt-114: linear-push train acceptance — integration-branch push events have
+# base == merge-base, so the divergent-blob signature can never hold there.
+
+linear_train_fixture() {
+  # main = released state at 2.3.4 (BASE). dev: member-1 lands the 2.3.5 cut,
+  # member-2 lands a bundled change with version files untouched (the push
+  # comparison that went red on the real dev — run 33042132795).
+  git -C "$TMP_REPO" branch -q main "$BASE"
+  git -C "$TMP_REPO" checkout -q -b dev "$BASE"
+  printf 'member-1 change\n' >"$TMP_REPO/skills/finish-work/SKILL.md"
+  write_version 2.3.5
+  commit_fixture
+  MID="$(git -C "$TMP_REPO" rev-parse HEAD)"
+  printf 'member-2 change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
+  commit_fixture
+}
+
+@test "release train: linear push mid-train (base already bumped vs main) passes" {
+  linear_train_fixture
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$MID"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"release-train cut shared with base"* ]]
+}
+
+@test "release train: linear push after promotion (main == base version) stays strict" {
+  linear_train_fixture
+  # promote: main fast-forwards to the dev tip — 2.3.5 is now released
+  git -C "$TMP_REPO" checkout -q main
+  git -C "$TMP_REPO" merge -q --ff-only dev
+  git -C "$TMP_REPO" checkout -q dev
+  PROMOTED="$(git -C "$TMP_REPO" rev-parse HEAD)"
+  printf 'post-release change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
+  commit_fixture
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$PROMOTED"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"without a version increment"* ]]
+}
+
+@test "release train: linear push with --no-train stays strict" {
+  linear_train_fixture
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$MID" --no-train
+  [ "$status" -eq 1 ]
+}
