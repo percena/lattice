@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/108 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | create-review references/audit-recipe.md + kind:audit + verify-then-report DEFAULT; review-code docs-sync claim-reconciliation line |
 | spec | none — operator request 2026-08-27; design in rev-20260827-042618Z §review-skill audit upgrades |
@@ -23,7 +23,7 @@
 | **related_tickets** | (method demonstrated in) the rev-20260827-033352Z audit → tkt-90…96 |
 | **worktree_bind** | tkt-108-audit-recipe |
 | worktree | sibling …/lattice.worktrees/tkt-108-audit-recipe/ |
-| prs | (none yet) |
+| prs | pr-112 — https://github.com/percena/lattice/pull/112 |
 
 ## Acceptance (this slice)
 
