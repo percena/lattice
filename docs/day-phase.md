@@ -35,7 +35,7 @@ The human answers a multiple-choice question (pick an option / adjust a paramete
 
 ### Step 6 — create-tickets additions
 
-Two mechanisms move night-time questions into this attended step (mechanism: `spc-42` A5, landing separately):
+Two mechanisms move night-time questions into this attended step (mechanism: `spc-42` A5, landed — tkt-48, v0.2.0):
 
 - **Anticipated-decisions scan** — per proposed ticket, the agent dry-runs the implementation against real code and lists expected decision points; each gets a disposition `pre-resolved | agent-decides | must-ask`, batch-confirmed now, not serially at night.
 - **`## Approach` authoring** — 5–10 lines of implementation sketch + touch-set written at split time, while the planner has global context and the human is present.

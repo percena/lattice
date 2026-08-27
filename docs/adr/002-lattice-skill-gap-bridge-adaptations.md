@@ -4,7 +4,7 @@
 - **Date:** 2026-08-25
 - **Deciders:** maintainers
 - **Related:** `spc-12`, `rev-20260825-072540Z`
-- **Related ADRs:** (none)
+- **Related ADRs:** `ADR-004` (cites this ADR's GitHub-native / sibling-worktree strategy as the base it extends)
 
 ## Context
 
@@ -65,11 +65,19 @@ We will adopt **Option B — Lattice-native adaptations.** Specifically:
 ## Status history
 
 - 2026-08-25: Proposed → Accepted (stemming from `rev-20260825-072540Z` cross-comparison review; deploy skill scope error corrected same day)
+- 2026-08-27: Amended (see **Amendment (2026-08-27)** below; accepted text unchanged)
 
 ## Notes
 
 - ERP's `check-duplicate-work.mjs` semantic matching (≥2 shared significant tokens or CJK run ≥3 chars) is worth borrowing as a matching heuristic, even though the storage layer changes.
 - ERP's pre-fix reproduction / post-fix verification loop (implement Step 0c/1b) is a process improvement, not an architectural decision — it goes in `spc-12` Spec Decisions, not this ADR.
 - ego-browser's `cdp` escape hatch provides a path to capabilities not covered by facades (e.g. `Page.handleJavaScriptDialog`), matching ERP's escape-hatch philosophy.
+
+## Amendment (2026-08-27)
+
+The accepted text above is preserved unchanged; two of its statements are superseded by shipped reality:
+
+- **§3 batch gate mechanism:** the `BATCH_WORK=1` env-var gate described in Decision §3 was replaced by the `.lattice/.batch-work-active` marker file (tkt-33, v0.2.0 Fixed) — the env var proved unreliable across ephemeral Bash sessions in spawned agents. Current mechanism: `skills/finish-work/SKILL.md` "Batch-work marker gate".
+- **Skill count:** Context's "10-skill lifecycle" reflects the roster at decision time; the user-facing roster is now 13 skills (see the README skill tables).
 
 ---
