@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/122 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | shell portability — ci-local.sh + bats suites fail on macOS default bash 3.2 (sed -i, apostrophe, mapfile) |
 | spec | (none — standalone process-hardening bug) |
@@ -25,14 +25,14 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-122-shell-portability` |
 | worktree | sibling `…/lattice.worktrees/tkt-122-shell-portability/` (default for shippable) |
-| prs | (none) |
+| prs | pr-128 — https://github.com/percena/lattice/pull/128 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** No `sed -i` (GNU form) remains in any bats file — all use the portable `sed -e 's/...' file > tmp && mv tmp file` (or `perl -pi -e`) form already used in `update-pr-base.bats`.
-- [ ] **A2** `sync-github-labels.sh` parses clean on bash 3.2 (`bash -n` exit 0) — apostrophe removed or label table built without `$(cat <<'EOF' …)`.
-- [ ] **A3** `ci-local.sh` + `build-review-context.sh` either avoid `mapfile` (portable `while read` loop) OR fail loud with a clear "requires bash 4+" guard before the first `mapfile`; requirement documented in the script header.
-- [ ] **A4** `bash tools/ci-local.sh` (full, no `--fast`) runs green on macOS default bash 3.2 (`/bin/bash` 3.2.57); all bats suites pass.
+- [x] **A1** No `sed -i` (GNU form) remains in any bats file — all use the portable `sed -e 's/...' file > tmp && mv tmp file` (or `perl -pi -e`) form already used in `update-pr-base.bats`.
+- [x] **A2** `sync-github-labels.sh` parses clean on bash 3.2 (`bash -n` exit 0) — apostrophe removed or label table built without `$(cat <<'EOF' …)`.
+- [x] **A3** `ci-local.sh` + `build-review-context.sh` either avoid `mapfile` (portable `while read` loop) OR fail loud with a clear "requires bash 4+" guard before the first `mapfile`; requirement documented in the script header.
+- [x] **A4** `bash tools/ci-local.sh` (full, no `--fast`) runs green on macOS default bash 3.2 (`/bin/bash` 3.2.57); all bats suites pass.
 
 ## Reproduction Steps (bug-class)
 

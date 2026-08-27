@@ -189,7 +189,7 @@ if [[ -n "$SPEC_N" ]]; then
   fi
   # tickets from front matter `tickets: [tkt-43, tkt-44]` (flow list)
   tickets_line="$(frontmatter "$SPEC_PATH" | grep -E '^tickets:' | head -1 || true)"
-  mapfile -t raw_ids < <(printf '%s\n' "$tickets_line" | grep -oE 'tkt-[1-9][0-9]*' || true)
+  raw_ids=(); while IFS= read -r _id; do raw_ids+=("$_id"); done < <(printf '%s\n' "$tickets_line" | grep -oE 'tkt-[1-9][0-9]*' || true)
   if [[ "${#raw_ids[@]}" -eq 0 ]]; then
     log "spec $SPEC_PATH front matter lists no tickets — nothing to review"
     exit 1
@@ -214,7 +214,7 @@ else
     log "batch report not found: $BATCH_REPORT"
     exit 1
   fi
-  mapfile -t raw_ids < <(grep -oE 'tkt-[1-9][0-9]*' "$BATCH_REPORT" | sort -u -t- -k2,2n || true)
+  raw_ids=(); while IFS= read -r _id; do raw_ids+=("$_id"); done < <(grep -oE 'tkt-[1-9][0-9]*' "$BATCH_REPORT" | sort -u -t- -k2,2n || true)
   if [[ "${#raw_ids[@]}" -eq 0 ]]; then
     log "batch report $BATCH_REPORT contains no tkt-N ids"
     exit 1
@@ -379,7 +379,7 @@ done
 printf '\n## ADRs cited\n\n'
 scan_files=("${SRC_FILES[@]}")
 [[ -n "$SPEC_PATH" ]] && scan_files+=("$SPEC_PATH")
-mapfile -t adr_refs < <(grep -ohE 'ADR-[0-9]{1,3}' "${scan_files[@]}" 2>/dev/null | sort -u || true)
+adr_refs=(); while IFS= read -r _a; do adr_refs+=("$_a"); done < <(grep -ohE 'ADR-[0-9]{1,3}' "${scan_files[@]}" 2>/dev/null | sort -u || true)
 if [[ "${#adr_refs[@]}" -eq 0 ]]; then
   printf -- '- (none cited)\n'
 else

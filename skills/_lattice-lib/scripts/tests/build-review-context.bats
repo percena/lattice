@@ -231,10 +231,12 @@ setup_from_heads_fixture() {
   git -C "$MAIN" push -q origin main
   # PR head: tkt-2's binder is stamped there (pr-open + journal content)
   git -C "$MAIN" checkout -qb tkt-2-beta-head
-  sed -i 's/| status | in-progress |/| status | pr-open |/' \
+  sed -i.bak 's/| status | in-progress |/| status | pr-open |/' \
     "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
-  sed -i 's#| prs | (none) |#| prs | pr-22 — https://github.com/acme/r/pull/22 |#' \
+  rm -f "$MAIN/.lattice/tickets/tkt-2-beta/README.md.bak"
+  sed -i.bak 's#| prs | (none) |#| prs | pr-22 — https://github.com/acme/r/pull/22 |#' \
     "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+  rm -f "$MAIN/.lattice/tickets/tkt-2-beta/README.md.bak"
   printf '\n' >>"$MAIN/.lattice/tickets/tkt-2-beta/README.md"
   python3 - "$MAIN/.lattice/tickets/tkt-2-beta/README.md" <<'PY'
 import sys
@@ -305,8 +307,9 @@ EOF
 # decorated placeholder must trigger the gh fallback, not read as filled.
 
 @test "decorated (none — …) placeholder still triggers the gh fallback" {
-  sed -i 's#| prs | (none) |#| prs | (none — rides tkt-81 PR) |#' \
+  sed -i.bak 's#| prs | (none) |#| prs | (none — rides tkt-81 PR) |#' \
     "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+  rm -f "$MAIN/.lattice/tickets/tkt-2-beta/README.md.bak"
   export GH_MODE=ok
   run bash "$BRC" --ids 2 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]

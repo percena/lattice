@@ -380,7 +380,8 @@ EOF
   # digest rev-20260826-172600Z Findings 4: appending left "(none) · pr-N …"
   for placeholder in '(none)' '(none yet)' '(none — pending)'; do
     write_fresh_binder
-    sed -i "s/| prs | (none yet) |/| prs | $placeholder |/" "$BINDER"
+    sed -i.bak "s/| prs | (none yet) |/| prs | $placeholder |/" "$BINDER"
+    rm -f "$BINDER.bak"
     run bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
       --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
     [ "$status" -eq 0 ]
@@ -391,7 +392,8 @@ EOF
 
 @test "a filled prs row appends once and re-runs stay idempotent" {
   write_fresh_binder
-  sed -i 's#| prs | (none yet) |#| prs | pr-11 — https://github.com/percena/lattice/pull/11 |#' "$BINDER"
+  sed -i.bak 's#| prs | (none yet) |#| prs | pr-11 — https://github.com/percena/lattice/pull/11 |#' "$BINDER"
+  rm -f "$BINDER.bak"
   bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
     --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
   grep -q '| prs | pr-11 — https://github.com/percena/lattice/pull/11, pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
@@ -408,7 +410,8 @@ EOF
 
 @test "pr-open binder: status flips to closed when issue closed" {
   write_fresh_binder
-  sed -i 's#| status | open |#| status | pr-open |#' "$BINDER"
+  sed -i.bak 's#| status | open |#| status | pr-open |#' "$BINDER"
+  rm -f "$BINDER.bak"
   run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
@@ -418,7 +421,8 @@ EOF
 @test "in-progress and rework binders: status flips to closed" {
   for st in in-progress rework; do
     write_fresh_binder
-    sed -i "s#| status | open |#| status | $st |#" "$BINDER"
+    sed -i.bak "s#| status | open |#| status | $st |#" "$BINDER"
+    rm -f "$BINDER.bak"
     bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
       --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
     grep -qE '\| status \| closed \|' "$BINDER"
@@ -427,7 +431,8 @@ EOF
 
 @test "parked binder: status is NOT auto-flipped (needs human attention)" {
   write_fresh_binder
-  sed -i 's#| status | open |#| status | parked |#' "$BINDER"
+  sed -i.bak 's#| status | open |#| status | parked |#' "$BINDER"
+  rm -f "$BINDER.bak"
   run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
