@@ -29,7 +29,7 @@
 
 - [x] **A1** feature-map template + conventions (columns: id, feature, entry, oracle + source, mutations, risk, story, last-verified, status ∈ untested|pass|fail|blocked); `validate-lattice-artifacts.py` format check when the file exists, fixture-backed tests
 - [x] **A2** verify-features SKILL.md + references (inventory, story/oracle policy incl. invariant bundle, triage + bug filing, report shape) carrying spc-104 Decisions 1/3/4 as INVARIANTs; registered on every enforced surface incl. routing cases
-- [ ] **A3** full ci-local green; owns the 0.3.0 cut + CHANGELOG entry
+- [x] **A3** full ci-local green; owns the 0.3.0 cut + CHANGELOG entry
 
 ## Approach
 
