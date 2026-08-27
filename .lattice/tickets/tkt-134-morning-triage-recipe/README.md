@@ -26,9 +26,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** docs/morning-triage.md exists with step-by-step recipe (digest → ratify → disposition → stamp → verdicts → finish-work)
-- [ ] **A2** Cross-linked from workflow-fsm.md §3 and day-phase.md
-- [ ] **A3** Each step cites the skill that owns the action
+- [x] **A1** docs/morning-triage.md exists with step-by-step recipe (digest → ratify → disposition → stamp → verdicts → finish-work)
+- [x] **A2** Cross-linked from workflow-fsm.md §3 and day-phase.md
+- [x] **A3** Each step cites the skill that owns the action
 
 ## Approach
 
