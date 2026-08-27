@@ -2,11 +2,32 @@
 
 > Lattice is an open-source toolkit of portable Agent Skills and optional Claude Code hooks for structured GitHub delivery. It is packaged and tested for Claude Code and Codex; consumer repositories keep `.lattice/` binders while GitHub Issues and PRs remain delivery records. [Source](README.md)
 
-The six lifecycle skills are `start-work`, `create-spec`, `create-review`, `create-tickets`, `create-pr`, and `finish-work`. `_lattice-lib` is their required internal install-unit: it ships with the full pack but is neither user-invocable nor a slash command. The optional `review-code`, `review-production`, and `generate-wiki` skills are side-paths that neither create Lattice lineage artifacts nor depend on `_lattice-lib`. The optional `create-adr` skill writes out-of-band `docs/adr/NNN` records (not lineage artifacts) but, like the lifecycle skills, co-installs `_lattice-lib` for `ensure-lattice` / `assert-shippable-cwd` (ADR writes are durable L0 doc). [Architecture](README.md#how-it-works) · [Skill reference](README.md#whats-included)
+Thirteen user-facing skills ship in one pack. The six lifecycle skills form the delivery loop; the rest are optional companions and side-paths that never create Lattice lineage artifacts. `_lattice-lib` is the required internal install-unit: it ships with the full pack but is neither user-invocable nor a slash command — the lifecycle six plus `batch-work`, `create-adr`, and `review-delivery` co-install it; `review-code`, `review-production`, `run-e2e`, and `generate-wiki` do not depend on it. [The loop](README.md#the-loop) · [Skill reference](README.md#skills)
+
+## Skills
+
+- [start-work](skills/start-work/SKILL.md): Start or resume a ticket/Spec — classify S/M/C, bind ticket + sibling worktree, hand off to implement.
+- [create-spec](skills/create-spec/SKILL.md): Lock fuzzy product scope into a durable Spec (`spc-N`) with acceptance criteria under `.lattice/specs`.
+- [create-review](skills/create-review/SKILL.md): Persist a durable Review note (`rev-YYYYMMDD-HHMMSSZ`) with findings and an explicit outcome.
+- [create-tickets](skills/create-tickets/SKILL.md): Split locked scope into GitHub issues + binders with covers, ship plan, and parallel groups.
+- [batch-work](skills/batch-work/SKILL.md): DAG-orchestrated unattended fan-out — parallel `start-work` agents on sibling worktrees with layer-barrier sync.
+- [create-pr](skills/create-pr/SKILL.md): Open or update a well-formed GitHub PR (Why/How/Fixes body, push, lineage).
+- [finish-work](skills/finish-work/SKILL.md): Merge or close a PR after base update, alignment checks, and a mini-review scan, then clean up branch + worktree.
+- [create-adr](skills/create-adr/SKILL.md): Out-of-band ADR companion — writes `docs/adr/NNN`; not a lineage node, not a loop step.
+- [run-e2e](skills/run-e2e/SKILL.md): Reference pattern for ego-browser heredoc JS e2e stories; not a runner, not a loop entry.
+- [review-code](skills/review-code/SKILL.md): Optional PR-scoped code review — material correctness/regression findings with recommended solutions.
+- [review-production](skills/review-production/SKILL.md): Optional PR-scoped production-readiness review (security, performance, test coverage, ship/rollback).
+- [review-delivery](skills/review-delivery/SKILL.md): Artifact-only chain review of a delivered ticket set → ranked morning digest; never merges, never a merge gate.
+- [generate-wiki](skills/generate-wiki/SKILL.md): Generate a navigable root `wiki/` of pure Markdown and optional `llms.txt`; standalone doc tool.
 
 ## Docs
 
 - [Getting started](docs/getting-started.md): Engine vs consumer model, installation, consumer setup, profiles, and the daily path.
 - [GitHub surface](docs/github-surface.md): Kind + priority labels and optional Project auto-add for skill-created issues/PRs.
+- [Workflow FSM](docs/workflow-fsm.md): Three coupled state machines, transition owners, and the bounded-loop invariant.
+- [Day phase](docs/day-phase.md): Attended planning recipe — requirement → proposal rev → spec → adr → tickets.
+- [ADR index](docs/adr/): Architecture Decision Records (durable cross-feature law).
+- [Changelog](CHANGELOG.md): Plugin SemVer history.
+- [README (中文)](README.zh-CN.md): Chinese translation of the project README.
 - [Contributing](CONTRIBUTING.md): Engine change boundaries and local validation.
 - [Security](SECURITY.md): Vulnerability reporting and scope.

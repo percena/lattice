@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/94 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | 13-skill parity on all surfaces + validate-skills keyword/README assertions + routing-catalog cross-check + CONTRIBUTING checklist |
 | spec | none — audit rev-20260827-033352Z F6 |
@@ -27,12 +27,12 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** both manifests: descriptions + keywords name all 13 user-facing skills; files agree with each other
-- [ ] **A2** `plugins/lattice/README.md`: component table + skills list + install example cover all 14 units; hooks heading current
-- [ ] **A3** `llms.txt` regenerated (13 skills, live anchors, full docs list)
-- [ ] **A4** `_lattice-lib/SKILL.md`: user-facing count corrected; script table lists all shipped runtime scripts
-- [ ] **A5** `validate-skills.sh`: USER_FACING ∈ both manifests' keywords + plugins/lattice/README.md (error); routing catalog asserted against USER_FACING (with cases added or documented exclusions for batch-work/run-e2e/review-delivery)
-- [ ] **A6** CONTRIBUTING new-skill checklist names every surface above; full `ci-local` green
+- [x] **A1** both manifests: descriptions + keywords name all 13 user-facing skills; files agree with each other
+- [x] **A2** `plugins/lattice/README.md`: component table + skills list + install example cover all 14 units; hooks heading current
+- [x] **A3** `llms.txt` regenerated (13 skills, live anchors, full docs list)
+- [x] **A4** `_lattice-lib/SKILL.md`: user-facing count corrected; script table lists all shipped runtime scripts
+- [x] **A5** `validate-skills.sh`: USER_FACING ∈ both manifests' keywords + plugins/lattice/README.md (error); routing catalog asserted against USER_FACING (with cases added or documented exclusions for batch-work/run-e2e/review-delivery)
+- [x] **A6** CONTRIBUTING new-skill checklist names every surface above; full `ci-local` green
 
 ## Approach
 
@@ -44,6 +44,11 @@ Mechanical parity edits first (A1–A4), then the enforcement (A5): extend the e
 - llms.txt structure — pre-resolved: keep current format, regenerate content only (generate-wiki owns richer generation)
 
 ## Decision journal
+
+- **Routing coverage over documented exclusion** (2026-08-27): wrote real minimal cases for batch-work/run-e2e/review-delivery (3 positives + 2-3 negatives each, matching existing case style incl. CJK positives/aliases) instead of an EXCLUDED list — routing hit 100% rank-1 with them, so exclusion had no remaining justification.
+- **batch-work positive phrasing** (2026-08-27): "Run tickets 12, 13 and 14 in parallel overnight, unattended batch delivery" ranked create-tickets first ("tickets"+"delivery" tokens dominate); re-phrased to "… in parallel overnight — unattended batch fan-out across worktrees" — still a realistic operator utterance, and "fan-out"/"worktrees" are batch-work-description vocabulary. 100% rank-1 after.
+- **Manifest keyword check stays grep/sed, no jq** (2026-08-27): validate-skills.sh has no jq dependency today; extracting the `"keywords": [ … ]` block with sed and grepping the quoted name keeps the script's style and avoids a new hard dependency. Checks are guarded on file existence so bats fixture trees (LATTICE_SKILLS_DIR) and consumer installs still validate.
+- **Catalog parity as a bats suite** (2026-08-27): `tools/tests/routing-catalog-parity.bats` extracts USER_FACING (validate-skills.sh) and CATALOG (run-routing-evals.py) from source and asserts set equality + per-skill case-file existence — the binder's "simplest" option; ci-local/lattice-scripts.yml discover tools/tests automatically.
 
 ## Pending decisions
 

@@ -8,9 +8,15 @@ Percena **Lattice** packaging for Claude Code: full delivery loop in **one** plu
 | `create-spec` | [`skills/create-spec`](../../skills/create-spec/) (symlinked) | Yes |
 | `create-review` | [`skills/create-review`](../../skills/create-review/) (symlinked) | Yes |
 | `create-tickets` | [`skills/create-tickets`](../../skills/create-tickets/) (symlinked) | Yes |
+| `batch-work` | [`skills/batch-work`](../../skills/batch-work/) (symlinked) | Yes — parallel fan-out orchestrator |
 | `create-pr` | [`skills/create-pr`](../../skills/create-pr/) (symlinked) | Yes |
 | `finish-work` | [`skills/finish-work`](../../skills/finish-work/) (symlinked) | Yes |
 | `create-adr` | [`skills/create-adr`](../../skills/create-adr/) (symlinked) | Yes — out-of-band ADR companion (not a loop step, not a lineage node) |
+| `run-e2e` | [`skills/run-e2e`](../../skills/run-e2e/) (symlinked) | Yes — e2e reference pattern (not a runner) |
+| `review-code` | [`skills/review-code`](../../skills/review-code/) (symlinked) | Yes — PR-scoped quality side-path |
+| `review-production` | [`skills/review-production`](../../skills/review-production/) (symlinked) | Yes — PR-scoped quality side-path |
+| `review-delivery` | [`skills/review-delivery`](../../skills/review-delivery/) (symlinked) | Yes — chain-review side-path |
+| `generate-wiki` | [`skills/generate-wiki`](../../skills/generate-wiki/) (symlinked) | Yes — standalone doc tool |
 | `_lattice-lib` | [`skills/_lattice-lib`](../../skills/_lattice-lib/) (symlinked; **not** a user slash skill) | Yes — shared scripts |
 
 Part of the [`percena`](../../README.md) marketplace.
@@ -25,14 +31,21 @@ Part of the [`percena`](../../README.md) marketplace.
 ### Skills only (Claude + Codex)
 
 ```bash
+# every shipped skill (all 14 units, _lattice-lib included)
+npx skills add percena/lattice -a claude-code -a codex -g -y
+
+# or explicit (all 14 units):
 npx skills add percena/lattice \
   --skill _lattice-lib \
   --skill start-work --skill create-spec --skill create-review \
-  --skill create-tickets --skill create-pr --skill finish-work \
+  --skill create-tickets --skill batch-work --skill create-pr \
+  --skill finish-work --skill create-adr --skill run-e2e \
+  --skill review-code --skill review-production --skill review-delivery \
+  --skill generate-wiki \
   -a claude-code -a codex -g -y
 ```
 
-> **Co-install:** always include **`_lattice-lib`**.
+> **Co-install:** always include **`_lattice-lib`** (required by the lifecycle six plus `batch-work`, `create-adr`, and `review-delivery`).
 
 ## Skills
 
@@ -40,10 +53,16 @@ npx skills add percena/lattice \
 - **[create-spec](../../skills/create-spec/)** — First-pass PCA align + persist `spc-n`.
 - **[create-review](../../skills/create-review/)** — Persist `rev-YYYYMMDD-HHMMSSZ` with explicit `outcome`.
 - **[create-tickets](../../skills/create-tickets/)** — Split locked scope into GitHub issues + binders.
+- **[batch-work](../../skills/batch-work/)** — DAG-orchestrated unattended fan-out: parallel `start-work` agents on sibling worktrees with layer-barrier sync.
 - **[create-pr](../../skills/create-pr/)** — Open/update PR; media upload via `_lattice-lib` when paths present.
 - **[finish-work](../../skills/finish-work/)** — Merge/close PR, delete branch, remove worktree.
 - **[create-adr](../../skills/create-adr/)** — Out-of-band ADR companion: writes `docs/adr/NNN`; co-installs `_lattice-lib`; not a lineage node, not a loop step.
-- **[lattice-lib](../../skills/_lattice-lib/)** — Shared scripts only (not a user slash skill).
+- **[run-e2e](../../skills/run-e2e/)** — Reference pattern for ego-browser heredoc JS e2e stories; not a runner, not a loop entry.
+- **[review-code](../../skills/review-code/)** — Optional PR-scoped code review: material correctness/regression findings with recommended solutions.
+- **[review-production](../../skills/review-production/)** — Optional PR-scoped production-readiness review (security, performance, test coverage, ship/rollback).
+- **[review-delivery](../../skills/review-delivery/)** — Artifact-only chain review of a delivered ticket set → ranked morning digest; never merges.
+- **[generate-wiki](../../skills/generate-wiki/)** — Navigable root `wiki/` of pure Markdown + optional `llms.txt`; standalone doc tool.
+- **[`_lattice-lib`](../../skills/_lattice-lib/)** — Shared scripts only (not a user slash skill).
 
 ## Typical path
 
@@ -51,7 +70,7 @@ npx skills add percena/lattice \
 /start-work → (/create-spec | /create-review) → /create-tickets → implement → /create-pr → /finish-work
 ```
 
-## Hooks (0.1.x, Claude-only)
+## Hooks (Claude-only)
 
 Optional guidance — **skills remain correct without hooks** (Codex / `npx skills`).
 
