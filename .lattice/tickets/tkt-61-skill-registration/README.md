@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/61 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | registration-integrity validator + bundle symlink backfill (batch-work, run-e2e, generate-wiki, review-code, review-production) + USER_FACING adds |
 | spec | none — hygiene from dogfood review |

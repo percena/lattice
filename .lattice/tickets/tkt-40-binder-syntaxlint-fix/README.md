@@ -1,7 +1,7 @@
 # tkt-40-binder-syntaxlint-fix
 
 > **TL;DR:** Fix tkt-35 binder checkbox hygiene + add PyYAML availability check note to syntax-lint.md
-> **Kind:** fix · **Status:** open · **Priority:** P3
+> **Kind:** fix · **Priority:** P3
 
 | Field | Value |
 | --- | --- |

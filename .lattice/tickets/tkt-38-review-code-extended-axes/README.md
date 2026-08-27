@@ -1,7 +1,9 @@
-# tkt-35-review-code-extended-axes
+# tkt-38-review-code-extended-axes
+
+> Formerly filed as `tkt-35-review-code-extended-axes` — an id collision with the real tkt-35 (issue #35, split-lint-heavy). This binder's issue is #38 (see `github` row), so the dir was renamed to its true id by tkt-90.
 
 > **TL;DR:** Add CI/CD, syntax/lint, docs-sync, interface-impact axes + solution-oriented findings + batch confirmation to review-code skill (not finish-work mini-review)
-> **Kind:** enhancement · **Status:** open · **Priority:** P2
+> **Kind:** enhancement · **Priority:** P2
 
 | Field | Value |
 | --- | --- |

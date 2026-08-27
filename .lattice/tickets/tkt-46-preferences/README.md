@@ -1,7 +1,7 @@
 # tkt-46-preferences
 
 > **TL;DR:** `.lattice/preferences.md` scaffolded by ensure-lattice from a severity-labeled template, with promotion / supersede lifecycle rules
-> **Kind:** feat · **Status:** pr-open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-42 → tkt-46 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/46 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | preferences template + ensure-lattice scaffold + lifecycle (promotion ×2, supersede-with-date, Spec/ADR outrank) |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |

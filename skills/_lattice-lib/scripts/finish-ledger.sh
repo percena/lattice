@@ -387,9 +387,16 @@ else:
             body = "\n" + pr_line + issue_line + "\n"
     s = s[:m.start()] + head + body + s[m.end():]
 
-# 2. status: open → closed (only when issue closed or no issue but PR merged).
+# 2. status: any working status → closed (only when issue closed or no issue
+#    but PR merged). Matches the FSM working vocabulary plus legacy `open` —
+#    stamp-pr-open stamps `pr-open`, so matching only `open` left merged
+#    binders stranded in a working state (tkt-90; audit rev-20260827-033352Z F1).
 if issue_closed == "true" or (not issue_m and merged):
-    s = re.sub(r'(\| status \|)\s*open\s*(\|)', r'\1 closed \2', s)
+    s = re.sub(
+        r'(\| status \|)\s*(?:open|queued|in-progress|pr-open|rework)\s*(\|)',
+        r'\1 closed \2',
+        s,
+    )
 
 # 3. prs table row: record pr-N — URL (idempotent; append for multiple PRs).
 # Any `(none…)` placeholder variant — "(none)", "(none yet)", … — is REPLACED,

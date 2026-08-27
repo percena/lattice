@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/63 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | marker warning whitelist + pr-open stamp helper (binder + GH issue acceptance sync); kills the two-commit dance and the alignment sync gap |
 | spec | none — enhancement from dogfood review |

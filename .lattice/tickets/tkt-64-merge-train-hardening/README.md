@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/64 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | merge-train hardening: prevent the add -A conflict-marker incident class; make the A8 verdict-void rule checkable |
 | spec | none — hardening from dogfood review |

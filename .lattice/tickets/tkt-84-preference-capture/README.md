@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/84 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | capture INVARIANT in decision-policy + one-line wiring in start-work/finish-work/batch-work |
 | spec | none — operator feedback 2026-08-26 (preferences.md meta-entry added same day) |

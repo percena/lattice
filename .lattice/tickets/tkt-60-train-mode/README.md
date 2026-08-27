@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/60 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | train mode for the version validator + shared-file modeling in the paths independence gate |
 | spec | none — hygiene/enhancement from dogfood review |

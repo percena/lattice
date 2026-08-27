@@ -1,7 +1,7 @@
 # tkt-48-tickets-scan
 
 > **TL;DR:** create-tickets runs an anticipated-decisions dry-run per ticket and authors `## Approach` (sketch + touch-set) at split time — front-loading the night's questions
-> **Kind:** feat · **Status:** pr-open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-42 → tkt-48 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/48 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | anticipated-decisions scan (pre-resolved / agent-decides / must-ask) + Approach authoring in create-tickets |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |

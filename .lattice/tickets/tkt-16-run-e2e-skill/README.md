@@ -1,7 +1,7 @@
 # tkt-16-ego-browser-run-e2e
 
 > **TL;DR:** ego-browser run-e2e reference layer — heredoc JS script template with assertion primitives + fail-loud auth
-> **Kind:** feat · **Status:** closed · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-16 → (pr-…)
 
 | Field | Value |

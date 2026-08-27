@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/82 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | zh README catches up with the English README's current skill reality |
 | spec | none — digest finding (rev-20260826-172600Z F7), noticed-by tkt-75 |

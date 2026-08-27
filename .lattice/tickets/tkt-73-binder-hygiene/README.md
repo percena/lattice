@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/73 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | legacy binder FSM migration (tkt-8/13/14/15/16) + prs-row canonicalization (tkt-43, tkt-5) |
 | spec | none — hygiene from round-1/2 digests |

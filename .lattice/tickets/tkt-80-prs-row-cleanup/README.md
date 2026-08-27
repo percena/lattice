@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/80 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | 13 binder prs rows → canonical `pr-N — <URL>`; zero prs_row_format warnings |
 | spec | none — digest finding (rev-20260826-172600Z F1) |
