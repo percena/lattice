@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** finish-work/SKILL.md contains zero references to "train" (case-insensitive grep)
-- [ ] **A2** :23 pointer matches flow.md §3.4 heading (Sequential merge queue)
-- [ ] **A3** Conflict-resolution + checks-rollup guidance preserved (reframed, not deleted)
-- [ ] **A4** references/flow.md unchanged (already clean by tkt-118)
+- [x] **A1** finish-work/SKILL.md contains zero references to "train" (case-insensitive grep)
+- [x] **A2** :23 pointer matches flow.md §3.4 heading (Sequential merge queue)
+- [x] **A3** Conflict-resolution + checks-rollup guidance preserved (reframed, not deleted)
+- [x] **A4** references/flow.md unchanged (already clean by tkt-118)
 
 ## Approach
 
