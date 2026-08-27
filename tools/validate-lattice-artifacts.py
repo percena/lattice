@@ -10,6 +10,9 @@ Checks (selected, not exhaustive):
     (requires a real ``## Finish`` ledger), legacy open (warning, lazy migration)
   - header ``**Status:**`` copy (TL;DR blockquote) contradicting the field-table
     status (warning; legacy-coarse ``open`` headers are exempt — lazy migration)
+  - binder ``prs`` row format: a filled row must be canonical ``pr-N — <URL>``
+    entries, comma-separated for multi-PR tickets; ``(none…)`` placeholders are
+    exempt (warning permanently — adopt flows may reintroduce legacy rows)
   - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal)
   - ``covers`` A* ids that do not exist on the parent Spec Acceptance
   - one-sided local edges: ticket lists Spec but Spec.tickets omits the ticket
@@ -46,6 +49,14 @@ FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.S)
 STATUS_TABLE_RE = re.compile(r"^\|\s*status\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
 STATUS_TLDR_RE = re.compile(r"\*\*Status:\*\*\s*([a-zA-Z0-9_-]+)", re.I)
 SPEC_REF_RE = re.compile(r"\|\s*spec\s*\|\s*(spc-[1-9][0-9]*)\b", re.I)
+PRS_TABLE_RE = re.compile(r"^\|\s*prs\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+# A row that is entirely a `(none…)` parenthetical is a placeholder, not a
+# filled ledger entry (e.g. `(none)`, `(none yet)`, `(none — rides tkt-5 PR)`).
+PRS_PLACEHOLDER_RE = re.compile(r"^\(none.*\)$", re.I)
+# Canonical filled row: `pr-N — <URL>` (single spaces around the em dash),
+# comma-separated for multi-PR tickets (`pr-52 — <URL>, pr-53 — <URL>`).
+_PRS_ENTRY = r"pr-[1-9][0-9]* — https?://[^\s,]+"
+PRS_ROW_CANON_RE = re.compile(rf"^{_PRS_ENTRY}(?:,\s*{_PRS_ENTRY})*$")
 TICKETS_LIST_RE = re.compile(r"^tickets:\s*\[(.*?)\]\s*$", re.M)
 
 
@@ -318,6 +329,31 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     ),
                 }
             )
+        # Binder prs row: canonical filled format is `pr-N — <URL>` (em dash),
+        # comma-separated for multi-PR tickets; `(none…)` placeholders are
+        # exempt. Warning-level PERMANENTLY: the historical ledger migrates
+        # lazily and adopt flows may reintroduce legacy rows, so this must
+        # never fail a run regardless of merge order.
+        prs_m = PRS_TABLE_RE.search(first_table_block(text))
+        if prs_m:
+            prs_val = prs_m.group(1).strip()
+            if (
+                prs_val
+                and not PRS_PLACEHOLDER_RE.fullmatch(prs_val)
+                and not PRS_ROW_CANON_RE.fullmatch(prs_val)
+            ):
+                findings.append(
+                    {
+                        "code": "prs_row_format",
+                        "level": "warning",
+                        "path": str(path),
+                        "detail": (
+                            f"prs row {prs_val!r} is not canonical "
+                            "`pr-N — <URL>` (em dash; comma-separated for "
+                            "multiples; `(none…)` placeholders exempt)"
+                        ),
+                    }
+                )
         if st in STATUS_TERMINAL and not has_finish_ledger(text):
             findings.append(
                 {

@@ -98,6 +98,28 @@ setup_file() {
   [[ "$output" != *tkt-73-prose-mention* ]]
 }
 
+@test "malformed filled prs row warns (does not fail)" {
+  # tkt-80: legacy `URL · pr-N — URL` shape → exactly one warning; the home
+  # still passes (warning-level permanently — adopt flows may reintroduce
+  # legacy rows).
+  run python3 "$VAL" --home "$FIX/prs-row" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" == *prs_row_format* ]]
+  [[ "$output" == *tkt-80-malformed* ]]
+  [[ "$output" == *'"warning_count": 1'* ]]
+}
+
+@test "canonical, comma-separated multi-PR, and placeholder prs rows are silent" {
+  # tkt-81 `pr-81 — URL`, tkt-83 `pr-83 — URL, pr-84 — URL`, tkt-82
+  # `(none — rides tkt-81 PR)` placeholder — none may fire.
+  run python3 "$VAL" --home "$FIX/prs-row" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" != *tkt-81-canonical* ]]
+  [[ "$output" != *tkt-82-placeholder* ]]
+  [[ "$output" != *tkt-83-multi* ]]
+}
+
 @test "prose backtick mention must not mask onesided_spec_ticket_edge" {
   # spec spc-4 omits tkt-4 from authoritative `tickets:` but mentions `tkt-4`
   # in prose; the one-sided edge must still fire.

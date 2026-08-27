@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/74 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | deferred validator items from tkt-65 + 0.2.2 bump (only bundled-touching ticket this round) |
 | spec | none — deferred-from tkt-65 (#65, PR #71) |
@@ -23,13 +23,13 @@
 | **related_tickets** | tkt-73 (canonicalizes existing rows; this check stays warning-level so merge order is irrelevant) |
 | **worktree_bind** | tkt-74-deferred-validator |
 | worktree | sibling …/lattice.worktrees/tkt-74-deferred-validator/ |
-| prs | (none) |
+| prs | pr-79 — https://github.com/percena/lattice/pull/79 |
 
 ## Acceptance (this slice)
 
-- [ ] prs-format warning fires on a malformed filled row fixture, silent on canonical `pr-N — <URL>` and on placeholders `(none…)`; bats green
-- [ ] lattice-init refuses a symlinked `preferences.md` (managed-paths list); bats green
-- [ ] 0.2.2 bump (plugin.json + marketplace.json) + CHANGELOG entry in this PR
+- [x] prs-format warning fires on a malformed filled row fixture, silent on canonical `pr-N — <URL>` and on placeholders `(none…)`; bats green
+- [x] lattice-init refuses a symlinked `preferences.md` (managed-paths list); bats green
+- [x] 0.2.2 bump (plugin.json + marketplace.json) + CHANGELOG entry in this PR
 
 ## Approach
 
@@ -40,6 +40,8 @@ validate-lattice-artifacts: extend the binder field-table pass with a `prs_row_f
 - Whether multi-PR rows (`pr-52 — URL, pr-53 — URL`) are canonical — disposition: agent-decides (accept comma-separated canonical entries; journal the grammar chosen)
 
 ## Decision journal
+
+- 2026-08-26 · **prs-row grammar** (anticipated, agent-decides): a FILLED row is one or more entries joined by commas — canonical joiner `, `, regex accepts any whitespace after the comma; entry = `pr-N — <URL>` with N bare decimal (`[1-9][0-9]*`), exactly one space each side of an em dash (U+2014), URL `https?://` with no whitespace/commas. Multi-PR rows (`pr-52 — <URL>, pr-53 — <URL>`) are canonical. Exemption: a row that is entirely a `(none…)` parenthetical (covers `(none)`, `(none yet)`, `(none — rides tkt-5 PR)`); a placeholder *prefixed* legacy row (`(none) · pr-36 — <URL>`) is filled and warns. Rationale: em dash + spacing straight from the template canon (PR #71 item 1); comma joiner is the least ambiguous separator given URLs never contain commas; `·` rejected as joiner since it marks the legacy shapes tkt-73 is canonicalizing. Warning-level permanently per binder Notes. Live-repo effect measured: 15 prs_row_format warnings, all on legacy rows in tkt-73's scope, exit still 0.
 
 ## Pending decisions
 
