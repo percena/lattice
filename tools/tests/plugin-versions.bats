@@ -46,55 +46,60 @@ commit_fixture() {
   git -C "$TMP_REPO" commit -qm change
 }
 
-train_cut_fixture() {
-  # Sibling train branch: its own bundled change + the version cut. Its head
-  # stands in for the comparison base after the sibling PR merged.
-  git -C "$TMP_REPO" checkout -q -b sibling "$BASE"
-  printf 'sibling change\n' >"$TMP_REPO/skills/finish-work/SKILL.md"
-  write_version 2.3.5
-  commit_fixture
-  SIBLING="$(git -C "$TMP_REPO" rev-parse HEAD)"
-  # Train branch under test: different bundled change + the byte-identical cut.
-  git -C "$TMP_REPO" checkout -q -b train "$BASE"
-  printf 'train change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
-  write_version 2.3.5
-  commit_fixture
-}
+# --- ADR-005: release-boundary enforcement (dev lenient / release strict) ---
 
-@test "release train: equal version with the identical shared cut passes" {
-  train_cut_fixture
+@test "dev mode: bundled change with equal version passes (no --release-check)" {
+  printf 'changed\n' >"$TMP_REPO/skills/_lattice-lib/SKILL.md"
+  write_version 2.3.4
+  commit_fixture
 
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$SIBLING"
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"release-train cut shared with base"* ]]
-  [[ "$output" == *"equal version 2.3.5 accepted"* ]]
+  [[ "$output" == *"lattice: 2.3.4 (changed)"* ]]
   [[ "$output" == *"validate-plugin-versions: OK"* ]]
 }
 
-@test "release train: diverged base without a cut on head still fails equal version" {
-  # Base advanced with an unrelated docs commit; head changed bundled content
-  # but never touched the version files — not a train, still the strict law.
-  git -C "$TMP_REPO" checkout -q -b sibling "$BASE"
-  mkdir -p "$TMP_REPO/docs"
-  printf 'unrelated\n' >"$TMP_REPO/docs/note.md"
-  commit_fixture
-  SIBLING="$(git -C "$TMP_REPO" rev-parse HEAD)"
-  git -C "$TMP_REPO" checkout -q -b feature "$BASE"
+@test "release check: bundled change with equal version fails (--release-check)" {
   printf 'changed\n' >"$TMP_REPO/skills/_lattice-lib/SKILL.md"
+  write_version 2.3.4
   commit_fixture
 
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$SIBLING"
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
   [ "$status" -eq 1 ]
   [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.4)"* ]]
 }
 
-@test "release train: --no-train restores the unconditional strict law" {
-  train_cut_fixture
+@test "release check: bundled change with version bump passes (--release-check)" {
+  printf 'changed\n' >"$TMP_REPO/skills/_lattice-lib/SKILL.md"
+  write_version 2.3.5
+  commit_fixture
 
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$SIBLING" --no-train
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.5)"* ]]
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"validate-plugin-versions: OK"* ]]
 }
+
+@test "non-decrease enforced in dev mode (version must not go backwards)" {
+  printf 'changed\n' >"$TMP_REPO/plugins/lattice/hooks/hook.sh"
+  write_version 2.3.3
+  commit_fixture
+
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"lattice: version must increase, got 2.3.4 -> 2.3.3"* ]]
+}
+
+@test "non-decrease enforced in release check mode" {
+  printf 'changed\n' >"$TMP_REPO/plugins/lattice/hooks/hook.sh"
+  write_version 2.3.3
+  commit_fixture
+
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"lattice: version must increase, got 2.3.4 -> 2.3.3"* ]]
+}
+
+# --- existing behavioral tests (updated for release-boundary model) ---
 
 @test "manifest and marketplace versions must match" {
   printf '{"name":"lattice","version":"2.3.5"}\n' \
@@ -104,16 +109,6 @@ train_cut_fixture() {
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 1 ]
   [[ "$output" == *"marketplace version '2.3.4' does not match manifest '2.3.5'"* ]]
-}
-
-@test "shared bundled content requires lattice version to increase" {
-  printf 'changed\n' >"$TMP_REPO/skills/_lattice-lib/SKILL.md"
-  write_version 2.3.4
-  commit_fixture
-
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.4)"* ]]
 }
 
 @test "unrelated repository changes do not require plugin bumps" {
@@ -126,12 +121,12 @@ train_cut_fixture() {
   [[ "$output" == *"lattice: 2.3.4 (unchanged)"* ]]
 }
 
-@test "plugin hook change requires version bump" {
+@test "plugin hook change requires version bump at release boundary" {
   printf 'changed\n' >"$TMP_REPO/plugins/lattice/hooks/hook.sh"
   write_version 2.3.5
   commit_fixture
 
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --json
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check --json
   [ "$status" -eq 0 ]
   json_output="$output"
   [[ "$output" == *'"cache_path": "~/.claude/plugins/cache/percena/lattice/2.3.5"'* ]]
@@ -143,7 +138,7 @@ train_cut_fixture() {
   write_version 2.3.5
   commit_fixture
 
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --json
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check --json
   [ "$status" -eq 0 ]
   [[ "$output" == *'"previous_version": "2.3.4"'* ]]
   [[ "$output" == *'"cache_identity": "percena/lattice@2.3.5"'* ]]
@@ -160,10 +155,18 @@ train_cut_fixture() {
   [[ "$output" == *"lattice: version must increase, got 2.3.4 -> 2.3.3"* ]]
 }
 
-@test "uncommitted bundle changes are included in local validation" {
+@test "uncommitted bundle changes are included in local validation (dev mode passes)" {
   printf 'working tree change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"lattice: 2.3.4 (changed)"* ]]
+}
+
+@test "uncommitted bundle changes fail at release boundary" {
+  printf 'working tree change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
+
+  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
   [ "$status" -eq 1 ]
   [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.4)"* ]]
 }
@@ -202,18 +205,29 @@ train_cut_fixture() {
   [[ "$output" == *"cannot be combined"* ]]
 }
 
-@test "auto-detects origin/main when --base-ref is omitted" {
+@test "auto-detects origin/main when --base-ref is omitted (dev mode: lenient)" {
   git -C "$TMP_REPO" branch -M main
   git -C "$TMP_REPO" update-ref refs/remotes/origin/main "$BASE"
   git -C "$TMP_REPO" checkout -q -b feature
   printf 'changed\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
   run env -u PLUGIN_VERSION_BASE_REF python3 "$VALIDATOR" --repo-root "$TMP_REPO" --json
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 0 ]
   json_output="$output"
-  python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["base_ref"] == "origin/main"; assert "lattice: bundled content changed without a version increment (2.3.4)" in d["errors"]' <<<"$json_output"
+  python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["base_ref"] == "origin/main"; assert d["release_check"] is False' <<<"$json_output"
 }
 
-@test "prefers origin/main over a stale origin/HEAD target" {
+@test "auto-detects origin/main with --release-check (strict)" {
+  git -C "$TMP_REPO" branch -M main
+  git -C "$TMP_REPO" update-ref refs/remotes/origin/main "$BASE"
+  git -C "$TMP_REPO" checkout -q -b feature
+  printf 'changed\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
+  run env -u PLUGIN_VERSION_BASE_REF python3 "$VALIDATOR" --repo-root "$TMP_REPO" --release-check --json
+  [ "$status" -eq 1 ]
+  json_output="$output"
+  python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["base_ref"] == "origin/main"; assert d["release_check"] is True; assert "lattice: bundled content changed without a version increment (2.3.4)" in d["errors"]' <<<"$json_output"
+}
+
+@test "prefers origin/main over a stale origin/HEAD target (dev mode: lenient)" {
   git -C "$TMP_REPO" branch -M main
   # origin/HEAD is stale: it still points at origin/master (the old default = BASE)
   git -C "$TMP_REPO" update-ref refs/remotes/origin/master "$BASE"
@@ -229,9 +243,9 @@ train_cut_fixture() {
   printf 'changed\n' >"$TMP_REPO/skills/_lattice-lib/SKILL.md"
 
   run env -u PLUGIN_VERSION_BASE_REF python3 "$VALIDATOR" --repo-root "$TMP_REPO" --json
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 0 ]
   json_output="$output"
-  python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["base_ref"] == "origin/main"; assert "lattice: bundled content changed without a version increment (2.3.5)" in d["errors"]' <<<"$json_output"
+  python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["base_ref"] == "origin/main"; assert d["release_check"] is False' <<<"$json_output"
 }
 
 
@@ -298,48 +312,4 @@ train_cut_fixture() {
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 1 ]
   [[ "$output" == *"escapes repository root"* ]]
-}
-
-# tkt-114: linear-push train acceptance — integration-branch push events have
-# base == merge-base, so the divergent-blob signature can never hold there.
-
-linear_train_fixture() {
-  # main = released state at 2.3.4 (BASE). dev: member-1 lands the 2.3.5 cut,
-  # member-2 lands a bundled change with version files untouched (the push
-  # comparison that went red on the real dev — run 33042132795).
-  git -C "$TMP_REPO" branch -q main "$BASE"
-  git -C "$TMP_REPO" checkout -q -b dev "$BASE"
-  printf 'member-1 change\n' >"$TMP_REPO/skills/finish-work/SKILL.md"
-  write_version 2.3.5
-  commit_fixture
-  MID="$(git -C "$TMP_REPO" rev-parse HEAD)"
-  printf 'member-2 change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
-  commit_fixture
-}
-
-@test "release train: linear push mid-train (base already bumped vs main) passes" {
-  linear_train_fixture
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$MID"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"release-train cut shared with base"* ]]
-}
-
-@test "release train: linear push after promotion (main == base version) stays strict" {
-  linear_train_fixture
-  # promote: main fast-forwards to the dev tip — 2.3.5 is now released
-  git -C "$TMP_REPO" checkout -q main
-  git -C "$TMP_REPO" merge -q --ff-only dev
-  git -C "$TMP_REPO" checkout -q dev
-  PROMOTED="$(git -C "$TMP_REPO" rev-parse HEAD)"
-  printf 'post-release change\n' >"$TMP_REPO/skills/create-pr/SKILL.md"
-  commit_fixture
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$PROMOTED"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"without a version increment"* ]]
-}
-
-@test "release train: linear push with --no-train stays strict" {
-  linear_train_fixture
-  run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$MID" --no-train
-  [ "$status" -eq 1 ]
 }

@@ -42,10 +42,13 @@ jobs:
       - name: Validate plugin versions and cache identities
         env:
           PLUGIN_VERSION_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PLUGIN_RELEASE_CHECK: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
           PLUGIN_INITIAL_PUBLISH: ${{ github.event_name == 'push' && github.event.created }}
         run: |
           if [[ "$PLUGIN_INITIAL_PUBLISH" == "true" ]]; then
             python3 tools/validate-plugin-versions.py --initial-publish
+          elif [[ "$PLUGIN_RELEASE_CHECK" == "true" ]]; then
+            python3 tools/validate-plugin-versions.py --base-ref "$PLUGIN_VERSION_BASE_REF" --release-check
           else
             python3 tools/validate-plugin-versions.py --base-ref "$PLUGIN_VERSION_BASE_REF"
           fi

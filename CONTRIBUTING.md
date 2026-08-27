@@ -34,7 +34,7 @@ claude --plugin-dir ./plugins/lattice
 claude plugin validate .
 claude plugin validate plugins/lattice
 bash tools/validate-skills.sh
-python3 tools/validate-plugin-versions.py --base-ref origin/main
+python3 tools/validate-plugin-versions.py --base-ref origin/main --release-check
 
 # Tests
 bats plugins/lattice/scripts/tests/
@@ -59,7 +59,7 @@ bats plugins/lattice/scripts/tests/
 11. [ ] `llms.txt` — skills list one-liner
 12. [ ] Routing — `tools/run-routing-evals.py` `CATALOG` entry + `evals/routing/<name>.json` case (catalog parity with `USER_FACING` is bats-enforced)
 13. [ ] `skills/_lattice-lib/SKILL.md` — script-table row for any new `_lattice-lib` runtime script the skill ships
-14. [ ] Version bump per release rules — `plugins/lattice/CHANGELOG.md` + plugin version (train rule when batched)
+14. [ ] Version bump at dev→main merge — `plugins/lattice/CHANGELOG.md` + plugin version (release-boundary enforcement via `--release-check`; dev merges are lenient)
 
 ## Testing
 

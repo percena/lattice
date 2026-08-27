@@ -55,7 +55,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | Accountable owner | One host owns DAG build, spawn, collect, and report. Delegated `start-work` agents own only their bounded ticket brief; host validates final PR list |
 | Bound ids only | All `--ids` must resolve to real GitHub issue numbers (≥1) with a binder. `tkt-0` / fake ids remain forbidden (inherited from `ensure-workspace`) |
 | No live-default PR | Agents never open PRs from the live default branch; worktrees branch off the resolved base |
-| Spawn-brief contract | Every spawn brief carries the six items of the **Spawn-brief contract** section below: decision protocol, fallback protocol, evidence contract, per-agent scratch uniqueness, public-repo pre-authorization (when public), release-train version policy (when the repo requires per-PR version bumps). A brief missing any applicable item is malformed — do not spawn on it |
+| Spawn-brief contract | Every spawn brief carries the five items of the **Spawn-brief contract** section below: decision protocol, fallback protocol, evidence contract, per-agent scratch uniqueness, public-repo pre-authorization (when public). A brief missing any applicable item is malformed — do not spawn on it |
 | Watchdog / timebox | Each spawn brief carries a per-ticket wall-clock timebox (DEFAULT per mode S/M/C; tunable `.lattice/config.yaml`). A ticket exceeding it is marked `failed` — the watchdog extends failure isolation from crashes to hangs. The binder is left with whatever ledger exists; never deleted |
 | Layer fuse + graceful drain | At each layer/wave barrier compute the layer's failed+stuck ratio; over threshold (DEFAULT 50%, tunable `.lattice/config.yaml`) → halt subsequent layers/waves, **graceful-drain** in-flight agents (finish current attempt, write ledgers — no mid-write kills), report partial results. The law is `fallback-policy.md` §Batch fuse; this skill is the wiring |
 | Binder `status` is stamped | Spawned tickets flip binder `status` `queued → in-progress → pr-open` (agents stamp it per their brief; enum + validator per the ticket-binder template). Fuse-halted / never-spawned tickets stay `queued` with a report note — no new enum values |
@@ -80,7 +80,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 
 ## Spawn-brief contract (INVARIANT)
 
-Every spawn brief carries all six items (full template: `references/flow.md` §SPAWN LAYER). Cite the policies — do not paste their bodies into the brief; the agent reads the referenced files.
+Every spawn brief carries all five items (full template: `references/flow.md` §SPAWN LAYER). Cite the policies — do not paste their bodies into the brief; the agent reads the referenced files.
 
 | # | Item | Content |
 | --- | --- | --- |
@@ -89,7 +89,6 @@ Every spawn brief carries all six items (full template: `references/flow.md` §S
 | 3 | Evidence contract | Fresh test/validator output pasted in the PR body (no stale or paraphrased runs); decision journal entries in the binder; e2e evidence when UI is touched |
 | 4 | Scratch uniqueness | Parallel agents share one scratchpad — real collisions observed. Every scratch file/dir gets a per-ticket unique suffix or subdir (e.g. `…-tkt-<id>` or `tkt-<id>/`) |
 | 5 | Public-repo pre-authorization | A night agent cannot "explicitly confirm" `create-pr`'s public-repo step — no human is present. When the repo is PUBLIC, the orchestrator pre-authorizes PR creation **in the brief** and mandates the sanitize self-check (no internal URLs, personal paths, team/customer identifiers in title/body) before `gh pr create` |
-| 6 | Release-train version policy | When the engine repo requires per-PR bundled-version increments, the **orchestrator** commits ONE identical version cut (version files + changelog) to every train branch — byte-identical, so sequential merges stay clean. Branch-specific manifest edits (e.g. registering a new skill) ride only their own branch; the morning merge takes the superset on conflict. Agents do NOT bump versions themselves |
 
 The brief also carries the per-ticket timebox, the binder `status` stamping instruction (`in-progress` on start, `pr-open` after `create-pr`), and — for stacked layers — the base ref, the Stacking note for the PR body, and the interface contracts (exact file/section names) the ticket depends on.
 
@@ -182,7 +181,7 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | "The agent can confirm the public-repo step itself" | A night agent has no human to satisfy `create-pr`'s explicit-confirm gate; the orchestrator pre-authorizes in the brief and mandates the sanitize self-check |
 | "The hung agent will finish eventually — keep waiting" | The timebox *is* the wait. Watchdog marks `failed`, keeps the ledger, moves on |
 | "Fuse tripped but the next layer's tickets look independent" | Over-threshold means systemic (broken base/env), not per-ticket bad luck — halt, drain, report |
-| "Each train branch can bump the version its own way" | Divergent version cuts conflict on every sequential merge; the orchestrator commits ONE byte-identical cut to every branch |
+| "Each parallel branch can bump the version its own way" | Divergent version bumps conflict on sequential merges; version bump is deferred to the dev→main release boundary (ADR-005), not per-PR on the integration branch |
 | "Two agents, one scratchpad — names won't collide" | They did (observed). Per-ticket suffix/subdir is part of the brief |
 | "Digest says auto-pass, so merge it" | `--with-review` is advice-only; marker + human `finish-work` remain the merge authority |
 
@@ -206,7 +205,7 @@ Before claiming a batch is done:
 - [ ] Failure isolation: a crashed agent recorded `failed`; peers + later layers continued
 - [ ] Report table emitted (ticket, layer, worktree, status, PR URL, binder path) to stdout and `--report`
 - [ ] Open PRs left for human review; handoff states "run `finish-work` per PR"
-- [ ] Every spawn brief carried all applicable Spawn-brief contract items: decision-policy cite, fallback-policy cite, evidence contract, scratch uniqueness, public-repo pre-auth (when public), release-train version policy (when the repo requires per-PR bumps)
+- [ ] Every spawn brief carried all applicable Spawn-brief contract items: decision-policy cite, fallback-policy cite, evidence contract, scratch uniqueness, public-repo pre-auth (when public)
 - [ ] Per-ticket timebox rode each brief; watchdog marked over-timebox tickets `failed` (`timeout`) with binder ledger left intact
 - [ ] Fuse ratio computed at every barrier; a trip halted subsequent layers/waves, drained in-flight agents gracefully, and produced a partial report
 - [ ] Dependent layers spawned off a sequential-merge stacked base via `--base`; PRs targeted the true base and carried a Stacking note; interface contracts rode the briefs

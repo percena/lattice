@@ -143,11 +143,6 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      still run the sanitize self-check: no internal URLs, personal paths,
      team/customer identifiers in the PR title/body.
 
-     [Release train only] VERSION POLICY: do NOT bump bundled versions or edit
-     the changelog — the orchestrator commits one byte-identical version cut to
-     every train branch. Branch-specific manifest edits (e.g. registering your
-     new skill) belong on your branch only.
-
      [Stacked layer only] BASE + STACKING: your branch is based on <integration
      branch> (unmerged prior-layer work). Your PR still targets <true base>;
      add a "Stacking" note: "Stacked on <PR list>; diff cleans as those merge."
@@ -200,9 +195,9 @@ Before spawning a ticket whose `blocked_by` includes a failed ticket: mark it `b
 
 The gap this closes: a `blocked_by` layer needs the earlier layers' output, but the batch marker forbids merging anything mid-night. The dependency is satisfied by **stacking**, not merging:
 
-1. At each layer boundary with unmerged dependencies, the **orchestrator** builds a local integration branch: start from the true base, then **sequentially merge** each prior layer head (`git merge <head>` one at a time, in layer order). **NOT octopus** (`git merge h1 h2 h3`) — octopus fails on shared-file edits (observed: byte-identical version cuts across train branches abort an octopus).
+1. At each layer boundary with unmerged dependencies, the **orchestrator** builds a local integration branch: start from the true base, then **sequentially merge** each prior layer head (`git merge <head>` one at a time, in layer order). **NOT octopus** (`git merge h1 h2 h3`) — octopus fails on shared-file edit conflicts (observed: parallel branches touching the same manifest files abort an octopus).
 2. Pass the integration branch to the next layer via `ensure-workspace.sh … --base <integration-branch>`.
-3. Release-train version handling (Spawn-brief contract item 6): the orchestrator commits ONE identical version cut (version files + changelog) to every train branch — byte-identical, so the sequential merges above auto-resolve. Branch-specific manifest edits (e.g. registering a new skill) ride only their own branch; the morning merge takes the superset on conflict.
+3. **Version/changelog handling:** version bump is deferred to the dev→main release boundary (ADR-005); parallel agents do NOT bump versions or edit the changelog. Branch-specific manifest edits (e.g. registering a new skill) ride only their own branch; the morning merge takes the superset on conflict.
 4. **PRs still target the true base** (e.g. `dev`) — never the integration branch, which is local and disposable. Until earlier PRs merge, a stacked PR's diff shows the prior layers' work too; its body carries the **Stacking note** ("Stacked on <PR list>; diff cleans as those merge") so the morning human reads it in merge order.
 5. **Interface contracts ride the briefs**: the exact file/section names the earlier layers delivered (what the stacked ticket may call/extend) are written into the spawn brief — the agent must not rediscover them by diffing the stack.
 6. Merge order in the morning follows the DAG: earlier layers first; each merge cleans the next stacked PR's diff.

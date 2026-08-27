@@ -8,7 +8,7 @@ Consumers who install Lattice skills do not need them.
 | `ci-local.sh` | One-command local CI parity: every workflow verdict, summary table, nonzero exit on failure |
 | `validate-skills.sh` | Tier-1 skill anatomy / eval presence lint |
 | `validate-lattice-artifacts.py` | L0 contract checks over Spec/ticket/Review artifacts |
-| `validate-plugin-versions.py` | Plugin/marketplace SemVer + bundle change gate |
+| `validate-plugin-versions.py` | Plugin/marketplace SemVer + bundle change gate (release-boundary enforced via `--release-check`; dev landings lenient per ADR-005) |
 | `run-routing-evals.py` | Tier-2 routing catalog ranking |
 | `run-behavioral-evals.py` | Behavioral eval runner / corpus validate |
 

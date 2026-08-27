@@ -2,8 +2,12 @@
 """Validate Claude plugin manifests and version-derived cache identities.
 
 The marketplace is the catalog, while each plugin manifest is the packaged
-source of truth.  When a path materialized into a plugin cache changes, the
-plugin's semantic version must increase relative to the selected base commit.
+source of truth.  The manifest version is a cache-busting key: plugin cache
+paths are keyed by version, so bundled content that ships to users requires a
+version increase.  This invariant is enforced at the **release boundary**
+(`--release-check`, base-ref = `origin/main`/release tag) — the point where
+content reaches user caches.  On integration branches (`dev`) the validator
+enforces only the non-decrease hard bottom (version must not go backwards).
 """
 
 from __future__ import annotations
@@ -199,105 +203,6 @@ def changed_paths(root: Path, base_oid: str, head_oid: str) -> list[str]:
     )
 
 
-def blob_oid(root: Path, commit: str, path: str) -> str | None:
-    """Return the blob OID for path at commit, or None when it does not exist."""
-    result = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", f"{commit}:{path}"],
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    if result.returncode != 0:
-        return None
-    return result.stdout.strip()
-
-
-def train_cut_shared(root: Path, base_oid: str, head_oid: str, manifest_path: str) -> bool:
-    """Release-train acceptance: is the equal version an identical cut shared by both sides?
-
-    The batch release train commits one byte-identical version cut (marketplace +
-    manifests) to every train branch, so after the first train PR merges, later
-    heads compare equal-version against the updated base.  That cut is identical
-    *content* but a distinct commit per branch, so detection is blob-level: for
-    every version-bearing file, the blob at head equals the blob at base while
-    differing from the blob at the merge base — both lines landed the same cut
-    after diverging — and the manifest version increased since the fork point.
-    The worktree must also match the head blobs (a dirty version file is not the
-    cut that ships).  Anything short of all that keeps the strict per-landing
-    law: bundled change + equal version -> error.
-    """
-    version_paths = [".claude-plugin/marketplace.json", manifest_path]
-    try:
-        merge_base = git(root, "merge-base", base_oid, head_oid).strip()
-    except RuntimeError:
-        return False
-    if merge_base == base_oid and merge_base != head_oid:
-        # Linear push (base is an ancestor — e.g. a push event on the
-        # integration branch as train members squash-merge in). The divergent
-        # blob test below can never hold here, so accept the equal version iff
-        # the version files are byte-identical base↔head AND base itself
-        # already carries an unreleased train bump relative to the default
-        # branch. Once the integration branch promotes (release), the guard
-        # fails and the strict per-landing law fires again for true bump-less
-        # pushes. Cannot resolve the default branch → stay strict. (tkt-114:
-        # dev lint-heavy went red on every train merge after the first.)
-        for path in version_paths:
-            head_blob = blob_oid(root, head_oid, path)
-            if head_blob is None or blob_oid(root, base_oid, path) != head_blob:
-                return False
-            try:
-                if load_json(root / path) != load_json_at(root, head_oid, path):
-                    return False
-            except (OSError, ValueError, json.JSONDecodeError):
-                return False
-        for release_ref in ("origin/main", "main"):
-            try:
-                release_base = git(root, "merge-base", release_ref, base_oid).strip()
-            except RuntimeError:
-                continue
-            try:
-                released = load_json_at(root, release_base, manifest_path)
-                at_base = load_json_at(root, base_oid, manifest_path)
-            except (ValueError, json.JSONDecodeError):
-                return False
-            released_version = released.get("version") if released else None
-            base_version = at_base.get("version") if at_base else None
-            if not isinstance(released_version, str) or not isinstance(base_version, str):
-                return False
-            try:
-                return semver_key(base_version) > semver_key(released_version)
-            except ValueError:
-                return False
-        return False
-    for path in version_paths:
-        head_blob = blob_oid(root, head_oid, path)
-        if head_blob is None:
-            return False
-        if blob_oid(root, base_oid, path) != head_blob:
-            return False  # base does not carry the identical cut
-        if blob_oid(root, merge_base, path) == head_blob:
-            return False  # version files never changed on this branch: no cut
-        try:
-            if load_json(root / path) != load_json_at(root, head_oid, path):
-                return False  # dirty worktree version file: not the committed cut
-        except (OSError, ValueError, json.JSONDecodeError):
-            return False
-    try:
-        fork_manifest = load_json_at(root, merge_base, manifest_path)
-        head_manifest = load_json_at(root, head_oid, manifest_path)
-    except (ValueError, json.JSONDecodeError):
-        return False
-    fork_version = fork_manifest.get("version") if fork_manifest else None
-    head_version = head_manifest.get("version") if head_manifest else None
-    if not isinstance(fork_version, str) or not isinstance(head_version, str):
-        return False
-    try:
-        return semver_key(head_version) > semver_key(fork_version)
-    except ValueError:
-        return False
-
-
 ZERO_OID_RE = re.compile(r"^0{7,40}$")
 
 
@@ -380,9 +285,11 @@ def parse_args() -> argparse.Namespace:
         help="validate current metadata/cache identities without a historical release baseline",
     )
     parser.add_argument(
-        "--no-train",
+        "--release-check",
         action="store_true",
-        help="disable release-train acceptance: bundled change + equal version always fails",
+        help="enforce the version-increment invariant at the release boundary: "
+        "bundled content changed without a version increment is an error "
+        "(use when --base-ref points to origin/main or a release tag)",
     )
     parser.add_argument("--repo-root", type=Path, help="repository root (defaults to git root)")
     parser.add_argument("--json", action="store_true", help="emit deterministic JSON")
@@ -506,14 +413,16 @@ def main() -> int:
 
         if base_oid and previous_manifest is None:
             bundle_changed = True
-        train_cut = False
-        if base_oid and bundle_changed and manifest_version == previous_version:
-            if not args.no_train:
-                train_cut = train_cut_shared(root, base_oid, head_oid, manifest_path)
-            if not train_cut:
-                errors.append(
-                    f"{name}: bundled content changed without a version increment ({manifest_version})"
-                )
+        # Release-boundary enforcement (ADR-005): the "bundled content changed
+        # without a version increment" invariant fires only when --release-check
+        # is active (base-ref points to origin/main or a release tag — the point
+        # where content reaches user caches).  On integration branches (dev),
+        # equal-version-with-bundle-change is accepted; the non-decrease bottom
+        # below still fires unconditionally.
+        if args.release_check and base_oid and bundle_changed and manifest_version == previous_version:
+            errors.append(
+                f"{name}: bundled content changed without a version increment ({manifest_version})"
+            )
         if (
             base_oid
             and isinstance(previous_version, str)
@@ -537,7 +446,6 @@ def main() -> int:
                 "changed_paths": impact_paths,
                 "name": name,
                 "previous_version": previous_version,
-                "train_cut": train_cut,
                 "version": manifest_version,
             }
         )
@@ -575,6 +483,7 @@ def main() -> int:
         "marketplace": marketplace_name,
         "ok": not errors,
         "plugins": plugin_results,
+        "release_check": args.release_check,
     }
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
@@ -585,11 +494,6 @@ def main() -> int:
                 f"{plugin['name']}: {plugin['version']} ({state}) "
                 f"cache={plugin['cache_path']}"
             )
-            if plugin["train_cut"]:
-                print(
-                    f"{plugin['name']}: release-train cut shared with base — "
-                    f"equal version {plugin['version']} accepted"
-                )
         for error in result["errors"]:
             print(f"ERROR: {error}", file=sys.stderr)
         print("validate-plugin-versions: OK" if not errors else "validate-plugin-versions: FAILED")
