@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-120-project-docs-train-retirement` |
 | worktree | sibling `…/lattice.worktrees/tkt-120-project-docs-train-retirement/` |
-| prs | (none) |
+| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 
@@ -50,3 +50,8 @@
 - Covers: **A9, A10**
 - Blocked by: **tkt-117, tkt-118**
 - Parallel group: **G2**
+
+## Finish
+
+- pr-125 merged: 2026-08-27T06:51:38Z — https://github.com/percena/lattice/pull/125 (base merge)
+- issue #120 closed: 2026-08-27T06:52:33Z — https://github.com/percena/lattice/issues/120

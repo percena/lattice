@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-118-retire-train-skill-docs` |
 | worktree | sibling `…/lattice.worktrees/tkt-118-retire-train-skill-docs/` |
-| prs | (none) |
+| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 
@@ -50,3 +50,8 @@
 - Covers: **A7, A8**
 - Blocked by: (none)
 - Parallel group: **G1** (parallel with tkt-117)
+
+## Finish
+
+- pr-125 merged: 2026-08-27T06:51:38Z — https://github.com/percena/lattice/pull/125 (base merge)
+- issue #118 closed: 2026-08-27T06:52:24Z — https://github.com/percena/lattice/issues/118

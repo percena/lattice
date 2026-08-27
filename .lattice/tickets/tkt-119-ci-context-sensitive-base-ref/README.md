@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-119-ci-context-sensitive-base-ref` |
 | worktree | sibling `…/lattice.worktrees/tkt-119-ci-context-sensitive-base-ref/` |
-| prs | (none) |
+| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 
@@ -51,3 +51,8 @@
 - Covers: **A5, A6**
 - Blocked by: **tkt-117**
 - Parallel group: **G2**
+
+## Finish
+
+- pr-125 merged: 2026-08-27T06:51:38Z — https://github.com/percena/lattice/pull/125 (base merge)
+- issue #119 closed: 2026-08-27T06:52:28Z — https://github.com/percena/lattice/issues/119

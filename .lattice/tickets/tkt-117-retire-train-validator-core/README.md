@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-117-retire-train-validator-core` |
 | worktree | sibling `…/lattice.worktrees/tkt-117-retire-train-validator-core/` |
-| prs | (none) |
+| prs | (none) · pr-125 — https://github.com/percena/lattice/pull/125 |
 
 ## Acceptance (this slice)
 
@@ -52,3 +52,8 @@
 - Covers: **A1, A2, A3, A4**
 - Blocked by: (none)
 - Parallel group: **G1** (parallel with tkt-118)
+
+## Finish
+
+- pr-125 merged: 2026-08-27T06:51:38Z — https://github.com/percena/lattice/pull/125 (base merge)
+- issue #117 closed: 2026-08-27T06:52:21Z — https://github.com/percena/lattice/issues/117

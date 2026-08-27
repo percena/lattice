@@ -4,7 +4,7 @@ id: spc-116
 slug: retire-release-train
 title: Retire release-train mechanism — version-bump enforcement moves to dev→main release boundary
 kind: refactor
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Move plugin version-bump gate from per-PR (dev) to dev→main release boundary; retire train_cut_shared + --no-train + orchestrator cut"
