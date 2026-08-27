@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/107 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | binder template found_by/escaped_from + tracing recipe + digest escape-count block + spc-42 amendment |
 | spec | spc-104 — runtime verification loop |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-105 (bug producer), tkt-47 (review-delivery origin; its SKILL.md already hooks the metric as "a later ticket") |
 | **worktree_bind** | tkt-107-escaped-defect-metric |
 | worktree | sibling …/lattice.worktrees/tkt-107-escaped-defect-metric/ |
-| prs | (none yet) |
+| prs | pr-111 — https://github.com/percena/lattice/pull/111 |
 
 ## Acceptance (this slice)
 
