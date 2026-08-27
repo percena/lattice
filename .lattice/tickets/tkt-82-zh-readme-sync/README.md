@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/82 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | zh README catches up with the English README's current skill reality |
 | spec | none — digest finding (rev-20260826-172600Z F7), noticed-by tkt-75 |
@@ -23,11 +23,11 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-82-zh-readme-sync |
 | worktree | sibling …/lattice.worktrees/tkt-82-zh-readme-sync/ |
-| prs | (none) |
+| prs | pr-87 — https://github.com/percena/lattice/pull/87 |
 
 ## Acceptance (this slice)
 
-- [ ] README.zh-CN tables/claims enumerate the same skills as the English README with equivalent wording intent; existing zh voice/structure preserved
+- [x] README.zh-CN tables/claims enumerate the same skills as the English README with equivalent wording intent; existing zh voice/structure preserved
 
 ## Approach
 
