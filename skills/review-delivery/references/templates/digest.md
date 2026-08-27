@@ -73,6 +73,13 @@ related_prs: [pr-…]
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F1 | high | pr-… | … | inputs/state → bad outcome | path:line | high | … |
 
+### NOTICED sweep (out-of-paths observations — §Observation duty)
+
+| Binder | NOTICED line | Disposition |
+| --- | --- | --- |
+| tkt-… | `- NOTICED: <path> — <defect>` | ticket #… \| one-liner: <fix> \| wontfix: <why> |
+| (none — sweep ran clean) | | |
+
 ### Artifact insufficiency
 
 - <binder/section that could not explain the delivery — evidence: path> (or “none”)

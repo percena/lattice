@@ -2,7 +2,7 @@ name: plugin-hooks
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "plugins/lattice/**"
       - ".github/workflows/plugin-hooks.yml"

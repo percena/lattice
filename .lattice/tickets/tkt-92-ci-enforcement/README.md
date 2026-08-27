@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | chore, P1 |
 | github | https://github.com/percena/lattice/issues/92 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | validate-lattice-artifacts in CI + dev push triggers + red-run disposition duty in finish-work + BATS_TEST_TMPDIR guards |
 | spec | none — audit rev-20260827-033352Z F3/F8 |
@@ -23,14 +23,14 @@
 | **related_tickets** | tkt-62 (ci-local author; its journal named the vacuous bats lines), tkt-60 (train gate whose races surface here) |
 | **worktree_bind** | tkt-92-ci-enforcement |
 | worktree | sibling …/lattice.worktrees/tkt-92-ci-enforcement/ |
-| prs | (none yet) |
+| prs | pr-101 — https://github.com/percena/lattice/pull/101 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `validate-lattice-artifacts.py` runs in CI (pull_request + push)
-- [ ] **A2** all four workflows add `dev` to push branches
-- [ ] **A3** finish-work checks gate: red-run disposition duty (DEFAULT) — every failed run on the branch dispositioned in the binder before merge (transient vs real, one line), aligned with the preferences.md CI smart-retry DEFAULT
-- [ ] **A4** `strip-quoted-and-heredocs.bats:178,197` get the `${BATS_TEST_TMPDIR:-$(mktemp -d)}` guard; assertions can no longer no-op under bats 1.2.1
+- [x] **A1** `validate-lattice-artifacts.py` runs in CI (pull_request + push)
+- [x] **A2** all four workflows add `dev` to push branches
+- [x] **A3** finish-work checks gate: red-run disposition duty (DEFAULT) — every failed run on the branch dispositioned in the binder before merge (transient vs real, one line), aligned with the preferences.md CI smart-retry DEFAULT
+- [x] **A4** `strip-quoted-and-heredocs.bats:178,197` get the `${BATS_TEST_TMPDIR:-$(mktemp -d)}` guard; assertions can no longer no-op under bats 1.2.1
 - [ ] **A5** full `ci-local` green; post-merge dev push shows workflows firing
 
 ## Approach
@@ -43,6 +43,9 @@ Add an `artifacts` step to lint.yml (checkout + python + `python3 tools/validate
 - Red-run duty severity — pre-resolved: DEFAULT (skip with stated reason), matching the smart-retry preference's own severity
 
 ## Decision journal
+
+- Artifacts gate placement: NEW workflow `.github/workflows/artifacts.yml` (paths: `.lattice/**` + the validator + itself) instead of a job inside path-filtered lint.yml — lint.yml's filter (skills/plugins/tools) would miss binder-only PRs, and widening it would run shellcheck on every binder edit — chain source 1 (binder Anticipated decisions, pre-resolved variant chosen on verified filter facts); reversible.
+- Red-run duty severity DEFAULT, wired as finish-work Core-rules #15 + a Short-path step-3 pointer; while in the file, the pre-existing duplicate rule numbering (two 8s, two 12s — digest-noticed twice) was renumbered (DEFAULT 9–15, HINT 16–18); no live cross-references to the old numbers exist (grep-verified) — chain source 1; reversible.
 
 ## Pending decisions
 

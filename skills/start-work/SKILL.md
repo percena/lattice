@@ -97,11 +97,12 @@ bash "$LIB/assert-shippable-cwd.sh" || {
    - DEFAULT: no forced TDD; use the bound workspace unless an escape is explicit; new irreversible axis → PCA batch.
    - DEFAULT: mid-EXECUTE decisions resolve via `../_lattice-lib/references/decision-policy.md` (chain first-hit; reversible+local → journal; else park & pivot); unattended fallback follows `../_lattice-lib/references/fallback-policy.md`.
    - DEFAULT: operator states a durable work preference mid-session → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`decision-policy.md` §Capture duty).
+   - DEFAULT: defect noticed outside the ticket's `paths` → write `- NOTICED: <path> — <one line> (out-of-paths, <date>)` to the binder `## Notes` at notice time, then move on — never expand scope, never silently drop (`decision-policy.md` §Observation duty).
    - **Bug-class tickets** (ticket has `bug` label or Reproduction Steps): run the reproduce → fix → re-verify loop:
      - **Phase 0c (Pre-Fix Reproduction):** reproduce from ticket Reproduction Steps; capture pre-fix evidence in binder `reproduction-evidence.md`. If no Reproduction Steps found in binder → skip to Phase 1 with a note (cannot reproduce without steps). If bug no longer reproduces → consider wont-fix (stop, ask user).
      - **Phase 1 (Fix):** implement the fix.
      - **Phase 1b (Post-Fix Verification):** re-execute same reproduction; append post-fix evidence with cross-comparison table (pre vs post). If symptom persists → loop back to Phase 1 (max 2 cycles). If still failing after 2 cycles → stop, report to user.
-   - `NOTICED BUT NOT TOUCHING:` out-of-ticket cleanup → later ticket, do not fold in.  
+   - Out-of-ticket cleanup is never folded in — it rides the `NOTICED:` binder line above; a later ticket is the sweep's disposition, not this agent's detour.  
 8. Done implementing → VERIFY with **fresh command evidence** (DoD Iron Law: `../_lattice-lib/references/definition-of-done.md`) → `create-pr`.
 
 ### ADOPT_CHECK (existing issue, incomplete L0) — INVARIANT append-only
@@ -189,7 +190,7 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 | "Setup-only was soft; keep coding" | Explicit setup-only stops after workspace |
 | "New irreversible API rename mid-EXECUTE — just decide" | New principal → PCA batch |
 | "Delegation transfers accountability" | The host still owns scope, authority, integration, and fresh verification |
-| "While setting up, fix unrelated lint on main" | Scope: ticket bind only; NOTICED BUT NOT TOUCHING |
+| "While setting up, fix unrelated lint on main" | Scope: ticket bind only; capture a `NOTICED:` binder line and move on (§Observation duty) |
 | "`rework` binder — a fresh PR is cleaner" | Same PR: findings are the brief and the review thread is the context; a new PR orphans both (fix cycle ≤2) |
 | "`stuck` binder — I'll just have another go" | Attempts caps are per ticket, not per session; stuck exits are operator-chosen (unblock / re-scope / cancel), never a silent retry |
 
