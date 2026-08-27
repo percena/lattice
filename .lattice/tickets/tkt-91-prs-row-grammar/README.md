@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/91 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | binder_rows shared definition + writer canon emission + build-review-context predicate fix |
 | spec | none — audit rev-20260827-033352Z F4 |
@@ -64,3 +64,6 @@ New `lib/binder_rows.py` exporting the placeholder regex, entry format string, j
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-91** · Parallel group: **(serial, wave 2)** · Worktree bind: `tkt-91-prs-row-grammar`
 
 ## Finish
+
+- pr-103 merged: 2026-08-27T05:30:14Z — https://github.com/percena/lattice/pull/103 (base merge)
+- issue #91 closed: 2026-08-27T05:30:18Z — https://github.com/percena/lattice/issues/91

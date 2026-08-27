@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/90 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | finish-ledger status flip for all working statuses + validator finish_without_terminal_status / duplicate_ticket_id + restamp + doc-claim honesty |
 | spec | none — audit rev-20260827-033352Z F1/F2/F8 |
@@ -67,3 +67,6 @@ Widen the status regex in finish-ledger's embedded python to a working-status al
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-90** · Parallel group: **G1 (wave 1)** · Worktree bind: `tkt-90-binder-lifecycle-closure`
 
 ## Finish
+
+- pr-100 merged: 2026-08-27T05:16:42Z — https://github.com/percena/lattice/pull/100 (base merge)
+- issue #90 closed: 2026-08-27T05:16:46Z — https://github.com/percena/lattice/issues/90

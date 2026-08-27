@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/106 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | httpErrors in schema+pattern, story header (feature id/oracle/mutations), round-trip recipe, .lattice/e2e/stories/ catalog |
 | spec | spc-104 — runtime verification loop |
@@ -65,3 +65,6 @@ Additive edits keeping run-e2e a pattern, not a runner (ADR-002 §2). httpErrors
 - Parent spec: **spc-104** (#104) · Primary ticket: **tkt-106** · Parallel group: **G1 (wave 2)** · Worktree bind: `tkt-106-run-e2e-upgrades`
 
 ## Finish
+
+- pr-113 merged: 2026-08-27T05:40:23Z — https://github.com/percena/lattice/pull/113 (base merge)
+- issue #106 closed: 2026-08-27T05:40:28Z — https://github.com/percena/lattice/issues/106

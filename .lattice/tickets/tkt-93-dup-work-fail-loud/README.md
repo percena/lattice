@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/93 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | fail-loud coverage-gap reporting + pipefail + CJK OR-branch + arg guards + bats |
 | spec | none — audit rev-20260827-033352Z F5; original contract spc-12 A1 |
@@ -52,6 +52,9 @@ Preflight `command -v jq`/`gh` → per-surface `COVERAGE_GAPS+=("issues: jq miss
 
 ## Notes
 
+- NOTICED: skills/_lattice-lib/scripts/check-duplicate-work.sh — byte-range CJK classifier under LC_ALL=C treats any non-ASCII (emoji) as CJK: spurious cjk-gap noise when python3 absent + 2-emoji titles count as 2 shared tokens (pre-existing; pre-merge review of pr-99) (out-of-paths, 2026-08-27)
+- NOTICED: skills/_lattice-lib/scripts/check-duplicate-work.sh — --json mode emits usage text (not JSON) on bad args; `--title --json` swallows the flag as a value; no-token early exit emits the legacy JSON shape without coverage_gaps/surfaces_checked keys (pre-existing shapes; pre-merge review of pr-99) (out-of-paths, 2026-08-27)
+
 - The script's own header (line 27) states the principle the implementation violates — fix converges implementation to stated contract, no contract change
 
 ## References
@@ -63,3 +66,6 @@ Preflight `command -v jq`/`gh` → per-surface `COVERAGE_GAPS+=("issues: jq miss
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-93** · Parallel group: **G1 (wave 1)** · Worktree bind: `tkt-93-dup-work-fail-loud`
 
 ## Finish
+
+- pr-99 merged: 2026-08-27T05:27:45Z — https://github.com/percena/lattice/pull/99 (base merge)
+- issue #93 closed: 2026-08-27T05:27:50Z — https://github.com/percena/lattice/issues/93

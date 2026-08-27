@@ -66,6 +66,13 @@ The loop's fast paths demonstrably work (4 zero-park nights, utterance→law in 
 2. **Red-run leak** — CI reds are cured by later greens, never dispositioned; nothing owns "why was that red?" (F3). Mechanism: red-disposition duty + dev-branch CI (tkt-92).
 3. **Out-of-paths observation leak** — noticed defects have no capture channel unless a human reads the digest; same items recur across rounds (F7/F8 items were all *noticed* before). Mechanism: capture duty for agent observations, mirroring tkt-84's operator-preference duty (tkt-96).
 
+
+## Merge-time addendum (2026-08-27, finish pass)
+
+- **Train-mode evidence recorded (closes the F8 open item):** post-#100 merge, `validate-plugin-versions.py --base-ref origin/dev` on the tkt-94 branch printed `lattice: release-train cut shared with base — equal version 0.2.4 accepted` — the first live field proof of tkt-60's release-train acceptance, with machine output.
+- **Red-run dispositions (finish-work DEFAULT 15, first live use):** all 12 ticket branches had ZERO failed runs at merge time. Dev-push reds at 05:19Z (lint-heavy, runs 33042132795 …) and PR-check reds on pr-103/pr-102: **real** — the train gate's divergent-blob signature cannot hold for linear/ancestor comparisons; fixed same hour by tkt-114/pr-115 (found BY the disposition duty on its first day). Cancelled runs during the merge sequence: **transient** (concurrency cancel-in-progress on rapid pushes).
+- Round-5 + round-6 + hotfix fully merged: PRs 97–103, 109–113, 115; all 12 binders ledger-stamped `closed` by the repaired finish-ledger (tkt-90's flip working live in the finish that shipped it).
+
 ## References
 
 - Prior: rev-20260827-023130Z (round-4 digest) · rev-20260826-141124Z (design rev; :116 named F2/F8 debts)

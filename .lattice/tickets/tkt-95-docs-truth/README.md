@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/95 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | ADR-002 dated amendment (env gate → marker) + README/getting-started/day-phase/CHANGELOG/config corrections |
 | spec | none — audit rev-20260827-033352Z F7 |
@@ -67,3 +67,6 @@ ADR discipline: append a dated **Amendment** block under §3 (never rewrite acce
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-95** · Parallel group: **G1 (wave 1)** · Worktree bind: `tkt-95-docs-truth`
 
 ## Finish
+
+- pr-97 merged: 2026-08-27T05:19:12Z — https://github.com/percena/lattice/pull/97 (base merge)
+- issue #95 closed: 2026-08-27T05:19:17Z — https://github.com/percena/lattice/issues/95

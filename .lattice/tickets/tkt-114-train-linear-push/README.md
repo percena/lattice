@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/114 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | train_cut_shared linear/ancestor branch + origin/main released-version guard + 3 bats cases |
 | spec | none — red-run disposition duty finding, first day live (dev run 33042132795) |
@@ -60,3 +60,6 @@ One guarded branch at the top of `train_cut_shared` for `merge_base == base_oid`
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-114** · Parallel group: **(hotfix)** · Worktree bind: `tkt-114-train-linear-push`
 
 ## Finish
+
+- pr-115 merged: 2026-08-27T05:26:45Z — https://github.com/percena/lattice/pull/115 (base merge)
+- issue #114 closed: 2026-08-27T05:26:50Z — https://github.com/percena/lattice/issues/114

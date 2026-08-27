@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/96 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | decision-policy "Observation duty" (DEFAULT) + NOTICED: canonical form + 3-skill wiring + review-delivery sweep step |
 | spec | none — audit rev-20260827-033352Z process observation #3 |
@@ -66,3 +66,6 @@ Mirror pr-88's shape exactly: a short subsection in decision-policy beside "Capt
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-96** · Parallel group: **G1 (wave 1)** · Worktree bind: `tkt-96-observation-capture`
 
 ## Finish
+
+- pr-102 merged: 2026-08-27T05:30:26Z — https://github.com/percena/lattice/pull/102 (base merge)
+- issue #96 closed: 2026-08-27T05:30:32Z — https://github.com/percena/lattice/issues/96

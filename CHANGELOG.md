@@ -16,6 +16,12 @@ Runtime verification loop (spc-104, rev-20260827-042618Z; #105–#108): released
 - **Feature-map template + validator checks (tkt-105, #105)** — `_lattice-lib/references/templates/feature-map.md`; `validate-lattice-artifacts.py` gains `feature_map_status` (error) and `feature_map_row_format` (warning) when `.lattice/feature-map.md` exists.
 
 
+### Also in 0.3.0 (merge-time bullets, train members)
+
+- **run-e2e upgrades (tkt-106, #113)** — `httpErrors` capture (first-party 4xx/5xx + requestfailed, allowlist filters assertions never evidence), story traceability header (feature/oracle/mutations), mutation round-trip recipe (reload → assert persisted; `leftovers` reporting), story catalog `.lattice/e2e/stories/`.
+- **Escaped-defect metric (tkt-107, #111)** — bug binders carry `found_by`/`escaped_from` lineage; every digest counts escapes per triage class; spc-42's risk-tiered auto-merge revisit trigger armed.
+- **Audit recipe (tkt-108, #112)** — the verified-audit method becomes create-review law (`kind: audit`): fan-out, verify-then-report, enforcement coverage, claim reconciliation, history archaeology, mechanism pairing; review-code docs-sync gains claim reconciliation.
+
 ## [0.2.4] - 2026-08-27
 
 Post-round-4 verified audit batch (rev-20260827-033352Z, #90–#96): released as a shared train cut — #90 owns the bump and this entry; the other bundled PRs of the round carry byte-identical version files (canonical manifest blobs owned by #94). Merge-time bullets for the train's other tickets are appended below their PR merges.
@@ -27,6 +33,16 @@ Post-round-4 verified audit batch (rev-20260827-033352Z, #90–#96): released as
 ### Added
 
 - **Validator: `finish_without_terminal_status` + `duplicate_ticket_id` (tkt-90, #90)** — error-level findings: a merged `## Finish` ledger with a non-terminal status, and two binder dirs claiming one `tkt-N`. `docs/workflow-fsm.md` §5 and ADR-004 §6 amended to state exactly what the validator checks (static snapshot coherence, not transition-history replay).
+
+### Also in 0.2.4 (merge-time bullets, train members)
+
+- **prs-row grammar single-sourced (tkt-91, #103)** — `lib/binder_rows.py` owns placeholder/canon/joiner; both writers emit the comma canon, bare `pr-N` never; build-review-context placeholder predicate + `--from-heads` ADR scan fixed.
+- **CI enforcement (tkt-92, #101)** — new `artifacts.yml` workflow (artifact validator on PR + main/dev push); all workflows fire on dev pushes; finish-work red-run disposition duty; two vacuously-true bats guards fixed.
+- **check-duplicate-work fail-loud (tkt-93, #99)** — coverage gaps reported instead of false "OK", `pipefail`, documented CJK match branch implemented (character-aware), arg guards, first bats suite (10), post-review numeric guard on gh payloads.
+- **Registration surface integrity (tkt-94, #98)** — 13-skill parity on manifests/plugin README/llms.txt/lib inventory; `validate-skills.sh` now errors on keyword/README drift; routing catalog parity-tested (evals 100%).
+- **Docs truth (tkt-95, #97)** — ADR-002 dated amendment (env gate → marker), README tier count, getting-started preferences.md coverage, day-phase/CHANGELOG corrections, batch tunables documented.
+- **Observation duty (tkt-96, #102)** — decision-policy `NOTICED:` capture law for out-of-paths defects + review-delivery digest sweep.
+- **Train gate linear/ancestor fix (tkt-114, #115)** — release-train acceptance now covers integration-branch push events and post-cut branch updates; mid-train dev pushes stay green, promotion restores the strict law.
 
 ## [0.2.3] - 2026-08-26
 

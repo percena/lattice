@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/107 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | binder template found_by/escaped_from + tracing recipe + digest escape-count block + spc-42 amendment |
 | spec | spc-104 — runtime verification loop |
@@ -62,3 +62,6 @@ All doc/template edits — no scripts. The digest count is a grep discipline doc
 - Parent spec: **spc-104** (#104) · Primary ticket: **tkt-107** · Parallel group: **G1 (wave 2)** · Worktree bind: `tkt-107-escaped-defect-metric`
 
 ## Finish
+
+- pr-111 merged: 2026-08-27T05:40:11Z — https://github.com/percena/lattice/pull/111 (base merge)
+- issue #107 closed: 2026-08-27T05:40:16Z — https://github.com/percena/lattice/issues/107

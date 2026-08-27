@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | chore, P1 |
 | github | https://github.com/percena/lattice/issues/92 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | validate-lattice-artifacts in CI + dev push triggers + red-run disposition duty in finish-work + BATS_TEST_TMPDIR guards |
 | spec | none — audit rev-20260827-033352Z F3/F8 |
@@ -65,3 +65,6 @@ Add an `artifacts` step to lint.yml (checkout + python + `python3 tools/validate
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-92** · Parallel group: **G1 (wave 1)** · Worktree bind: `tkt-92-ci-enforcement`
 
 ## Finish
+
+- pr-101 merged: 2026-08-27T05:19:01Z — https://github.com/percena/lattice/pull/101 (base merge)
+- issue #92 closed: 2026-08-27T05:19:05Z — https://github.com/percena/lattice/issues/92

@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/94 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | 13-skill parity on all surfaces + validate-skills keyword/README assertions + routing-catalog cross-check + CONTRIBUTING checklist |
 | spec | none — audit rev-20260827-033352Z F6 |
@@ -56,6 +56,8 @@ Mechanical parity edits first (A1–A4), then the enforcement (A5): extend the e
 
 ## Notes
 
+- NOTICED: tools/validate-skills.sh — plugin-README mention check is bare substring (a URL containing the name satisfies it); keywords_block sed range would over-extend on a single-line keywords array; no name==lattice guard on adjacent manifests — all lenient-direction only (pre-merge review of pr-98) (out-of-paths, 2026-08-27)
+
 - Root cause is the CONTRIBUTING checklist gap: every stale surface is exactly a surface the checklist omits; getting-started (on the list) stayed current
 
 ## References
@@ -67,3 +69,6 @@ Mechanical parity edits first (A1–A4), then the enforcement (A5): extend the e
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-94** · Parallel group: **G1 (wave 1)** · Worktree bind: `tkt-94-registration-surfaces`
 
 ## Finish
+
+- pr-98 merged: 2026-08-27T05:19:24Z — https://github.com/percena/lattice/pull/98 (base merge)
+- issue #94 closed: 2026-08-27T05:19:29Z — https://github.com/percena/lattice/issues/94

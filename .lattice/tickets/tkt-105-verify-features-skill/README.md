@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/105 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | verify-features SKILL.md + 4 references + feature-map template + validator format check + full surface registration + 0.3.0 cut |
 | spec | spc-104 — runtime verification loop |
@@ -55,6 +55,8 @@ New `skills/verify-features/` in the house anatomy (frontmatter with agents + al
 
 ## Notes
 
+- NOTICED: .lattice/config.yaml template (lattice-init.sh heredoc) — documents batch tunables but not `e2e_env` or the verify-features wave/crawl bounds the skill reads; follow-up doc row needed (out-of-paths, 2026-08-27)
+
 - The skill must NOT require Lattice lineage to function (consumer repos without specs get doc-derived + generic oracles) — degrade documented, never silently
 - ego-browser is externally installed (same posture as run-e2e); preflight fail-loud
 
@@ -67,3 +69,6 @@ New `skills/verify-features/` in the house anatomy (frontmatter with agents + al
 - Parent spec: **spc-104** (#104) · Primary ticket: **tkt-105** · Parallel group: **(serial, wave 1)** · Worktree bind: `tkt-105-verify-features-skill`
 
 ## Finish
+
+- pr-110 merged: 2026-08-27T05:36:30Z — https://github.com/percena/lattice/pull/110 (base merge)
+- issue #105 closed: 2026-08-27T05:36:35Z — https://github.com/percena/lattice/issues/105

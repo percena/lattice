@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/108 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | create-review references/audit-recipe.md + kind:audit + verify-then-report DEFAULT; review-code docs-sync claim-reconciliation line |
 | spec | none — operator request 2026-08-27; design in rev-20260827-042618Z §review-skill audit upgrades |
@@ -64,3 +64,6 @@ Reference doc in the house table style (severity-tagged rules, Common Rationaliz
 - Parent spec: none (ticket-only) · Primary ticket: **tkt-108** · Parallel group: **G1 (wave 2)** · Worktree bind: `tkt-108-audit-recipe`
 
 ## Finish
+
+- pr-112 merged: 2026-08-27T05:40:35Z — https://github.com/percena/lattice/pull/112 (base merge)
+- issue #108 closed: 2026-08-27T05:40:40Z — https://github.com/percena/lattice/issues/108

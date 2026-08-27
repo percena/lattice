@@ -3,14 +3,14 @@ id: spc-104
 slug: runtime-verification
 title: Runtime verification loop — feature map, verify-features skill, escaped-defect metric
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "AI full-feature E2E verification: persistent feature map with lineage-derived oracles, a verify-features skill on the run-e2e/ego-browser substrate, run-e2e capture/traceability upgrades, and the escaped-defect metric that unblocks spc-42's auto-pass trust calibration"
 created: 2026-08-27
 updated: 2026-08-27
 tickets: [tkt-105, tkt-106, tkt-107]
-prs: []
+prs: [pr-109, pr-110, pr-111, pr-112, pr-113]
 reviews: [rev-20260827-042618Z]
 supersedes: []
 superseded_by: null
@@ -46,11 +46,13 @@ Every quality mechanism in the loop reads artifacts; nothing ever runs the produ
 
 ## Acceptance
 
-- [ ] **A1** `.lattice/feature-map.md` template + conventions exist (`_lattice-lib` template; columns: id, feature, entry, oracle + source, mutations, risk, story, last-verified, status ∈ untested|pass|fail|blocked); `validate-lattice-artifacts.py` checks format + status vocabulary when the file exists (with fixture-backed tests)
-- [ ] **A2** `verify-features` skill ships: SKILL.md + references (inventory recipe incl. lineage mining and bounded crawl; story/oracle design policy incl. the invariant bundle; triage + bug-filing recipe wiring Reproduction Steps into start-work Phase 0c; report/rev shape) with the INVARIANTs of Decisions 1/3/4; registered on every surface the validator enforces (manifests keywords, plugin README, README tables + zh, llms.txt, routing catalog + eval cases, getting-started)
-- [ ] **A3** `run-e2e` upgrades land: `httpErrors` in the JSON schema + subscription pattern, story header convention, mutation round-trip recipe, story catalog convention — SKILL.md + story-template + example updated coherently
-- [ ] **A4** escaped-defect mechanics land: ticket-binder template optional `found_by`/`escaped_from` fields, tracing recipe, review-delivery digest escape-count block beside the sampling convention, dated spc-42 Risks amendment arming the revisit trigger
-- [ ] **A5** full `ci-local` green on each slice; version train 0.3.0 (new skill = minor) with one shared cut
+- [x] **A1** `.lattice/feature-map.md` template + conventions exist (`_lattice-lib` template; columns: id, feature, entry, oracle + source, mutations, risk, story, last-verified, status ∈ untested|pass|fail|blocked); `validate-lattice-artifacts.py` checks format + status vocabulary when the file exists (with fixture-backed tests)
+- [x] **A2** `verify-features` skill ships: SKILL.md + references (inventory recipe incl. lineage mining and bounded crawl; story/oracle design policy incl. the invariant bundle; triage + bug-filing recipe wiring Reproduction Steps into start-work Phase 0c; report/rev shape) with the INVARIANTs of Decisions 1/3/4; registered on every surface the validator enforces (manifests keywords, plugin README, README tables + zh, llms.txt, routing catalog + eval cases, getting-started)
+- [x] **A3** `run-e2e` upgrades land: `httpErrors` in the JSON schema + subscription pattern, story header convention, mutation round-trip recipe, story catalog convention — SKILL.md + story-template + example updated coherently
+- [x] **A4** escaped-defect mechanics land: ticket-binder template optional `found_by`/`escaped_from` fields, tracing recipe, review-delivery digest escape-count block beside the sampling convention, dated spc-42 Risks amendment arming the revisit trigger
+- [x] **A5** full `ci-local` green on each slice; version train 0.3.0 (new skill = minor) with one shared cut
+
+> Land-stamp (2026-08-27): all slices merged same day — planning pr-109, tkt-105 pr-110, tkt-106 pr-113, tkt-107 pr-111 (+ rider tkt-108 pr-112); every A criterion delivered with ci-local + CI green per PR.
 
 ## Ship plan
 
