@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/80 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | 13 binder prs rows → canonical `pr-N — <URL>`; zero prs_row_format warnings |
 | spec | none — digest finding (rev-20260826-172600Z F1) |
@@ -23,12 +23,12 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-80-prs-row-cleanup |
 | worktree | sibling …/lattice.worktrees/tkt-80-prs-row-cleanup/ |
-| prs | (none) |
+| prs | pr-86 — https://github.com/percena/lattice/pull/86 |
 
 ## Acceptance (this slice)
 
-- [ ] `validate-lattice-artifacts` emits 0 prs_row_format warnings repo-wide
-- [ ] Row facts unchanged — format-only edits (comma-join multiples per tkt-74 grammar; genuine `(none…)` placeholders untouched)
+- [x] `validate-lattice-artifacts` emits 0 prs_row_format warnings repo-wide
+- [x] Row facts unchanged — format-only edits (comma-join multiples per tkt-74 grammar; genuine `(none…)` placeholders untouched)
 
 ## Approach
 
