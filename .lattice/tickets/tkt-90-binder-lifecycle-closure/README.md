@@ -31,7 +31,7 @@
 - [x] **A2** `validate-lattice-artifacts.py` gains `finish_without_terminal_status` (error) and `duplicate_ticket_id` (error); bats coverage for both
 - [x] **A3** 19 stranded binders restamped `closed`; `tkt-35-*` collision resolved (journaled mechanism); `spc-12` land-stamped; `tkt-65:34` re-checked
 - [x] **A4** `docs/workflow-fsm.md:142` + ADR-004 §6 claims match what is actually validated
-- [ ] **A5** full `ci-local` green; validator zero errors repo-wide after restamp
+- [x] **A5** full `ci-local` green; validator zero errors repo-wide after restamp
 
 ## Approach
 
