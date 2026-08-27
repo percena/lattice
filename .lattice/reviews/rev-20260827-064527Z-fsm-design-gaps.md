@@ -4,7 +4,7 @@ slug: fsm-design-gaps
 title: M2 FSM design gaps — SoT honesty after fuse/block + parked→queued atomicity
 kind: design
 status: concluded
-outcome: inform_only
+outcome: needs_decision
 summary: "State-machine audit of dev pull 8447271..c2d27be surfaced two design-philosophy gaps (FSM-2, FSM-4) not actionable as code fixes; filed for team decision"
 created: 2026-08-27
 updated: 2026-08-27

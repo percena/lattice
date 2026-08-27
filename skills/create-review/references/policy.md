@@ -26,7 +26,7 @@ Template section: `references/templates/review.md` → `## Problem Audit`.
 
 When `status: concluded`, front matter **must** set exactly one:
 
-`outcome: inform_only | spawn_spec | spawn_tickets | spawn_fix | needs_grill`
+`outcome: inform_only | needs_decision | spawn_spec | spawn_tickets | spawn_fix | needs_grill`
 
 ## Homes
 

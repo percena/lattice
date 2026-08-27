@@ -1,6 +1,6 @@
 ---
 name: create-review
-description: "Write a durable Lattice Review note (rev-…) with findings and a required outcome (inform_only/spawn_*). Use when the user wants a design compare, dogfood note, postmortem, or architecture reconciling write-up under .lattice/reviews. Not for GitHub PR review comments or PR change-set bug/production checks (use review-code / review-production)."
+description: "Write a durable Lattice Review note (rev-…) with findings and a required outcome (inform_only/needs_decision/spawn_*). Use when the user wants a design compare, dogfood note, postmortem, or architecture reconciling write-up under .lattice/reviews. Not for GitHub PR review comments or PR change-set bug/production checks (use review-code / review-production)."
 allowed-tools: Bash Read Grep Glob AskUserQuestion
 metadata:
   agents: "claude-code,codex"
@@ -39,7 +39,7 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
 1. **Self-contained** findings + recommendations; cite evidence paths.  
 1b. **Problem Audit (DEFAULT):** before solution Findings, audit validity / info sufficiency / hidden issues (`references/policy.md`). Insufficient **must-have** info → stop inventing solutions. Explicit one-line skip only when the question is already crisp.  
 2. **When concluding (INVARIANT):** set `status: concluded` and **exactly one** `outcome`:  
-   `inform_only` | `spawn_spec` | `spawn_tickets` | `spawn_fix` | `needs_grill`  
+   `inform_only` | `needs_decision` | `spawn_spec` | `spawn_tickets` | `spawn_fix` | `needs_grill`
 3. **Never** bind a shippable worktree to `rev-` alone (INVARIANT).  
 4. **related_*** edges use **bare ids** on L0 (`rev-YYYYMMDD-HHMMSSZ` or legacy `rev-N`); bloodline = L0 + GitHub.  
 5. **Homes:** `.lattice/reviews/` (flat — in-flight and historical together).  
@@ -107,6 +107,7 @@ Front matter: `id: rev-${N}` (full bare id including `rev-` prefix + token).
 | `spawn_fix` | ticket + implement path (worktree with `tkt-` / `spc-` bind) |
 | `needs_grill` | `create-spec` (first-pass align); co-create if Spec is in this pass |
 | `inform_only` | stop (Review-only on base is fine) |
+| `needs_decision` | **not terminal** — the review surfaces in the `.lattice/reviews/needs-decision.md` triage queue; morning triage picks an option (or files spawn_* tickets), then the review's outcome is updated |
 
 ## Anti-patterns
 

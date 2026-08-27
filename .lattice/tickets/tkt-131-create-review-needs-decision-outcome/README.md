@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/131 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Add needs_decision outcome to create-review for design-level undecided reviews |
 | spec | none — ticket-only from rev-20260827-102420Z F1 |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-131 (this issue) |
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-131-create-review-needs-decision-outcome |
-| prs | (none) |
+| prs | pr-141 — https://github.com/percena/lattice/pull/141 |
 
 ## Acceptance (this slice)
 

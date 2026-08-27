@@ -19,7 +19,7 @@ related_prs: []
 
 > **TL;DR:** <one sentence — standalone; no "see chat">
 > **Kind:** research · **Status:** open · **Outcome:** (set when concluding)
-> **Next:** inform_only | spawn_spec | spawn_tickets | spawn_fix | needs_grill
+> **Next:** inform_only | needs_decision | spawn_spec | spawn_tickets | spawn_fix | needs_grill
 
 <!-- required -->
 ## Context
@@ -58,6 +58,7 @@ Keep ≤7 findings; overflow → appendix.
 | outcome | When |
 | --- | --- |
 | `inform_only` | Knowledge only; no delivery |
+| `needs_decision` | Design-level decision needed — **not terminal**; surfaces in `.lattice/reviews/needs-decision.md` triage queue; morning triage picks an option, then outcome updates to spawn_* |
 | `spawn_spec` | Need a locked Spec before tickets |
 | `spawn_tickets` | Scope clear; slice into issues |
 | `spawn_fix` | Clear bug/fix path; Spec optional |
