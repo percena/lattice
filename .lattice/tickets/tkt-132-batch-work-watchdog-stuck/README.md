@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** batch-work stamps stuck+wait_reason:unblock on watchdog-timeout at trip time
-- [ ] **A2** docs/workflow-fsm.md transition table + mermaid include in-progress → stuck (watchdog-timeout/abandonment)
-- [ ] **A3** start-work resume documents the in-progress interruption case
-- [ ] **A4** bats: watchdog-timeout fixture leaves binder at stuck (not in-progress)
+- [x] **A1** batch-work stamps stuck+wait_reason:unblock on watchdog-timeout at trip time
+- [x] **A2** docs/workflow-fsm.md transition table + mermaid include in-progress → stuck (watchdog-timeout/abandonment)
+- [x] **A3** start-work resume documents the in-progress interruption case
+- [x] **A4** bats: watchdog-timeout fixture leaves binder at stuck (not in-progress)
 
 ## Approach
 

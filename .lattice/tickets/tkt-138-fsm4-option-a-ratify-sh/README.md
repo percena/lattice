@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice only)
 
-- [ ] **A1** ratify.sh exists; takes binder path + decision text; writes journal + status flip in one commit
-- [ ] **A2** start-work:89 cites ratify.sh instead of bare atomically one-write claim
-- [ ] **A3** docs/workflow-fsm.md §2 + §5 updated: single-commit, crash window narrowed
-- [ ] **A4** bats: ratify.sh on parked fixture leaves queued + journal entry in one commit; crash sim leaves binder unchanged
+- [x] **A1** ratify.sh exists; takes binder path + decision text; writes journal + status flip in one commit
+- [x] **A2** start-work:89 cites ratify.sh instead of bare atomically one-write claim
+- [x] **A3** docs/workflow-fsm.md §2 + §5 updated: single-commit, crash window narrowed
+- [x] **A4** bats: ratify.sh on parked fixture leaves queued + journal entry in one commit; crash sim leaves binder unchanged
 
 ## Approach
 

@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice only)
 
-- [ ] **A1** batch-work stamps deferred+reason on fuse-halted tickets at trip time (not stay queued)
-- [ ] **A2** batch-work stamps deferred+reason blocked-by-failure on skipped dependents
-- [ ] **A3** docs/workflow-fsm.md fuse-halt note updated; no longer says stay queued
-- [ ] **A4** bats: fuse-halt fixture leaves binder at deferred (not queued)
+- [x] **A1** batch-work stamps deferred+reason on fuse-halted tickets at trip time (not stay queued)
+- [x] **A2** batch-work stamps deferred+reason blocked-by-failure on skipped dependents
+- [x] **A3** docs/workflow-fsm.md fuse-halt note updated; no longer says stay queued
+- [x] **A4** bats: fuse-halt fixture leaves binder at deferred (not queued)
 
 ## Approach
 
