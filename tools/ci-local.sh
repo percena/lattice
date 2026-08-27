@@ -10,9 +10,13 @@
 # Plus tools/validate-lattice-artifacts.py (L0 contract check; CI parity via
 # .github/workflows/artifacts.yml on pull_request + push to main/dev — tkt-92).
 #
-# Usage: bash tools/ci-local.sh [--base-ref REF] [--fast]
+# Usage: bash tools/ci-local.sh [--base-ref REF] [--release-check] [--fast]
 #   --base-ref REF  base for validate-plugin-versions and its path-filter skip
 #                   (default: fork point `git merge-base origin/dev HEAD`)
+#   --release-check  simulate the dev→main release boundary: base-ref becomes
+#                   origin/main and the validator enforces the version-increment
+#                   invariant (bundled change without bump = error). Default is
+#                   dev-mode (lenient: only non-decrease enforced). [ADR-005]
 #   --fast          skip the bats suites (the slow step); default runs full
 #
 # Steps never abort the run: each records pass/FAIL/skip, a summary table
@@ -28,6 +32,7 @@ usage() {
 }
 
 BASE_REF=""
+RELEASE_CHECK=0
 FAST=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -37,6 +42,10 @@ while [ $# -gt 0 ]; do
       ;;
     --base-ref=*)
       BASE_REF="${1#*=}"
+      shift
+      ;;
+    --release-check)
+      RELEASE_CHECK=1
       shift
       ;;
     --fast)
@@ -157,15 +166,33 @@ plugin_version_paths_changed() {
 
 # --- base ref ----------------------------------------------------------------
 
+# --- base ref + validator command --------------------------------------------
+
+# --release-check changes both the base-ref default (origin/main instead of
+# dev fork point) and the enforcement mode (strict version-increment invariant
+# at the release boundary per ADR-005). Default is dev-mode (lenient:
+# non-decrease only).
+if [ -z "$BASE_REF" ] && [ "$RELEASE_CHECK" -eq 1 ]; then
+  BASE_REF="origin/main"
+fi
+
 if [ -z "$BASE_REF" ]; then
   BASE_REF="$(git merge-base origin/dev HEAD 2> /dev/null || true)"
   if [ -n "$BASE_REF" ]; then
-    echo "base ref: fork point of origin/dev ($(git rev-parse --short "$BASE_REF"))"
+    echo "base ref: fork point of origin/dev ($(git rev-parse --short "$BASE_REF")) [dev mode: lenient]"
   else
-    echo "base ref: origin/dev unavailable; validate-plugin-versions will use its own default"
+    echo "base ref: origin/dev unavailable; validate-plugin-versions will use its own default [dev mode: lenient]"
   fi
 else
-  echo "base ref: $BASE_REF (--base-ref)"
+  echo "base ref: $BASE_REF $([ "$RELEASE_CHECK" -eq 1 ] && echo '[release-check: strict]' || echo '[dev mode: lenient]')"
+fi
+
+PV_CMD=(python3 tools/validate-plugin-versions.py)
+if [ -n "$BASE_REF" ]; then
+  PV_CMD+=(--base-ref "$BASE_REF")
+fi
+if [ "$RELEASE_CHECK" -eq 1 ]; then
+  PV_CMD+=(--release-check)
 fi
 
 # --- steps -------------------------------------------------------------------
@@ -175,12 +202,12 @@ run_step "lattice-artifacts" python3 tools/validate-lattice-artifacts.py
 
 if [ -n "$BASE_REF" ]; then
   if plugin_version_paths_changed; then
-    run_step "plugin-versions" python3 tools/validate-plugin-versions.py --base-ref "$BASE_REF"
+    run_step "plugin-versions" "${PV_CMD[@]}"
   else
     skip_step "plugin-versions" "no bundled paths changed vs $BASE_REF (mirrors lint-heavy path filter)"
   fi
 else
-  run_step "plugin-versions" python3 tools/validate-plugin-versions.py
+  run_step "plugin-versions" "${PV_CMD[@]}"
 fi
 
 run_step "routing-evals" python3 tools/run-routing-evals.py --min-rank1 80

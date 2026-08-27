@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Release-train retirement (spc-116, ADR-005, #117–#120)** — the strict per-landing version-bump law ("bundled content changed without a version increment") now fires only at the dev→main **release boundary** (`--release-check` flag, base-ref = `origin/main`); dev landings enforce only the non-decrease hard bottom. This retires the entire train compensation mechanism: `train_cut_shared()`, `--no-train`, the linear-push guard, the batch-work orchestrator unified-cut step, and spawn-brief contract item 6 are all deleted. `finish-work` gains a dev→main pre-merge version-bump check step. `ci-local` defaults to lenient dev-mode; `--release-check` simulates the main-boundary strict pass. The train mechanism (tkt-60, tkt-114) existed solely to suppress false-positive reds on an integration branch with no cache consumers.
+
 ## [0.3.0] - 2026-08-27
 
 Runtime verification loop (spc-104, rev-20260827-042618Z; #105–#108): released as a shared train cut — #105 owns the bump and this entry; the round's other bundled PRs carry byte-identical version files. Stacked on the 0.2.4 round (#97–#103).

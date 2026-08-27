@@ -16,7 +16,7 @@ Labels: **INVARIANT** · **DEFAULT** · **HINT**.
 - [2.6 Land-time Spec drift (INVARIANT when Spec applies)](#26-land-time-spec-drift-invariant-when-spec-applies)
 - [2.7 Mini-review scan (DEFAULT-on, advice-only — embedded)](#27-mini-review-scan-default-on-advice-only--embedded)
 - [3. Merge or close](#3-merge-or-close)
-- [3.4 Merge trains (DEFAULT when landing a queue of PRs)](#34-merge-trains-default-when-landing-a-queue-of-prs)
+- [3.4 Sequential merge queue (DEFAULT when landing a queue of PRs)](#34-sequential-merge-queue-default-when-landing-a-queue-of-prs)
 - [3.5 Close Fixes issues (mandatory after successful **merge**)](#35-close-fixes-issues-mandatory-after-successful-merge)
 - [3.6 Spec primary close (completion-causal)](#36-spec-primary-close-completion-causal--after-last-honest-delivery-land)
 - [4. Cleanup workspace (mandatory after merge|close)](#4-cleanup-workspace-mandatory-after-mergeclose)
@@ -218,21 +218,31 @@ gh pr close <N> --comment "Closing without merge; cleaning workspace."
 
 **INVARIANT:** `gh pr merge --delete-branch` is **not** the cleanup step. Many remotes have `delete_branch_on_merge: false`. Always continue to §4.
 
-## 3.4 Merge trains (DEFAULT when landing a queue of PRs)
+## 3.4 Sequential merge queue (DEFAULT when landing a queue of PRs)
 
-Landing several PRs into the same integration branch in sequence (a release train) repeats §2–§4 per PR. The train loop MUST NOT skip per-PR discipline for throughput. Five rules, each grounded in a live incident:
+Landing several PRs into the same integration branch in sequence repeats §2–§4 per PR. The merge loop MUST NOT skip per-PR discipline for throughput. Five rules, each grounded in a live incident:
 
-1. **CI-checks gate (per train merge).** Before **each** merge, fetch the checks rollup: `gh pr checks <N>`. On `fail`/`pending` → **surface to the operator** — distinguish **known train-transient reds** (e.g. validate-plugin-versions "changed without increment" on a branch cut before the train's version bump lands — expected pre-train-mode) from **real failures** — and let the operator decide. **Never merge blind on `mergeable`/`MERGEABLE` alone**: mergeability is a git-tree statement, not a CI verdict, and train automation that polls only `mergeable` merges red PRs (observed live 2026-08-26).
+1. **CI-checks gate (per merge).** Before **each** merge, fetch the checks rollup: `gh pr checks <N>`. On `fail`/`pending` → **surface to the operator** — distinguish **real failures** from transient noise and let the operator decide. **Never merge blind on `mergeable`/`MERGEABLE` alone**: mergeability is a git-tree statement, not a CI verdict, and merge automation that polls only `mergeable` merges red PRs (observed live 2026-08-26).
 
-2. **File-explicit conflict law (INVARIANT).** When a train merge/base-update hits conflicts, resolution goes **path by path**: identify each conflicted file (`git diff --name-only --diff-filter=U`), decide per file, and take a side only via `git checkout --ours <named path>` / `git checkout --theirs <named path>` (or hand-edit that named file), then `git add <named path>`. **`git add -A` during conflict resolution is FORBIDDEN** — it stages unresolved conflict markers wholesale (live incident: markers reached `dev` via PR #59's merge automation; repair commit `628e4cb`). **Superset rule for shared train files:** when successive train PRs touch the same file, neither `--ours` nor `--theirs` may drop the earlier PR's landed changes — the resolved content must be the superset carrying both; verify the merged content, do not assume a side wins.
+2. **File-explicit conflict law (INVARIANT).** When a merge/base-update hits conflicts, resolution goes **path by path**: identify each conflicted file (`git diff --name-only --diff-filter=U`), decide per file, and take a side only via `git checkout --ours <named path>` / `git checkout --theirs <named path>` (or hand-edit that named file), then `git add <named path>`. **`git add -A` during conflict resolution is FORBIDDEN** — it stages unresolved conflict markers wholesale (live incident: markers reached `dev` via PR #59's merge automation; repair commit `628e4cb`). **Superset rule for shared files:** when successive PRs touch the same file, neither `--ours` nor `--theirs` may drop the earlier PR's landed changes — the resolved content must be the superset carrying both; verify the merged content, do not assume a side wins.
 
-3. **Post-merge marker sweep.** After each train merge, on the integration branch: `grep -rn '<<<<<<<'` over the PR's touched paths (`gh pr view <N> --json files`). Any hit → **stop the train**; repair before the next merge (markers compound across subsequent merges).
+3. **Post-merge marker sweep.** After each merge, on the integration branch: `grep -rn '<<<<<<<'` over the PR's touched paths (`gh pr view <N> --json files`). Any hit → **stop the queue**; repair before the next merge (markers compound across subsequent merges).
 
 4. **Orphaned-run hygiene at branch deletion.** A resolution commit pushed just before merging leaves in-flight CI runs on the head branch; merging with `--delete-branch` kills them as `failure`/`startup_failure` on the deleted ref (observed: runs 32984498741 / 32984662279 — no failing steps, just a vanished checkout — a dishonest red Actions tab). Either **wait for the new head's checks** to finish before merging, or **cancel in-flight runs** (`gh run list --branch <head>` + `gh run cancel <id>`) as part of cleanup before the branch deletion.
 
-5. **`--no-update-branch` when GitHub reports clean.** When the next train PR shows `mergeable: MERGEABLE` + clean state, pass `--no-update-branch` rather than forcing an update cycle — an unneeded update only churns the head, spawns new CI runs (see rule 4), and voids review verdicts for nothing. The CONFLICTING refusal still applies.
+5. **`--no-update-branch` when GitHub reports clean.** When the next PR shows `mergeable: MERGEABLE` + clean state, pass `--no-update-branch` rather than forcing an update cycle — an unneeded update only churns the head, spawns new CI runs (see rule 4), and voids review verdicts for nothing. The CONFLICTING refusal still applies.
 
-**Verdict-void wiring:** each train base update returns the §2.4 machine signal — `diff_changed:true` **or** `conflict:true` ⇒ that PR's prior review verdict is **VOID** → re-run the §2.7 mini-review before its merge; both false ⇒ the verdict carries. Advice discipline is unchanged: findings never auto-block; the HARD gate stays `alignment-check.sh`.
+**Verdict-void wiring:** each base update returns the §2.4 machine signal — `diff_changed:true` **or** `conflict:true` ⇒ that PR's prior review verdict is **VOID** → re-run the §2.7 mini-review before its merge; both false ⇒ the verdict carries. Advice discipline is unchanged: findings never auto-block; the HARD gate stays `alignment-check.sh`.
+
+## 3.4.1 Dev→main release-boundary version-bump check
+
+**When the PR targets `main`** (the release boundary), bundled content changed ⟹ version must increase (ADR-005). Before merging to `main`:
+
+1. Run `python3 tools/validate-plugin-versions.py --base-ref origin/main --release-check` locally (or check the CI `lint-heavy` result).
+2. If the validator reports **"bundled content changed without a version increment"** → **stop**: the operator must bump the version (`.claude-plugin/marketplace.json` + `plugins/*/.claude-plugin/plugin.json`) and update the CHANGELOG before merging.
+3. If the validator is **OK** (version increased or no bundled change) → proceed with the merge.
+
+The bump itself is a manual file edit; this check is the automated gate. `dev` merges do not require a version bump — only `main` merges do.
 
 ## 3.5 Close Fixes issues (mandatory after successful **merge**)
 
