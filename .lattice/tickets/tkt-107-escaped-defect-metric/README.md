@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/107 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | binder template found_by/escaped_from + tracing recipe + digest escape-count block + spc-42 amendment |
 | spec | spc-104 — runtime verification loop |
@@ -27,10 +27,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** ticket-binder template: optional `found_by` (`verify-features rev-… | human | review`) and `escaped_from` (`pr-N — digest rev-… (auto-pass)`) rows with a usage note (bug-class binders only)
-- [ ] **A2** tracing recipe in review-delivery references (blame/`git log -S` defective lines → PR → grep digests for its triage class); digest template gains an escape-count block beside the sampling convention (since-last-digest + cumulative per class); SKILL.md §Trust calibration updated from "metric tooling is a later ticket" to the shipped mechanics
-- [ ] **A3** dated amendment in spc-42 Risks: metric mechanics landed via spc-104; the "revisit risk-tiered auto-merge once the metric exists" trigger is now armed (auto-merge itself stays out of scope)
-- [ ] **A4** ci-local green; carries the shared 0.3.0 cut byte-identically
+- [x] **A1** ticket-binder template: optional `found_by` (`verify-features rev-… | human | review`) and `escaped_from` (`pr-N — digest rev-… (auto-pass)`) rows with a usage note (bug-class binders only)
+- [x] **A2** tracing recipe in review-delivery references (blame/`git log -S` defective lines → PR → grep digests for its triage class); digest template gains an escape-count block beside the sampling convention (since-last-digest + cumulative per class); SKILL.md §Trust calibration updated from "metric tooling is a later ticket" to the shipped mechanics
+- [x] **A3** dated amendment in spc-42 Risks: metric mechanics landed via spc-104; the "revisit risk-tiered auto-merge once the metric exists" trigger is now armed (auto-merge itself stays out of scope)
+- [x] **A4** ci-local green; carries the shared 0.3.0 cut byte-identically
 
 ## Approach
 
@@ -42,6 +42,8 @@ All doc/template edits — no scripts. The digest count is a grep discipline doc
 - Escape definition — agent-decides: a bug whose defective change merged via a PR a digest classed `auto-pass` (ratify-then-pass escapes counted separately); journal the exact wording
 
 ## Decision journal
+
+- Escape definition → "An **escape** = a bug whose defective change merged via a PR a digest classed `auto-pass`; `ratify-then-pass` escapes are counted separately" — wording now in axes.md §Escaped-defect count; `deep-review`/pre-digest history = no escape (source: agent-judgment per Anticipated decisions, aligned with spc-104 Decision 6 + verify-features triage.md §Escape tracing)
 
 ## Pending decisions
 

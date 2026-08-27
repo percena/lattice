@@ -29,6 +29,12 @@
 | **worktree_bind** | `tkt-<id>-<slug>` \| `spc-<n>-<slug>` \| full branch name (open-time bind; rebind optional) |
 | worktree | sibling `…/<repo>.worktrees/<worktree_bind or branch>/` (**default for shippable**) |
 | prs | (none) | filled format, one per PR: `pr-N — <URL>` (em dash), e.g. `pr-41 — https://github.com/<org>/<repo>/pull/41` |
+<!-- OPTIONAL escaped-defect lineage rows (spc-104 A4) — bug-class binders only; uncomment into the field table when used:
+| found_by | verify-features rev-… \| human \| review |
+| escaped_from | pr-N — digest rev-… (auto-pass) |
+     found_by: who surfaced the bug. escaped_from: ONLY when the verify-features
+     triage tracing recipe succeeds (blame/`git log -S` → PR → digest class) —
+     never guessed; omit the row when tracing fails. Digests count these rows. -->
 
 ## Acceptance (this slice)
 

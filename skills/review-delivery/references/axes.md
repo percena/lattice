@@ -125,3 +125,22 @@ examined.
 - Merge order: topological (`blocked_by` DAG) first; within a layer, put
   `auto-pass` before `ratify-then-pass` before `deep-review`, and PRs that
   unblock others first. State the order as an explicit list.
+
+## Escaped-defect count (trust calibration — spc-104 A4)
+
+Fills the digest template's "Escaped defects" block. An **escape** = a bug
+whose defective change merged via a PR a digest classed `auto-pass`;
+`ratify-then-pass` escapes are counted separately. The rows are written at bug
+filing by the verify-features tracing recipe
+(`../../verify-features/references/triage.md` §Escape tracing) — cite it,
+never re-derive or guess lineage here.
+
+1. `grep -rn '| escaped_from |' .lattice/tickets/*/README.md` — every hit is a
+   bug-class binder carrying traced lineage (`pr-N — digest rev-… (auto-pass)`).
+2. Split hits by class in the row value: `auto-pass` vs `ratify-then-pass`.
+3. **Since-last:** hits in bug binders created since the previous digest
+   (binder/issue creation date vs the prior digest's `created:`).
+   **Cumulative:** all hits.
+4. Enter both counts per class in the digest block + one trend line vs the
+   prior digest. Zero rows is a valid (good) result — state it, don't skip
+   the block.

@@ -84,6 +84,18 @@ related_prs: [pr-…]
 
 - <binder/section that could not explain the delivery — evidence: path> (or “none”)
 
+## Escaped defects (trust calibration — spc-104 A4)
+
+<!-- Recipe: axes.md §Escaped-defect count. Escape = bug binder `escaped_from`
+     tracing to a digest-classed PR; sampling convention: SKILL.md §Trust calibration. -->
+
+| Window | auto-pass | ratify-then-pass |
+| --- | --- | --- |
+| since last digest (rev-…) | n | n |
+| cumulative | n | n |
+
+**Trend:** <one line vs prior digest — steady/rising/falling; what it implies for `auto-pass` trust>
+
 ## References
 
 - Context manifest: <inline or path> · Spec: spc-N · ADRs: …
