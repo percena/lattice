@@ -12,7 +12,7 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/127 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | build-review-context --from-heads mis-labels non-open PR state — IFS=$'\t' leak from line 373 read poisons head_binder_for's internal read |
 | spec | (none — standalone process-hardening bug) |
@@ -25,7 +25,7 @@
 | **related_tickets** | tkt-122 (surfaces same bats suite; independent root cause) |
 | **worktree_bind** | `tkt-127-from-heads-local-source` |
 | worktree | sibling `…/lattice.worktrees/tkt-127-from-heads-local-source/` (default for shippable) |
-| prs | (none — pending) |
+| prs | pr-130 — https://github.com/percena/lattice/pull/130 |
 
 ## Acceptance (this slice)
 
