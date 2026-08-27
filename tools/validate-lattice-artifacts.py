@@ -125,9 +125,14 @@ def ticket_status(text: str) -> str | None:
     m = STATUS_TABLE_RE.search(first_table_block(text))
     if m:
         return m.group(1).strip().lower()
-    m = STATUS_TLDR_RE.search(text)
-    if m:
-        return m.group(1).strip().lower()
+    # Fallback when the binder card (first table) has no | status | row: use
+    # the scoped TL;DR header (blockquote lines before the first table), not a
+    # whole-text search — body prose that merely mentions the literal
+    # **Status:** marker (e.g. an acceptance criterion) must not masquerade as
+    # the ticket status. Mirrors tldr_header_status()'s scoping rationale.
+    hs = tldr_header_status(text)
+    if hs is not None:
+        return hs
     fm = parse_front_matter(text)
     if "status" in fm:
         return str(fm["status"]).strip().lower().strip("'\"")
@@ -143,9 +148,11 @@ HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 def has_finish_ledger(text: str) -> bool:
     """True when a ``## Finish`` section carries real ledger content.
 
-    Placeholder bodies — ``(none yet)``, bullets of it, HTML comments, blank
+    Placeholder bodies — the ``(none…)`` family (e.g. ``(none yet)``,
+    ``(none — rides tkt-5 PR)``), bullets of them, HTML comments, blank
     lines — do not count. finish-ledger.sh replaces the placeholder with dated
-    ``pr-P merged: …`` / ``issue #N closed: …`` lines, which do.
+    ``pr-P merged: …`` / ``issue #N closed: …`` lines, which do. The placeholder
+    grammar is shared with the prs row (``PRS_PLACEHOLDER_RE``) — single-sourced.
     """
     m = FINISH_SECTION_RE.search(text)
     if not m:
@@ -153,7 +160,7 @@ def has_finish_ledger(text: str) -> bool:
     body = HTML_COMMENT_RE.sub("", m.group(1))
     for line in body.splitlines():
         content = line.strip().lstrip("-").strip()
-        if content and content != "(none yet)":
+        if content and PRS_PLACEHOLDER_RE.fullmatch(content) is None:
             return True
     return False
 
@@ -188,6 +195,10 @@ def spec_acceptance_ids(text: str) -> set[str]:
             if ACCEPT_HEADING_RE.match(line):
                 in_section = True
                 level = len(hm.group(1))
+                # A-ids may appear inline on the heading line itself (e.g.
+                # "## Acceptance — **A1**, **A2**"); collect them before the
+                # continue so they register as coverable.
+                ids.update(f"A{n}" for n in A_HEADING_RE.findall(line))
                 continue
             if in_section and len(hm.group(1)) <= level:
                 in_section = False
