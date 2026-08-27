@@ -370,7 +370,13 @@ for i in "${!TICKET_IDS[@]}"; do
   _src="${BINDERS[$i]}"
   _label=""
   if $FROM_HEADS; then
-    IFS=$'\t' read -r _src _label <<<"$(head_binder_for "${TICKET_IDS[$i]}" "${BINDERS[$i]}")"
+    # Run head_binder_for under default IFS, then tab-split its output. The
+    # earlier `IFS=$'\t' read … <<<"$(head_binder_for …)"` form leaked the
+    # one-shot tab IFS into the command substitution, so head_binder_for's
+    # internal `read -r state headref` split on tabs only (no space) and
+    # swallowed the whole "MERGED <headref>" line into state (tkt-127).
+    _hb_out="$(head_binder_for "${TICKET_IDS[$i]}" "${BINDERS[$i]}")"
+    IFS=$'\t' read -r _src _label <<<"$_hb_out"
   fi
   SRC_FILES+=("$_src")
   SRC_LABELS+=("$_label")

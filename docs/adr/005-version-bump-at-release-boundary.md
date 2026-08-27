@@ -56,6 +56,7 @@ We will enforce the version-increment invariant **only at the dev→main release
 ## Status history
 
 - 2026-08-27: Proposed
+- 2026-08-27: Accepted (implemented via PR #125; header set Accepted in commit c4cf429)
 
 ## Notes
 
