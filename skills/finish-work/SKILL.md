@@ -20,7 +20,7 @@ Close the loop after SHIP: **resolve target → preflight (CI + base update + al
 
 | When | Read |
 | --- | --- |
-| Full preflight / alignment dimensions / land-time drift / **mini-review full text (§2.7)** / **merge trains (§3.4)** | `references/flow.md` |
+| Full preflight / alignment dimensions / land-time drift / **mini-review full text (§2.7)** / **sequential merge queue (§3.4)** | `references/flow.md` |
 | Profile / acceptance / adopted-issue tables | `references/policy.md` |
 | Constraint severity labels | `../_lattice-lib/references/constraint-language.md` |
 | Claiming shippable / tests green | `../_lattice-lib/references/definition-of-done.md` |
@@ -62,7 +62,7 @@ Finish **does not invent** which PR to merge.
 - [ ] **Rebase-verdict rule (machine signal):** `update-pr-base.sh` JSON `diff_changed:true` **or** `conflict:true` → any prior review verdict (review-delivery digest triage or an earlier mini-review result) is **VOID** — re-run the mini-review before merge. Both `false` (clean/noop update) → the verdict carries unchanged (ADR-004 §4; flow.md §2.7)
 - [ ] `alignment-check.sh --json` + human dimensions; retain its approved `closing_ids` through merge; **land-time Spec drift** when `Spec:` / Spec-bound Fixes apply; DoD honesty — drift ⇒ remediate (a) commits (b) tickets (c) Spec, **no merge**
 - [ ] **Mini-review scan (default-on):** load PR diff, 5-axis light scan, present material findings, `AskUserQuestion` on material items (high → default Hold); advice, **not** a gate — HARD gate stays alignment-check
-- [ ] **Train landing (multi-PR queue):** before **each** train merge, `gh pr checks <N>` rollup — fail/pending surfaced to the operator (train-transient version reds distinguished from real failures), never merge on `mergeable` alone; conflicts resolved **file-explicit only** (`git checkout --ours`/`--theirs` per named path — `git add -A` forbidden); post-merge `grep -rn '<<<<<<<'` over touched paths; in-flight head-branch runs waited-for or `gh run cancel`-ed before `--delete-branch` (flow.md §3.4)
+- [ ] **Sequential merge queue (multi-PR landing):** before **each** merge in the queue, `gh pr checks <N>` rollup — fail/pending surfaced to the operator (distinguish transient CI reds from real failures), never merge on `mergeable` alone; conflicts resolved **file-explicit only** (`git checkout --ours`/`--theirs` per named path — `git add -A` forbidden); post-merge `grep -rn '<<<<<<<'` over touched paths; in-flight head-branch runs waited-for or `gh run cancel`-ed before `--delete-branch` (flow.md §3.4)
 - [ ] merge|close
 - [ ] After **merge**: `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` — fail if the PR closing set changed; otherwise actionable local delivery issues CLOSED
 - [ ] branch + worktree cleanup; remote head gone by default
@@ -90,7 +90,7 @@ Finish **does not invent** which PR to merge.
 12. Report must include cleanup JSON: `deleted_remote_branch` / `remote_residual` / `ok`. If `ok:false` or remote head still listed → treat finish as **failed**, fix residual, re-run cleanup.
 13. **After every successful merge (mandatory):** run `close-fixed-issues.sh --pr <N> --expected-closing-ids <pre-merge alignment set>`. A changed set fails closed before issue operations. Do not trust GitHub auto-close when PR base ≠ repo default branch.
 14. Operator states a durable work preference during merge/hold decisions → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`../_lattice-lib/references/decision-policy.md` §Capture duty).
-15. **Red-run disposition before merge:** every failed/errored CI run on the PR branch (not just the latest rollup) gets one disposition line in the binder — `transient` (platform outage, train version race, superseded push — say which) or `real` (what fixed it). A later green does not retire a red unexamined; pairs with the CI smart-retry DEFAULT in `.lattice/preferences.md`.
+15. **Red-run disposition before merge:** every failed/errored CI run on the PR branch (not just the latest rollup) gets one disposition line in the binder — `transient` (platform outage, version race, superseded push — say which) or `real` (what fixed it). A later green does not retire a red unexamined; pairs with the CI smart-retry DEFAULT in `.lattice/preferences.md`.
 16. Defect noticed outside the ticket's `paths` during finish → write `- NOTICED: <path> — <one line> (out-of-paths, <date>)` to the active binder `## Notes` at notice time, then move on — never expand the merge (`../_lattice-lib/references/decision-policy.md` §Observation duty).
 
 ### HINT
@@ -175,14 +175,14 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 | "auto-fix the obvious bug the mini-review found" | Hard stop — only fix when operator explicitly names findings |
 | "mini-review makes /review-code redundant" | Containment: `/review-code` is the full superset for pre-`create-pr` / dedicated passes; mini is a bounded merge-time subset |
 | "verdict was from last night — still valid after rebase" | `diff_changed:true` or `conflict:true` from update-pr-base voids any prior verdict; re-run the mini-review. Only both-false (clean/noop update) carries it |
-| "mergeable=MERGEABLE means safe to merge" | Mergeable is a git-tree statement, not a CI verdict — the `gh pr checks` rollup is part of preflight; surface fail/pending and distinguish train-transient version reds from real failures before any merge |
+| "mergeable=MERGEABLE means safe to merge" | Mergeable is a git-tree statement, not a CI verdict — the `gh pr checks` rollup is part of preflight; surface fail/pending and distinguish transient CI reds from real failures before any merge |
 | "add -A is faster during conflicts" | File-explicit only: `git checkout --ours`/`--theirs` per named conflicted path, then `git add <path>`; `git add -A` staged raw conflict markers into dev (repair 628e4cb) |
 | "operator held the PR — state is obvious from the open PR" | State is never inferred from PR existence (ADR-004 §6); Hold with named findings stamps binder `status: rework` so resume finds the brief |
 
 ## Red Flags
 
 - Merge without `alignment-check.sh` when binders/Spec apply
-- Train merge on `mergeable` alone with a red/pending checks rollup
+- Sequential merge on `mergeable` alone with a red/pending checks rollup
 - `git add -A` (or blanket staging) during conflict resolution
 - Treating mini-review `high` findings as merge-blocking (advice; HARD gate is alignment-check)
 - Auto-applying fixes after mini-review findings (hard stop)
@@ -205,7 +205,7 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - [ ] `alignment-check.sh` pass (or profile-appropriate); DoD honesty (Iron Law)
 - [ ] Mini-review scan ran (default-on): material findings → `AskUserQuestion`; advice not gate; no auto-fix
 - [ ] `diff_changed`/`conflict` from the base-update JSON read and honored: either `true` → prior verdict voided and mini-review re-run; both `false` → verdict carried (state which)
-- [ ] Train landing: `gh pr checks <N>` rollup fetched before **each** train merge; fail/pending surfaced (train-transient version reds vs real failures distinguished); never merged on `mergeable` alone
+- [ ] Sequential merge queue: `gh pr checks <N>` rollup fetched before **each** merge in the queue; fail/pending surfaced (transient CI reds vs real failures distinguished); never merged on `mergeable` alone
 - [ ] Operator `Hold` with named findings → binder stamped `status: rework` with the findings as the new brief
 - [ ] Issue Acceptance checkboxes match binder + diff when Fixes closes (**Lattice-template issues**); **adopted** binders: binder Acceptance checked/deferred — do not rewrite hand-created issue body
 - [ ] Land-time Spec drift cleared (or deferred/follow-up explicit) when `Spec:` / Spec-bound tickets apply
@@ -213,7 +213,7 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 **After merge:**
 
 - [ ] PR merged|closed; local branch gone; worktree removed
-- [ ] Train landing: post-merge `grep -rn '<<<<<<<'` over the PR's touched paths clean; conflicts (if any) were resolved file-explicit; in-flight head runs waited-for or cancelled before branch deletion
+- [ ] Sequential merge queue: post-merge `grep -rn '<<<<<<<'` over the PR's touched paths clean; conflicts (if any) were resolved file-explicit; in-flight head runs waited-for or cancelled before branch deletion
 - [ ] Remote head gone unless `--keep-remote`
 - [ ] `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` ran; the set matched and all actionable local PR-body delivery issues are CLOSED
 - [ ] Binder `## Finish` ledger stamped on merge base (mergedAt + prs + status); idempotent; no-binder skipped not failed
