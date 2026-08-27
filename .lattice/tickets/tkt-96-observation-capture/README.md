@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/96 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | decision-policy "Observation duty" (DEFAULT) + NOTICED: canonical form + 3-skill wiring + review-delivery sweep step |
 | spec | none — audit rev-20260827-033352Z process observation #3 |
@@ -27,10 +27,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** decision-policy.md: "Observation duty" subsection (DEFAULT; canonical `NOTICED: <path> — <one line>` form; in-paths → fix now, out-of-paths → capture; never blocks the ticket)
-- [ ] **A2** start-work / finish-work / batch-work SKILL.md: one style-matched line each
-- [ ] **A3** review-delivery digest recipe: sweep `NOTICED:` lines from the round's binders into Findings with per-item disposition (ticket | one-liner | wontfix)
-- [ ] **A4** validate-skills green; full `ci-local` green
+- [x] **A1** decision-policy.md: "Observation duty" subsection (DEFAULT; canonical `NOTICED: <path> — <one line>` form; in-paths → fix now, out-of-paths → capture; never blocks the ticket)
+- [x] **A2** start-work / finish-work / batch-work SKILL.md: one style-matched line each
+- [x] **A3** review-delivery digest recipe: sweep `NOTICED:` lines from the round's binders into Findings with per-item disposition (ticket | one-liner | wontfix)
+- [x] **A4** validate-skills green; full `ci-local` green
 
 ## Approach
 
@@ -42,6 +42,12 @@ Mirror pr-88's shape exactly: a short subsection in decision-policy beside "Capt
 - Sweep scope — disposition: agent-decides (round's binders only vs repo-wide; prefer round-scoped with a repo-wide flag; journal)
 
 ## Decision journal
+
+- 2026-08-27 — Placement: "Observation duty — DEFAULT" sits directly after "Capture duty — INVARIANT" in decision-policy.md, opening with "Capture duty's twin", same prose + routes-table shape. Source: 1 — ticket AC/Approach ("beside Capture duty, same table style"). Reversible, ticket-local.
+- 2026-08-27 — start-work legacy marker: replaced the old `NOTICED BUT NOT TOUCHING:` bullet (step 7) and its Rationalizations echo with pointers to the canonical `NOTICED:` form — two competing markers would split the grep-able queue (`grep '^- NOTICED:'` misses the legacy form). Source: 5 — heuristic: minimal public surface (one canonical marker). Reversible, ticket-local; start-work/SKILL.md is in declared paths.
+- 2026-08-27 — finish-work numbering: new duty appended as DEFAULT rule 16 per ticket brief; HINT rules renumbered 16→17, 17→18, 18→19 (no cross-references to old HINT numbers found repo-wide). Source: 1 — ticket brief. Reversible, ticket-local.
+- 2026-08-27 — Sweep scope (pre-flagged in Anticipated decisions): round-scoped by default — `grep -rn '^- NOTICED:'` over the reviewed set's binder dirs only; the recipe notes the queue drains only through dispositions, and repo-wide sweeping stays a manual extra (no new flag machinery — review-delivery has no CLI to hang it on). Source: 5 — heuristic: most reversible option. Reversible, ticket-local.
+- 2026-08-27 — Digest template: NOTICED sweep added as a small subsection (3-row table incl. a "(none — sweep ran clean)" row) inside the existing "Findings" section, before "Artifact insufficiency" — per-item dispositions need a table, not one line; no restructuring. Source: 1 — ticket AC ("add it minimally"). Reversible, ticket-local.
 
 ## Pending decisions
 

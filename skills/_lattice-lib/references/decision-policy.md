@@ -30,6 +30,24 @@ What counts — capture **routes**, never swallows:
 | Feature-scoped decision (this Spec's shape) | Spec `## Decisions` |
 | System-shape law (cross-feature architecture) | ADR |
 
+## Observation duty — DEFAULT
+
+Capture duty's twin for **agent observations**. Mid-ticket an agent often notices a defect **outside its ticket's declared `paths`** (a stale header, a wrong count, a broken link). The active skill writes it to the active ticket's binder `## Notes` **at notice time** — one grep-able line, canonical form:
+
+```
+- NOTICED: <repo-relative path or area> — <one-line defect statement> (out-of-paths, <date>)
+```
+
+Then move on. DEFAULT, not INVARIANT: the duty must never block or grow the ticket — the queue exists so `review-delivery` sweeps it into every digest's Findings (`grep -rn '^- NOTICED:' .lattice/tickets/`), not so the noticing agent detours.
+
+What counts — capture **routes**, never swallows:
+
+| Noticed defect is… | Destination |
+| --- | --- |
+| Inside the ticket's declared `paths` | Just fix it now — in scope, no queue entry |
+| Outside the ticket's `paths` (any repo defect beyond the slice) | Binder `## Notes` `- NOTICED:` line — write now, at notice time; never expand scope, never silently drop |
+| Out-of-paths and `gh` is cheap + authorized | Optionally ALSO `gh issue create`, referenced in the line; the binder line is the mandatory part |
+
 ## Reversibility × blast-radius matrix — INVARIANT
 
 Classify the decision before acting:
@@ -78,6 +96,7 @@ Every self-decision gets a binder `## Decision journal` entry that **cites which
 | "Preferences say X but the Spec implies Y" | Spec/ADR outrank preferences — chain order is the law |
 | "Parking means the ticket failed" | Parked-with-seam + pending question is delivered work (see `fallback-policy.md`) |
 | "Operator stated a preference — I'll note it in the PR body" | PR bodies aren't the lookup chain; a preference not in `.lattice/preferences.md` never resolves a future decision. Capture at utterance time (§Capture duty) |
+| "I noticed an out-of-paths defect — I'll mention it in the PR body" | PR bodies are not swept; the binder `## Notes` `NOTICED:` line is — `review-delivery` greps exactly `^- NOTICED:`. Capture at notice time (§Observation duty) |
 
 ## Verification
 
@@ -89,5 +108,6 @@ Before claiming EXECUTE handled its decisions correctly:
 - [ ] PR carries `needs-decision` when pending decisions exist
 - [ ] Unattended run never stopped to wait on a human answer
 - [ ] Operator-stated durable preferences were written to `.lattice/preferences.md` at utterance time (dated, `operator-stated`) with a one-line confirmation — none left in chat, memory, or the PR body
+- [ ] Out-of-paths defects noticed mid-ticket each have a binder `- NOTICED:` line written at notice time — `grep -rn '^- NOTICED:' .lattice/tickets/` shows the queue; none left in chat or the PR body
 
 See `constraint-language.md` for severity semantics · `fallback-policy.md` for when to stop trying.

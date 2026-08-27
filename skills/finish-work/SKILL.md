@@ -91,12 +91,13 @@ Finish **does not invent** which PR to merge.
 13. **After every successful merge (mandatory):** run `close-fixed-issues.sh --pr <N> --expected-closing-ids <pre-merge alignment set>`. A changed set fails closed before issue operations. Do not trust GitHub auto-close when PR base ≠ repo default branch.
 14. Operator states a durable work preference during merge/hold decisions → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`../_lattice-lib/references/decision-policy.md` §Capture duty).
 15. **Red-run disposition before merge:** every failed/errored CI run on the PR branch (not just the latest rollup) gets one disposition line in the binder — `transient` (platform outage, train version race, superseded push — say which) or `real` (what fixed it). A later green does not retire a red unexamined; pairs with the CI smart-retry DEFAULT in `.lattice/preferences.md`.
+16. Defect noticed outside the ticket's `paths` during finish → write `- NOTICED: <path> — <one line> (out-of-paths, <date>)` to the active binder `## Notes` at notice time, then move on — never expand the merge (`../_lattice-lib/references/decision-policy.md` §Observation duty).
 
 ### HINT
 
-16. `--dry-run` when unsure; report remote residual if delete fails.
-17. CI empty-step flake heuristic — see `flow.md` preflight.
-18. Squash tips are often not ancestors of base — `--pr <PR_N>` verifies the matching same-repository PR, then binds local and remote authorization independently to refs that still equal `headRefOid`. Local ancestry proof can carry to the remote only when both observed refs are the same exact OID. Compare-and-delete / remote lease failures preserve a ref that changed after proof, and an initially absent remote is re-probed before success. Protected names (`main`/`dev`/…) are never deleted locally or remotely. Dirty non-force `--dry-run` reports blocked without claiming removal; remote dry-run stays explicitly unprobed.
+17. `--dry-run` when unsure; report remote residual if delete fails.
+18. CI empty-step flake heuristic — see `flow.md` preflight.
+19. Squash tips are often not ancestors of base — `--pr <PR_N>` verifies the matching same-repository PR, then binds local and remote authorization independently to refs that still equal `headRefOid`. Local ancestry proof can carry to the remote only when both observed refs are the same exact OID. Compare-and-delete / remote lease failures preserve a ref that changed after proof, and an initially absent remote is re-probed before success. Protected names (`main`/`dev`/…) are never deleted locally or remotely. Dirty non-force `--dry-run` reports blocked without claiming removal; remote dry-run stays explicitly unprobed.
 
 ## Short path
 
