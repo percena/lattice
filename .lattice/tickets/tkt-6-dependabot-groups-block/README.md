@@ -1,7 +1,7 @@
 # tkt-6-dependabot-groups-block
 
 > **TL;DR:** Add a `groups:` block to `dependabot.yml` so all github-actions bumps group into one PR per cycle.
-> **Kind:** chore · **Status:** open · **Priority:** P2
+> **Kind:** chore · **Priority:** P2
 > **Path:** spc-4 → tkt-6 → (pr-… rides tkt-5 PR)
 
 | Field | Value |

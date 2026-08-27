@@ -1,7 +1,7 @@
 # tkt-45-workflow-docs
 
 > **TL;DR:** docs/workflow-fsm.md (three coupled machines, transition owners, bounded-loop invariant) + docs/day-phase.md (business req → proposal rev → spec → adr → tickets recipe)
-> **Kind:** docs · **Status:** open · **Priority:** P2
+> **Kind:** docs · **Priority:** P2
 > **Path:** spc-42 → tkt-45 → (pr-…)
 
 | Field | Value |

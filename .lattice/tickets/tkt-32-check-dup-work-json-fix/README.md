@@ -1,7 +1,7 @@
 # tkt-32-check-dup-work-json-fix
 
 > **TL;DR:** Fix JSON injection (--json output) + worktree token double-counting in check-duplicate-work.sh
-> **Kind:** fix · **Status:** open · **Priority:** P2
+> **Kind:** fix · **Priority:** P2
 
 | Field | Value |
 | --- | --- |

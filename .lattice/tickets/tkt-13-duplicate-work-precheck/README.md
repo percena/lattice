@@ -1,7 +1,7 @@
 # tkt-13-duplicate-work-precheck
 
 > **TL;DR:** New check-duplicate-work.sh script in _lattice-lib + integration into create-tickets and start-work pre-flight
-> **Kind:** feat · **Status:** closed · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-13 → (pr-…)
 
 | Field | Value |

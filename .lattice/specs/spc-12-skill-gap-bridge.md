@@ -3,14 +3,14 @@ id: spc-12
 slug: skill-gap-bridge
 title: Lattice skill-gap bridge — ERP pattern adaptations
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Borrow 5 ERP patterns as Lattice-native skills: duplicate-work precheck, batch-work, bug repro loop, ego-browser run-e2e, step-manifest deferred"
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-08-27
 tickets: [tkt-13, tkt-14, tkt-15, tkt-16]
-prs: []
+prs: [pr-19, pr-20, pr-21]
 reviews: [rev-20260825-072540Z]
 supersedes: []
 superseded_by: null
@@ -55,10 +55,12 @@ ADR-002 (`docs/adr/002-lattice-skill-gap-bridge-adaptations.md`, Accepted) propo
 
 ## Acceptance
 
-- [ ] **A1** `check-duplicate-work.sh` exists in `_lattice-lib/scripts/`, checks 3 surfaces (open GitHub issues via `gh issue list`, local worktrees via `git worktree list`, open PRs via `gh pr list`), uses semantic title matching (≥2 shared significant tokens or CJK run ≥3 chars), always advisory (exits 0), and is integrated into create-tickets pre-flight and start-work pre-flight
-- [ ] **A2** `batch-work` skill exists with `--ids` / `--groups` input, reads parallel_group from ticket binders, spawns one worktree per tkt via `ensure-workspace.sh`, layer-barrier sync (waits for all agents in a group before next), `BATCH_WORK=1` env blocks finish-work merge (agents create-pr only), RAM threshold check before spawn, dry-run mode, and failure isolation (one agent crash doesn't block peers or subsequent layers)
-- [ ] **A3** start-work CLASSIFY step identifies bug-class tickets and runs Phase 0c (reproduce from ticket Reproduction Steps, capture evidence in binder `reproduction-evidence.md`) → Phase 1 (fix) → Phase 1b (re-verify, cross-comparison table, max 2 cycles; if no longer reproduces, consider wont-fix)
-- [ ] **A4** `run-e2e` reference template exists (heredoc JS pattern for ego-browser) with goto/click/fill/select/press/screenshot/assert primitives, fail-loud auth check (expected auth but landed on login page → FAIL), structured JSON output via `console.log`, and at least one example story for app or service
+- [x] **A1** `check-duplicate-work.sh` exists in `_lattice-lib/scripts/`, checks 3 surfaces (open GitHub issues via `gh issue list`, local worktrees via `git worktree list`, open PRs via `gh pr list`), uses semantic title matching (≥2 shared significant tokens or CJK run ≥3 chars), always advisory (exits 0), and is integrated into create-tickets pre-flight and start-work pre-flight
+- [x] **A2** `batch-work` skill exists with `--ids` / `--groups` input, reads parallel_group from ticket binders, spawns one worktree per tkt via `ensure-workspace.sh`, layer-barrier sync (waits for all agents in a group before next), `BATCH_WORK=1` env blocks finish-work merge (agents create-pr only), RAM threshold check before spawn, dry-run mode, and failure isolation (one agent crash doesn't block peers or subsequent layers)
+- [x] **A3** start-work CLASSIFY step identifies bug-class tickets and runs Phase 0c (reproduce from ticket Reproduction Steps, capture evidence in binder `reproduction-evidence.md`) → Phase 1 (fix) → Phase 1b (re-verify, cross-comparison table, max 2 cycles; if no longer reproduces, consider wont-fix)
+- [x] **A4** `run-e2e` reference template exists (heredoc JS pattern for ego-browser) with goto/click/fill/select/press/screenshot/assert primitives, fail-loud auth check (expected auth but landed on login page → FAIL), structured JSON output via `console.log`, and at least one example story for app or service
+> Land-stamp (2026-08-27, tkt-90): A1–A4 shipped 2026-08-25 via PRs #19/#20/#21 and a dev→main merge that bypassed finish-work's ledger stamping (the gap named in rev-20260826-141124Z:116). Stamped retroactively. Two criteria drifted after landing: A1's CJK match branch shipped incomplete (repaired under tkt-93); A2's `BATCH_WORK=1` env gate was replaced by the `.lattice/.batch-work-active` marker (tkt-33, v0.2.0; ADR-002 amendment under tkt-95).
+
 - [x] **A5** step-manifest deferral is documented in spec Decisions with rationale (Lattice binder is artifact-level; lightweight per-worktree progress file may be added if batch-work needs layer-barrier sync, but no global guard.sh enforcement) — **done: see Decisions §4**
 
 ## Non-goals

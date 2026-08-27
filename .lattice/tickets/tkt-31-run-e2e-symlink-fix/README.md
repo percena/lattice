@@ -1,7 +1,7 @@
 # tkt-31-run-e2e-symlink-fix
 
 > **TL;DR:** Fix broken plugin symlink (4→3 levels) + dead ego-browser markdown link in run-e2e SKILL.md
-> **Kind:** fix · **Status:** open · **Priority:** P1
+> **Kind:** fix · **Priority:** P1
 
 | Field | Value |
 | --- | --- |
