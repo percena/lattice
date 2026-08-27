@@ -29,11 +29,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `ticket_status()` fallback no longer searches the whole text — it reuses the scoped `tldr_header_status()` (blockquote lines before the first table) when the binder card has no `| status |` row.
-- [ ] **A2** `has_finish_ledger()` exempts the whole `(none…)` placeholder family (reuse `PRS_PLACEHOLDER_RE.fullmatch(content)`), not just the literal `(none yet)` — so a `status: closed` binder with `- (none — rides tkt-5 PR)` correctly fires `closed_without_finish`.
-- [ ] **A3** `spec_acceptance_ids()` collects `**A-N**` ids written inline on the Acceptance heading line (e.g. `## Acceptance — **A1**, **A2**`) before continuing.
-- [ ] **A4** Regression fixtures in `lattice-artifacts.bats` cover: no-table-status + body-prose-`**Status:**`; `(none …)` finish placeholder; inline-heading A-ids.
-- [ ] **A5** `validate-lattice-artifacts.py` + existing bats stay green; no new false positives on the live `.lattice/` tree.
+- [x] **A1** `ticket_status()` fallback no longer searches the whole text — it reuses the scoped `tldr_header_status()` (blockquote lines before the first table) when the binder card has no `| status |` row.
+- [x] **A2** `has_finish_ledger()` exempts the whole `(none…)` placeholder family (reuse `PRS_PLACEHOLDER_RE.fullmatch(content)`), not just the literal `(none yet)` — so a `status: closed` binder with `- (none — rides tkt-5 PR)` correctly fires `closed_without_finish`.
+- [x] **A3** `spec_acceptance_ids()` collects `**A-N**` ids written inline on the Acceptance heading line (e.g. `## Acceptance — **A1**, **A2**`) before continuing.
+- [x] **A4** Regression fixtures in `lattice-artifacts.bats` cover: no-table-status + body-prose-`**Status:**`; `(none …)` finish placeholder; inline-heading A-ids.
+- [x] **A5** `validate-lattice-artifacts.py` + existing bats stay green; no new false positives on the live `.lattice/` tree.
 
 ## Reproduction Steps (bug-class)
 
