@@ -8,12 +8,21 @@
 #
 # Usage:
 #   build-review-context.sh (--spec N | --ids N1,N2,... | --batch-report PATH)
-#                           [--home <lattice-home>] [--help]
+#                           [--home <lattice-home>] [--from-heads] [--help]
 #
 # Inputs (exactly one required):
 #   --spec N            resolve tickets from spc-N front matter `tickets:` list
 #   --ids N1,N2,...     explicit ticket numbers (bare N or tkt-N, comma/space)
 #   --batch-report PATH batch-work report file; ticket set = tkt-N ids found in it
+#
+# Options:
+#   --from-heads        pre-merge mode: for each ticket with an OPEN PR (number
+#                       from the binder prs row, else the gh search fallback),
+#                       `git fetch origin <headRef>` and read the binder from
+#                       `FETCH_HEAD:<binder path>` — stamped state (pr-open,
+#                       journals) lives on unmerged PR heads. Falls back to the
+#                       local file when the head is unavailable; each ticket's
+#                       manifest entry marks its source (`local` vs `head:pr-N`).
 #
 # Output (stdout): a Markdown manifest — chosen over JSON because the consumer
 # is an LLM reviewer and the format stays grep-able/diff-able like every other
@@ -26,7 +35,9 @@
 #                          candidates; feed review-delivery findings)
 #
 # Contract:
-#   - READ-ONLY: never writes or mutates anything.
+#   - READ-ONLY: never writes or mutates repo files. (`--from-heads` runs
+#     `git fetch origin <ref>`, which only refreshes FETCH_HEAD — no worktree,
+#     branch, or artifact is touched.)
 #   - Fail loud (exit 1) on: missing spec file, spec with no tickets, missing
 #     binder for any requested ticket, missing batch report.
 #   - gh PR lookup is best-effort fallback ONLY when the binder `prs` row is
@@ -42,13 +53,14 @@ source "$SCRIPT_DIR/_lattice-home.sh"
 log() { printf 'build-review-context: %s\n' "$*" >&2; }
 
 usage() {
-  sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 SPEC_N=""
 IDS_RAW=""
 BATCH_REPORT=""
 HOME_DIR=""
+FROM_HEADS=false
 
 require_value() {
   local flag="$1" val="${2-}"
@@ -95,6 +107,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --home=*)
       HOME_DIR="${1#--home=}"
+      shift
+      ;;
+    --from-heads)
+      FROM_HEADS=true
       shift
       ;;
     -h | --help)
@@ -270,6 +286,68 @@ done
 GH_AVAILABLE=false
 command -v gh >/dev/null 2>&1 && GH_AVAILABLE=true
 
+# --- --from-heads: read binder state from open PR heads -----------------------
+# Stamped state (pr-open, journals) lives on unmerged PR branches; pre-merge,
+# the local binder under-reports evidence. `git fetch origin <headRef>` only
+# refreshes FETCH_HEAD (read-only for worktree + artifacts); the binder content
+# is read with `git show`, never a checkout.
+HEADS_TMP=""
+if $FROM_HEADS; then
+  HEADS_TMP="$(mktemp -d "${TMPDIR:-/tmp}/brc-heads.XXXXXX")"
+  trap 'rm -rf "$HEADS_TMP"' EXIT
+fi
+
+head_binder_for() {
+  # $1 ticket id, $2 local binder path
+  # stdout: "<file to read>\t<source label>" — label is head:pr-N (+ref) when
+  # the open PR head was fetched and carries the binder, else local (+reason).
+  local id="$1" b="$2"
+  local prn state headref relpath snap pr_json
+  prn="$(field_row "$b" "prs" | grep -oE 'pr-[1-9][0-9]*' | head -1 | cut -d- -f2)" || true
+  if [[ -z "$prn" && "$GH_AVAILABLE" == true ]]; then
+    prn="$(gh pr list --state open --limit 10 --search "#$id" \
+      --json number --template '{{range .}}{{.number}}{{"\n"}}{{end}}' 2>/dev/null \
+      | head -1)" || true
+  fi
+  if [[ -z "$prn" ]]; then
+    printf '%s\tlocal (no PR known for tkt-%s)\n' "$b" "$id"
+    return 0
+  fi
+  if ! $GH_AVAILABLE; then
+    printf '%s\tlocal (gh unavailable — cannot resolve pr-%s head)\n' "$b" "$prn"
+    return 0
+  fi
+  pr_json="$(gh pr view "$prn" --json state,headRefName 2>/dev/null)" || true
+  state="" headref=""
+  if [[ -n "${pr_json:-}" ]]; then
+    read -r state headref < <(printf '%s' "$pr_json" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    d = {}
+print(d.get("state") or "-", d.get("headRefName") or "-")
+' 2>/dev/null) || true
+  fi
+  if [[ "${state:-}" != "OPEN" || -z "${headref:-}" || "$headref" == "-" ]]; then
+    printf '%s\tlocal (pr-%s is %s — not an open head)\n' "$b" "$prn" "${state:-unknown}"
+    return 0
+  fi
+  # headRefName feeds a git command line — refuse option-shaped/odd refs.
+  if [[ ! "$headref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
+    printf '%s\tlocal (pr-%s head ref refused: %s)\n' "$b" "$prn" "$headref"
+    return 0
+  fi
+  relpath="${b#"$REPO_ROOT"/}"
+  snap="$HEADS_TMP/tkt-$id-head.md"
+  if git -C "$REPO_ROOT" fetch --quiet origin "$headref" 2>/dev/null \
+    && git -C "$REPO_ROOT" show "FETCH_HEAD:$relpath" >"$snap" 2>/dev/null; then
+    printf '%s\thead:pr-%s (%s)\n' "$snap" "$prn" "$headref"
+  else
+    printf '%s\tlocal (fetch/show failed for pr-%s head %s)\n' "$b" "$prn" "$headref"
+  fi
+}
+
 # --- emit manifest ---
 
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -308,13 +386,21 @@ GAPS=()
 for i in "${!TICKET_IDS[@]}"; do
   id="${TICKET_IDS[$i]}"
   b="${BINDERS[$i]}"
-  status_val="$(field_row "$b" "status")"
-  covers_val="$(field_row "$b" "covers")"
-  prs_val="$(field_row "$b" "prs")"
-  blocked_val="$(field_row "$b" "blocked_by")"
+  src_file="$b"
+  src_label=""
+  if $FROM_HEADS; then
+    IFS=$'\t' read -r src_file src_label <<<"$(head_binder_for "$id" "$b")"
+  fi
+  status_val="$(field_row "$src_file" "status")"
+  covers_val="$(field_row "$src_file" "covers")"
+  prs_val="$(field_row "$src_file" "prs")"
+  blocked_val="$(field_row "$src_file" "blocked_by")"
 
   printf '\n### tkt-%s\n\n' "$id"
   printf -- '- binder: %s\n' "$b"
+  if $FROM_HEADS; then
+    printf -- '- binder source: %s\n' "$src_label"
+  fi
   printf -- '- status: %s\n' "${status_val:-(no status row)}"
   printf -- '- covers: %s\n' "${covers_val:-(none)}"
   printf -- '- blocked_by: %s\n' "${blocked_val:-(none)}"
@@ -337,10 +423,10 @@ for i in "${!TICKET_IDS[@]}"; do
     fi
   fi
 
-  journal_state="$(section_state "$b" "Decision journal")"
-  pending_state="$(section_state "$b" "Pending decisions")"
-  attempts_state="$(section_state "$b" "Attempts")"
-  approach_state="$(section_state "$b" "Approach")"
+  journal_state="$(section_state "$src_file" "Decision journal")"
+  pending_state="$(section_state "$src_file" "Pending decisions")"
+  attempts_state="$(section_state "$src_file" "Attempts")"
+  approach_state="$(section_state "$src_file" "Approach")"
   printf -- '- evidence: approach=%s · decision-journal=%s · pending-decisions=%s · attempts=%s\n' \
     "$approach_state" "$journal_state" "$pending_state" "$attempts_state"
 

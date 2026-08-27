@@ -392,6 +392,9 @@ if issue_closed == "true" or (not issue_m and merged):
     s = re.sub(r'(\| status \|)\s*open\s*(\|)', r'\1 closed \2', s)
 
 # 3. prs table row: record pr-N — URL (idempotent; append for multiple PRs).
+# Any `(none…)` placeholder variant — "(none)", "(none yet)", … — is REPLACED,
+# never appended beside (digest rev-20260826-172600Z Findings 4: appending
+# left "(none) · pr-N …" rows, the tkt-43 duplication class).
 prs_entry = f"pr-{pr_n}"
 if pr_url:
     prs_entry += f" — {pr_url}"
@@ -399,7 +402,7 @@ prs_row = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
 m_prs = prs_row.search(s)
 if m_prs:
     cur = m_prs.group(2)
-    if cur == "(none yet)" or cur.strip() == "":
+    if cur.strip() == "" or re.fullmatch(r'\(none[^)]*\)', cur):
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {prs_entry} {mm.group(3)}", s, count=1)
     elif f"pr-{pr_n}" not in cur:
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {cur} · {prs_entry} {mm.group(3)}", s, count=1)

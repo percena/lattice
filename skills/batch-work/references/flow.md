@@ -108,6 +108,7 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      Run: start-work tkt-<id>.
      Batch marker: .lattice/.batch-work-active is present in this worktree —
      finish-work merge is BLOCKED. Do not call finish-work.
+     Never `git add -A`; stage named paths (the batch marker must stay untracked).
      Implement to the ticket's Acceptance criteria. Then open a PR via create-pr.
      Stop after create-pr. Report the PR URL.
 

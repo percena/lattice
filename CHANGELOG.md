@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-08-26
+
+Helper polish from the first unattended consumption (digest rev-20260826-172600Z Findings 3–6, #81): single-PR bump.
+
+### Added
+
+- **`stamp-pr-open.sh --check-all`** — checks every unchecked binder acceptance box, then mirrors to the issue; REFUSED when the binder Acceptance section carries a deferral note (a line containing "defer"), forcing explicit per-box checking. Usage header now states the ordering law: check binder boxes, then stamp — the issue sync mirrors only checked boxes.
+- **`build-review-context.sh --from-heads`** — pre-merge mode: for each ticket with an open PR, fetches the PR head (read-only, `FETCH_HEAD` only) and reads binder state via `git show`, falling back to the local file; each manifest entry marks its source (`local` vs `head:pr-N`).
+
+### Fixed
+
+- **`finish-ledger.sh` / `stamp-pr-open.sh`** now REPLACE any `(none…)` prs-row placeholder variant with the canonical `pr-N — <URL>` entry instead of appending beside it (the tkt-43 duplication class); filled rows keep the append/merge behavior.
+- **batch-work spawn-brief template** carries an explicit "Never `git add -A`; stage named paths" line — 2 of 3 round-3 agents hit the reflex and staged the batch marker.
+
 ## [0.2.2] - 2026-08-26
 
 Deferred validator items from tkt-65 (#74): single-PR bump.

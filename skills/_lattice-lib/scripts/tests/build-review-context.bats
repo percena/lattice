@@ -215,3 +215,88 @@ EOF
   run bash "$BRC" --batch-report "$TEST_DIR/nope.md" --home "$MAIN/.lattice"
   [ "$status" -ne 0 ]
 }
+
+# --- --from-heads: binder state read from open PR heads (fixture remote) ------
+# A bare repo on a local path stands in for origin; `git fetch` + `git show`
+# behave identically to a network remote, so no skip is needed.
+
+setup_from_heads_fixture() {
+  git -C "$MAIN" config user.email lattice-test@example.invalid
+  git -C "$MAIN" config user.name 'Lattice Test'
+  git -C "$MAIN" add .
+  git -C "$MAIN" commit -qm 'fixture: baseline'
+  ORIGIN="$TEST_DIR/origin.git"
+  git init -q --bare "$ORIGIN"
+  git -C "$MAIN" remote add origin "$ORIGIN"
+  git -C "$MAIN" push -q origin main
+  # PR head: tkt-2's binder is stamped there (pr-open + journal content)
+  git -C "$MAIN" checkout -qb tkt-2-beta-head
+  sed -i 's/| status | in-progress |/| status | pr-open |/' \
+    "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+  sed -i 's#| prs | (none) |#| prs | pr-22 — https://github.com/acme/r/pull/22 |#' \
+    "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+  printf '\n' >>"$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+  python3 - "$MAIN/.lattice/tickets/tkt-2-beta/README.md" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p, encoding="utf-8").read()
+s = s.replace("## Decision journal", "## Decision journal\n\n- picked A over B (source: ticket AC)", 1)
+open(p, "w", encoding="utf-8").write(s)
+PY
+  git -C "$MAIN" commit -aqm 'fixture: head-stamped binder'
+  git -C "$MAIN" push -q origin tkt-2-beta-head
+  git -C "$MAIN" checkout -q main
+}
+
+@test "--from-heads reads binder state from the open PR head (gh search path)" {
+  setup_from_heads_fixture
+  # local binder row is (none): PR number comes from the gh search fallback
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "pr list") printf '22\n' ;;
+  "pr view") printf '%s\n' '{"state":"OPEN","headRefName":"tkt-2-beta-head"}' ;;
+esac
+exit 0
+EOF
+  chmod +x "$STUB_BIN/gh"
+  run bash "$BRC" --ids 2 --home "$MAIN/.lattice" --from-heads
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"binder source: head:pr-22 (tkt-2-beta-head)"* ]]
+  # head state, not the local in-progress/(none) state
+  [[ "$output" == *"- status: pr-open"* ]]
+  [[ "$output" == *"decision-journal=present"* ]]
+  # local file untouched (read-only contract)
+  grep -q '| status | in-progress |' "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+}
+
+@test "--from-heads falls back to the local binder when gh cannot resolve a head" {
+  setup_from_heads_fixture
+  export GH_MODE=fail
+  run bash "$BRC" --ids 1 --home "$MAIN/.lattice" --from-heads
+  [ "$status" -eq 0 ]
+  # tkt-1's binder row names pr-11, but gh pr view fails → local source marked
+  [[ "$output" == *"binder source: local ("* ]]
+  [[ "$output" == *"- status: pr-open"* ]]
+}
+
+@test "--from-heads marks a non-open PR as local source" {
+  setup_from_heads_fixture
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "pr view") printf '%s\n' '{"state":"MERGED","headRefName":"tkt-1-alpha-head"}' ;;
+esac
+exit 0
+EOF
+  chmod +x "$STUB_BIN/gh"
+  run bash "$BRC" --ids 1 --home "$MAIN/.lattice" --from-heads
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"binder source: local (pr-11 is MERGED — not an open head)"* ]]
+}
+
+@test "without --from-heads no binder-source line is emitted" {
+  run bash "$BRC" --ids 1 --home "$MAIN/.lattice"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"binder source:"* ]]
+}
