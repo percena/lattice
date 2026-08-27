@@ -75,16 +75,17 @@ npx skills add percena/lattice -g -y
 | [`create-spec`](./skills/create-spec/) | 持久化带验收标准的 Lattice Spec（`spc-n`） | `/create-spec` |
 | [`create-review`](./skills/create-review/) | 持久化带显式 outcome 的 Lattice Review（`rev-YYYYMMDD-HHMMSSZ`） | `/create-review` |
 | [`create-tickets`](./skills/create-tickets/) | 将已锁定范围拆分为 GitHub issues + 活页夹 | `/create-tickets` |
-| [`batch-work`](./skills/batch-work/) | DAG 编排扇出：在多个 sibling 工作树上并行派发 `start-work` 代理，层间屏障同步 | `/batch-work` |
+| [`batch-work`](./skills/batch-work/) | DAG 编排的无人值守扇出：在多个 sibling 工作树上并行派发 `start-work` 代理，层间屏障同步 | `/batch-work` |
 | [`create-pr`](./skills/create-pr/) | 开启/更新格式规范的 GitHub PR | `/create-pr` |
-| [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、合并、清理 | `/finish-work` |
+| [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、默认开启的 mini-review 扫描、合并、清理 | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | 支撑上述技能的共享脚本（共装，非 slash 入口） | — |
 
-非交付循环——分四类，均不产生血缘节点：
+非交付循环——分五类，均不产生血缘节点：
 
 | 类别 | 技能 | 说明 |
 | --- | --- | --- |
 | PR 范围质量旁路 | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | 可选，在 `/create-pr` 前后；不依赖 `_lattice-lib` |
+| 链路审查旁路 | [`review-delivery`](./skills/review-delivery/) | 仅产出 artifact 的审查，面向一组已交付 ticket（Spec A* 保真度、跨 PR 连贯性、决策队列、逐 PR 发现）→ 带逐轴 attestation、按优先级排序的晨间摘要；共装 `_lattice-lib`；绝不执行合并，也绝非合并门禁 |
 | E2e 参考模式 | [`run-e2e`](./skills/run-e2e/) | ego-browser heredoc JS story 模式；一次 Bash 调用一个 story，fail-loud 认证，结构化 JSON；非 runner，非循环入口 |
 | 独立文档工具 | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`；随时可跑；不依赖 `_lattice-lib` |
 | 带外伴生（`create-*` 家族） | [`create-adr`](./skills/create-adr/) | 写 `docs/adr/NNN`；共装 `_lattice-lib`；**非血缘节点**——与 `/create-spec`/`/create-review` 同 pass 同 worktree 调用（提升跨特性决策）；绝非循环入口或 Spec 替代品 |
@@ -95,6 +96,8 @@ npx skills add percena/lattice -g -y
 | --- | --- |
 | [getting-started](./docs/getting-started.md) | 安装、自动 ensure、profiles、日常路径、高级安装 |
 | [github-surface](./docs/github-surface.md) | kind + priority 标签、可选 Project 自动添加 |
+| [workflow-fsm](./docs/workflow-fsm.md) | 三台耦合状态机、迁移责任方、有界循环不变量 |
+| [day-phase](./docs/day-phase.md) | 有人值守的规划配方：需求 → 提案 rev → spec → adr → tickets |
 | [CONTRIBUTING](./CONTRIBUTING.md) | 在本 monorepo 中修改技能/插件 |
 | [SECURITY](./SECURITY.md) | 漏洞报告 |
 | [CODE OF CONDUCT](./CODE_OF_CONDUCT.md) | 社区规范 |
