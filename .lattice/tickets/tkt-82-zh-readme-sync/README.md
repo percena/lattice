@@ -65,4 +65,6 @@ Diff README.md (post-#77) against README.zh-CN.md section by section; port the s
 
 ## Finish
 
-- (none yet)
+
+- pr-87 merged: 2026-08-27T03:04:30Z — https://github.com/percena/lattice/pull/87 (base merge)
+- issue #82 closed: 2026-08-27T03:04:35Z — https://github.com/percena/lattice/issues/82

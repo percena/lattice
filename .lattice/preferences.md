@@ -26,7 +26,7 @@ Apply + journal the use; skip only with a stated equivalent-proof reason.
 
 - CI anomalies: retry intelligently before escalating — cheapest probe first (re-check state / wait for platform recovery), then re-trigger (fresh push or close-reopen), and hand to a human only when self-service is exhausted; always record what was tried and why the red was judged transient vs real (added 2026-08-26, operator-stated — direct entry, ×2 promotion not required for explicit operator directives)
 - Label taxonomy: docs and sync tooling follow the repo's live label set; renaming repo labels needs an explicit operator decision (added 2026-08-26, ratified-by-default in tkt-65, unobjected)
-- Preference capture is proactive: when the operator states a durable work preference mid-session, the active AI writes it here AT UTTERANCE TIME with provenance and confirms in one line — never waits to be reminded (added 2026-08-26, operator-stated; being encoded into decision-policy law via tkt-84)
+- Preference capture is proactive: when the operator states a durable work preference mid-session, the active AI writes it here AT UTTERANCE TIME with provenance and confirms in one line — never waits to be reminded (added 2026-08-26, operator-stated; encoded into decision-policy law 2026-08-27, pr-88)
 
 <!-- - New scripts: bash + `set -euo pipefail`, mirror sibling script style (added 2026-08-26) -->
 <!-- - HTTP client: stdlib, not a new library (added 2026-08-26) -->

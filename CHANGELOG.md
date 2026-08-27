@@ -12,6 +12,7 @@ Helper polish from the first unattended consumption (digest rev-20260826-172600Z
 
 ### Added
 
+- **Proactive preference capture** — decision-policy "Capture duty" INVARIANT: the active skill writes operator-stated preferences at utterance time (direct entry + provenance + one-line confirm); routing heuristic (preference / Spec Decisions / ADR); wired into start-work, finish-work, batch-work.
 - **`stamp-pr-open.sh --check-all`** — checks every unchecked binder acceptance box, then mirrors to the issue; REFUSED when the binder Acceptance section carries a deferral note (a line containing "defer"), forcing explicit per-box checking. Usage header now states the ordering law: check binder boxes, then stamp — the issue sync mirrors only checked boxes.
 - **`build-review-context.sh --from-heads`** — pre-merge mode: for each ticket with an open PR, fetches the PR head (read-only, `FETCH_HEAD` only) and reads binder state via `git show`, falling back to the local file; each manifest entry marks its source (`local` vs `head:pr-N`).
 

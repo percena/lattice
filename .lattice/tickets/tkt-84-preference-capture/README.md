@@ -64,4 +64,6 @@ decision-policy.md gains a short "Capture duty" subsection beside the resolution
 
 ## Finish
 
-- (none yet)
+
+- pr-88 merged: 2026-08-27T03:03:49Z — https://github.com/percena/lattice/pull/88 (base merge)
+- issue #84 closed: 2026-08-27T03:03:54Z — https://github.com/percena/lattice/issues/84

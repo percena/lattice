@@ -72,4 +72,6 @@ Each helper change is additive and small; reuse each script's existing test harn
 
 ## Finish
 
-- (none yet)
+
+- pr-89 merged: 2026-08-27T03:03:08Z — https://github.com/percena/lattice/pull/89 (base merge)
+- issue #81 closed: 2026-08-27T03:03:12Z — https://github.com/percena/lattice/issues/81

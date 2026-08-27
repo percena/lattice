@@ -62,4 +62,6 @@ Run the validator, collect the exact flagged rows, rewrite each to `pr-N — <UR
 
 ## Finish
 
-- (none yet)
+
+- pr-86 merged: 2026-08-27T03:04:09Z — https://github.com/percena/lattice/pull/86 (base merge)
+- issue #80 closed: 2026-08-27T03:04:14Z — https://github.com/percena/lattice/issues/80
