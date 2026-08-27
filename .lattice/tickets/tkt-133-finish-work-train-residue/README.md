@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/133 |
-| status | queued |
+| status | closed |
 | adopted | false |
 | summary | Cleanup train-retirement residue + fix dangling §3.4 pointer in finish-work/SKILL.md |
 | spec | none — ticket-only from rev-20260827-102420Z F3 |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-133 (this issue) |
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-133-finish-work-train-residue |
-| prs | (none) |
+| prs | pr-140 — https://github.com/percena/lattice/pull/140 |
 
 ## Acceptance (this slice)
 
@@ -52,4 +52,6 @@ Edit finish-work/SKILL.md: rewrite :23 "merge trains (§3.4)" → "Sequential me
 
 ## Finish
 
-- (none yet)
+- pr-140 merged: 2026-08-27 — https://github.com/percena/lattice/pull/140 (squash merge)
+- issue #133 closed: 2026-08-27 — https://github.com/percena/lattice/issues/133
+
