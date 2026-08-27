@@ -317,8 +317,12 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
 fi
 
 # --- Stamp the binder (idempotent) --------------------------------------------
-python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" <<'PY'
+BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" <<'PY'
 import sys, re, os, stat, fcntl
+
+sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
+import binder_rows
 
 binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state = sys.argv[1:9]
 # Take an exclusive lock for the whole read-modify-write. Two finish sessions
@@ -398,24 +402,20 @@ if issue_closed == "true" or (not issue_m and merged):
         s,
     )
 
-# 3. prs table row: record pr-N — URL (idempotent; append for multiple PRs).
-# Any `(none…)` placeholder variant — "(none)", "(none yet)", … — is REPLACED,
-# never appended beside (digest rev-20260826-172600Z Findings 4: appending
-# left "(none) · pr-N …" rows, the tkt-43 duplication class).
-prs_entry = f"pr-{pr_n}"
-if pr_url:
-    prs_entry += f" — {pr_url}"
+# 3. prs table row: canonical `pr-N — URL`, comma-joined for multiples —
+# grammar single-sourced in lib/binder_rows.py (tkt-91). Placeholder variants
+# are REPLACED, never appended beside (digest rev-20260826-172600Z Findings 4:
+# appending left "(none) · pr-N …" rows, the tkt-43 duplication class); the
+# legacy ` · ` joiner and bare `pr-N` (no URL) are never emitted — with no
+# resolvable URL the row is left untouched and the gap is reported.
 prs_row = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
 m_prs = prs_row.search(s)
 if m_prs:
-    cur = m_prs.group(2)
-    if cur.strip() == "" or re.fullmatch(r'\(none[^)]*\)', cur):
-        s = prs_row.sub(lambda mm: f"{mm.group(1)} {prs_entry} {mm.group(3)}", s, count=1)
-    elif f"pr-{pr_n}" not in cur:
-        s = prs_row.sub(lambda mm: f"{mm.group(1)} {cur} · {prs_entry} {mm.group(3)}", s, count=1)
+    if not pr_url:
+        print("finish-ledger: WARNING — no PR URL resolved; prs row left untouched (bare pr-N is off-canon)", file=sys.stderr)
     else:
-        # pr-N already recorded; leave (idempotent)
-        pass
+        merged_row = binder_rows.merge_row(m_prs.group(2), pr_n, pr_url)
+        s = prs_row.sub(lambda mm: f"{mm.group(1)} {merged_row} {mm.group(3)}", s, count=1)
 
 if s != orig:
     # Write via temp + atomic rename: a crash (or a second finish session

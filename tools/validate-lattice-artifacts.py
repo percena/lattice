@@ -52,6 +52,10 @@ SPEC_REF_RE = re.compile(r"\|\s*spec\s*\|\s*(spc-[1-9][0-9]*)\b", re.I)
 PRS_TABLE_RE = re.compile(r"^\|\s*prs\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
 # A row that is entirely a `(none…)` parenthetical is a placeholder, not a
 # filled ledger entry (e.g. `(none)`, `(none yet)`, `(none — rides tkt-5 PR)`).
+# Grammar single-sourced with the writers in
+# skills/_lattice-lib/scripts/lib/binder_rows.py — this file keeps standalone
+# copies (consumer repos vendor the validator alone); a bats test asserts the
+# two stay byte-identical (tkt-91).
 PRS_PLACEHOLDER_RE = re.compile(r"^\(none.*\)$", re.I)
 # Canonical filled row: `pr-N — <URL>` (single spaces around the em dash),
 # comma-separated for multi-PR tickets (`pr-52 — <URL>, pr-53 — <URL>`).

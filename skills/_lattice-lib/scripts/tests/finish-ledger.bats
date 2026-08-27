@@ -394,7 +394,7 @@ EOF
   sed -i 's#| prs | (none yet) |#| prs | pr-11 — https://github.com/percena/lattice/pull/11 |#' "$BINDER"
   bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
     --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
-  grep -q '| prs | pr-11 — https://github.com/percena/lattice/pull/11 · pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
+  grep -q '| prs | pr-11 — https://github.com/percena/lattice/pull/11, pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
   # idempotent: second run for the same PR leaves a single pr-12 entry
   bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
     --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
@@ -432,4 +432,46 @@ EOF
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
   grep -qE '\| status \| parked \|' "$BINDER"
+}
+
+# tkt-91: the prs grammar is single-sourced in lib/binder_rows.py — writers
+# emit the tkt-74 canon (comma joiner, URL required), and the emitted row must
+# satisfy the validator's canonical regex.
+
+@test "multi-PR append emits the comma canon accepted by the validator" {
+  write_fresh_binder
+  bash "$FL" --pr 11 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  row="$(grep -m1 '^| prs |' "$BINDER" | sed 's/^| prs | //; s/ |$//')"
+  ROW="$row" python3 - "$(dirname "$FL")/lib" <<'PY'
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import binder_rows
+row = os.environ["ROW"]
+assert binder_rows.PRS_ROW_CANON_RE.fullmatch(row), f"off-canon row: {row!r}"
+PY
+}
+
+@test "prs grammar in lib/binder_rows.py matches the validator's copy byte-for-byte" {
+  python3 - "$(dirname "$FL")/lib" "$(cd "$(dirname "$FL")/../../.." && pwd)/tools/validate-lattice-artifacts.py" <<'PY'
+import importlib.util, sys
+sys.path.insert(0, sys.argv[1])
+import binder_rows
+spec = importlib.util.spec_from_file_location("val", sys.argv[2])
+val = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(val)
+assert binder_rows.PRS_PLACEHOLDER_RE.pattern == val.PRS_PLACEHOLDER_RE.pattern
+assert binder_rows.PRS_ROW_CANON_RE.pattern == val.PRS_ROW_CANON_RE.pattern
+PY
+}
+
+@test "no URL resolvable: prs row left untouched with a warning (bare pr-N never emitted)" {
+  write_fresh_binder
+  run bash "$FL" --pr 12 --binder "$BINDER" \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
+  [ "$status" -eq 0 ]
+  grep -q '| prs | (none yet) |' "$BINDER"
+  ! grep -qE '\| prs \| pr-12 \|' "$BINDER"
 }
