@@ -39,7 +39,7 @@ Each layer compensates for a rule whose granularity (per-PR on an integration br
 
 We will enforce the version-increment invariant **only at the dev→main release boundary**. Concretely:
 
-1. `validate-plugin-versions.py` strict law ("bundled content changed without a version increment") fires only when the base-ref resolves to the default branch (`origin/main` / `main`) or a release tag. On `dev` (base-ref is a fork point / dev ancestor), the validator enforces only the **non-decrease** hard bottom: `manifest_version < previous_version ⟹ error`.
+1. `validate-plugin-versions.py` strict law ("bundled content changed without a version increment") fires only when the `--release-check` flag is active (passed by CI when the target is `origin/main`/`main`, or explicitly by the operator). On `dev` (no `--release-check`), the validator enforces only the **non-decrease** hard bottom: `manifest_version < previous_version ⟹ error`. The flag is the sole trigger — strict mode does not auto-detect from the base-ref string, because CI passes commit SHAs (not ref names) that cannot be reliably classified.
 2. **Retire the release-train mechanism in full:** delete `train_cut_shared()`, the `--no-train` flag, the linear-push guard, and all train-related test fixtures.
 3. **batch-work** loses its spawn-brief contract item 6 (release-train version policy) and the orchestrator's unified-cut step; parallel tickets no longer coordinate on version/changelog — bump is deferred to release.
 4. **finish-work** gains a new dev→main pre-merge step: when the PR targets `main` and bundled paths changed, check that version increased relative to the last release before merging; surface to the operator on failure.

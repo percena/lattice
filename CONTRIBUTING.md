@@ -34,7 +34,10 @@ claude --plugin-dir ./plugins/lattice
 claude plugin validate .
 claude plugin validate plugins/lattice
 bash tools/validate-skills.sh
-python3 tools/validate-plugin-versions.py --base-ref origin/main --release-check
+# Dev validation (lenient: only checks version does not decrease):
+python3 tools/validate-plugin-versions.py --base-ref origin/dev
+# Release-boundary check (strict: bundled change requires version bump):
+# python3 tools/validate-plugin-versions.py --base-ref origin/main --release-check
 
 # Tests
 bats plugins/lattice/scripts/tests/
