@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** create-review accepts needs_decision as a valid outcome (front-matter + skill flow)
-- [ ] **A2** needs_decision next-step: review enters a triage-queue mechanism (not terminal stop like inform_only)
-- [ ] **A3** rev-20260827-064527Z can be re-outcomed to needs_decision and surfaces for triage
-- [ ] **A4** bats/validator: concluded review with needs_decision passes; inform_only unchanged
+- [x] **A1** create-review accepts needs_decision as a valid outcome (front-matter + skill flow)
+- [x] **A2** needs_decision next-step: review enters a triage-queue mechanism (not terminal stop like inform_only)
+- [x] **A3** rev-20260827-064527Z can be re-outcomed to needs_decision and surfaces for triage
+- [x] **A4** bats/validator: concluded review with needs_decision passes; inform_only unchanged
 
 ## Approach
 
