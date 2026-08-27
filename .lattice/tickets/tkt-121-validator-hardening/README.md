@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/121 |
-| status | in-progress | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it) · legacy: open (coarse — validator warns) |
+| status | pr-open | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it) · legacy: open (coarse — validator warns) |
 | adopted | false |
 | summary | validate-lattice-artifacts.py: 3 latent defects (status fallback scope, finish-placeholder family, acceptance-heading A-ids) |
 | spec | (none — standalone process-hardening bug) |
@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-121-validator-hardening` |
 | worktree | sibling `…/lattice.worktrees/tkt-121-validator-hardening/` (default for shippable) |
-| prs | (none) |
+| prs | pr-126 — https://github.com/percena/lattice/pull/126 |
 
 ## Acceptance (this slice)
 
