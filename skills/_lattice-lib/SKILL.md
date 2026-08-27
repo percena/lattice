@@ -1,6 +1,6 @@
 ---
 name: _lattice-lib
-description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the thirteen user-facing Lattice skills."
+description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the fourteen user-facing Lattice skills."
 user-invocable: false
 disable-model-invocation: true
 metadata:
@@ -10,11 +10,11 @@ metadata:
 
 # `_lattice-lib` (library install-unit)
 
-**Not a navigation skill.** User surface is the thirteen user-facing skills — the lifecycle six:
+**Not a navigation skill.** User surface is the fourteen user-facing skills — the lifecycle six:
 
 `start-work` · `create-spec` · `create-review` · `create-tickets` · `create-pr` · `finish-work`
 
-plus the optional companions and side-paths: `batch-work`, `create-adr`, `run-e2e`, `review-code`, `review-production`, `review-delivery`, `generate-wiki`. Of those, `batch-work`, `create-adr`, and `review-delivery` also co-install this library (per README); the others do not depend on it.
+plus the optional companions and side-paths: `batch-work`, `create-adr`, `run-e2e`, `verify-features`, `review-code`, `review-production`, `review-delivery`, `generate-wiki`. Of those, `batch-work`, `create-adr`, `review-delivery`, and `verify-features` also co-install this library (per README); the others do not depend on it.
 
 This package is an **install unit** for shared scripts + portable policy so partial installs and relative `../start-work` paths are unnecessary. Leading **`_`** = internal shared package.
 
@@ -68,7 +68,7 @@ Legacy install dir `lattice-lib` is **not** accepted (migration window closed).
 
 ## Install
 
-Install **with** the user-facing skills (whole package or explicit `--skill _lattice-lib`). Required by the lifecycle six plus `batch-work`, `create-adr`, and `review-delivery`.
+Install **with** the user-facing skills (whole package or explicit `--skill _lattice-lib`). Required by the lifecycle six plus `batch-work`, `create-adr`, `review-delivery`, and `verify-features`.
 
 ```bash
 npx skills add percena/lattice -a claude-code -a codex -g -y

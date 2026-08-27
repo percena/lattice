@@ -146,3 +146,19 @@ setup_file() {
   [[ "$output" == *tkt-3-first* ]]
   [[ "$output" == *tkt-3-second* ]]
 }
+
+# spc-104 A1: feature-map format + status vocabulary (checked when the file exists).
+
+@test "well-formed feature map passes clean" {
+  run python3 "$VAL" --home "$FIX/feature-map" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"warning_count": 0'* ]]
+}
+
+@test "feature map: unknown status errors, empty oracle warns" {
+  run python3 "$VAL" --home "$FIX/feature-map-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *feature_map_status* ]]
+  [[ "$output" == *"'verified'"* ]]
+  [[ "$output" == *feature_map_row_format* ]]
+}

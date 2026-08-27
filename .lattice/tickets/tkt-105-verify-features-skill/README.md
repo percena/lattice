@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/105 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | verify-features SKILL.md + 4 references + feature-map template + validator format check + full surface registration + 0.3.0 cut |
 | spec | spc-104 — runtime verification loop |
@@ -23,13 +23,13 @@
 | **related_tickets** | tkt-106/tkt-107 (train siblings), tkt-16/tkt-31 (run-e2e substrate), tkt-14 (bug-repro loop this feeds) |
 | **worktree_bind** | tkt-105-verify-features-skill |
 | worktree | sibling …/lattice.worktrees/tkt-105-verify-features-skill/ |
-| prs | (none yet) |
+| prs | pr-110 — https://github.com/percena/lattice/pull/110 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** feature-map template + conventions (columns: id, feature, entry, oracle + source, mutations, risk, story, last-verified, status ∈ untested|pass|fail|blocked); `validate-lattice-artifacts.py` format check when the file exists, fixture-backed tests
-- [ ] **A2** verify-features SKILL.md + references (inventory, story/oracle policy incl. invariant bundle, triage + bug filing, report shape) carrying spc-104 Decisions 1/3/4 as INVARIANTs; registered on every enforced surface incl. routing cases
-- [ ] **A3** full ci-local green; owns the 0.3.0 cut + CHANGELOG entry
+- [x] **A1** feature-map template + conventions (columns: id, feature, entry, oracle + source, mutations, risk, story, last-verified, status ∈ untested|pass|fail|blocked); `validate-lattice-artifacts.py` format check when the file exists, fixture-backed tests
+- [x] **A2** verify-features SKILL.md + references (inventory, story/oracle policy incl. invariant bundle, triage + bug filing, report shape) carrying spc-104 Decisions 1/3/4 as INVARIANTs; registered on every enforced surface incl. routing cases
+- [x] **A3** full ci-local green; owns the 0.3.0 cut + CHANGELOG entry
 
 ## Approach
 
@@ -43,6 +43,11 @@ New `skills/verify-features/` in the house anatomy (frontmatter with agents + al
 - Crawl bound default — agent-decides: ≤20 pages, same-origin only; journal
 
 ## Decision journal
+
+- Feature id scheme: `ftr-<kebab-slug>` — stable + human-readable, no counter infra; collision surfaces as a human-visible map diff (validator row check covers shape) — chain source 1 (binder Anticipated decisions); reversible.
+- Validator severity: unknown status = error (`feature_map_status`, matching invalid_ticket_status posture); malformed row / empty oracle = warning (`feature_map_row_format`, lazy-migration precedent) — chain source 1; reversible.
+- Crawl bound: ≤20 same-origin pages, read-only, actions never clicked during crawl (a button is a mutation until classified) — chain source 2 (spc-104 Decision 3/4); reversible.
+- README tier tables: added a sixth tier row ("Runtime verification side-path") en+zh and bumped the tier count both sides — the count claim just fixed by tkt-95 stays true — chain source 1; reversible.
 
 ## Pending decisions
 

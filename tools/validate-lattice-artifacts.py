@@ -436,6 +436,45 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     }
                 )
 
+    # Feature map (spc-104 A1): when `.lattice/feature-map.md` exists, its rows
+    # must be well-formed and use the status vocabulary. Unknown status = error
+    # (same posture as invalid_ticket_status); malformed row = warning (lazy
+    # migration precedent). Template:
+    # skills/_lattice-lib/references/templates/feature-map.md
+    fmap = home / "feature-map.md"
+    if fmap.is_file():
+        FMAP_STATUS_OK = {"untested", "pass", "fail", "blocked"}
+        for lineno, line in enumerate(load_text(fmap).splitlines(), 1):
+            if not line.startswith("| ftr-"):
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) != 9 or not cells[3]:
+                findings.append(
+                    {
+                        "code": "feature_map_row_format",
+                        "level": "warning",
+                        "path": str(fmap),
+                        "detail": (
+                            f"line {lineno}: row needs 9 cells "
+                            "(id|feature|entry|oracle|mutations|risk|story|last-verified|status) "
+                            "with a non-empty oracle"
+                        ),
+                    }
+                )
+                continue
+            st_cell = re.sub(r"\s*\(.*\)$", "", cells[8]).strip()
+            if st_cell not in FMAP_STATUS_OK:
+                findings.append(
+                    {
+                        "code": "feature_map_status",
+                        "path": str(fmap),
+                        "detail": (
+                            f"line {lineno}: status {cells[8]!r} not in "
+                            f"{sorted(FMAP_STATUS_OK)} (parenthetical qualifier allowed)"
+                        ),
+                    }
+                )
+
     # One binder directory per ticket id: `tkt-N` is the lineage key, so two
     # dirs sharing it fork the chain (tkt-90; the historical tkt-35 collision
     # went unnoticed for four rounds without this check).

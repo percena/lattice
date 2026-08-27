@@ -37,6 +37,7 @@ CATALOG = [
     "generate-wiki",
     "create-adr",
     "run-e2e",
+    "verify-features",
     "review-code",
     "review-production",
     "review-delivery",

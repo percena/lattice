@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-27
+
+Runtime verification loop (spc-104, rev-20260827-042618Z; #105–#108): released as a shared train cut — #105 owns the bump and this entry; the round's other bundled PRs carry byte-identical version files. Stacked on the 0.2.4 round (#97–#103).
+
+### Added
+
+- **`verify-features` skill (tkt-105, #105)** — the 14th user-facing skill: full-feature runtime verification. Mines Spec `A*`/ticket lineage into a committed `.lattice/feature-map.md` (features + cited expected behavior + mutation class + verification stamps; single-writer), designs per-feature e2e stories with an oracle hierarchy (spec-derived > doc-derived > generic invariants) and a universal invariant bundle (page/console/http errors, dead ends, mutation round-trip), executes bounded waves on the `run-e2e`/ego-browser substrate, triages failures, and files real bugs as tickets with Reproduction Steps that feed start-work's Phase 0c repro loop. Mutation-safety INVARIANT: destructive surfaces are never exercised without per-feature written operator authorization; safe mutations only in the operator's e2e env allowlist.
+- **Feature-map template + validator checks (tkt-105, #105)** — `_lattice-lib/references/templates/feature-map.md`; `validate-lattice-artifacts.py` gains `feature_map_status` (error) and `feature_map_row_format` (warning) when `.lattice/feature-map.md` exists.
+
+
 ## [0.2.4] - 2026-08-27
 
 Post-round-4 verified audit batch (rev-20260827-033352Z, #90–#96): released as a shared train cut — #90 owns the bump and this entry; the other bundled PRs of the round carry byte-identical version files (canonical manifest blobs owned by #94). Merge-time bullets for the train's other tickets are appended below their PR merges.

@@ -29,6 +29,7 @@ USER_FACING=(
   finish-work
   batch-work
   run-e2e
+  verify-features
   generate-wiki
   review-code
   review-production

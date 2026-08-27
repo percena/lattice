@@ -13,6 +13,7 @@ Percena **Lattice** packaging for Claude Code: full delivery loop in **one** plu
 | `finish-work` | [`skills/finish-work`](../../skills/finish-work/) (symlinked) | Yes |
 | `create-adr` | [`skills/create-adr`](../../skills/create-adr/) (symlinked) | Yes — out-of-band ADR companion (not a loop step, not a lineage node) |
 | `run-e2e` | [`skills/run-e2e`](../../skills/run-e2e/) (symlinked) | Yes — e2e reference pattern (not a runner) |
+| `verify-features` | [`skills/verify-features`](../../skills/verify-features/) (symlinked) | Yes — full-feature runtime verification against the feature map |
 | `review-code` | [`skills/review-code`](../../skills/review-code/) (symlinked) | Yes — PR-scoped quality side-path |
 | `review-production` | [`skills/review-production`](../../skills/review-production/) (symlinked) | Yes — PR-scoped quality side-path |
 | `review-delivery` | [`skills/review-delivery`](../../skills/review-delivery/) (symlinked) | Yes — chain-review side-path |
@@ -39,7 +40,7 @@ npx skills add percena/lattice \
   --skill _lattice-lib \
   --skill start-work --skill create-spec --skill create-review \
   --skill create-tickets --skill batch-work --skill create-pr \
-  --skill finish-work --skill create-adr --skill run-e2e \
+  --skill finish-work --skill create-adr --skill run-e2e --skill verify-features \
   --skill review-code --skill review-production --skill review-delivery \
   --skill generate-wiki \
   -a claude-code -a codex -g -y
@@ -58,6 +59,7 @@ npx skills add percena/lattice \
 - **[finish-work](../../skills/finish-work/)** — Merge/close PR, delete branch, remove worktree.
 - **[create-adr](../../skills/create-adr/)** — Out-of-band ADR companion: writes `docs/adr/NNN`; co-installs `_lattice-lib`; not a lineage node, not a loop step.
 - **[run-e2e](../../skills/run-e2e/)** — Reference pattern for ego-browser heredoc JS e2e stories; not a runner, not a loop entry.
+- **[verify-features](../../skills/verify-features/)** — Full-feature runtime verification: lineage-mined feature map with cited oracles, bounded e2e waves on run-e2e stories, bugs filed as tickets; co-installs `_lattice-lib`.
 - **[review-code](../../skills/review-code/)** — Optional PR-scoped code review: material correctness/regression findings with recommended solutions.
 - **[review-production](../../skills/review-production/)** — Optional PR-scoped production-readiness review (security, performance, test coverage, ship/rollback).
 - **[review-delivery](../../skills/review-delivery/)** — Artifact-only chain review of a delivered ticket set → ranked morning digest; never merges.
