@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/106 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | httpErrors in schema+pattern, story header (feature id/oracle/mutations), round-trip recipe, .lattice/e2e/stories/ catalog |
 | spec | spc-104 — runtime verification loop |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-105 (map/story linkage), tkt-16/tkt-31 (skill origin) |
 | **worktree_bind** | tkt-106-run-e2e-upgrades |
 | worktree | sibling …/lattice.worktrees/tkt-106-run-e2e-upgrades/ |
-| prs | (none yet) |
+| prs | pr-113 — https://github.com/percena/lattice/pull/113 |
 
 ## Acceptance (this slice)
 
