@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/121 |
-| status | pr-open | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it) · legacy: open (coarse — validator warns) |
+| status | closed | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it) · legacy: open (coarse — validator warns) |
 | adopted | false |
 | summary | validate-lattice-artifacts.py: 3 latent defects (status fallback scope, finish-placeholder family, acceptance-heading A-ids) |
 | spec | (none — standalone process-hardening bug) |
@@ -93,4 +93,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-126 merged: 2026-08-27T07:20:13Z — https://github.com/percena/lattice/pull/126 (base merge)
+- issue #121 closed: 2026-08-27T07:20:27Z — https://github.com/percena/lattice/issues/121
