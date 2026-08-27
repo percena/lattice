@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/82 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | zh README catches up with the English README's current skill reality |
 | spec | none — digest finding (rev-20260826-172600Z F7), noticed-by tkt-75 |
@@ -38,6 +38,14 @@ Diff README.md (post-#77) against README.zh-CN.md section by section; port the s
 - Terminology for new concepts (e.g. 链路审查 for chain review) — disposition: agent-decides (follow the zh doc's existing glossary habits; journal choices)
 
 ## Decision journal
+
+- "chain review" → **链路审查** — 1 (binder Approach anticipated this term; zh doc already renders "chain" as 链路 in 理念 section: "链路不跳步", "链路可续作") — reversible, ticket-local
+- "unattended" → **无人值守** (batch-work row); "attended" → **有人值守** (day-phase doc row) — 5, codebase convention (standard zh ops term pair; no prior zh rendering in doc) — reversible, ticket-local
+- **attestation / mini-review / artifact kept in English** (逐轴 attestation, mini-review 扫描, 仅产出 artifact) — 5, codebase convention (zh doc's glossary habit retains English jargon: fail-loud, outcome, story, runner, sibling, base) — reversible, ticket-local
+- "ranked morning digest" → **按优先级排序的晨间摘要** — 5, most natural zh rendering consistent with digest artifacts' own zh-free naming; digest itself stays untranslated concept-wise — reversible, ticket-local
+- Tier-table intro count: **分五类** (count-accurate to the 5 rows after adding review-delivery), NOT a literal port of EN's "three tiers" — 5, codebase convention (zh doc's existing habit was count-accurate: said 四类 for its 4 rows). EN's "three tiers" looks stale vs its own 5 rows → noticed-but-not-touched (README.md out of scope) — reversible, ticket-local
+- Added missing **workflow-fsm / day-phase rows to the zh docs table** — same-file catch-up beyond the skill tables; 1 (binder summary: "zh README catches up with the English README") + reversible, ticket-local (paths: README.zh-CN.md only)
+- Packaging claim "六个技能": **no such claim exists in README.zh-CN.md** (verified `grep 六` — empty); the six-skills claim lived in getting-started, fixed by #77, out of this ticket's paths — nothing owed here
 
 ## Pending decisions
 
