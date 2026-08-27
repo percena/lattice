@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** M1 row lists done as terminal; superseded documented as revision path
-- [ ] **A2** M1 diagram shows Spec locked → done
-- [ ] **A3** M2 mermaid shows any → closed (cancel) or annotation that table is authoritative
-- [ ] **A4** Revision propagation to existing ticket/binders documented (≥1 line)
+- [x] **A1** M1 row lists done as terminal; superseded documented as revision path
+- [x] **A2** M1 diagram shows Spec locked → done
+- [x] **A3** M2 mermaid shows any → closed (cancel) or annotation that table is authoritative
+- [x] **A4** Revision propagation to existing ticket/binders documented (≥1 line)
 
 ## Approach
 
