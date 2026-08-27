@@ -300,3 +300,16 @@ EOF
   [ "$status" -eq 0 ]
   [[ "$output" != *"binder source:"* ]]
 }
+
+# tkt-91: the placeholder predicate matches any `(none…)` variant — a
+# decorated placeholder must trigger the gh fallback, not read as filled.
+
+@test "decorated (none — …) placeholder still triggers the gh fallback" {
+  sed -i 's#| prs | (none) |#| prs | (none — rides tkt-81 PR) |#' \
+    "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
+  export GH_MODE=ok
+  run bash "$BRC" --ids 2 --home "$MAIN/.lattice"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"prs (binder row): (none — rides tkt-81 PR)"* ]]
+  [[ "$output" == *"prs (gh fallback, verify linkage): pr-12 https://github.com/acme/r/pull/12"* ]]
+}

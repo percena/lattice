@@ -360,8 +360,24 @@ printf '| spec | %s |\n' "${SPEC_PATH:-(none — ticket-id input)}"
 printf '| batch report | %s |\n' "${BATCH_REPORT:-(none)}"
 printf '| tickets | %s |\n' "$(printf 'tkt-%s ' "${TICKET_IDS[@]}" | sed 's/ $//')"
 
+# Resolve each ticket's source file once, up front: local binder, or the PR
+# head snapshot under --from-heads. The ADR scan below and the ## Tickets loop
+# both read from these — previously the ADR scan always read local binders,
+# under-reporting head-only ADR citations in pre-merge mode (tkt-91).
+SRC_FILES=()
+SRC_LABELS=()
+for i in "${!TICKET_IDS[@]}"; do
+  _src="${BINDERS[$i]}"
+  _label=""
+  if $FROM_HEADS; then
+    IFS=$'\t' read -r _src _label <<<"$(head_binder_for "${TICKET_IDS[$i]}" "${BINDERS[$i]}")"
+  fi
+  SRC_FILES+=("$_src")
+  SRC_LABELS+=("$_label")
+done
+
 printf '\n## ADRs cited\n\n'
-scan_files=("${BINDERS[@]}")
+scan_files=("${SRC_FILES[@]}")
 [[ -n "$SPEC_PATH" ]] && scan_files+=("$SPEC_PATH")
 mapfile -t adr_refs < <(grep -ohE 'ADR-[0-9]{1,3}' "${scan_files[@]}" 2>/dev/null | sort -u || true)
 if [[ "${#adr_refs[@]}" -eq 0 ]]; then
@@ -386,11 +402,8 @@ GAPS=()
 for i in "${!TICKET_IDS[@]}"; do
   id="${TICKET_IDS[$i]}"
   b="${BINDERS[$i]}"
-  src_file="$b"
-  src_label=""
-  if $FROM_HEADS; then
-    IFS=$'\t' read -r src_file src_label <<<"$(head_binder_for "$id" "$b")"
-  fi
+  src_file="${SRC_FILES[$i]}"
+  src_label="${SRC_LABELS[$i]}"
   status_val="$(field_row "$src_file" "status")"
   covers_val="$(field_row "$src_file" "covers")"
   prs_val="$(field_row "$src_file" "prs")"
@@ -406,7 +419,10 @@ for i in "${!TICKET_IDS[@]}"; do
   printf -- '- blocked_by: %s\n' "${blocked_val:-(none)}"
   printf -- '- prs (binder row): %s\n' "${prs_val:-(no prs row)}"
 
-  if [[ -z "$prs_val" || "$prs_val" == "(none)" || "$prs_val" == "(none yet)" ]]; then
+  # Placeholder predicate mirrors lib/binder_rows.py PRS_PLACEHOLDER_RE —
+  # any `(none…)` variant, e.g. `(none — rides tkt-81 PR)` (tkt-91: the old
+  # literal comparison treated decorated placeholders as filled rows).
+  if [[ -z "$prs_val" || "$prs_val" =~ ^\(none.*\)$ ]]; then
     if $GH_AVAILABLE; then
       gh_status=0
       gh_out="$(gh pr list --state all --limit 10 --search "#$id" \

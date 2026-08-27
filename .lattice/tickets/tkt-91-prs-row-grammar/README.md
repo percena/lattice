@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/91 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | binder_rows shared definition + writer canon emission + build-review-context predicate fix |
 | spec | none — audit rev-20260827-033352Z F4 |
@@ -27,10 +27,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** single shared definition (`_lattice-lib/scripts/lib/binder_rows.py`) owns placeholder predicate + canonical entry + joiner; both writers emit comma-joined canon on the append path; no bare `pr-N` emission
-- [ ] **A2** `build-review-context.sh` placeholder check accepts any `(none…)` variant
-- [ ] **A3** validator canon asserted equal to the shared definition (test-enforced)
-- [ ] **A4** bats: multi-PR append yields zero `prs_row_format` warnings; existing suites green; full `ci-local` green
+- [x] **A1** single shared definition (`_lattice-lib/scripts/lib/binder_rows.py`) owns placeholder predicate + canonical entry + joiner; both writers emit comma-joined canon on the append path; no bare `pr-N` emission
+- [x] **A2** `build-review-context.sh` placeholder check accepts any `(none…)` variant
+- [x] **A3** validator canon asserted equal to the shared definition (test-enforced)
+- [x] **A4** bats: multi-PR append yields zero `prs_row_format` warnings; existing suites green; full `ci-local` green
 
 ## Approach
 
@@ -42,6 +42,10 @@ New `lib/binder_rows.py` exporting the placeholder regex, entry format string, j
 - No-URL fallback — disposition: agent-decides (resolve URL via gh at stamp time; if unavailable, leave the row untouched and print a journaled warning rather than emitting non-canon; journal)
 
 ## Decision journal
+
+- Lib consumption: writers import `lib/binder_rows.py` via a `BINDER_ROWS_LIB` env + `sys.path` insert (resolved from `BASH_SOURCE` dirname — survives the plugin symlink because the whole scripts/ dir is one link); the validator keeps standalone regex copies with a cross-ref comment, and a bats test asserts pattern byte-equality (consumer repos vendor the validator alone) — chain source 1 (binder Anticipated decisions, pre-resolved); reversible.
+- No-URL fallback: with no resolvable PR URL both writers now leave the prs row untouched and print a WARNING (previously finish-ledger emitted off-canon bare `pr-N`) — real flows always resolve a URL via gh or the `--repo` slug; a silent off-canon write is worse than a loud skip — chain source 1 (agent-decides); reversible.
+- Bonus in-paths fix (binder covers row): `--from-heads` now resolves each ticket's source file once up front (SRC_FILES), so the ADR scan reads head snapshots instead of always-local binders (round-4 digest Finding 2) — same file, journaled here.
 
 ## Pending decisions
 
