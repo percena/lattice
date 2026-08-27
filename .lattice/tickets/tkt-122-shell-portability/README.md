@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/122 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | shell portability — ci-local.sh + bats suites fail on macOS default bash 3.2 (sed -i, apostrophe, mapfile) |
 | spec | (none — standalone process-hardening bug) |
@@ -97,4 +97,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-128 merged: 2026-08-27T07:29:18Z — https://github.com/percena/lattice/pull/128 (base merge)
+- issue #122 closed: 2026-08-27T07:29:26Z — https://github.com/percena/lattice/issues/122
