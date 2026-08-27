@@ -1,7 +1,7 @@
 # tkt-5-land-v7-action-bumps
 
 > **TL;DR:** Land the three Dependabot v7 major bumps (checkout/setup-node/setup-python) as one combined upgrade commit; dev CI must stay green.
-> **Kind:** chore · **Status:** closed · **Priority:** P2
+> **Kind:** chore · **Priority:** P2
 > **Path:** spc-4 → tkt-5 → (pr-…)
 
 | Field | Value |

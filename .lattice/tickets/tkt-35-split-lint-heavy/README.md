@@ -1,7 +1,7 @@
 # tkt-35-split-lint-heavy
 
 > **TL;DR:** Split lint.yml heavy jobs (skill-quality, plugin-validate) into a new path-filtered lint-heavy.yml; keep light jobs (shellcheck, symlink-integrity) in lint.yml with its own path filter
-> **Kind:** chore · **Status:** open · **Priority:** P3
+> **Kind:** chore · **Priority:** P3
 
 | Field | Value |
 | --- | --- |

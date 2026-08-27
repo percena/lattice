@@ -1,7 +1,7 @@
 # tkt-33-batch-work-marker-fix
 
 > **TL;DR:** Replace unreliable BATCH_WORK=1 env-var gate with a marker-file mechanism that survives across Bash sessions
-> **Kind:** fix · **Status:** open · **Priority:** P2
+> **Kind:** fix · **Priority:** P2
 
 | Field | Value |
 | --- | --- |

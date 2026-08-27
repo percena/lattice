@@ -1,7 +1,7 @@
 # tkt-47-review-delivery
 
 > **TL;DR:** New review-delivery skill — artifact-only chain review (A* fidelity, cross-PR coherence, decision queue, per-PR findings) + build-review-context.sh + ranked morning digest with attestation
-> **Kind:** feat · **Status:** pr-open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-42 → tkt-47 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/47 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | review-delivery skill + context bundle script + morning digest (auto-pass / ratify / deep-review triage, promotion proposals) |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |

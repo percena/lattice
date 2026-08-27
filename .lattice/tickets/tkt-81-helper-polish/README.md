@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/81 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | helper polish batch (stamp-pr-open, finish-ledger, build-review-context, batch-work brief line) + 0.2.3 |
 | spec | none — digest findings (rev-20260826-172600Z F3–F6) |

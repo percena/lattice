@@ -1,7 +1,7 @@
 # tkt-14-bug-repro-loop
 
 > **TL;DR:** Pre-fix reproduction / post-fix verification loop for bug-class tickets in start-work CLASSIFY step
-> **Kind:** feat · **Status:** closed · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-14 → (pr-…)
 
 | Field | Value |

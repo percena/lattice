@@ -128,3 +128,21 @@ setup_file() {
   [[ "$output" == *'"ok": false'* ]]
   [[ "$output" == *onesided_spec_ticket_edge*tkt-4*spc-4* ]]
 }
+
+# tkt-90: inverse coherence — a merged Finish ledger requires terminal status.
+
+@test "merged Finish ledger with working status fails; cancel ledger is exempt" {
+  run python3 "$VAL" --home "$FIX/finish-status-mismatch" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *finish_without_terminal_status* ]]
+  [[ "$output" == *tkt-70-merged-but-pr-open* ]]
+  [[ "$output" != *tkt-71-cancel-ok* ]]
+}
+
+@test "two binder dirs claiming one tkt id fail with duplicate_ticket_id" {
+  run python3 "$VAL" --home "$FIX/dup-ticket-id" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *duplicate_ticket_id* ]]
+  [[ "$output" == *tkt-3-first* ]]
+  [[ "$output" == *tkt-3-second* ]]
+}

@@ -288,8 +288,12 @@ fi
 # --- Stamp the binder (locked + atomic, finish-ledger conventions) ------------
 STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 CHECK_ALL_MODE=$($CHECK_ALL && echo "check-all" || echo "keep-boxes")
-python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" <<'PY'
+BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" <<'PY'
 import sys, re, os, stat, fcntl
+
+sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
+import binder_rows
 
 binder, pr_n, pr_url, mode, box_mode = sys.argv[1:6]
 dry_run = mode == "dry-run"
@@ -308,21 +312,18 @@ except OSError as exc:
 s = open(binder, encoding="utf-8").read()
 orig = s
 
-prs_entry = f"pr-{pr_n} — {pr_url}"
-
-# prs row: canonical `pr-N — URL` (idempotent; append for multiple PRs).
-# Any `(none…)` placeholder variant is REPLACED, never appended beside
-# (same law as finish-ledger.sh — digest rev-20260826-172600Z Findings 4).
+# prs row: canonical `pr-N — URL`, comma-joined for multi-PR tickets
+# (grammar single-sourced in lib/binder_rows.py — tkt-91; placeholder
+# variants are REPLACED, never appended beside — digest rev-20260826-172600Z
+# Findings 4; the legacy ` · ` joiner is never emitted).
 prs_row = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
 m_prs = prs_row.search(s)
 if m_prs:
-    cur = m_prs.group(2)
-    if f"pr-{pr_n}" in cur:
-        pass  # already recorded (idempotent)
-    elif cur == "" or re.fullmatch(r'\(none[^)]*\)', cur):
-        s = prs_row.sub(lambda mm: f"{mm.group(1)} {prs_entry} {mm.group(3)}", s, count=1)
+    if not pr_url:
+        print("stamp-pr-open: WARNING — no PR URL resolved; prs row left untouched (bare pr-N is off-canon)", file=sys.stderr)
     else:
-        s = prs_row.sub(lambda mm: f"{mm.group(1)} {cur} · {prs_entry} {mm.group(3)}", s, count=1)
+        merged = binder_rows.merge_row(m_prs.group(2), pr_n, pr_url)
+        s = prs_row.sub(lambda mm: f"{mm.group(1)} {merged} {mm.group(3)}", s, count=1)
 else:
     print("stamp-pr-open: WARNING — binder has no `| prs |` row; not stamped", file=sys.stderr)
 
@@ -365,12 +366,13 @@ if s != orig and not dry_run:
         raise
 
 box_note = f" + {boxes_checked} acceptance box(es) checked" if boxes_checked else ""
+stamp_label = binder_rows.format_entry(pr_n, pr_url) if pr_url else f"pr-{pr_n} (URL unresolved)"
 if s == orig:
     print("stamp-pr-open: binder no change (idempotent)")
 elif dry_run:
-    print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{prs_entry}` + status pr-open{box_note}")
+    print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{stamp_label}` + status pr-open{box_note}")
 else:
-    print(f"stamp-pr-open: binder stamped ({prs_entry}, status pr-open{box_note})")
+    print(f"stamp-pr-open: binder stamped ({stamp_label}, status pr-open{box_note})")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)

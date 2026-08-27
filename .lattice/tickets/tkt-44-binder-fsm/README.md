@@ -1,7 +1,7 @@
 # tkt-44-binder-fsm
 
 > **TL;DR:** Binder template gains Approach / Anticipated decisions / Decision journal / Pending decisions / Attempts sections; field-table `status` extended into the FSM enum; validator checks transitions
-> **Kind:** feat · **Status:** pr-open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-42 → tkt-44 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/44 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | binder sections + status FSM enum (compatible with finish-ledger closed stamp) + validator transition checks |
 | spec | spc-42 — Attention loop (path: ../../specs/spc-42-attention-loop.md) |

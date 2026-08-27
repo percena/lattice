@@ -51,6 +51,10 @@ We will govern unattended delivery with six laws:
 
 Rejected alternatives and the full audit live in `rev-20260826-141124Z` (`.lattice/reviews/rev-20260826-141124Z-attention-loop-design.md`).
 
+## Amendment (2026-08-27, tkt-90)
+
+§6's closing claim ("validators reject illegal transitions") overstated the shipped check: `validate-lattice-artifacts.py` validates state **snapshots**, not transition history — unknown status values, `closed` without a Finish ledger, a merged Finish ledger without terminal status (`finish_without_terminal_status`, added by tkt-90 after 19 binders stranded at `pr-open` went undetected), and duplicate ticket ids (`duplicate_ticket_id`). Edge legality between two valid snapshots is owned by the skills that perform the transitions (`docs/workflow-fsm.md` §5). §3's promotion path also gained a direct edge after acceptance: an explicit operator-stated preference is written at utterance time by the active skill (Capture duty, `decision-policy.md`, pr-88) — the ×2 promotion remains the path for journal-derived candidates.
+
 ---
 
 _Not a Lattice bloodline/graph node. Cite from Spec/PR/Review with `ADR-004` or this path._

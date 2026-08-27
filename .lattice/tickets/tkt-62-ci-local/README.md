@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/62 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | ci-local.sh runs everything CI runs; batch briefs cite it as the required evidence command |
 | spec | none — enhancement from dogfood review |
