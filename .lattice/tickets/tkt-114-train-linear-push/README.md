@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/114 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | train_cut_shared linear/ancestor branch + origin/main released-version guard + 3 bats cases |
 | spec | none — red-run disposition duty finding, first day live (dev run 33042132795) |
@@ -23,13 +23,13 @@
 | **related_tickets** | tkt-60 (train rule origin), tkt-92 (dev CI enablement that surfaced it) |
 | **worktree_bind** | tkt-114-train-linear-push |
 | worktree | sibling …/lattice.worktrees/tkt-114-train-linear-push/ |
-| prs | (none yet) |
+| prs | pr-115 — https://github.com/percena/lattice/pull/115 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** linear/ancestor acceptance implemented with the released-version guard (origin/main → main → strict fallback); PR-shape divergent semantics unchanged
-- [ ] **A2** bats: mid-train linear push accepted; post-promotion strict again; --no-train strict; existing 21 cases green
-- [ ] **A3** real-history repro passes (`--base-ref 148855e` prints the train acceptance line); ci-local green
+- [x] **A1** linear/ancestor acceptance implemented with the released-version guard (origin/main → main → strict fallback); PR-shape divergent semantics unchanged
+- [x] **A2** bats: mid-train linear push accepted; post-promotion strict again; --no-train strict; existing 21 cases green
+- [x] **A3** real-history repro passes (`--base-ref 148855e` prints the train acceptance line); ci-local green
 
 ## Approach
 
