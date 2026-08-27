@@ -27,8 +27,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A7** — batch-work SKILL.md + flow.md, finish-work flow.md, create-tickets policy.md contain zero references to "release-train", "train_cut", "train mode", "--no-train", or "version cut"
-- [ ] **A8** — finish-work flow.md has a new dev→main pre-merge step: detects bundle-changed-without-bump before merging to main, surfaces to operator (bump is manual, gate is automated)
+- [x] **A7** — batch-work SKILL.md + flow.md, finish-work flow.md, create-tickets policy.md contain zero references to "release-train", "train_cut", "train mode", "--no-train", or "version cut"
+- [x] **A8** — finish-work flow.md has a new dev→main pre-merge step: detects bundle-changed-without-bump before merging to main, surfaces to operator (bump is manual, gate is automated)
 
 ## Notes
 

@@ -27,10 +27,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** — strict law fires only when base-ref resolves to `origin/main`/`main`/release tag; dev landing (fork-point base) passes equal-version-with-bundle-change
-- [ ] **A2** — non-decrease bottom enforced on both modes: `manifest_version < previous_version ⟹ error`
-- [ ] **A3** — `train_cut_shared()`, `--no-train` flag, linear-push guard, `train_cut` field all deleted; no train code remains in validator
-- [ ] **A4** — bats: dev-mode equal-version-with-change passes; release-boundary equal-version-with-change fails; non-decrease enforced; non-train tests unchanged
+- [x] **A1** — strict law fires only when base-ref resolves to `origin/main`/`main`/release tag; dev landing (fork-point base) passes equal-version-with-bundle-change
+- [x] **A2** — non-decrease bottom enforced on both modes: `manifest_version < previous_version ⟹ error`
+- [x] **A3** — `train_cut_shared()`, `--no-train` flag, linear-push guard, `train_cut` field all deleted; no train code remains in validator
+- [x] **A4** — bats: dev-mode equal-version-with-change passes; release-boundary equal-version-with-change fails; non-decrease enforced; non-train tests unchanged
 
 ## Notes
 

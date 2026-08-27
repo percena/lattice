@@ -27,8 +27,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A5** — lint-heavy.yml green on dev merges (lenient, no false red) AND on main-target PRs (strict, catches missing bump)
-- [ ] **A6** — ci-local.sh default is lenient (dev-mode: non-decrease only); `--release-check` flag triggers strict release-boundary validation against `origin/main`
+- [x] **A5** — lint-heavy.yml green on dev merges (lenient, no false red) AND on main-target PRs (strict, catches missing bump)
+- [x] **A6** — ci-local.sh default is lenient (dev-mode: non-decrease only); `--release-check` flag triggers strict release-boundary validation against `origin/main`
 
 ## Notes
 

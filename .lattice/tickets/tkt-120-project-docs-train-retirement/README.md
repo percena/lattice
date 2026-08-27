@@ -27,8 +27,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A9** — CONTRIBUTING step 14 and base-ref examples reflect release-boundary enforcement; tools/README validator description updated
-- [ ] **A10** — CHANGELOG (root + plugin) has a train-retirement entry under Unreleased
+- [x] **A9** — CONTRIBUTING step 14 and base-ref examples reflect release-boundary enforcement; tools/README validator description updated
+- [x] **A10** — CHANGELOG (root + plugin) has a train-retirement entry under Unreleased
 
 ## Notes
 
