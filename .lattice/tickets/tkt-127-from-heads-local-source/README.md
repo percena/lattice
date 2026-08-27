@@ -92,3 +92,6 @@
 Local files in `./assets/`.
 
 ## Finish
+
+- pr-130 merged: 2026-08-27T08:09:41Z — https://github.com/percena/lattice/pull/130 (base merge)
+- issue #127 closed: 2026-08-27T08:09:56Z — https://github.com/percena/lattice/issues/127
