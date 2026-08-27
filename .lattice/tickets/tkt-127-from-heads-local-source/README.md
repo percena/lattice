@@ -12,7 +12,7 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/127 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | build-review-context --from-heads mis-labels non-open PR state — IFS=$'\t' leak from line 373 read poisons head_binder_for's internal read |
 | spec | (none — standalone process-hardening bug) |
