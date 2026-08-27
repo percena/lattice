@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-143 (this issue) |
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-143-finish-ledger-py39-compat |
-| prs | (none) |
+| prs | pr-144 — https://github.com/percena/lattice/pull/144 |
 
 ## Acceptance (this slice)
 
