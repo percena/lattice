@@ -38,7 +38,7 @@ Capture duty's twin for **agent observations**. Mid-ticket an agent often notice
 - NOTICED: <repo-relative path or area> — <one-line defect statement> (out-of-paths, <date>)
 ```
 
-Then move on. DEFAULT, not INVARIANT: the duty must never block or grow the ticket — the queue exists so `review-delivery` sweeps it into every digest's Findings (`grep -rn '^- NOTICED:' .lattice/tickets/`), not so the noticing agent detours.
+Then move on. DEFAULT, not INVARIANT: the duty must never block or grow the ticket — the queue exists so `review-delivery` sweeps it into its digest's Findings (round-scoped: the reviewed ticket set's binders; a periodic repo-wide `grep -rn '^- NOTICED:' .lattice/tickets/` catches lines outside any reviewed round), not so the noticing agent detours.
 
 What counts — capture **routes**, never swallows:
 

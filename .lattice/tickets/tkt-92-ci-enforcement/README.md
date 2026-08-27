@@ -31,7 +31,7 @@
 - [x] **A2** all four workflows add `dev` to push branches
 - [x] **A3** finish-work checks gate: red-run disposition duty (DEFAULT) — every failed run on the branch dispositioned in the binder before merge (transient vs real, one line), aligned with the preferences.md CI smart-retry DEFAULT
 - [x] **A4** `strip-quoted-and-heredocs.bats:178,197` get the `${BATS_TEST_TMPDIR:-$(mktemp -d)}` guard; assertions can no longer no-op under bats 1.2.1
-- [ ] **A5** full `ci-local` green; post-merge dev push shows workflows firing
+- [x] **A5** full `ci-local` green; post-merge dev push shows workflows firing
 
 ## Approach
 
