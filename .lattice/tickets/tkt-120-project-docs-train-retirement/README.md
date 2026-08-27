@@ -1,7 +1,7 @@
 # tkt-120-project-docs-train-retirement
 
 > **TL;DR:** Update CONTRIBUTING + tools/README + CHANGELOG to reflect release-boundary enforcement
-> **Kind:** docs · **Status:** open · **Priority:** P1
+> **Kind:** docs · **Priority:** P1
 > **Path:** spc-116 → tkt-120 → (pr-…)
 
 | Field | Value |

@@ -1,7 +1,7 @@
 # tkt-119-ci-context-sensitive-base-ref
 
 > **TL;DR:** CI base-ref context-sensitive (dev lenient / main strict); ci-local --release-check flag
-> **Kind:** refactor · **Status:** open · **Priority:** P1
+> **Kind:** refactor · **Priority:** P1
 > **Path:** spc-116 → tkt-119 → (pr-…)
 
 | Field | Value |

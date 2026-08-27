@@ -1,7 +1,7 @@
 # tkt-117-retire-train-validator-core
 
 > **TL;DR:** Delete train_cut_shared + --no-train + linear-push guard; rework strict law to fire only at release-boundary base-ref
-> **Kind:** refactor · **Status:** open · **Priority:** P1
+> **Kind:** refactor · **Priority:** P1
 > **Path:** spc-116 → tkt-117 → (pr-…)
 
 | Field | Value |

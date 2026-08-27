@@ -1,7 +1,7 @@
 # tkt-118-retire-train-skill-docs
 
 > **TL;DR:** Remove all release-train references from batch-work/finish-work/create-tickets; add dev→main version-bump check to finish-work
-> **Kind:** refactor · **Status:** open · **Priority:** P1
+> **Kind:** refactor · **Priority:** P1
 > **Path:** spc-116 → tkt-118 → (pr-…)
 
 | Field | Value |
