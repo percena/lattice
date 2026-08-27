@@ -88,6 +88,10 @@ Collect `## Decision journal` + `## Pending decisions` entries across all binder
 
 For each PR run the **review-code material-finding bar** — severity + failure scenario + evidence + confidence + recommended solution. Do **not** fork a parallel contract; this is a containment of `review-code`'s bar, like finish-work's mini-review.
 
+### 4b. NOTICED sweep (Observation-duty queue)
+
+Sweep the set's binders for out-of-paths observations — `grep -rn '^- NOTICED:'` over the reviewed tickets' binder dirs (`.lattice/tickets/tkt-N-*/`). Every hit lands in the digest's Findings section with one disposition: `ticket` (point to / propose one) | `one-liner` (trivial — name the fix) | `wontfix` (say why). Round-scoped by default; never dropped silently — the queue drains only through dispositions (`../_lattice-lib/references/decision-policy.md` §Observation duty).
+
 ### 5. Emit — digest + stdout
 
 Persist under `.lattice/reviews/` with create-review id conventions (`next-artifact-id.sh --kind rev --claim`; front matter `kind: digest`), template: `references/templates/digest.md`. Print the same digest to stdout.
@@ -152,6 +156,7 @@ Before claiming the digest is done:
 - [ ] Axis 2: pairwise interface fit checked; throwaway integration build run in DAG order, results recorded, branch deleted
 - [ ] Axis 3: decision queue ranked (pending first); ×2-ratified entries carry promotion proposals
 - [ ] Axis 4: per-PR findings satisfy the review-code material bar (severity, failure scenario, evidence, confidence, recommended solution)
+- [ ] NOTICED sweep run over the set's binders (`grep -rn '^- NOTICED:'`); every hit carries a disposition (ticket | one-liner | wontfix), or "none"
 - [ ] Every PR has exactly one triage class + position in a DAG-respecting merge order
 - [ ] Per-axis attestation present for every axis of every PR row (no bare LGTM)
 - [ ] Digest persisted under `.lattice/reviews/` (`kind: digest`, R1 id) **and** printed to stdout

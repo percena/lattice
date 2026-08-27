@@ -76,6 +76,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 | Fuse threshold 50% failed+stuck per layer | `.lattice/config.yaml` key `batch_fuse_threshold` (percent) |
 | No chained review | `--with-review` chains `review-delivery` after the last layer (advice-only; see flow) |
 | Operator states a durable work preference while directing the batch → the orchestrator writes it to `.lattice/preferences.md` at utterance time + one-line confirm (`../_lattice-lib/references/decision-policy.md` §Capture duty) | Feature-scoped / system-shape statements route per the capture-duty heuristic |
+| Agent notices a defect outside its ticket's `paths` → binder `## Notes` line `- NOTICED: <path> — <one line> (out-of-paths, <date>)` at notice time, then move on (`../_lattice-lib/references/decision-policy.md` §Observation duty) | When `gh` is cheap + pre-authorized (brief item 5), optionally ALSO file an issue and reference it; the binder line stays mandatory |
 
 ## Spawn-brief contract (INVARIANT)
 
