@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/94 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | 13-skill parity on all surfaces + validate-skills keyword/README assertions + routing-catalog cross-check + CONTRIBUTING checklist |
 | spec | none — audit rev-20260827-033352Z F6 |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-61 (registration-integrity precedent this extends), tkt-75 (README skill-table backfill precedent) |
 | **worktree_bind** | tkt-94-registration-surfaces |
 | worktree | sibling …/lattice.worktrees/tkt-94-registration-surfaces/ |
-| prs | (none yet) |
+| prs | pr-98 — https://github.com/percena/lattice/pull/98 |
 
 ## Acceptance (this slice)
 
