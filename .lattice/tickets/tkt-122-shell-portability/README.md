@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/122 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | shell portability — ci-local.sh + bats suites fail on macOS default bash 3.2 (sed -i, apostrophe, mapfile) |
 | spec | (none — standalone process-hardening bug) |
@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-122-shell-portability` |
 | worktree | sibling `…/lattice.worktrees/tkt-122-shell-portability/` (default for shippable) |
-| prs | (none) |
+| prs | pr-128 — https://github.com/percena/lattice/pull/128 |
 
 ## Acceptance (this slice)
 
