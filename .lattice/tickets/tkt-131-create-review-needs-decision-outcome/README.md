@@ -52,4 +52,6 @@ Add needs_decision to the outcome enum in create-review SKILL.md:42 and the next
 
 ## Finish
 
-- (none yet)
+- pr-141 merged: 2026-08-27 — https://github.com/percena/lattice/pull/141 (squash merge)
+- issue #131 closed: 2026-08-27 — https://github.com/percena/lattice/issues/131
+
