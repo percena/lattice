@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/105 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | verify-features SKILL.md + 4 references + feature-map template + validator format check + full surface registration + 0.3.0 cut |
 | spec | spc-104 — runtime verification loop |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-106/tkt-107 (train siblings), tkt-16/tkt-31 (run-e2e substrate), tkt-14 (bug-repro loop this feeds) |
 | **worktree_bind** | tkt-105-verify-features-skill |
 | worktree | sibling …/lattice.worktrees/tkt-105-verify-features-skill/ |
-| prs | (none yet) |
+| prs | pr-110 — https://github.com/percena/lattice/pull/110 |
 
 ## Acceptance (this slice)
 
