@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/137 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Stamp deferred+reason on fuse-halt/blocked-by-failure at trip time (FSM-2 Option B) |
 | spec | none — ticket-only from tkt-136 decision |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-137 (this issue) |
 | **related_tickets** | tkt-132 (G2 serial), tkt-135 (G2 serial) |
 | **worktree_bind** | tkt-137-fsm2-option-b-deferred-stamp |
-| prs | (none) |
+| prs | pr-142 — https://github.com/percena/lattice/pull/142 |
 
 ## Acceptance (this slice only)
 

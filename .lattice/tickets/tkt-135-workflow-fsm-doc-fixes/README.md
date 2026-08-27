@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/135 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | M1 row add Spec done terminal + mermaid any→closed (F5+F6) |
 | spec | none — ticket-only from rev-20260827-102420Z F5+F6 |
@@ -22,7 +22,7 @@
 | **primary_ticket** | tkt-135 (this issue) |
 | **related_tickets** | tkt-132 (G2 serial, same PR) |
 | **worktree_bind** | tkt-135-workflow-fsm-doc-fixes |
-| prs | (none) |
+| prs | pr-142 — https://github.com/percena/lattice/pull/142 |
 
 ## Acceptance (this slice)
 
