@@ -414,3 +414,80 @@ assert len(d["errors"])>0
   [ "$status" -eq 2 ]
   [[ "$output" == *"not inside a git worktree"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# tkt-179: additional drift classes + identity fallback
+# ---------------------------------------------------------------------------
+
+@test "A7: drift: open issue vs closed binder (open_issue_closed_binder)" {
+  write_binder "closed" "(none yet)"
+  write_finish_merged 12 2026-07-31T10:00:00Z
+  cat >"$GH_FAKE/gh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$GH_LOG"
+case "$1" in
+  auth) exit 0 ;;
+  issue) printf '%s\n' '{"state":"OPEN","closedAt":null,"url":"https://github.com/percena/lattice/issues/7"}' ;;
+  pr) printf '%s\n' '{"state":"MERGED","mergedAt":"2026-07-31T10:00:00Z","url":"https://github.com/percena/lattice/pull/12"}' ;;
+esac
+EOF
+  chmod +x "$GH_FAKE/gh"
+  run_rs
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ok=false"* ]]
+  [[ "$output" == *"open_issue_closed_binder"* ]]
+}
+
+@test "A8: drift: merged PR + terminal binder but no Finish ledger (merged_pr_missing_finish_ledger)" {
+  # Binder: status closed, prs references a MERGED PR, but ## Finish has
+  # only a placeholder — no merged: entry. This is an interrupted finish-work.
+  write_binder "closed" "pr-12 — https://github.com/percena/lattice/pull/12"
+  # Leave ## Finish as the placeholder "(none yet)" — no merged: line
+  cat >"$GH_FAKE/gh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$GH_LOG"
+case "$1" in
+  auth) exit 0 ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":"2026-07-31T10:01:00Z","url":"https://github.com/percena/lattice/issues/7"}' ;;
+  pr) printf '%s\n' '{"state":"MERGED","mergedAt":"2026-07-31T10:00:00Z","url":"https://github.com/percena/lattice/pull/12"}' ;;
+esac
+EOF
+  chmod +x "$GH_FAKE/gh"
+  run_rs
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ok=false"* ]]
+  [[ "$output" == *"merged_pr_missing_finish_ledger"* ]]
+}
+
+@test "A9: --repo with no origin but matching github URL identity is accepted" {
+  # Remove origin so binder_repo_id is None; --repo falls back to github URL
+  git -C "$REPO" remote remove origin
+  write_binder "queued" "(none yet)"
+  make_fake_gh
+  run_rs --repo percena/lattice
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"ok=true"* ]]
+}
+
+@test "A9: --repo with no origin and no github URL is refused" {
+  # Remove origin; binder github URL is a placeholder
+  git -C "$REPO" remote remove origin
+  write_binder "queued" "(none yet)"
+  # Override github to placeholder
+  sed -i.bak 's#| github | https://github.com/percena/lattice/issues/7 |#| github | (to be created) |#' "$BINDER"
+  rm -f "$BINDER.bak"
+  make_fake_gh
+  run_rs --repo percena/lattice
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"no binder repo identity available"* ]]
+}
+
+@test "A9: --repo with no origin but mismatching github URL is refused" {
+  # Remove origin; --repo disagrees with github URL identity
+  git -C "$REPO" remote remove origin
+  write_binder "queued" "(none yet)"
+  make_fake_gh
+  run_rs --repo attacker/otherrepo
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"different repository"* ]]
+}

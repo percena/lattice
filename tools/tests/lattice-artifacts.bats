@@ -354,3 +354,36 @@ setup_file() {
   [[ "$output" == *tkt-pending-noissue* ]]
   [[ "$output" != *malformed_ticket_id*tkt-pending-noissue* ]]
 }
+
+# tkt-179: post-merge review fixes — validator improvements.
+
+@test "A4: no-issue cancel binder with working status fails (finish_without_terminal_status)" {
+  # tkt-54-cancel-no-issue: status queued, Finish has `- cancelled:` line.
+  # The new FINISH_CANCELLED_RE recognizes `- cancelled:` as terminal evidence,
+  # so finish_without_terminal_status must fire.
+  run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *finish_without_terminal_status* ]]
+  [[ "$output" == *tkt-54-cancel-no-issue* ]]
+}
+
+@test "A5: concluded review with invalid outcome fires exactly one finding (no double)" {
+  # rev-concluded-bad-outcome: status concluded, outcome bogus.
+  # invalid_review_outcome fires; concluded_review_no_outcome must NOT also fire
+  # (the fix narrowed the condition to `not rv_out` only).
+  run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *invalid_review_outcome* ]]
+  [[ "$output" == *rev-concluded-bad-outcome* ]]
+  # Count occurrences of concluded_review_no_outcome — must be zero
+  nocount=$(echo "$output" | grep -c 'concluded_review_no_outcome' || true)
+  [ "$nocount" -eq 0 ]
+}
+
+@test "A6: spec_status is scoped to front matter — body prose status: line is ignored" {
+  # spc-14-body-status: no front matter, body has a line `status: bogus`.
+  # The old full-text regex would match it → invalid_spec_status; the new
+  # parse_front_matter scoping returns None → no status check fires.
+  run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
+  [[ "$output" != *invalid_spec_status*spc-14* ]]
+}

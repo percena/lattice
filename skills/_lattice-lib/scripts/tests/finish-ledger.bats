@@ -621,3 +621,14 @@ PY
   grep -q '| prs | (none yet) |' "$BINDER"
   ! grep -qE '\| prs \| pr-12 \|' "$BINDER"
 }
+
+@test "A3: garbage --closed-at on cancel path is rejected (ISO-8601 validation)" {
+  write_fresh_binder
+  run bash "$FL" --cancel --reason "wontfix" --closed-at "garbage-not-a-timestamp" \
+    --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"must be an ISO-8601 timestamp"* ]]
+  # binder untouched
+  grep -q '(none yet)' "$BINDER"
+  ! grep -q '^- cancelled:' "$BINDER"
+}

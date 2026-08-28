@@ -10,11 +10,14 @@
 #
 # Drift classes detected (stable reason codes):
 #   closed_issue_working_binder   — GH issue CLOSED, binder status working
+#   open_issue_closed_binder      — GH issue OPEN, binder status terminal
 #   merged_pr_nonterminal_binder   — referenced PR MERGED, binder nonterminal
 #   closed_pr_nonterminal_binder   — referenced PR CLOSED, binder nonterminal
 #   open_pr_closed_binder          — referenced PR still OPEN, binder closed
 #   pr_open_missing_pr             — status pr-open but no PR referenced
 #   pr_open_unresolvable_pr        — status pr-open but referenced PR 404
+#   merged_pr_missing_finish_ledger — MERGED PR + terminal binder but no Finish
+#                                     ledger with a merged: entry
 #   repo_identity_mismatch          — binder github/PR URLs point to a
 #                                     different repository than the binder origin
 #
@@ -150,6 +153,7 @@ binder_repo_id = repo_identity_from_url(binder_origin)
 # --- Determine the target repo for gh queries (bound to binder identity) ---
 target_host = None
 target_repo = None  # owner/repo
+_repo_arg_no_origin = False
 
 if repo_arg:
     if binder_repo_id:
@@ -163,8 +167,17 @@ if repo_arg:
             print("  pass --repo matching the binder origin, or omit --repo "
                   "for auto-resolution", file=sys.stderr)
             sys.exit(2)
-    target_host = binder_repo_id.split("/")[0] if binder_repo_id else "github.com"
-    target_repo = repo_arg
+        target_host = binder_host
+        target_repo = repo_arg
+    else:
+        # No git origin — identity cannot be verified against origin.
+        # tkt-179 A9: fall back to the github URL repo identity if available;
+        # if neither is available, refuse rather than accept --repo unchallenged.
+        # (github_url_repo_id is parsed later from the binder, so we set a
+        # flag and re-check after binder parsing.)
+        target_host = "github.com"
+        target_repo = repo_arg
+        _repo_arg_no_origin = True
 elif binder_repo_id:
     parts = binder_repo_id.split("/", 1)
     target_host = parts[0]
@@ -218,6 +231,29 @@ if not target_repo and github_url_repo_id:
     target_host = github_url_repo_id.split("/")[0]
     target_repo = "/".join(github_url_repo_id.split("/")[1:])
     binder_repo_id = github_url_repo_id  # adopt for mismatch checks
+
+# tkt-179 A9: --repo passed but no git origin. If the binder has a github URL,
+# use its repo identity as the fallback and verify --repo matches it.
+if _repo_arg_no_origin:
+    if github_url_repo_id:
+        candidate_full = f"{github_url_repo_id.split('/')[0]}/{repo_arg}".lower()
+        if candidate_full != github_url_repo_id:
+            print("Error: refusing to reconcile GitHub state from a different "
+                  "repository into this binder", file=sys.stderr)
+            print(f"  binder github URL repo: {github_url_repo_id}", file=sys.stderr)
+            print(f"  --repo target: {candidate_full}", file=sys.stderr)
+            print("  pass --repo matching the binder github URL, or omit --repo "
+                  "for auto-resolution", file=sys.stderr)
+            sys.exit(2)
+        binder_repo_id = github_url_repo_id
+        target_host = github_url_repo_id.split("/")[0]
+        target_repo = "/".join(github_url_repo_id.split("/")[1:])
+    else:
+        # No identity available at all — refuse rather than accept --repo unchallenged
+        print("Error: --repo provided but no binder repo identity available "
+              "(no git origin and no github URL); cannot verify --repo identity",
+              file=sys.stderr)
+        sys.exit(2)
 
 # Parse PR entries from the prs row (tkt-74 canon: pr-N — <URL>)
 PRS_ENTRY_RE = re.compile(r"pr-([1-9][0-9]*)\s+—\s+(https?://[^\s,]+)")
@@ -493,6 +529,16 @@ if issue_closed and is_nonterminal(status):
         "ids": [f"#{issue_number}", status],
     })
 
+# 1b. open issue vs closed binder (reverse drift — tkt-179 A7)
+if issue_data and not issue_closed and is_terminal(status):
+    drifts.append({
+        "code": "open_issue_closed_binder",
+        "detail": (f"issue #{issue_number} is OPEN but binder status is "
+                   f"'{status}' (terminal); a closed binder requires a "
+                   f"closed issue"),
+        "ids": [f"#{issue_number}", status],
+    })
+
 # 2-4. PR state vs binder status
 for pr_r in pr_results:
     pr_n = pr_r["number"]
@@ -539,6 +585,23 @@ if status == "pr-open" and not prs_entries:
         "ids": [status],
     })
 
+# 6. MERGED PR + terminal binder but no Finish ledger with merged: entry
+#    (tkt-179 A8): has_finish_ledger and finish_ledger_merged are computed
+#    for JSON output but never used in drift detection. A binder with
+#    status: closed, a MERGED PR, and no Finish ledger passes as ok:true.
+if is_terminal(status) and any(
+        pr_r.get("data") and pr_r["data"].get("state") == "MERGED"
+        for pr_r in pr_results
+        if pr_r.get("error") != "foreign_repo"
+):
+    if not has_finish_ledger(text) or not finish_ledger_merged(text):
+        drifts.append({
+            "code": "merged_pr_missing_finish_ledger",
+            "detail": ("binder has a MERGED PR and terminal status but no "
+                       "Finish ledger with a merged: entry — interrupted "
+                       "finish-work?"),
+            "ids": [],
+        })
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------
