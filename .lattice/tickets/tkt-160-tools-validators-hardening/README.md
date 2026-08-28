@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/160 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,13 +25,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-160-tools-validators-hardening` |
 | worktree | sibling `…/lattice.worktrees/tkt-160-tools-validators-hardening/` |
-| prs | (none) |
+| prs | pr-170 — https://github.com/percena/lattice/pull/170 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** No Python 3.9+-only runtime API remains in `tools/*.py` (replace `removeprefix` at `validate-plugin-versions.py:236`); a test or lint assertion guards the 3.8 floor.
-- [ ] **A2** Routing evals fail loudly when any catalog skill's case file has zero positive prompts; per-skill rank-1 stats printed.
-- [ ] **A3** Bats coverage for both behaviors.
+- [x] **A1** No Python 3.9+-only runtime API remains in `tools/*.py` (replace `removeprefix` at `validate-plugin-versions.py:236`); a test or lint assertion guards the 3.8 floor.
+- [x] **A2** Routing evals fail loudly when any catalog skill's case file has zero positive prompts; per-skill rank-1 stats printed.
+- [x] **A3** Bats coverage for both behaviors.
 
 ## Notes
 
