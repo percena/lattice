@@ -102,4 +102,6 @@ The `ensure-workspace.sh` runtime gate (lines 122–130) catches non-numeric/zer
 
 ## Finish
 
-- (none yet)
+
+- pr-173 merged: 2026-08-28T13:31:11Z — https://github.com/percena/lattice/pull/173 (base merge)
+- issue #155 closed: 2026-08-28T13:31:29Z — https://github.com/percena/lattice/issues/155
