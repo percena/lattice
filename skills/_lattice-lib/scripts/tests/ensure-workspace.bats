@@ -29,6 +29,25 @@ teardown() {
   [ "$(git branch --show-current)" = "tkt-12-demo-work" ]
 }
 
+@test "branch mode under strict warns that L2/L3 write-block (F2)" {
+  mkdir -p "$MAIN/.lattice"
+  printf 'profile: strict\n' >"$MAIN/.lattice/config.yaml"
+  git -C "$MAIN" add .lattice && git -C "$MAIN" commit -q -m cfg
+  run bash "$ENSURE" --mode branch --bind tkt --id 13 --slug demo 2>&1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"L2/L3 write-block"* ]]
+  [[ "$output" == *"--mode worktree"* ]]
+}
+
+@test "branch mode under light does not emit the L2/L3 write-block warning" {
+  mkdir -p "$MAIN/.lattice"
+  printf 'profile: light\n' >"$MAIN/.lattice/config.yaml"
+  git -C "$MAIN" add .lattice && git -C "$MAIN" commit -q -m cfg
+  run bash "$ENSURE" --mode branch --bind tkt --id 14 --slug demo 2>&1
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"L2/L3 write-block"* ]]
+}
+
 @test "branch mode refuses dirty tree" {
   echo x > dirty.txt
   run bash "$ENSURE" --mode branch --bind tkt --id 12 --slug demo

@@ -457,6 +457,27 @@ if [[ "$MODE" == "branch" ]]; then
     echo "Error: working tree is dirty; use --mode worktree or clean/stash first." >&2
     exit 1
   fi
+  # Under strict profile, a --mode branch lives on the main clone as a non-base
+  # branch. L2 (assert-shippable-cwd) now fails that, and L3 (Write hook) blocks
+  # shippable writes on it (spc-145/ADR-006). Warn loudly so the escape is not
+  # mistaken for a usable workspace; prefer --mode worktree. Resolve profile
+  # inline (lattice_profile is sourced later).
+  _BRANCH_PROFILE="${LATTICE_PROFILE:-}"
+  if [[ -z "$_BRANCH_PROFILE" ]]; then
+    for _cfg in "$REPO_ROOT/.lattice/config.yaml" "$LATTICE_HOME/config.yaml"; do
+      [[ -f "$_cfg" ]] || continue
+      _line=$(grep -E '^[[:space:]]*profile:[[:space:]]*' "$_cfg" 2>/dev/null | head -1 || true)
+      if [[ -n "$_line" ]]; then
+        _BRANCH_PROFILE=$(printf '%s' "$_line" | sed -E 's/^[[:space:]]*profile:[[:space:]]*//; s/[[:space:]]*[#].*$//; s/["'"'"']//g' | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+        break
+      fi
+    done
+  fi
+  case "$_BRANCH_PROFILE" in light|strict) ;; *) _BRANCH_PROFILE="strict" ;; esac
+  if [[ "$_BRANCH_PROFILE" == "strict" ]]; then
+    echo "ensure-workspace: profile=strict — WARNING: --mode branch sits on the main clone; L2/L3 write-block shippable writes on it." >&2
+    echo "  Each shippable write needs assert-shippable-cwd --allow-base-write --reason \"user-authorized: <why>\". Prefer --mode worktree." >&2
+  fi
   CURRENT=$(git branch --show-current 2>/dev/null || true)
   # Quiet on success, but keep stderr so a failed checkout says why.
   if [[ "$CURRENT" == "$BRANCH" ]]; then

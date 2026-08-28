@@ -86,10 +86,34 @@ EOF
   [[ "$output" == *'"default_base": "refs/heads/release"'* ]]
 }
 
-@test "assert passes on feature branch of main clone" {
+@test "assert passes on feature branch of main clone (light profile)" {
+  mkdir -p "$TEST_DIR/.lattice"
+  printf '%s\n' 'profile: light' >"$TEST_DIR/.lattice/config.yaml"
   git -C "$TEST_DIR" checkout -b tkt-9-demo >/dev/null
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT'"
   [ "$status" -eq 0 ]
+}
+
+@test "assert fails on feature branch of main clone under strict profile" {
+  mkdir -p "$TEST_DIR/.lattice"
+  printf '%s\n' 'profile: strict' >"$TEST_DIR/.lattice/config.yaml"
+  git -C "$TEST_DIR" checkout -b tkt-9-demo >/dev/null
+  run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'"ok": false'* ]] || [[ "$output" == *'"ok":false'* ]]
+  [[ "$output" == *non_base_on_main_clone* ]]
+}
+
+@test "non-base main-clone strict escape via --allow-base-write --reason passes" {
+  mkdir -p "$TEST_DIR/.lattice"
+  printf '%s\n' 'profile: strict' >"$TEST_DIR/.lattice/config.yaml"
+  git -C "$TEST_DIR" add .lattice && git -C "$TEST_DIR" commit -m cfg >/dev/null
+  git -C "$TEST_DIR" checkout -b tkt-9-demo >/dev/null
+  run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json --allow-base-write --reason 'user-authorized: quick fix'"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"base_direct_escape": true'* ]]
+  [[ "$output" == *authorized_nonbase_direct* ]]
+  [[ "$output" == *'"on_team_base": false'* ]]
 }
 
 @test "assert fails on detached HEAD on main clone" {
