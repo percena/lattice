@@ -85,8 +85,17 @@ run_hook() {  # <cwd> <command>
   [ "$status" -eq 0 ]
 }
 
-@test "main clone: allows switch to base (master)" {
+@test "main clone: allows switch to base branch (master)" {
   run run_hook "$MAIN_ROOT" 'git switch master'
+  [ "$status" -eq 0 ]
+}
+
+@test "main clone: allows switch to a custom configured base_branch (F1)" {
+  mkdir -p "$MAIN_ROOT/.lattice"
+  printf 'profile: strict\nbase_branch: custombase\n' >"$MAIN_ROOT/.lattice/config.yaml"
+  git -C "$MAIN_ROOT" add .lattice && git -C "$MAIN_ROOT" commit -q -m cfg
+  git -C "$MAIN_ROOT" branch custombase
+  run run_hook "$MAIN_ROOT" 'git switch custombase'
   [ "$status" -eq 0 ]
 }
 

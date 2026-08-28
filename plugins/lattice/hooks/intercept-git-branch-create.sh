@@ -109,7 +109,18 @@ fi
 # On the main clone. For switch ops, allow base-branch switches and file restores.
 if [[ "$op" == "switch" ]]; then
   default_base=$(git -C "$check_dir" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@' || true)
-  for b in main master dev "$default_base"; do
+  # Also honor a configured base_branch (.lattice/config.yaml) so the L1 gate's
+  # notion of "base" matches assert-shippable-cwd.sh (spc-145 review F1).
+  cfg_base=""
+  for cfg in "$git_top/.lattice/config.yaml" "$main_root/.lattice/config.yaml"; do
+    [[ -f "$cfg" ]] || continue
+    cfg_line=$(grep -E '^[[:space:]]*base_branch:[[:space:]]*' "$cfg" 2>/dev/null | head -1 || true)
+    if [[ -n "$cfg_line" ]]; then
+      cfg_base=$(printf '%s' "$cfg_line" | sed -E 's/^[[:space:]]*base_branch:[[:space:]]*//; s/[[:space:]]*[#].*$//; s/["'"'"']//g' | tr -d '[:space:]')
+      break
+    fi
+  done
+  for b in main master dev "$default_base" "$cfg_base"; do
     if [[ -n "$b" && "$target" == "$b" ]]; then exit 0; fi
   done
   # Not an existing local branch -> likely a file/path restore -> fail open.
