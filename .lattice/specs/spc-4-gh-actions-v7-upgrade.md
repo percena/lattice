@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: GitHub Actions v7 upgrade + Dependabot grouping policy
 
 > **TL;DR:** Land the three open Dependabot v7 major bumps (`actions/checkout`, `setup-node`, `setup-python`) as one validated batch on `dev`, add a `groups:` block to `dependabot.yml` so future actions bumps arrive as one PR, and codify the SHA-pin + grouped + weekly policy as `ADR-001`.
-> **Kind:** chore · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** chore · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** rev-20260801-072719Z → spc-4 → tkt-… → pr-…
 
 ## Why

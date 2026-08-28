@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: Lattice skill-gap bridge — ERP pattern adaptations
 
 > **TL;DR:** Formalize 5 borrowable patterns from FlowDance ERP as Lattice-native skills or skill enhancements, per ADR-002 architectural decisions (GitHub-native, ego-browser over auto-playwright, sibling worktree batch, step-manifest deferred).
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** spc-12 → tkt-… → pr-…
 
 ## Why

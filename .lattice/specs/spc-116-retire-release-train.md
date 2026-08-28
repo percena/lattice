@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Retire release-train mechanism — version-bump enforcement moves to dev→main release boundary
 
 > **TL;DR:** The strict per-landing version law fires only at the dev→main release boundary (where user caches exist), not on every dev merge; the entire train compensation mechanism (`train_cut_shared`, `--no-train`, linear-push guard, orchestrator unified-cut, spawn-brief item 6) is retired.
-> **Kind:** refactor · **Status:** locked · **Mode:** C · **Priority:** P1
+> **Kind:** refactor · **Status:** done · **Mode:** C · **Priority:** P1
 > **Path:** spc-116 → tkt-… → pr-…
 
 ## Why
@@ -64,16 +64,18 @@ Claude Code plugins use the manifest `version` field as a cache-busting key: cac
 
 ## Acceptance
 
-- [ ] **A1** — validator strict law ("bundled content changed without a version increment") fires only when base-ref resolves to `origin/main`/`main`/release tag; when base-ref is a fork point / dev ancestor (dev landing), equal-version-with-bundle-change passes
-- [ ] **A2** — non-decrease bottom enforced on both modes: `manifest_version < previous_version ⟹ error` (existing logic L517–529 preserved)
-- [ ] **A3** — `train_cut_shared()` function, `--no-train` CLI flag, linear-push guard branch, and `train_cut` output field all deleted; no train code remains in `validate-plugin-versions.py`
-- [ ] **A4** — bats suite: dev-mode equal-version-with-bundle-change **passes**; release-boundary equal-version-with-bundle-change **fails**; non-decrease enforced on both modes; all non-train tests unchanged
-- [ ] **A5** — `lint-heavy.yml` green on dev merges (lenient, no false red) AND on main-target PRs (strict, catches missing bump)
-- [ ] **A6** — `ci-local.sh` default is lenient (dev-mode: non-decrease only); `--release-check` flag triggers strict release-boundary validation against `origin/main`
-- [ ] **A7** — `skills/batch-work/SKILL.md`, `skills/batch-work/references/flow.md`, `skills/finish-work/references/flow.md`, `skills/create-tickets/references/policy.md` contain zero references to "release-train", "train_cut", "train mode", "--no-train", or "version cut"
-- [ ] **A8** — `skills/finish-work/references/flow.md` has a new dev→main pre-merge step: when PR targets `main` and bundled paths changed, check version increased relative to last release before merging; surface to operator on failure (bump is manual, gate is automated)
-- [ ] **A9** — `CONTRIBUTING.md` step 14 and base-ref examples reflect release-boundary enforcement; `tools/README.md` validator description updated
-- [ ] **A10** — CHANGELOG (root + plugin) has a train-retirement entry under Unreleased
+- [x] **A1** — validator strict law ("bundled content changed without a version increment") fires only when base-ref resolves to `origin/main`/`main`/release tag; when base-ref is a fork point / dev ancestor (dev landing), equal-version-with-bundle-change passes
+- [x] **A2** — non-decrease bottom enforced on both modes: `manifest_version < previous_version ⟹ error` (existing logic L517–529 preserved)
+- [x] **A3** — `train_cut_shared()` function, `--no-train` CLI flag, linear-push guard branch, and `train_cut` output field all deleted; no train code remains in `validate-plugin-versions.py`
+- [x] **A4** — bats suite: dev-mode equal-version-with-bundle-change **passes**; release-boundary equal-version-with-bundle-change **fails**; non-decrease enforced on both modes; all non-train tests unchanged
+- [x] **A5** — `lint-heavy.yml` green on dev merges (lenient, no false red) AND on main-target PRs (strict, catches missing bump)
+- [x] **A6** — `ci-local.sh` default is lenient (dev-mode: non-decrease only); `--release-check` flag triggers strict release-boundary validation against `origin/main`
+- [x] **A7** — `skills/batch-work/SKILL.md`, `skills/batch-work/references/flow.md`, `skills/finish-work/references/flow.md`, `skills/create-tickets/references/policy.md` contain zero references to "release-train", "train_cut", "train mode", "--no-train", or "version cut"
+- [x] **A8** — `skills/finish-work/references/flow.md` has a new dev→main pre-merge step: when PR targets `main` and bundled paths changed, check version increased relative to last release before merging; surface to operator on failure (bump is manual, gate is automated)
+- [x] **A9** — `CONTRIBUTING.md` step 14 and base-ref examples reflect release-boundary enforcement; `tools/README.md` validator description updated
+- [x] **A10** — CHANGELOG (root + plugin) has a train-retirement entry under Unreleased
+
+> Land-stamp (2026-08-27, tkt-151): A1–A10 shipped 2026-08-27 via PR #125 (base `dev`); issues #117–#120 closed the same minute (tkt-117 validator core, tkt-118 skill docs, tkt-119 CI+ci-local, tkt-120 project docs). Validator code verified train-free (0 `train_cut`/`--no-train`/linear-push matches); listed docs verified train-term-free; `ci-local.sh` carries `--release-check`; finish-work §3.4.1 carries the dev→main pre-merge check; CONTRIBUTING step 14 + root+plugin CHANGELOG entries present. Stamped retroactively under tkt-151 (spec drift repair) — the front-matter `status: done` was set at landing but the TL;DR display and Acceptance checkboxes had drifted to stale `locked`/unchecked.
 
 ## Decisions (principal, user-confirmed)
 

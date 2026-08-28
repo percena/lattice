@@ -8,6 +8,18 @@ Checks (selected, not exhaustive):
   - ticket binder ``status`` FSM vocabulary: working
     queued|in-progress|parked|stuck|pr-open|rework|deferred, terminal closed
     (requires a real ``## Finish`` ledger), legacy open (warning, lazy migration)
+  - coupled ticket fields (tkt-151 A3): ``stuck`` requires
+    ``wait_reason: unblock|re-scope``; ``deferred`` requires a valid
+    machine-readable reason (``fuse-halt|blocked-by-failure``); contradictory
+    values fail
+  - Spec status vocabulary (tkt-151 A1/A2): ``draft|locked|done|superseded``;
+    ``done`` with open non-deferred A* or a contradicting display status fails;
+    ``superseded`` requires a valid ``superseded_by`` spc-N link
+  - Review status/outcome vocabulary (tkt-151 A1): unknown status/outcome
+    fails; a concluded Review without exactly one valid outcome fails
+  - Finish-evidence terminal guard (tkt-151 A4): a merged OR cancel
+    ``## Finish`` stamp requires terminal ``closed`` when provable from one
+    snapshot
   - header ``**Status:**`` copy (TL;DR blockquote) contradicting the field-table
     status (warning; legacy-coarse ``open`` headers are exempt — lazy migration)
   - binder ``prs`` row format: a filled row must be canonical ``pr-N — <URL>``
@@ -82,6 +94,40 @@ TICKETS_LIST_RE = re.compile(r"^tickets:\s*\[(.*?)\]\s*$", re.M)
 # (lazy migration — never fails); an explicit value >2 exceeds the review-fix
 # cap and warns (mirror legacy_open_status posture).
 FIX_CYCLES_RE = re.compile(r"^\|\s*fix_cycles\s*\|\s*([0-9]+)\s*\|", re.I | re.M)
+
+# tkt-151: Spec status vocabulary (front-matter `status:` line, commented
+# template `# status: draft | locked | done | superseded`). `done` and
+# `superseded` are terminal — they carry terminal guards (A2). `draft`/`locked`
+# are non-terminal.
+SPEC_STATUS_OK = {"draft", "locked", "done", "superseded"}
+SPEC_STATUS_TERMINAL = {"done", "superseded"}
+# `superseded_by` validity is checked via SPEC_FM_SUPERSEDED_BY_RE in the helper.
+# Review status/outcome vocabulary (create-review template front matter).
+# status: open | concluded; outcome: null | inform_only | needs_decision |
+# spawn_spec | spawn_tickets | spawn_fix | needs_grill.
+REVIEW_STATUS_OK = {"open", "concluded"}
+REVIEW_OUTCOME_OK = {
+    "inform_only",
+    "needs_decision",
+    "spawn_spec",
+    "spawn_tickets",
+    "spawn_fix",
+    "needs_grill",
+}
+# Coupled ticket field: wait_reason (binder field-table row). The row carries
+# the reason for BOTH stuck and deferred statuses (tkt-151 anticipated decision
+# — reuse wait_reason semantics extended to deferred; grep-able single row).
+# stuck: unblock | re-scope (FSM-2b / tkt-132). deferred: fuse-halt |
+# blocked-by-failure (ADR-004 amd tkt-136 Option B — batch-work stamps these).
+WAIT_REASON_RE = re.compile(r"^\|\s*wait_reason\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+STUCK_REASONS = {"unblock", "re-scope"}
+DEFERRED_REASONS = {"fuse-halt", "blocked-by-failure"}
+# Terminal Finish-evidence stamps (## Finish ledger). A merged ledger records
+# `pr-P merged:`; a cancel ledger records `issue #N closed:` without a merge.
+# Both are provable-from-one-snapshot terminal evidence (A4): a non-terminal
+# binder status contradicting either stamp is drift.
+FINISH_MERGED_RE = re.compile(r"\bmerged:\s")
+FINISH_CLOSED_RE = re.compile(r"\bissue\s+#\d+\s+closed:\s", re.I)
 
 
 def parse_front_matter(text: str) -> dict[str, Any]:
@@ -196,7 +242,142 @@ def finish_ledger_merged(text: str) -> bool:
     if not m:
         return False
     body = HTML_COMMENT_RE.sub("", m.group(1))
-    return re.search(r"\bmerged:\s", body) is not None
+    return FINISH_MERGED_RE.search(body) is not None
+
+
+def finish_ledger_terminal(text: str) -> bool:
+    """True when the ``## Finish`` ledger records a provable terminal event.
+
+    A merged ledger carries ``pr-P merged:``; a cancel ledger carries
+    ``issue #N closed:`` without a merge. Either stamp is terminal evidence
+    provable from one snapshot (tkt-151 A4): a non-terminal binder status
+    contradicting either is drift. Whole-document prose is not consulted —
+    only the ``## Finish`` section body.
+    """
+    m = FINISH_SECTION_RE.search(text)
+    if not m:
+        return False
+    body = HTML_COMMENT_RE.sub("", m.group(1))
+    return FINISH_MERGED_RE.search(body) is not None or FINISH_CLOSED_RE.search(body) is not None
+
+
+SPEC_FM_STATUS_RE = re.compile(r"^status:\s*([a-zA-Z0-9_-]+)\s*$", re.M)
+SPEC_FM_SUPERSEDED_BY_RE = re.compile(
+    r"^superseded_by:\s*(\S.*?)\s*$", re.M
+)
+SPEC_HEADER_BLOCKQUOTE_RE = re.compile(r"^\s*>", re.M)
+# Deferred marker on an acceptance line (per-A*, explicit, same-line).
+ACCEPT_DEFERRED_RE = re.compile(r"\(deferred\)", re.I)
+
+
+def spec_status(text: str) -> str | None:
+    """Spec front-matter ``status:`` value (authoritative SoT).
+
+    Scoped to front matter only — the commented template line
+    ``# status: draft | locked | …`` and TL;DR ``**Status:**`` copy are not
+    consulted here (the header is checked separately for contradiction).
+    """
+    m = SPEC_FM_STATUS_RE.search(text)
+    if not m:
+        return None
+    return m.group(1).strip().strip("'\"").lower()
+
+
+def spec_header_status(text: str) -> str | None:
+    """TL;DR ``**Status:**`` copy from blockquote lines before the first ``##`` heading.
+
+    Specs do not carry a binder card table at the top; their display status
+    lives in a ``>`` blockquote line (``> **Kind:** … · **Status:** locked · …``).
+    Scoped to blockquote lines before the first ``##`` heading so body prose
+    that merely mentions the literal ``**Status:**`` marker cannot masquerade.
+    """
+    for line in text.splitlines():
+        if HEADING_RE.match(line):
+            break
+        if SPEC_HEADER_BLOCKQUOTE_RE.match(line):
+            m = STATUS_TLDR_RE.search(line)
+            if m:
+                return m.group(1).strip().lower()
+    return None
+
+
+def spec_done_open_acceptance(text: str) -> list[str]:
+    """Open, non-deferred A-ids in the Acceptance section (tkt-151 A2).
+
+    A `done` Spec must have every Acceptance item either checked ``- [x]`` or
+    explicitly deferred with an inline ``(deferred)`` marker on the same line.
+    A bare ``- [ ]`` (open, non-deferred) A* is a fictional-done drift. Only
+    lines inside an Acceptance section are consulted (reuses the
+    acceptance-section scoping of spec_acceptance_ids).
+    """
+    open_ids: list[str] = []
+    in_section = False
+    level = 0
+    for line in text.splitlines():
+        hm = HEADING_RE.match(line)
+        if hm:
+            if ACCEPT_HEADING_RE.match(line):
+                in_section = True
+                level = len(hm.group(1))
+                # An open checkbox on the heading line itself counts too.
+                open_ids.extend(_open_non_deferred_aids(line))
+                continue
+            if in_section and len(hm.group(1)) <= level:
+                in_section = False
+                continue
+        if in_section:
+            open_ids.extend(_open_non_deferred_aids(line))
+    return open_ids
+
+
+def _open_non_deferred_aids(line: str) -> list[str]:
+    # A markdown checkbox line: `- [ ]` (open) vs `- [x]`/`- [X]` (closed).
+    # Strikethrough `~~…~~` is treated as deferred too (explicit per-A* marker).
+    if not re.match(r"^\s*-\s*\[\s\]", line):
+        return []
+    if ACCEPT_DEFERRED_RE.search(line) or "~~" in line:
+        return []
+    return [f"A{n}" for n in A_HEADING_RE.findall(line)]
+
+
+def spec_superseded_by(text: str) -> str | None:
+    """Spec front-matter ``superseded_by:`` value (raw, unvalidated)."""
+    m = SPEC_FM_SUPERSEDED_BY_RE.search(text)
+    if not m:
+        return None
+    val = m.group(1).strip().strip("'\"")
+    return val if val and val.lower() != "null" else None
+
+
+def review_status(text: str) -> str | None:
+    fm = parse_front_matter(text)
+    if "status" not in fm:
+        return None
+    return str(fm["status"]).strip().strip("'\"").lower()
+
+
+def review_outcome(text: str) -> str | None:
+    fm = parse_front_matter(text)
+    if "outcome" not in fm:
+        return None
+    val = str(fm["outcome"]).strip().strip("'\"")
+    return val if val and val.lower() != "null" else None
+
+
+def binder_wait_reason(text: str) -> str | None:
+    """``wait_reason`` value from the binder card (first table block only).
+
+    ``(none)`` / empty / missing → None (the unstated sentinel). Stripped of
+    surrounding whitespace. The template's third description cell is not
+    consulted (the value is the second cell only).
+    """
+    m = WAIT_REASON_RE.search(first_table_block(text))
+    if not m:
+        return None
+    val = m.group(1).strip()
+    if not val or PRS_PLACEHOLDER_RE.fullmatch(val):
+        return None
+    return val.lower()
 
 
 def spec_acceptance_ids(text: str) -> set[str]:
@@ -308,6 +489,65 @@ def validate_home(home: Path) -> list[dict[str, str]]:
             spec_tickets[check_id] = spec_ticket_ids(text)
             spec_accept[check_id] = spec_acceptance_ids(text)
 
+        # tkt-151 A1/A2: Spec status vocabulary + terminal guards.
+        sp_st = spec_status(text)
+        if sp_st is not None and sp_st not in SPEC_STATUS_OK:
+            findings.append(
+                {
+                    "code": "invalid_spec_status",
+                    "path": str(path.relative_to(home.parent)) if home.parent in path.parents else str(path),
+                    "detail": f"status {sp_st!r} not in {sorted(SPEC_STATUS_OK)}",
+                }
+            )
+        # TL;DR **Status:** header vs front-matter status. A terminal Spec
+        # (done/superseded) with a contradicting display status is a
+        # fictional-done drift — error (A2). For draft/locked the mismatch is
+        # a warning (display drift; lazy migration).
+        sp_header_st = spec_header_status(text)
+        if sp_st is not None and sp_header_st is not None and sp_header_st != sp_st:
+            is_terminal = sp_st in SPEC_STATUS_TERMINAL
+            findings.append(
+                {
+                    "code": "spec_header_status_mismatch",
+                    "level": "error" if is_terminal else "warning",
+                    "path": str(path.relative_to(home.parent)) if home.parent in path.parents else str(path),
+                    "detail": (
+                        f"TL;DR header status {sp_header_st!r} contradicts "
+                        f"front-matter status {sp_st!r} (front matter is SoT)"
+                        + ("; a terminal Spec's display must match" if is_terminal else "")
+                    ),
+                }
+            )
+        # `done` with open non-deferred A* is fictional-done (A2).
+        if sp_st == "done":
+            open_a = spec_done_open_acceptance(text)
+            if open_a:
+                findings.append(
+                    {
+                        "code": "spec_done_open_acceptance",
+                        "path": str(path.relative_to(home.parent)) if home.parent in path.parents else str(path),
+                        "detail": (
+                            f"status is done but Acceptance has open non-deferred "
+                            f"items: {sorted(open_a, key=lambda x: int(x[1:]))} "
+                            "(check off with proof, mark (deferred), or revert to locked)"
+                        ),
+                    }
+                )
+        # `superseded` requires a valid superseded_by link (A2).
+        if sp_st == "superseded":
+            by = spec_superseded_by(text)
+            if not by or not SPEC_ID_RE.fullmatch(by):
+                findings.append(
+                    {
+                        "code": "spec_superseded_no_link",
+                        "path": str(path.relative_to(home.parent)) if home.parent in path.parents else str(path),
+                        "detail": (
+                            f"status is superseded but superseded_by is {by!r} "
+                            "(must be a real spc-N)"
+                        ),
+                    }
+                )
+
     for path in iter_reviews(home):
         text = load_text(path)
         fm = parse_front_matter(text)
@@ -318,6 +558,39 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "code": "malformed_review_id",
                     "path": str(path),
                     "detail": f"id {rid!r} is not a valid R1/legacy Review id",
+                }
+            )
+
+        # tkt-151 A1: Review status/outcome vocabulary + concluded-with-outcome guard.
+        rv_st = review_status(text)
+        if rv_st is not None and rv_st not in REVIEW_STATUS_OK:
+            findings.append(
+                {
+                    "code": "invalid_review_status",
+                    "path": str(path),
+                    "detail": f"status {rv_st!r} not in {sorted(REVIEW_STATUS_OK)}",
+                }
+            )
+        rv_out = review_outcome(text)
+        if rv_out is not None and rv_out not in REVIEW_OUTCOME_OK:
+            findings.append(
+                {
+                    "code": "invalid_review_outcome",
+                    "path": str(path),
+                    "detail": f"outcome {rv_out!r} not in {sorted(REVIEW_OUTCOME_OK)}",
+                }
+            )
+        # A concluded Review must carry exactly one valid outcome (A1).
+        if rv_st == "concluded" and (not rv_out or rv_out not in REVIEW_OUTCOME_OK):
+            findings.append(
+                {
+                    "code": "concluded_review_no_outcome",
+                    "path": str(path),
+                    "detail": (
+                        f"status is concluded but outcome is {rv_out!r} "
+                        "(exactly one of inform_only | needs_decision | "
+                        "spawn_spec | spawn_tickets | spawn_fix | needs_grill required)"
+                    ),
                 }
             )
 
@@ -354,6 +627,35 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "level": "warning",
                     "path": str(path),
                     "detail": f"status {st!r} is legacy-coarse; migrate to the FSM enum ({' | '.join(STATUS_WORKING_ORDER)} | closed)",
+                }
+            )
+        # tkt-151 A3: coupled ticket fields. `stuck` requires a valid
+        # wait_reason in {unblock, re-scope}; `deferred` requires a valid
+        # machine-readable reason in {fuse-halt, blocked-by-failure}. A
+        # contradictory value (e.g. stuck + fuse-halt, deferred + unblock) fails
+        # — the reason must match the status. Missing/(none) for either fails.
+        wr = binder_wait_reason(text)
+        if st == "stuck" and wr not in STUCK_REASONS:
+            findings.append(
+                {
+                    "code": "stuck_without_valid_wait_reason",
+                    "path": str(path),
+                    "detail": (
+                        f"status is stuck but wait_reason is {wr!r}; "
+                        f"must be one of {sorted(STUCK_REASONS)} (FSM-2b)"
+                    ),
+                }
+            )
+        if st == "deferred" and wr not in DEFERRED_REASONS:
+            findings.append(
+                {
+                    "code": "deferred_without_valid_reason",
+                    "path": str(path),
+                    "detail": (
+                        f"status is deferred but wait_reason is {wr!r}; "
+                        f"must be one of {sorted(DEFERRED_REASONS)} "
+                        "(ADR-004 amd tkt-136 Option B)"
+                    ),
                 }
             )
         # Bounded-loop invariant (ADR-004 §5 / tkt-123): the binder field-table
@@ -506,19 +808,22 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "detail": f"status {st!r} but ## Finish ledger is missing or placeholder-only",
                 }
             )
-        # Inverse of closed_without_finish: a merged ## Finish ledger is
-        # terminal evidence, so a working/legacy status contradicts the
-        # binder's own single source of truth (spc-42:76). Error-level — this
-        # is exactly the breach that stranded 19 binders at `pr-open`
-        # (tkt-90; audit rev-20260827-033352Z F1/F2).
-        if st is not None and st not in STATUS_TERMINAL and finish_ledger_merged(text):
+        # Inverse of closed_without_finish: a merged OR cancel ## Finish ledger
+        # is terminal evidence provable from one snapshot (tkt-151 A4), so a
+        # working/legacy status contradicts the binder's own single source of
+        # truth (spc-42:76). Error-level — this is exactly the breach that
+        # stranded 19 binders at `pr-open` (tkt-90; audit rev-20260827-033352Z
+        # F1/F2). A cancel ledger (`issue #N closed:` without a merge) is now
+        # terminal evidence too (A4); previously only `merged:` was.
+        if st is not None and st not in STATUS_TERMINAL and finish_ledger_terminal(text):
             findings.append(
                 {
                     "code": "finish_without_terminal_status",
                     "path": str(path),
                     "detail": (
-                        f"## Finish records a merge but status is {st!r}; "
-                        "a merged ledger requires terminal status "
+                        f"## Finish records a terminal event (merge or cancel) "
+                        f"but status is {st!r}; a Finish ledger with a `merged:` "
+                        "or `issue #N closed:` stamp requires terminal status "
                         "(finish-ledger stamps `closed`)"
                     ),
                 }

@@ -184,13 +184,13 @@ At every wave/layer barrier:
 2. Ratio > `batch_fuse_threshold` (DEFAULT 50%) → **trip**:
    - **Halt** all subsequent waves and layers — nothing new spawns into a broken base.
    - **Graceful-drain** in-flight agents: let each finish its current attempt and write its ledgers; **no mid-write kills**. Apply the watchdog timebox as the outer bound on the drain.
-   - Record every never-spawned ticket as `fuse-halted` in the report. **Stamp its binder `status: deferred` + reason `fuse-halt`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). No new enum values — `deferred` already exists.
+   - Record every never-spawned ticket as `fuse-halted` in the report. **Stamp its binder `status: deferred` + `wait_reason: fuse-halt`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). No new enum values — `deferred` already exists.
    - Emit the partial REPORT (all completed results + the trip: layer, ratio, threshold) and stop the batch.
 3. Ratio ≤ threshold → continue normally.
 
 ## NEXT-LAYER DEPENDENCY CHECK
 
-Before spawning a ticket whose `blocked_by` includes a failed ticket: mark it `blocked-by-failure` and skip. Do not spawn. **Stamp its binder `status: deferred` + reason `blocked-by-failure`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition.
+Before spawning a ticket whose `blocked_by` includes a failed ticket: mark it `blocked-by-failure` and skip. Do not spawn. **Stamp its binder `status: deferred` + `wait_reason: blocked-by-failure`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition.
 
 ## STACKED DEPENDENCY BASES (blocked_by layers)
 
@@ -245,6 +245,17 @@ The .lattice/.batch-work-active marker ensured no agent merged.
 ```
 
 Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by the agents: `queued → in-progress → pr-open` (or `stuck`/`parked` per policy); **fuse-halted tickets stamp `deferred`+reason `fuse-halt`** (ADR-004 amd tkt-136 Option B), **blocked-by-failure dependents stamp `deferred`+reason `blocked-by-failure`**, **watchdog-timeout stamps `stuck`+`wait_reason: unblock`** (FSM-2b, tkt-132); never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
+
+**Never-spawned reason mapping (tkt-151 A6 — one unambiguous mapping per reason):**
+
+| Report status | Binder status | Binder wait_reason | When it applies |
+| --- | --- | --- | --- |
+| `not-selected` | `queued` (unchanged) | `(none)` | Ticket was not in the `--ids` set, or `--groups` never reached it (e.g. an earlier-layer fuse halted before its layer). No agent spawned, no worktree created. |
+| `workspace-failed` | `queued` (unchanged) | `(none)` | `ensure-workspace.sh` failed for this ticket; no agent spawned. Worktree may be partially created — orchestrator does not retry. |
+| `fuse-halted` | `deferred` | `fuse-halt` | Fuse tripped at a layer barrier **before** this ticket's wave/layer spawned. Distinct from `blocked-by-failure` (a dependency *failed*): here the *system* halted. |
+| `blocked-by-failure` | `deferred` | `blocked-by-failure` | A ticket in this ticket's `blocked_by` set failed; the dependency is unsatisfied. Distinct from `fuse-halted`: a specific prior ticket failed, not a system-wide halt. |
+
+`not-selected` and `workspace-failed` leave the binder at `queued` (the ticket is still schedulable into a later batch with no repair); `fuse-halted` and `blocked-by-failure` stamp `deferred` (the ticket is *not* schedulable until a human re-queues it — `deferred → queued` is a manual transition). These four are mutually exclusive and exhaustive over the never-spawned space; a ticket that spawned and crashed is `failed`/`stuck`, never a never-spawned reason.
 
 ## Failure-isolation contract
 
