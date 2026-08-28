@@ -29,10 +29,10 @@
 
 ## Acceptance
 
-- [ ] **A1** A canonical parked binder ratifies successfully, records one dated decision, settles the selected pending decision, flips to `queued`, and creates one commit containing only that binder.
-- [ ] **A2** Non-parked, missing-journal, untracked/out-of-home, symlinked, malformed, and unrelated-staged preconditions fail before mutation.
-- [ ] **A3** Decision journal at EOF and before another section both work; rerun is fail-safe and does not duplicate the ratification.
-- [ ] **A4** GNU/Linux and macOS-compatible Bats plus full `bash tools/ci-local.sh` pass.
+- [x] **A1** A canonical parked binder ratifies successfully, records one dated decision, settles the selected pending decision, flips to `queued`, and creates one commit containing only that binder.
+- [x] **A2** Non-parked, missing-journal, untracked/out-of-home, symlinked, malformed, and unrelated-staged preconditions fail before mutation.
+- [x] **A3** Decision journal at EOF and before another section both work; rerun is fail-safe and does not duplicate the ratification.
+- [x] **A4** GNU/Linux and macOS-compatible Bats plus full `bash tools/ci-local.sh` pass.
 
 ## Approach
 
@@ -51,9 +51,15 @@
 
 ## Decision journal
 
+- Pending-decision selection uses `--pending <substring>` (smallest explicit CLI surface): it matches bullet lines under `## Pending decisions`, requires exactly one match, and settles it by removal (the decision is now journaled, so it is no longer pending). Zero or multiple matches fail before mutation; omitting `--pending` leaves the pending section untouched. Documented in `ratify.sh -h` and covered by ratify.bats. Reversible, ticket-local.
+- The read-modify-write is a contained Python stdlib transaction embedded from Bash (no shell/sed in-place editing): symlink/path containment under `.lattice/tickets/`, directory `flock`, in-memory rebuild, `tempfile` + `fsync` + `os.replace` atomic rewrite, original mode preserved. Mirrors finish-ledger.sh. Reversible, ticket-local.
+- Status row parse uses `[ \t]` (not `\s`) so the regex cannot swallow the row's trailing newline and merge the field table into the next section — the greedy-`\s*$` bug that made every parked binder exit before ratification. Reversible, ticket-local.
+
 ## Pending decisions
 
 ## Attempts
+
+- Attempt 1 (2026-08-28): rewrote `ratify.sh` as Python-backed transaction (containment + flock + atomic replace + commit isolation); added `ratify.bats` (18 tests). Fixed greedy-`\s*$` status-row parse, BSD-only `sed -i ''`, journal-insert blank-line handling, pending-decision settlement, unrelated-staged commit leak. `bash tools/ci-local.sh` all green (18/18 ratify.bats pass). A1-A4 checked off.
 
 ## Notes
 
