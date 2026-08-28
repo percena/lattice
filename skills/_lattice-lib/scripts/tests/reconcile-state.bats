@@ -252,14 +252,15 @@ EOF
 @test "unknown: gh not installed → result=unknown, exit 2" {
   write_binder "queued" "(none yet)"
   # Build a PATH with git and python3 but WITHOUT gh. gh typically lives in
-  # /opt/homebrew/bin or /usr/local/bin; we exclude those and symlink the
-  # essentials into a clean bin so shutil.which("gh") returns None.
+  # /opt/homebrew/bin, /usr/local/bin, OR /usr/bin on CI runners; we use a
+  # truly clean bin dir so shutil.which("gh") returns None on every platform.
   NOGH_BIN="$TEST_DIR/nogh_bin"
   mkdir -p "$NOGH_BIN"
   ln -sf "$(command -v git)" "$NOGH_BIN/git"
   ln -sf "$(command -v python3)" "$NOGH_BIN/python3"
+  ln -sf "$(command -v bash)" "$NOGH_BIN/bash"
   : >"$GH_LOG"
-  run env PATH="$NOGH_BIN:/usr/bin:/bin" bash "$RS" --binder "$BINDER"
+  run env PATH="$NOGH_BIN" bash "$RS" --binder "$BINDER"
   [ "$status" -eq 2 ]
   [[ "$output" == *"unknown"* ]]
   [[ "$output" == *"gh CLI not installed"* ]]
