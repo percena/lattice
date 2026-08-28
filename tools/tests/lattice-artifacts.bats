@@ -210,3 +210,41 @@ setup_file() {
   [[ "$output" == *tkt-203-over* ]]
   [[ "$output" != *tkt-204-ok* ]]
 }
+
+# tkt-155: binder-dir-N vs github-field-N desync — phantom binders and mismatches.
+
+@test "matching github URL and dir N pass clean" {
+  # tkt-205-match: github issue #205, dir tkt-205 → no finding.
+  run python3 "$VAL" --home "$FIX/github-field-clean" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" != *tkt-205-match* ]]
+}
+
+@test "dir N vs github issue N mismatch errors" {
+  # tkt-206-mismatch: dir tkt-206 but github issue #888 → error.
+  run python3 "$VAL" --home "$FIX/github-field-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *binder_dir_github_mismatch* ]]
+  [[ "$output" == *tkt-206* ]]
+  [[ "$output" == *888* ]]
+}
+
+@test "numeric dir with placeholder github warns phantom_binder_smell" {
+  # tkt-207-phantom: numeric dir tkt-207, github "(to be created)" →
+  # phantom_binder_smell warning (run passes — warning level).
+  run python3 "$VAL" --home "$FIX/github-field-warn" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" == *phantom_binder_smell* ]]
+  [[ "$output" == *tkt-207-phantom* ]]
+}
+
+@test "github URL that is not an issues path warns binder_github_malformed" {
+  # tkt-208-pending-url: github value is a /pull/ URL, not /issues/ →
+  # binder_github_malformed warning (run passes — warning level).
+  run python3 "$VAL" --home "$FIX/github-field-warn" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *binder_github_malformed* ]]
+  [[ "$output" == *tkt-208-pending-url* ]]
+}

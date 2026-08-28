@@ -15,7 +15,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/155 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -34,11 +34,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `validate-lattice-artifacts.py` parses the `github` field row from every ticket binder and extracts the issue number (or detects a pending/placeholder value).
-- [ ] **A2** If the binder `github` field contains a real issue URL, the validator checks that the issue number in the URL matches the N in the directory name `tkt-N-<slug>`. Mismatch → error `binder_dir_github_mismatch`.
-- [ ] **A3** If the `github` field is a pending/placeholder value (e.g., `(to be created)`, `pending`, empty), the validator emits a warning `binder_github_pending` (not an error — deferred creation is allowed, but should be visible).
-- [ ] **A4** The validator detects the core phantom-binder smell: numeric `tkt-N` dir + pending/placeholder `github` field = likely phantom (warn or error depending on policy).
-- [ ] **A5** Full `bash tools/ci-local.sh` passes with the new checks.
+- [x] **A1** `validate-lattice-artifacts.py` parses the `github` field row from every ticket binder and extracts the issue number (or detects a pending/placeholder value).
+- [x] **A2** If the binder `github` field contains a real issue URL, the validator checks that the issue number in the URL matches the N in the directory name `tkt-N-<slug>`. Mismatch → error `binder_dir_github_mismatch`.
+- [x] **A3** If the `github` field is a pending/placeholder value (e.g., `(to be created)`, `pending`, empty), the validator emits a warning `binder_github_pending` (not an error — deferred creation is allowed, but should be visible).
+- [x] **A4** The validator detects the core phantom-binder smell: numeric `tkt-N` dir + pending/placeholder `github` field = likely phantom (warn or error depending on policy).
+- [x] **A5** Full `bash tools/ci-local.sh` passes with the new checks.
 
 ## Approach
 
@@ -58,6 +58,8 @@ Also update `ticket-binder.md` template to document accepted `github` values and
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-08-28: phantom_binder_smell subsumes binder_github_pending when dir N is numeric → only phantom_binder_smell fires (avoids dual-warning noise). Non-numeric dir emits binder_github_pending alone. (source: agent-judgment; A3/A4 both satisfied — the phantom signal is the actionable one)
+- 2026-08-28: absent github row = skip (lazy migration, mirrors fix_cycles missing-row posture). Keeps minimal fixtures clean. (source: agent-judgment; A1 says "parses the github field row OR detects a pending/placeholder value" — absent ≠ pending)
 
 ## Pending decisions
 
