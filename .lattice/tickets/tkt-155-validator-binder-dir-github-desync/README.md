@@ -15,7 +15,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/155 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -30,7 +30,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-155-validator-binder-dir-github-desync` |
 | worktree | sibling `…/lattice.worktrees/tkt-155-validator-binder-dir-github-desync/` |
-| prs | (none) |
+| prs | pr-173 — https://github.com/percena/lattice/pull/173 |
 
 ## Acceptance (this slice)
 
