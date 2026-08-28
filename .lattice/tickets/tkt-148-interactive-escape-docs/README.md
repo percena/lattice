@@ -27,8 +27,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A6** A non-standard flow requires the agent to ask the user and receive explicit confirmation before routing through the `--reason` escape; drift (no confirmation) is blocked at L1/L3. Reason records "user-authorized". (Documented + denial messages instruct the escape.)
-- [ ] **A8** (docs) Strict default + interactive-confirmation escape documented in policy.md and always-loaded CLAUDE.md.
+- [x] **A6** A non-standard flow requires the agent to ask the user and receive explicit confirmation before routing through the `--reason` escape; drift (no confirmation) is blocked at L1/L3. Reason records "user-authorized". (Documented + denial messages instruct the escape.)
+- [x] **A8** (docs) Strict default + interactive-confirmation escape documented in policy.md and always-loaded CLAUDE.md.
 
 ## Notes
 

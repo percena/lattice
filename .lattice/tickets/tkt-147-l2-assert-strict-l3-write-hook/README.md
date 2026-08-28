@@ -27,9 +27,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A4** `assert-shippable-cwd.sh` under strict fails non-base-on-main-clone; `--allow-base-write --reason` still passes; light profile keeps legacy pass.
-- [ ] **A5** PreToolUse Write/Edit hook denies shippable writes (`.lattice/**`, product code) when assert fails; `--reason` escape available.
-- [ ] **A7** New bats pass; existing `assert-shippable-cwd.bats` and `ensure-workspace.bats` still pass (no compliant-path regression).
+- [x] **A4** `assert-shippable-cwd.sh` under strict fails non-base-on-main-clone; `--allow-base-write --reason` still passes; light profile keeps legacy pass.
+- [x] **A5** PreToolUse Write/Edit hook denies shippable writes (`.lattice/**`, product code) when assert fails; `--reason` escape available.
+- [x] **A7** New bats pass; existing `assert-shippable-cwd.bats` and `ensure-workspace.bats` still pass (no compliant-path regression).
 
 ## Notes
 

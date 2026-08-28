@@ -27,10 +27,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Raw `git checkout -b <name>` and `git switch -c <name>` in the main clone (bound or unbound) is denied with a message pointing to ensure-workspace / /start-work.
-- [ ] **A2** `git branch <create>` + `git switch <existing>` (two-step bypass) is also denied in the main clone.
-- [ ] **A3** `ensure-workspace --mode worktree --bind tkt|spc …` runs its internal git branch/worktree/checkout without self-block (sentinel passthrough); worktree created; agent can cd and write.
-- [ ] **A8** Switching to a base branch (main/dev/master) in the main clone is never blocked.
+- [x] **A1** Raw `git checkout -b <name>` and `git switch -c <name>` in the main clone (bound or unbound) is denied with a message pointing to ensure-workspace / /start-work.
+- [x] **A2** `git branch <create>` + `git switch <existing>` (two-step bypass) is also denied in the main clone.
+- [x] **A3** `ensure-workspace --mode worktree --bind tkt|spc …` runs its internal git branch/worktree/checkout without self-block (sentinel passthrough); worktree created; agent can cd and write.
+- [x] **A8** Switching to a base branch (main/dev/master) in the main clone is never blocked.
 
 ## Notes
 

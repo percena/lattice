@@ -53,14 +53,14 @@ Soft guidance (memory / CLAUDE.md / `policy.md`) consistently loses to the zero-
 
 ## Acceptance
 
-- [ ] **A1** Raw `git checkout -b <name>` and `git switch -c <name>` in the main clone (any name, bound or unbound) is **denied** by the L1 PreToolUse hook with a message pointing to `ensure-workspace --mode worktree` / `/start-work`.
-- [ ] **A2** `git branch <create>` + `git switch <existing>` (the two-step bypass) is also denied by L1 in the main clone.
-- [ ] **A3** The compliant path still works: `ensure-workspace --mode worktree --bind tkt|spc …` runs its internal `git branch` / `git worktree add` / `git checkout -b` without being self-blocked (sentinel passthrough); the worktree is created and the agent can `cd` and write.
-- [ ] **A4** `assert-shippable-cwd.sh` under `profile: strict` **fails** non-base-on-main-clone; `--allow-base-write --reason` still passes. Light profile keeps the legacy pass behavior.
-- [ ] **A5** The L3 PreToolUse Write/Edit hook denies shippable writes (`.lattice/**`, product code) when `assert-shippable-cwd.sh` fails, with the same `--reason` escape available.
-- [ ] **A6** A non-standard flow requires the agent to ask the user and receive explicit confirmation before routing through the `--reason` escape; a drift attempt (no user confirmation) is blocked at L1/L3. The reason string records "user-authorized".
-- [ ] **A7** New bats tests pass; existing `ensure-workspace.bats` and `assert-shippable-cwd.bats` still pass (no compliant-path regression).
-- [ ] **A8** Switching **to** a base branch (`main`/`dev`/`master`) in the main clone is never blocked (allow returning to base).
+- [x] **A1** Raw `git checkout -b <name>` and `git switch -c <name>` in the main clone (any name, bound or unbound) is **denied** by the L1 PreToolUse hook with a message pointing to `ensure-workspace --mode worktree` / `/start-work`.
+- [x] **A2** `git branch <create>` + `git switch <existing>` (the two-step bypass) is also denied by L1 in the main clone.
+- [x] **A3** The compliant path still works: `ensure-workspace --mode worktree --bind tkt|spc …` runs its internal `git branch` / `git worktree add` / `git checkout -b` without being self-blocked (sentinel passthrough); the worktree is created and the agent can `cd` and write.
+- [x] **A4** `assert-shippable-cwd.sh` under `profile: strict` **fails** non-base-on-main-clone; `--allow-base-write --reason` still passes. Light profile keeps the legacy pass behavior.
+- [x] **A5** The L3 PreToolUse Write/Edit hook denies shippable writes (`.lattice/**`, product code) when `assert-shippable-cwd.sh` fails, with the same `--reason` escape available.
+- [x] **A6** A non-standard flow requires the agent to ask the user and receive explicit confirmation before routing through the `--reason` escape; a drift attempt (no user confirmation) is blocked at L1/L3. The reason string records "user-authorized".
+- [x] **A7** New bats tests pass; existing `ensure-workspace.bats` and `assert-shippable-cwd.bats` still pass (no compliant-path regression).
+- [x] **A8** Switching **to** a base branch (`main`/`dev`/`master`) in the main clone is never blocked (allow returning to base).
 
 ## Non-goals
 
