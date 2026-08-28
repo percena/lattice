@@ -81,6 +81,9 @@ intercept_gh_pr_main() {
 
     # Pragmatic direct-gh classifier: covers documented gh/pr inherited flag
     # placement without pretending to be an exhaustive shell security sandbox.
+    # Nested-shell payloads (bash -c '…', eval "…") are invisible by design —
+    # the strip helper removes quoted payloads upstream; see the detector
+    # docstring's "Accepted limitation". Strict mode guards direct commands.
     # Missing/broken classifier follows the hook's fail-open contract.
     if [[ ! "${INTERCEPT_GH_PR_VERB:-}" =~ ^(create|merge)$ ]] || \
        ! printf '%s' "$cleaned_command" | python3 "$INTERCEPT_GH_PR_HELPER" "$INTERCEPT_GH_PR_VERB" 2>/dev/null; then
