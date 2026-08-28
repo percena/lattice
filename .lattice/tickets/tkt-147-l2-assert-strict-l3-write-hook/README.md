@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/147 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | L2 assert strict-flip + L3 PreToolUse Write/Edit hook |
 | spec | spc-145 — PreToolUse hard-enforcement stack (path: ../../specs/spc-145-worktree-discipline-gate.md) |
@@ -60,4 +60,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-154 merged: 2026-08-28T09:26:31Z — https://github.com/percena/lattice/pull/154 (base merge)
+- issue #147 closed: 2026-08-28T09:26:59Z — https://github.com/percena/lattice/issues/147

@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/146 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | L1 PreToolUse hook blocks raw branch ops in main clone + ensure-workspace sentinel |
 | spec | spc-145 — PreToolUse hard-enforcement stack (path: ../../specs/spc-145-worktree-discipline-gate.md) |
@@ -60,4 +60,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-154 merged: 2026-08-28T09:26:31Z — https://github.com/percena/lattice/pull/154 (base merge)
+- issue #146 closed: 2026-08-28T09:26:55Z — https://github.com/percena/lattice/issues/146

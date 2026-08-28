@@ -4,7 +4,7 @@ id: spc-145
 slug: worktree-discipline-gate
 title: PreToolUse hard-enforcement stack for worktree discipline
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Three-layer physical enforcement (git hook + assert hardening + Write hook) so agents cannot drift to temp branches / base commits; interactive-confirmation escape for explicit user authorization."

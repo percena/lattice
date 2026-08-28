@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/148 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | Interactive-confirmation escape docs + policy.md + project CLAUDE.md |
 | spec | spc-145 — PreToolUse hard-enforcement stack (path: ../../specs/spc-145-worktree-discipline-gate.md) |
@@ -58,4 +58,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-154 merged: 2026-08-28T09:26:31Z — https://github.com/percena/lattice/pull/154 (base merge)
+- issue #148 closed: 2026-08-28T09:27:02Z — https://github.com/percena/lattice/issues/148
