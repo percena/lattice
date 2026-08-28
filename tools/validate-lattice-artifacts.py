@@ -29,7 +29,9 @@ Checks (selected, not exhaustive):
     number must match the N in ``tkt-N-<slug>`` (error on mismatch); a
     placeholder/empty value on a numeric dir emits the phantom-binder smell
     warning (guessed dir number without ``gh issue create``)
-  - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal)
+  - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal;
+    `tkt-pending-<slug>` dirs are a recognized transient state — exempt
+    from `malformed_ticket_id`)
   - ``covers`` A* ids that do not exist on the parent Spec Acceptance
   - one-sided local edges: ticket lists Spec but Spec.tickets omits the ticket
     (when both files exist under the scanned homes)
@@ -56,6 +58,11 @@ STATUS_LEGACY = {"open"}
 STATUS_OK = STATUS_WORKING | STATUS_TERMINAL | STATUS_LEGACY
 SPEC_ID_RE = re.compile(r"^spc-([1-9][0-9]*)$")
 TKT_ID_RE = re.compile(r"^tkt-([1-9][0-9]*)$")
+# tkt-pending-<slug> dirs are a valid transient state before gh issue create
+# (flow.md §3.5: "Rename tkt-pending-<slug> → tkt-N-<slug> if needed"). The
+# validator must not error on them (tkt-174: the phantom_binder_smell warning
+# recommended tkt-pending-* but malformed_ticket_id rejected it — contradiction).
+TKT_PENDING_DIR_RE = re.compile(r"^tkt-pending-([a-z0-9][a-z0-9-]*)$", re.I)
 REV_ID_RE = re.compile(
     r"^rev-(?:[1-9][0-9]*|[0-9]{8}-[0-9]{6}Z(?:-[a-z0-9]{2,4})?)$"
 )
@@ -603,13 +610,17 @@ def validate_home(home: Path) -> list[dict[str, str]]:
         if tid:
             ticket_dirs_by_id.setdefault(tid, []).append(path)
         if not tid or not TKT_ID_RE.fullmatch(tid):
-            findings.append(
-                {
-                    "code": "malformed_ticket_id",
-                    "path": str(path),
-                    "detail": f"directory {path.parent.name!r} is not tkt-N-…",
-                }
-            )
+            # tkt-pending-<slug> is a recognized transient dir (flow.md §3.5)
+            # — not malformed. Exempt from the error so binder_github_pending
+            # can fire as a standalone warning (tkt-174).
+            if not TKT_PENDING_DIR_RE.fullmatch(path.parent.name):
+                findings.append(
+                    {
+                        "code": "malformed_ticket_id",
+                        "path": str(path),
+                        "detail": f"directory {path.parent.name!r} is not tkt-N-… or tkt-pending-<slug>",
+                    }
+                )
 
         st = ticket_status(text)
         if st is not None and st not in STATUS_OK:

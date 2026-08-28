@@ -341,3 +341,16 @@ setup_file() {
   [[ "$output" != *deferred_without_valid_reason* ]]
   [[ "$output" != *finish_without_terminal_status* ]]
 }
+
+# tkt-174: tkt-pending-<slug> dirs are a valid transient state — not malformed.
+
+@test "tkt-pending dir with placeholder github warns binder_github_pending (no error)" {
+  # tkt-pending-noissue: dir is tkt-pending-noissue, github "(to be created)"
+  # → binder_github_pending warning only (no malformed_ticket_id error).
+  run python3 "$VAL" --home "$FIX/github-field-warn" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" == *binder_github_pending* ]]
+  [[ "$output" == *tkt-pending-noissue* ]]
+  [[ "$output" != *malformed_ticket_id*tkt-pending-noissue* ]]
+}
