@@ -378,3 +378,4 @@ cd /path/to/your-app
 | [github-surface.md](./github-surface.md) | Label catalog |
 | [workflow-fsm.md](./workflow-fsm.md) | Three coupled state machines, transition owners, bounded-loop invariant |
 | [day-phase.md](./day-phase.md) | Attended planning recipe: requirement → proposal rev → spec → adr → tickets |
+| [morning-triage.md](./morning-triage.md) | Morning triage recipe: night-batch digest → ratify → disposition → stamps → verdicts → finish-work |

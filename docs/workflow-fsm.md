@@ -52,8 +52,9 @@ stateDiagram-v2
     pr --> closed: human merge (day)
     stuck --> closed: cancel
     closed --> [*]
-    note: any working state → closed (without merge) is a valid cancel edge — the transition table (§2) is authoritative for cancel-from-any-state
 ```
+
+Cancel edge: any working state → `closed` (without merge) is a valid cancel edge — the transition table (§2) is authoritative for cancel-from-any-state.
 
 Fuse edge: a batch fuse halt now stamps affected tickets `deferred` + a reason (`fuse-halt`) at trip time (ADR-004 Amendment tkt-136, Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). Blocked-by-failure dependents likewise stamp `deferred` + reason `blocked-by-failure`. A watchdog-timeout/crash of an already-spawned ticket stamps `stuck` + `wait_reason: unblock` (FSM-2b, tkt-132) — the SoT reflects "needs human investigation," not "active work."
 
