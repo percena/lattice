@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/161 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,17 +25,20 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-161-docs-drift-sweep` |
 | worktree | sibling `…/lattice.worktrees/tkt-161-docs-drift-sweep/` |
-| prs | (none) |
+| prs | pr-171 — https://github.com/percena/lattice/pull/171 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** ADR index ADR-005 row = Accepted (matches body).
-- [ ] **A2** workflow-fsm.md Mermaid block renders (valid `note … end note` or prose outside the diagram).
-- [ ] **A3** evals/README.md bats path points at the real suite (`tools/tests/behavioral-evals.bats`).
-- [ ] **A4** `_lattice-lib/SKILL.md` scripts table includes `ratify.sh`.
-- [ ] **A5** plugins README co-install note includes `verify-features`; unit count wording consistent (14 user-facing + lib).
-- [ ] **A6** morning-triage indexed in README.md, README.zh-CN.md, llms.txt, getting-started.md.
-- [ ] **A7** After tkt-150 and tkt-151 land: verify `docs/morning-triage.md` Step 4 staleness (fuse-halt "stay queued" / "Known gap (FSM-2)") and batch-work "six contract items" (×2) are fixed by those tickets; if not, file a follow-up.
+- [x] **A1** ADR index ADR-005 row = Accepted (matches body).
+- [x] **A2** workflow-fsm.md Mermaid block renders (valid `note … end note` or prose outside the diagram).
+- [x] **A3** evals/README.md bats path points at the real suite (`tools/tests/behavioral-evals.bats`).
+- [x] **A4** `_lattice-lib/SKILL.md` scripts table includes `ratify.sh`.
+- [x] **A5** plugins README co-install note includes `verify-features`; unit count wording consistent (14 user-facing + lib).
+- [x] **A6** morning-triage indexed in README.md, README.zh-CN.md, llms.txt, getting-started.md.
+
+## Deferred verification (not acceptance of this PR)
+
+- After tkt-150 and tkt-151 land (their worktrees own the files): verify `docs/morning-triage.md` Step 4 staleness (fuse-halt "stay queued" / "Known gap (FSM-2)") and batch-work "six contract items" (×2) are fixed by those tickets; if not, file a follow-up.
 
 ## Notes
 

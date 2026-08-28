@@ -27,6 +27,7 @@ Fourteen user-facing skills ship in one pack. The six lifecycle skills form the 
 - [GitHub surface](docs/github-surface.md): Kind + priority labels and optional Project auto-add for skill-created issues/PRs.
 - [Workflow FSM](docs/workflow-fsm.md): Three coupled state machines, transition owners, and the bounded-loop invariant.
 - [Day phase](docs/day-phase.md): Attended planning recipe — requirement → proposal rev → spec → adr → tickets.
+- [Morning triage](docs/morning-triage.md): Night-batch digest → ratify → disposition → stamps → verdicts → finish-work.
 - [ADR index](docs/adr/): Architecture Decision Records (durable cross-feature law).
 - [Changelog](CHANGELOG.md): Plugin SemVer history.
 - [README (中文)](README.zh-CN.md): Chinese translation of the project README.

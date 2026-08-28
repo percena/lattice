@@ -99,6 +99,7 @@ npx skills add percena/lattice -g -y
 | [github-surface](./docs/github-surface.md) | kind + priority 标签、可选 Project 自动添加 |
 | [workflow-fsm](./docs/workflow-fsm.md) | 三台耦合状态机、迁移责任方、有界循环不变量 |
 | [day-phase](./docs/day-phase.md) | 有人值守的规划配方：需求 → 提案 rev → spec → adr → tickets |
+| [morning-triage](./docs/morning-triage.md) | 晨间分诊配方：夜间批次 digest → ratify → 处置 → 盖章 → 判定 → finish-work |
 | [CONTRIBUTING](./CONTRIBUTING.md) | 在本 monorepo 中修改技能/插件 |
 | [SECURITY](./SECURITY.md) | 漏洞报告 |
 | [CODE OF CONDUCT](./CODE_OF_CONDUCT.md) | 社区规范 |
