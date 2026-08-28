@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/152 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-152-state-reconcile` |
 | worktree | sibling `…/lattice.worktrees/tkt-152-state-reconcile/` |
-| prs | (none) |
+| prs | pr-165 — https://github.com/percena/lattice/pull/165 |
 
 ## Acceptance
 
@@ -79,4 +79,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-165 merged: 2026-08-28T13:54:08Z — https://github.com/percena/lattice/pull/165 (base merge)
+- issue #152 closed: 2026-08-28T13:54:20Z — https://github.com/percena/lattice/issues/152
