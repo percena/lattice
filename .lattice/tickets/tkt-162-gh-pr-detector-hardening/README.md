@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/162 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,13 +25,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-162-gh-pr-detector-hardening` |
 | worktree | sibling `…/lattice.worktrees/tkt-162-gh-pr-detector-hardening/` |
-| prs | (none) |
+| prs | pr-169 — https://github.com/percena/lattice/pull/169 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Arg-list false positives fixed (non-gh first token / end-of-options awareness or equivalent); regression tests for `touch gh pr create`, `mv gh pr create`, `git checkout -- gh pr create`, `find . -name gh -o -name pr -o -name create`.
-- [ ] **A2** Nested-shell bypass (`bash -c` / `sh -c` / `eval`) either detected or documented as accepted limitation (code + docs), with tests pinning the chosen behavior.
-- [ ] **A3** Dedicated `detect-gh-pr-command.bats` covers VALUE_FLAGS missing-value, TERMINAL_FLAGS before verb, wrapper `--` handling, `sudo -u gh pr create` allow-path.
+- [x] **A1** Arg-list false positives fixed (non-gh first token / end-of-options awareness or equivalent); regression tests for `touch gh pr create`, `mv gh pr create`, `git checkout -- gh pr create`, `find . -name gh -o -name pr -o -name create`.
+- [x] **A2** Nested-shell bypass (`bash -c` / `sh -c` / `eval`) either detected or documented as accepted limitation (code + docs), with tests pinning the chosen behavior.
+- [x] **A3** Dedicated `detect-gh-pr-command.bats` covers VALUE_FLAGS missing-value, TERMINAL_FLAGS before verb, wrapper `--` handling, `sudo -u gh pr create` allow-path.
 
 ## Notes
 
