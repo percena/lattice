@@ -28,7 +28,25 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 2
 
 usage() {
-  sed -n 's/^# \{0,1\}//p' "$0" | sed -n '1,18p'
+  cat <<'EOF'
+ci-local: run locally, in one command, every check CI runs — so a green run
+here predicts a green run on GitHub. Mirrors lint.yml, lint-heavy.yml,
+lattice-scripts.yml, plugin-hooks.yml, plus validate-lattice-artifacts.py.
+
+Usage: bash tools/ci-local.sh [--base-ref REF] [--release-check] [--fast]
+  --base-ref REF   base for validate-plugin-versions and its path-filter skip
+                   (default: fork point `git merge-base origin/dev HEAD`).
+                   Must resolve to a commit — an unresolvable ref FAILs the
+                   plugin-versions step; it never silently skips the gate.
+  --release-check  simulate the dev→main release boundary: base-ref becomes
+                   origin/main and the validator enforces the version-increment
+                   invariant (bundled change without bump = error). Default is
+                   dev-mode (lenient: only non-decrease enforced). [ADR-005]
+  --fast           skip the bats suites (the slow step); default runs full
+
+Steps never abort the run: each records pass/FAIL/skip, a summary table
+prints at the end, and the exit code is nonzero if any step failed.
+EOF
 }
 
 BASE_REF=""
@@ -187,6 +205,14 @@ else
   echo "base ref: $BASE_REF $([ "$RELEASE_CHECK" -eq 1 ] && echo '[release-check: strict]' || echo '[dev mode: lenient]')"
 fi
 
+# A bogus ref must fail the gate, never let it vanish into a clean skip
+# (git diff in plugin_version_paths_changed would yield nothing → "no bundled
+# paths changed" → green run while CI fails hard on the same ref).
+BASE_REF_OK=1
+if [ -n "$BASE_REF" ] && ! git rev-parse --verify --quiet "$BASE_REF^{commit}" > /dev/null; then
+  BASE_REF_OK=0
+fi
+
 PV_CMD=(python3 tools/validate-plugin-versions.py)
 if [ -n "$BASE_REF" ]; then
   PV_CMD+=(--base-ref "$BASE_REF")
@@ -200,7 +226,11 @@ fi
 run_step "validate-skills" bash tools/validate-skills.sh
 run_step "lattice-artifacts" python3 tools/validate-lattice-artifacts.py
 
-if [ -n "$BASE_REF" ]; then
+if [ "$BASE_REF_OK" -eq 0 ]; then
+  record "plugin-versions" FAIL "unresolvable --base-ref: $BASE_REF"
+  echo "==> plugin-versions"
+  echo "    FAIL: --base-ref '$BASE_REF' does not resolve to a commit (refusing to skip the gate silently)"
+elif [ -n "$BASE_REF" ]; then
   if plugin_version_paths_changed; then
     run_step "plugin-versions" "${PV_CMD[@]}"
   else
