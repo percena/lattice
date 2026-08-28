@@ -233,7 +233,8 @@ def discover_base_ref(root: Path) -> str | None:
     candidates: list[str] = ["origin/main"]
     origin_head = git(root, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", check=False).strip()
     if origin_head.startswith("refs/remotes/"):
-        candidates.append(origin_head.removeprefix("refs/remotes/"))
+        # str.removeprefix is 3.9+; the documented floor is 3.8 (README).
+        candidates.append(origin_head[len("refs/remotes/"):])
     candidates.extend(
         [
             "origin/master",
