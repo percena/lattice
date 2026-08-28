@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/161 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -61,4 +61,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-171 merged: 2026-08-28T11:26:34Z — https://github.com/percena/lattice/pull/171 (base merge)
+- issue #161 closed: 2026-08-28T11:26:40Z — https://github.com/percena/lattice/issues/161
