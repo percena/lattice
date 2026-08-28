@@ -20,12 +20,21 @@ BARE_BRACKET = re.compile(r"^\s*\[\[\s+.+?\s*\]\]\s*(?:#.*)?$")
 BARE_NOT = re.compile(r"^\s*!\s+\S")
 Q_IN_SUBST = re.compile(r"\[\s*-z\s+\"\$\([^)]*\|\s*grep\s+-q")
 CONTROL_PREFIXES = ("if ", "while ", "until ", "elif ")
+# Heredoc bodies are data (fixtures, embedded scripts), not assertions — a
+# guard that flags them flags itself (tkt-184: this checker's own test file
+# embeds banned forms as fixtures inside <<'EOF' blocks).
+HEREDOC_START = re.compile(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?")
 
 
 def findings(path: str) -> list[str]:
     out = []
+    heredoc_tag = None
     with open(path, encoding="utf-8") as f:
         for i, line in enumerate(f, 1):
+            if heredoc_tag is not None:
+                if line.strip() == heredoc_tag:
+                    heredoc_tag = None
+                continue
             if BARE_BRACKET.match(line):
                 out.append(f"{path}:{i}: bare [[ ]] assertion is exempt from set -e")
             elif BARE_NOT.match(line):
@@ -34,6 +43,9 @@ def findings(path: str) -> list[str]:
                     out.append(f"{path}:{i}: bare `! cmd` assertion is exempt from set -e")
             if Q_IN_SUBST.search(line):
                 out.append(f"{path}:{i}: grep -q inside a [ -z \"$(…)\" ] wrapper is always-true")
+            m = HEREDOC_START.search(line)
+            if m:
+                heredoc_tag = m.group(1)
     return out
 
 
