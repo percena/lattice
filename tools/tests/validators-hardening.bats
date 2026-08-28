@@ -13,11 +13,11 @@ setup_file() {
 @test "python floor: no 3.9+-only runtime APIs in tools/ or shipped skill/plugin scripts" {
   # Denylist of APIs that crash on the documented 3.8 floor (README
   # Requirements: python3 >= 3.8). `str.removeprefix/removesuffix` (3.9),
-  # `tomllib` (3.11), `zoneinfo` (3.9). Annotations are excluded by the
+  # `tomllib` (3.11), `zoneinfo` (3.9) — both `import X` and `from X import …` forms. Annotations are excluded by the
   # `from __future__ import annotations` contract (tkt-143).
   run bash -c '
     cd "$1" || exit 2
-    grep -rnE "\.removeprefix\(|\.removesuffix\(|import tomllib|import zoneinfo" \
+    grep -rnE "\.removeprefix\(|\.removesuffix\(|import tomllib|import zoneinfo|from tomllib|from zoneinfo" \
       tools/*.py skills/*/scripts plugins/lattice/scripts \
       --include="*.py" 2>/dev/null
   ' _ "$REPO_ROOT"

@@ -444,10 +444,12 @@ if $ADOPTED; then
 import json, os, sys
 try:
     d = json.load(sys.stdin)
+    # any shape problem (non-object, non-dict comment, …) is unreadable input:
+    marker = os.environ["MARKER"]
+    found = any(marker in (c.get("body") or "") for c in (d.get("comments") or []))
 except Exception:
     sys.exit(2)
-marker = os.environ["MARKER"]
-sys.exit(0 if any(marker in (c.get("body") or "") for c in d.get("comments") or []) else 1)
+sys.exit(0 if found else 1)
 ' || DEDUP_RC=$?
   if [[ "$DEDUP_RC" -eq 0 ]]; then
     echo "stamp-pr-open: issue #$ISSUE_M already carries the pr-$PR_N comment (idempotent)"

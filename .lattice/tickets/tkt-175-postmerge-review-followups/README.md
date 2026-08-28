@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/175 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,13 +25,13 @@
 | **related_tickets** | tkt-162, tkt-163, tkt-160, tkt-159 |
 | **worktree_bind** | `tkt-175-postmerge-review-followups` |
 | worktree | sibling `…/lattice.worktrees/tkt-175-postmerge-review-followups/` |
-| prs | (none) |
+| prs | pr-178 — https://github.com/percena/lattice/pull/178 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `git bisect run gh pr create` (create + merge verbs) detected again; `git checkout -- gh pr create` and `git bisect start gh pr create` remain safe; full plugin suite green.
-- [ ] **A2** `tools/tests/ci-local.bats` free of non-terminal `[[ ]]`/`! cmd` assertions; the valid-ref test no longer asserts whole-run exit 0.
-- [ ] **A3** Denylist covers `from tomllib|from zoneinfo`; stamp-pr-open dedup fail-closed on any eval exception; build-review-context fetch uses a forced (`+`) refspec; new/changed tests verified to fail pre-fix.
+- [x] **A1** `git bisect run gh pr create` (create + merge verbs) detected again; `git checkout -- gh pr create` and `git bisect start gh pr create` remain safe; full plugin suite green.
+- [x] **A2** `tools/tests/ci-local.bats` free of non-terminal `[[ ]]`/`! cmd` assertions; the valid-ref test no longer asserts whole-run exit 0.
+- [x] **A3** Denylist covers `from tomllib|from zoneinfo`; stamp-pr-open dedup fail-closed on any eval exception; build-review-context fetch uses a forced (`+`) refspec; new/changed tests verified to fail pre-fix.
 
 ## Notes
 
