@@ -3,7 +3,7 @@
 How a human triages a night batch's artifacts before merging — spending attention only where it is irreplaceable. The **attended counterpart** to [day-phase.md](./day-phase.md) (M1 planning) and the M2/M3 consumption side of [workflow-fsm.md](./workflow-fsm.md).
 Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260827-102420Z` (Finding 4).
 
-> **One-line summary:** read the digest → ratify decisions → disposition stuck tickets → stamp deferred → consume verdicts → finish-work per PR.
+> **One-line summary:** read the digest → ratify decisions → disposition stuck tickets → stamp deferred → consume verdicts → reconcile GitHub↔binder state → finish-work per PR.
 
 ---
 
@@ -16,6 +16,7 @@ Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260827-102420Z` (Finding 4).
 | 3 | Disposition stuck tickets | human | unblock / re-scope / cancel decisions |
 | 4 | Stamp deferred on abandoned/fused tickets | human | binder `status: deferred` + reason |
 | 5 | Consume PR verdicts | human | merge / ratify-then-merge / deep-review per PR |
+| 5.5 | Reconcile GitHub↔binder state | human | `reconcile-state.sh` per binder — drift list + manual recovery |
 | 6 | Run finish-work per PR | human | merged PRs + cleanup + Finish ledger |
 
 ### Step 1 — read the digest
@@ -79,6 +80,38 @@ A **materially changed rebase** (conflict resolution or non-trivial diff change 
 
 Skill: `review-delivery` (`skills/review-delivery/SKILL.md:99-106` — triage classes; `:43` — rebase voids verdict).
 
+### Step 5.5 — reconcile GitHub and binder state (interrupted recovery)
+
+Before merging, verify that binder state matches what GitHub actually shows. A batch that was interrupted (fuse-halt, crash, manual abort) can leave binders stamped with a status or `pr-open` that no longer reflects the live issue/PR state. Run the read-only reconciliation check for each ticket binder in the batch:
+
+```bash
+bash "$REPO_ROOT/skills/_lattice-lib/scripts/reconcile-state.sh" \
+  --binder .lattice/tickets/tkt-N-slug/README.md [--json]
+```
+
+The check is **read-only** — it mutates neither the binder nor GitHub. It detects:
+
+| Drift class | Meaning |
+| --- | --- |
+| `closed_issue_working_binder` | GitHub issue is CLOSED but binder status is still working |
+| `merged_pr_nonterminal_binder` | Referenced PR is MERGED but binder status is not terminal |
+| `closed_pr_nonterminal_binder` | Referenced PR is CLOSED (without merge) but binder status is nonterminal |
+| `open_pr_closed_binder` | Referenced PR is still OPEN but binder status is `closed` |
+| `pr_open_missing_pr` | Binder status is `pr-open` but no PR is referenced in the `prs` field |
+| `pr_open_unresolvable_pr` | Binder status is `pr-open` but the referenced PR does not exist on GitHub |
+| `repo_identity_mismatch` | The binder's `github`/`prs` URLs point to a different repository than the binder's origin |
+
+When GitHub is unreachable (auth failure, network down), the check returns `result: unknown` and a nonzero exit — it **never** reports a false clean result.
+
+**Manual recovery route:** the check does not auto-repair. For each drift, the operator decides:
+
+- **Binder stale** → update the binder (`status`, `prs`, `## Finish` ledger) to match GitHub, or re-run `finish-ledger.sh` if a merge was missed.
+- **GitHub stale** → close the issue (`gh issue close`), merge or close the PR, or reopen if prematurely closed.
+- **Repo identity mismatch** → fix the binder's `github`/`prs` URLs to point at the correct repository.
+- Re-run `reconcile-state.sh` to confirm `ok: true` before proceeding to `finish-work`.
+
+Skill: `_lattice-lib/scripts/reconcile-state.sh` (tkt-152).
+
 ### Step 6 — run finish-work per PR
 
 For each PR the operator decides to merge (in DAG-respecting order — the digest recommends a merge order):
@@ -103,6 +136,7 @@ Skill: `finish-work` (`skills/finish-work/SKILL.md` — Finish cycle, HARD gate 
 | Merge a `deep-review` PR without reading it | The class means the digest found material findings — read the PR |
 | Trust `mergeable=MERGEABLE` alone | Mergeable is a git-tree statement, not a CI verdict (`finish-work:178`) |
 | Leave fuse-halted tickets `queued` without a decision | Stamp `deferred` or re-run; `queued` + report-says-halted is a SoT lie |
+| Merge without running `reconcile-state.sh` after an interrupt | A fuse-halt or crash can leave binder status/prs out of sync with GitHub; the check is read-only and catches drift before merge |
 
 ---
 
