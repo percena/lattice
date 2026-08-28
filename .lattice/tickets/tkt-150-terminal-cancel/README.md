@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/150 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -29,11 +29,11 @@
 
 ## Acceptance
 
-- [ ] **A1** Human cancel/terminal issue evidence closes `open|queued|in-progress|parked|stuck|pr-open|rework|deferred` without leaving a working binder.
-- [ ] **A2** Closed-without-merge never claims `mergedAt`; merged outcomes retain firm merge evidence and surface anomalous prior states without losing external truth.
-- [ ] **A3** A no-PR cancel writes a valid dated Finish ledger and `closed` status without fabricated PR evidence.
-- [ ] **A4** Unknown/open external state fails closed; containment, concurrency, atomicity, and idempotency remain covered.
-- [ ] **A5** Full `bash tools/ci-local.sh` passes.
+- [x] **A1** Human cancel/terminal issue evidence closes `open|queued|in-progress|parked|stuck|pr-open|rework|deferred` without leaving a working binder.
+- [x] **A2** Closed-without-merge never claims `mergedAt`; merged outcomes retain firm merge evidence and surface anomalous prior states without losing external truth.
+- [x] **A3** A no-PR cancel writes a valid dated Finish ledger and `closed` status without fabricated PR evidence.
+- [x] **A4** Unknown/open external state fails closed; containment, concurrency, atomicity, and idempotency remain covered.
+- [x] **A5** Full `bash tools/ci-local.sh` passes.
 
 ## Approach
 

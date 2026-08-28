@@ -18,18 +18,28 @@ REPO=""
 MERGED_AT_OVERRIDE=""
 CLOSED_AT_OVERRIDE=""
 PR_STATE_OVERRIDE=""
+CANCEL=false
+REASON=""
 
 usage() {
   cat >&2 <<'EOF'
 Usage: finish-ledger.sh --pr <N> [--issue <M>] --binder <path> [--repo <owner/repo>]
                         [--merged-at <ts>] [--closed-at <ts>] [--pr-state MERGED|CLOSED]
-  --pr        PR number (required). Fetches mergedAt unless --merged-at given.
+  --pr        PR number (required for the PR path). Fetches mergedAt unless --merged-at given.
   --issue     closing issue number (optional). Fetches closedAt; sets status=closed.
   --binder    path to binder README.md (required).
   --repo      owner/repo for gh (optional; defaults to origin).
   --merged-at override mergedAt (skip gh fetch; tests/offline).
   --closed-at override closedAt (skip gh fetch).
   --pr-state  override PR state MERGED|CLOSED (skip gh fetch).
+
+Cancel path (no PR; terminal human cancel before any PR):
+  finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> | --issue <M>)
+                   --binder <path> [--repo <owner/repo>]
+  --cancel      no-PR terminal cancel. Requires --reason and either --closed-at
+                (human-supplied firm close time) or --issue (gh-verified CLOSED).
+                Writes a dated cancel ledger line; never claims mergedAt or a PR row.
+  --reason      human-supplied cancel reason (required with --cancel).
 EOF
   exit 2
 }
@@ -43,12 +53,24 @@ while [[ $# -gt 0 ]]; do
     --merged-at) MERGED_AT_OVERRIDE="${2:-}"; shift 2 ;;
     --closed-at) CLOSED_AT_OVERRIDE="${2:-}"; shift 2 ;;
     --pr-state) PR_STATE_OVERRIDE=$(printf '%s' "${2:-}" | tr '[:lower:]' '[:upper:]'); shift 2 ;;
+    --cancel) CANCEL=true; shift ;;
+    --reason) REASON="${2:-}"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "Unknown: $1" >&2; usage ;;
   esac
 done
 
-[[ -z "$PR_N" ]] && { echo "Error: --pr is required" >&2; usage; }
+if $CANCEL; then
+  [[ -n "$PR_N" ]] && { echo "Error: --cancel is a no-PR path; use --pr-state CLOSED for a closed-without-merge PR" >&2; exit 2; }
+  [[ -n "$PR_STATE_OVERRIDE" || -n "$MERGED_AT_OVERRIDE" ]] && { echo "Error: --cancel is a no-PR path; --pr-state/--merged-at are not valid here" >&2; exit 2; }
+  [[ -z "$REASON" ]] && { echo "Error: --cancel requires --reason \"<text>\"" >&2; exit 2; }
+  if [[ -z "$CLOSED_AT_OVERRIDE" && -z "$ISSUE_M" ]]; then
+    echo "Error: --cancel requires terminal evidence: --closed-at <ts> (human-supplied) or --issue <M> (gh-verified CLOSED)" >&2
+    exit 2
+  fi
+else
+  [[ -z "$PR_N" ]] && { echo "Error: --pr is required" >&2; usage; }
+fi
 [[ -z "$BINDER" ]] && { echo "Error: --binder is required" >&2; usage; }
 
 # `gh pr view <arg>` accepts a number, a branch name OR a full URL, and gh's
@@ -57,7 +79,7 @@ done
 # another repository's mergedAt/closedAt into this repo's binder. Same rule the
 # sibling helpers already enforce (cleanup-workspace.sh, update-pr-base.sh,
 # alignment-check.sh).
-if [[ ! "$PR_N" =~ ^[1-9][0-9]*$ ]]; then
+if ! $CANCEL && [[ ! "$PR_N" =~ ^[1-9][0-9]*$ ]]; then
   echo "Error: --pr must be a positive GitHub PR number, got: $PR_N" >&2
   exit 2
 fi
@@ -176,10 +198,12 @@ PY
 }
 
 # What actually needs a gh round-trip:
-#   PR outcome  — hard requirement unless fully overridden
+#   PR outcome  — hard requirement unless fully overridden (cancel path has no PR)
 #   issue state — best effort; an unreachable issue records "not closed"
 NEED_GH_PR=true
-if [[ -n "$PR_STATE_OVERRIDE" ]]; then
+if $CANCEL; then
+  NEED_GH_PR=false
+elif [[ -n "$PR_STATE_OVERRIDE" ]]; then
   # A CLOSED PR carries no mergedAt, so it needs nothing else.
   [[ "$PR_STATE_OVERRIDE" != "MERGED" || -n "$MERGED_AT_OVERRIDE" ]] && NEED_GH_PR=false
 elif [[ -n "$MERGED_AT_OVERRIDE" ]]; then
@@ -192,6 +216,7 @@ BINDER_ORIGIN=$(git -C "$BINDER_REPO_ROOT" config --get remote.origin.url 2>/dev
 BINDER_REPO_ID=$(repo_identity_from_url "$BINDER_ORIGIN" 2>/dev/null || true)
 
 GH_USABLE=false
+GH_TARGET_REPO_ID=""
 if { $NEED_GH_PR || $NEED_GH_ISSUE; } && command -v gh >/dev/null 2>&1; then
   if [[ -n "$REPO" && -n "$BINDER_REPO_ID" ]]; then
     BINDER_HOST=${BINDER_REPO_ID%%/*}
@@ -261,29 +286,32 @@ fi
 # --merged-at without --pr-state means "this PR merged" (back-compat).
 [[ -z "$PR_STATE" && -n "$MERGED_AT" ]] && PR_STATE="MERGED"
 
-case "$PR_STATE" in
-  MERGED)
-    # `gh -q .mergedAt` prints the literal string "null" for an unmerged PR,
-    # which is non-empty and would be stamped verbatim as a merge date.
-    if [[ ! "$MERGED_AT" =~ $ISO8601_RE ]]; then
-      echo "Error: PR #$PR_N is MERGED but mergedAt is not an ISO-8601 timestamp: ${MERGED_AT:-(empty)}" >&2
+# Cancel path has no PR; skip PR-state validation entirely (no fabricated PR row).
+if ! $CANCEL; then
+  case "$PR_STATE" in
+    MERGED)
+      # `gh -q .mergedAt` prints the literal string "null" for an unmerged PR,
+      # which is non-empty and would be stamped verbatim as a merge date.
+      if [[ ! "$MERGED_AT" =~ $ISO8601_RE ]]; then
+        echo "Error: PR #$PR_N is MERGED but mergedAt is not an ISO-8601 timestamp: ${MERGED_AT:-(empty)}" >&2
+        exit 1
+      fi
+      ;;
+    CLOSED)
+      # Documented contract (finish-work SKILL.md): a close-without-merge records
+      # status WITHOUT claiming mergedAt. Never carry a stale/omitted date here.
+      MERGED_AT=""
+      ;;
+    OPEN)
+      echo "Error: PR #$PR_N is still OPEN; finish-ledger records the outcome AFTER merge or close" >&2
       exit 1
-    fi
-    ;;
-  CLOSED)
-    # Documented contract (finish-work SKILL.md): a close-without-merge records
-    # status WITHOUT claiming mergedAt. Never carry a stale/omitted date here.
-    MERGED_AT=""
-    ;;
-  OPEN)
-    echo "Error: PR #$PR_N is still OPEN; finish-ledger records the outcome AFTER merge or close" >&2
-    exit 1
-    ;;
-  *)
-    echo "Error: unknown PR state for #$PR_N: ${PR_STATE:-(empty)}" >&2
-    exit 1
-    ;;
-esac
+      ;;
+    *)
+      echo "Error: unknown PR state for #$PR_N: ${PR_STATE:-(empty)}" >&2
+      exit 1
+      ;;
+  esac
+fi
 
 # --- Resolve closing issue state ---------------------------------------------
 CLOSED_AT="$CLOSED_AT_OVERRIDE"
@@ -316,15 +344,37 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
   $ISSUE_CLOSED || CLOSED_AT=""
 fi
 
+# Cancel path: terminal evidence is mandatory. An OPEN/unverifiable issue is not
+# a cancel — fail closed rather than strand the binder in a working state or
+# stamp a fabricated terminal. A no-issue cancel already required --closed-at.
+if $CANCEL && [[ -n "$ISSUE_M" ]] && ! $ISSUE_CLOSED; then
+  echo "Error: --cancel requires terminal evidence — issue #$ISSUE_M is not closed (or could not be verified against this binder's repo)" >&2
+  echo "  pass --closed-at <ts> for a human-supplied firm close time, or close the issue first" >&2
+  exit 1
+fi
+
+# Issue URL base for the cancel path (no PR URL is available there). Falls back
+# to the placeholder when neither --repo nor a resolved gh target is known.
+ISSUE_BASE=""
+if [[ -n "$ISSUE_M" ]]; then
+  if [[ -n "$REPO" ]]; then
+    BINDER_HOST=${BINDER_REPO_ID%%/*}
+    OFFLINE_HOST=${GH_HOST:-${BINDER_HOST:-github.com}}
+    ISSUE_BASE="https://$OFFLINE_HOST/$REPO"
+  elif [[ -n "$GH_TARGET_REPO_ID" ]]; then
+    ISSUE_BASE="https://$GH_TARGET_REPO_ID"
+  fi
+fi
+
 # --- Stamp the binder (idempotent) --------------------------------------------
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
-BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" <<'PY'
+BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" <<'PY'
 import sys, re, os, stat, fcntl
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
 
-binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state = sys.argv[1:9]
+binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state, cancel, reason, issue_base = sys.argv[1:12]
 # Take an exclusive lock for the whole read-modify-write. Two finish sessions
 # stamping the same binder for sibling PRs would otherwise both read the old
 # content and the second rename would drop the first PR's line entirely.
@@ -344,22 +394,50 @@ s = open(binder, encoding="utf-8").read()
 orig = s
 
 merged = pr_state == "MERGED"
-if merged:
-    pr_line = f"- pr-{pr_n} merged: {merged_at}"
+cancel = cancel == "true"
+
+# Capture the prior working status before any rewrite so an anomalous
+# terminal-from-parked/stuck/deferred merge can be surfaced without stranding
+# the binder (A2: merged outcomes preserve external truth and emit anomaly).
+prior_status_match = re.search(r'\|\s*status\s*\|\s*(\S+)\s*\|', s)
+prior_status = prior_status_match.group(1) if prior_status_match else ""
+
+if cancel:
+    # No-PR cancel: a dated cancel line, never a PR row or mergedAt claim.
+    entry_line = f"- cancelled: {reason}"
+    if closed_at and not (issue_m and issue_closed == "true"):
+        entry_line += f" — {closed_at}"
+    entry_pat = re.compile(r'^- cancelled: .*$', re.MULTILINE)
 else:
-    pr_line = f"- pr-{pr_n} closed without merge"
-if pr_url:
-    pr_line += f" — {pr_url}"
-pr_line += " (base merge)" if merged else ""
+    if merged:
+        entry_line = f"- pr-{pr_n} merged: {merged_at}"
+    else:
+        entry_line = f"- pr-{pr_n} closed without merge"
+    if pr_url:
+        entry_line += f" — {pr_url}"
+    entry_line += " (base merge)" if merged else ""
+    entry_pat = re.compile(rf'^- pr-{re.escape(pr_n)} (?:merged:|closed without merge).*$', re.MULTILINE)
+
+# Anomaly: a MERGED PR observed from a non-`pr-open` working state (parked /
+# stuck / deferred) is unexpected provenance — external merge truth still wins
+# (the binder flips to closed below), but the anomaly is recorded as ledger
+# context rather than silently rewritten as a clean merge.
+anomaly_line = ""
+if (not cancel) and merged and prior_status in {"parked", "stuck", "deferred"}:
+    anomaly_line = f"\n- anomaly: prior status `{prior_status}` before terminal merge — external truth preserved"
 
 issue_line = ""
 if issue_m and closed_at and issue_closed == "true":
+    base = ""
     if pr_url:
         base = pr_url.split("/pull/")[0]  # https://github.com/owner/repo
+    elif issue_base:
+        base = issue_base
+    if base:
         issue_line = f"\n- issue #{issue_m} closed: {closed_at} — {base}/issues/{issue_m}"
     else:
         issue_line = f"\n- issue #{issue_m} closed: {closed_at} — https://github.com/<org>/<repo>/issues/{issue_m}"
-elif issue_m and not issue_closed == "true":
+elif issue_m and not issue_closed == "true" and not cancel:
     issue_line = f"\n- issue #{issue_m}: not closed (closed-without-merge? status recorded without mergedAt claim)"
 
 # 1. Replace `## Finish` body.
@@ -367,13 +445,19 @@ elif issue_m and not issue_closed == "true":
 m = re.search(r'(^## Finish\s*\n)(.*?)(?=\n## |\Z)', s, flags=re.DOTALL | re.MULTILINE)
 if not m:
     # No ## Finish heading — append one.
-    s = s.rstrip() + "\n\n## Finish\n\n" + pr_line + issue_line + "\n"
+    s = s.rstrip() + "\n\n## Finish\n\n" + entry_line + anomaly_line + issue_line + "\n"
 else:
     head, body = m.group(1), m.group(2)
-    # Idempotent: if a pr-N line already exists, update mergedAt; else append.
-    pr_pat = re.compile(rf'^- pr-{re.escape(pr_n)} (?:merged:|closed without merge).*$', re.MULTILINE)
-    if pr_pat.search(body):
-        body = pr_pat.sub(pr_line, body)
+    # Idempotent: if the entry already exists, update it; else append.
+    if entry_pat.search(body):
+        body = entry_pat.sub(entry_line, body)
+        # refresh anomaly line if present
+        if anomaly_line:
+            anom_pat = re.compile(r'^- anomaly: .*$', re.MULTILINE)
+            if anom_pat.search(body):
+                body = anom_pat.sub(anomaly_line.lstrip("\n"), body)
+            else:
+                body = body.rstrip() + anomaly_line + "\n"
         # refresh issue line if issue info present
         if issue_line:
             iss_pat = re.compile(rf'^- issue #{re.escape(issue_m)}.*$', re.MULTILINE) if issue_m else None
@@ -386,18 +470,23 @@ else:
         body = re.sub(r'^- \(none yet\)\s*\n?', '', body, flags=re.MULTILINE)
         body = body.rstrip()
         if body:
-            body = body + "\n" + pr_line + issue_line + "\n"
+            body = body + "\n" + entry_line + anomaly_line + issue_line + "\n"
         else:
-            body = "\n" + pr_line + issue_line + "\n"
+            body = "\n" + entry_line + anomaly_line + issue_line + "\n"
     s = s[:m.start()] + head + body + s[m.end():]
 
-# 2. status: any working status → closed (only when issue closed or no issue
-#    but PR merged). Matches the FSM working vocabulary plus legacy `open` —
-#    stamp-pr-open stamps `pr-open`, so matching only `open` left merged
-#    binders stranded in a working state (tkt-90; audit rev-20260827-033352Z F1).
-if issue_closed == "true" or (not issue_m and merged):
+# 2. status: any working status → closed. The full FSM working vocabulary is
+#    matched (queued|in-progress|parked|stuck|pr-open|rework|deferred) plus
+#    legacy `open` — cancel/terminal evidence must not strand a binder in a
+#    working state regardless of which side state it held (tkt-90 extended the
+#    set once; tkt-150 closes parked/stuck/deferred which the prior regex
+#    omitted, codified by the parked-preservation regression it replaces).
+#    Closed-without-merge never claims mergedAt; merged outcomes keep firm
+#    timestamps. The flip fires on: cancel (terminal evidence already
+#    verified), issue closed, or a merged PR with no linked issue.
+if cancel or issue_closed == "true" or (not issue_m and merged):
     s = re.sub(
-        r'(\| status \|)\s*(?:open|queued|in-progress|pr-open|rework)\s*(\|)',
+        r'(\| status \|)\s*(?:open|queued|in-progress|parked|stuck|pr-open|rework|deferred)\s*(\|)',
         r'\1 closed \2',
         s,
     )
@@ -407,13 +496,14 @@ if issue_closed == "true" or (not issue_m and merged):
 # are REPLACED, never appended beside (digest rev-20260826-172600Z Findings 4:
 # appending left "(none) · pr-N …" rows, the tkt-43 duplication class); the
 # legacy ` · ` joiner and bare `pr-N` (no URL) are never emitted — with no
-# resolvable URL the row is left untouched and the gap is reported.
+# resolvable URL the row is left untouched and the gap is reported. The cancel
+# path has no PR by construction, so it leaves the prs row untouched silently.
 prs_row = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
 m_prs = prs_row.search(s)
 if m_prs:
-    if not pr_url:
+    if not pr_url and not cancel:
         print("finish-ledger: WARNING — no PR URL resolved; prs row left untouched (bare pr-N is off-canon)", file=sys.stderr)
-    else:
+    elif pr_url:
         merged_row = binder_rows.merge_row(m_prs.group(2), pr_n, pr_url)
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {merged_row} {mm.group(3)}", s, count=1)
 
