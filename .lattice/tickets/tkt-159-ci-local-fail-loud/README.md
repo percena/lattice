@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/159 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -54,4 +54,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-166 merged: 2026-08-28T10:02:24Z — https://github.com/percena/lattice/pull/166 (base merge)
+- issue #159 closed: 2026-08-28T10:02:30Z — https://github.com/percena/lattice/issues/159
