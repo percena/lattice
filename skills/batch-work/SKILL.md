@@ -117,7 +117,7 @@ bash "$LIB/ensure-lattice.sh"
    - Resolve worktree binding: honor the binder's `worktree_bind` field if present (pass through to `ensure-workspace`), else fall back to the standard `--bind tkt --id <N> --slug <slug>` pattern.
    - `bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id <N> --slug <slug> [--base <ref>]` (or the binder's `worktree_bind` override).
    - Capture `path` + `cd_hint` from JSON.
-   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`. Before spawning, write the batch marker: `touch <worktree>/.lattice/.batch-work-active`. Brief: full **Spawn-brief contract** template (`references/flow.md` §SPAWN LAYER) — core instruction stays "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`", plus the six contract items, the timebox, and the binder-status stamping instruction.
+   - Launch a `Task` (`subagent_type: general-purpose` or the configured start-work agent) with `run_in_background: true`. Before spawning, write the batch marker: `touch <worktree>/.lattice/.batch-work-active`. Brief: full **Spawn-brief contract** template (`references/flow.md` §SPAWN LAYER) — core instruction stays "run `start-work tkt-<id>` in worktree <path>; implement to acceptance; open PR via `create-pr`; do NOT call `finish-work`", plus the five contract items, the timebox, and the binder-status stamping instruction.
    - Bound delegation: the agent owns only its ticket brief + worktree; host owns DAG + report.
    - Record spawn timestamp per ticket (watchdog input).
 8. **LAYER/WAVE BARRIER + WATCHDOG** — wait for all agents in the current wave to complete (success or fail). A ticket exceeding its timebox is marked `failed` (`timeout`) and no longer waited on; its binder keeps whatever ledger exists. Collect exit status + PR URL per ticket. **FUSE CHECK:** compute the layer's cumulative failed+stuck ratio; over threshold → halt all subsequent waves/layers, graceful-drain in-flight agents (finish current attempt, write ledgers), jump to REPORT with partial results. Otherwise, if more waves remain in this layer, run RAM check again and spawn the next wave. A failed ticket is recorded; peers and subsequent waves/layers proceed (failure isolation).
@@ -163,7 +163,7 @@ Detailed recipes (DAG build, RAM probe, spawn/collect, report shape): **`referen
 | One agent crash blocks the whole batch | Failure isolation: collect, report, continue |
 | Dry-run that spawns | `--dry-run` exits before any `ensure-workspace` / Agent call |
 | Fan out on `--ids` that lack binders | Binder is recovery SoT; fail closed if missing |
-| Spawn a brief without the six contract items | Policy-blind agents block, spin, or leak — the brief is the night's law |
+| Spawn a brief without the five contract items | Policy-blind agents block, spin, or leak — the brief is the night's law |
 | Kill in-flight agents when the fuse trips | Graceful drain: finish the attempt, write the ledger; mid-write kills destroy the morning's map |
 | Octopus-merge prior heads for a dependency base | Octopus fails on shared-file edits; build the integration branch by sequential merges |
 

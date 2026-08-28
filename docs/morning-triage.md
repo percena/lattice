@@ -3,7 +3,7 @@
 How a human triages a night batch's artifacts before merging — spending attention only where it is irreplaceable. The **attended counterpart** to [day-phase.md](./day-phase.md) (M1 planning) and the M2/M3 consumption side of [workflow-fsm.md](./workflow-fsm.md).
 Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260827-102420Z` (Finding 4).
 
-> **One-line summary:** read the digest → ratify decisions → disposition stuck tickets → stamp deferred → consume verdicts → reconcile GitHub↔binder state → finish-work per PR.
+> **One-line summary:** read the digest → ratify decisions → disposition stuck tickets → review deferred tickets → consume verdicts → reconcile GitHub↔binder state → finish-work per PR.
 
 ---
 
@@ -14,7 +14,7 @@ Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260827-102420Z` (Finding 4).
 | 1 | Read the digest | human | ranked PR list + ratification queue + NOTICED sweep |
 | 2 | Ratify decision-journal entries | human | ratified entries (×2 → promotion proposal) |
 | 3 | Disposition stuck tickets | human | unblock / re-scope / cancel decisions |
-| 4 | Stamp deferred on abandoned/fused tickets | human | binder `status: deferred` + reason |
+| 4 | Review deferred tickets (stamped at trip time) | human | re-queue / fix-fuse / cancel decisions |
 | 5 | Consume PR verdicts | human | merge / ratify-then-merge / deep-review per PR |
 | 5.5 | Reconcile GitHub↔binder state | human | `reconcile-state.sh` per binder — drift list + manual recovery |
 | 6 | Run finish-work per PR | human | merged PRs + cleanup + Finish ledger |
@@ -55,16 +55,15 @@ Never silently retry a `stuck` ticket — the Attempts ledger and caps carry acr
 
 Skill: `start-work` (`skills/start-work/SKILL.md:87-90` — stuck resume enumeration).
 
-### Step 4 — stamp deferred on fuse-halted / abandoned tickets
+### Step 4 — review deferred tickets (fuse-halted / abandoned)
 
-Tickets that the batch never spawned (fuse-halt) or skipped (blocked-by-failure) stay `queued` in the binder — the report notes the halt, but the SoT says "schedulable" (`batch-work:61`, `workflow-fsm.md` §1 fuse-halt note). The optional human deschedule:
+Since tkt-137 (ADR-004 Amendment, Option B), batch-work stamps `deferred` + a reason (`fuse-halt` / `blocked-by-failure`) **at trip time** — the SoT already says "not schedulable" (`workflow-fsm.md` §1 fuse edge). The morning step is therefore a *review* of the deferred set, not a stamping pass:
 
-- If the ticket should leave the schedulable queue → stamp `status: deferred` + a reason. `deferred → queued` is the human re-schedule transition (`workflow-fsm.md` §2 M2 table).
-- If the fuse was transient (broken base, env) → fix the root cause, leave `queued`, re-run the batch.
+- **Re-schedule** → flip `deferred → queued` (human transition, `workflow-fsm.md` §2 M2 table).
+- **Transient fuse** (broken base, env failure) → fix the root cause, flip `deferred → queued`, re-run the batch.
+- **Abandoned** → cancel via `finish-ledger.sh --cancel` (Step 3 table).
 
-> **Known gap (FSM-2):** the binder SoT says `queued` but the real state is "not schedulable." Option B (tkt-137, ADR-004 Amendment) will have batch-work stamp `deferred` at trip time; until then, this is a manual triage step.
-
-Skill: `batch-work` (`skills/batch-work/SKILL.md:61` — fuse-halted stay queued; `:124` — blocked-by-failure skipped).
+Skill: `batch-work` (`skills/batch-work/SKILL.md` — binder `status` invariant: fuse-halted and blocked-by-failure tickets stamp `deferred` at trip time).
 
 ### Step 5 — consume PR verdicts
 
@@ -135,7 +134,7 @@ Skill: `finish-work` (`skills/finish-work/SKILL.md` — Finish cycle, HARD gate 
 | Silent-retry a `stuck` ticket | Attempts caps are per-ticket, not per-session; stuck exits are operator-chosen |
 | Merge a `deep-review` PR without reading it | The class means the digest found material findings — read the PR |
 | Trust `mergeable=MERGEABLE` alone | Mergeable is a git-tree statement, not a CI verdict (`finish-work:178`) |
-| Leave fuse-halted tickets `queued` without a decision | Stamp `deferred` or re-run; `queued` + report-says-halted is a SoT lie |
+| Leave `deferred` tickets without a decision | They were stamped at trip time; re-queue (`deferred → queued`) or cancel — an unreviewed deferred pile is an invisible queue |
 | Merge without running `reconcile-state.sh` after an interrupt | A fuse-halt or crash can leave binder status/prs out of sync with GitHub; the check is read-only and catches drift before merge |
 
 ---
