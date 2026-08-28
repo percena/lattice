@@ -79,26 +79,42 @@ SAFE_ARGUMENT_COMMANDS = {
 }
 
 # More commands whose words are data, never dispatched as a command —
-# `touch gh pr create` creates three files; `git checkout -- gh pr create`
-# restores paths. Without this list the fail-closed fallback below treats any
-# argument sequence spelling `gh pr create` as an invocation and blocks
-# legitimate file work (the worst hook failure mode). Dual-natured commands
-# that CAN dispatch (find -exec, xargs) are NOT here: xargs is a WRAPPER,
-# find is handled by EXEC_CAPABLE_COMMANDS below.
+# `touch gh pr create` creates three files. Without this list the fail-closed
+# fallback below treats any argument sequence spelling `gh pr create` as an
+# invocation and blocks legitimate file work (the worst hook failure mode).
+# Dual-natured commands that CAN dispatch are NOT here: xargs is a WRAPPER;
+# find and git are handled by EXEC_CAPABLE_COMMANDS below.
 DATA_ARGUMENT_COMMANDS = {
     "[", "basename", "cat", "cd", "chmod", "chown", "cmp", "comm", "cp",
     "cut", "diff", "dirname", "du", "file", "head", "ln", "ls", "mkdir",
     "mv", "paste", "pwd", "readlink", "realpath", "rm", "rmdir", "sort",
-    "stat", "tail", "test", "touch", "tr", "uniq", "wc", "git",
+    "stat", "tail", "test", "touch", "tr", "uniq", "wc",
 }
 
-# Dual-natured: words are data UNLESS an exec flag appears in the same region
-# (`find . -name gh -o -name pr -o -name create` is a search; `find . -exec
-# gh pr create {} +` runs gh). Without an exec flag → treat as data; with one
-# → fall through to the fail-closed unknown-prefix scan.
+# Dual-natured: words are data UNLESS an exec trigger appears in the same
+# region. A trigger may span multiple tokens:
+# - find: `-exec`/`-execdir`/`-ok`/`-okdir` run a command (`find . -name gh
+#   -o -name pr -o -name create` is a search; `find . -exec gh pr create {} +`
+#   runs gh)
+# - git: `git bisect run <cmd> …` executes its arguments as a shell command
+#   with bare, visible tokens — git's only unquoted exec surface (`git checkout
+#   -- gh pr create` restores paths; `git bisect start …` takes refs)
+# Without a trigger → treat as data; with one → fall through to the
+# fail-closed unknown-prefix scan.
 EXEC_CAPABLE_COMMANDS = {
-    "find": {"-exec", "-execdir", "-ok", "-okdir"},
+    "find": ("-exec", "-execdir", "-ok", "-okdir"),
+    "git": ("bisect run",),
 }
+
+
+def has_exec_trigger(name: str, region: list[str]) -> bool:
+    for trigger in EXEC_CAPABLE_COMMANDS[name]:
+        parts = trigger.split()
+        width = len(parts)
+        for i in range(len(region) - width + 1):
+            if region[i:i + width] == parts:
+                return True
+    return False
 
 ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 LINE_CONTINUATION_RE = re.compile(r"\\\n")
@@ -231,15 +247,12 @@ def contains(command: str, verb: str) -> bool:
         if command_name in DATA_ARGUMENT_COMMANDS:
             continue
         if command_name in EXEC_CAPABLE_COMMANDS:
-            exec_flags = EXEC_CAPABLE_COMMANDS[command_name]
+            region = []
             cursor = index + 1
-            has_exec = False
             while cursor < len(items) and items[cursor] not in BOUNDARIES:
-                if items[cursor] in exec_flags:
-                    has_exec = True
-                    break
+                region.append(items[cursor])
                 cursor += 1
-            if not has_exec:
+            if not has_exec_trigger(command_name, region):
                 continue
 
         # Unknown command prefixes may be command runners. Treat a later valid

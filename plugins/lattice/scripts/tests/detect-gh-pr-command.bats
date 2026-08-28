@@ -21,10 +21,13 @@ expect_detect() {
   [ "$status" -eq 0 ]
 }
 
-# expect_safe <verb> <command> — NOT an invocation (exit 1)
+# expect_safe <verb> <command> — NOT an invocation (exit 1); empty stdout
+# also rules out a crash masquerading as "safe" (python exits 1 on an
+# uncaught exception too, but then $output carries the traceback).
 expect_safe() {
   run detect "$1" "$2"
   [ "$status" -eq 1 ]
+  [ -z "$output" ]
 }
 
 # --- real invocations stay detected ------------------------------------------
@@ -73,6 +76,18 @@ expect_safe() {
 
 @test "git checkout with end-of-options and gh-shaped paths is safe" {
   expect_safe create 'git checkout -- gh pr create'
+}
+
+@test "git bisect run gh pr create is detected (bisect run executes its args)" {
+  expect_detect create 'git bisect run gh pr create'
+}
+
+@test "git bisect run gh pr merge is detected for the merge verb" {
+  expect_detect merge 'git bisect run gh pr merge 42'
+}
+
+@test "git bisect start with gh-shaped refs is safe (no run subcommand)" {
+  expect_safe create 'git bisect start gh pr create'
 }
 
 @test "find search without exec flags is safe" {

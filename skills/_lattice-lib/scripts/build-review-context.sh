@@ -346,8 +346,11 @@ print(d.get("state") or "-", d.get("headRefName") or "-")
   # FETCH_HEAD lives in the common git dir shared by every worktree — a
   # concurrent batch-work fetch could swap it between our fetch and show.
   # Fetch into a per-process ref and read from that instead: no shared window.
+  # The forced (+) refspec makes a leaked ref from a SIGKILLed earlier run
+  # (same pid + same pr + non-fast-forward head) harmless instead of failing
+  # the fetch into a silent `local` fallback.
   tmpref="refs/lattice-review-ctx/$$/pr-$prn"
-  if git -C "$REPO_ROOT" fetch --quiet origin "$headref:$tmpref" 2>/dev/null; then
+  if git -C "$REPO_ROOT" fetch --quiet origin "+$headref:$tmpref" 2>/dev/null; then
     if git -C "$REPO_ROOT" show "$tmpref:$relpath" >"$snap" 2>/dev/null; then
       git -C "$REPO_ROOT" update-ref -d "$tmpref" 2>/dev/null || true
       printf '%s\thead:pr-%s (%s)\n' "$snap" "$prn" "$headref"
