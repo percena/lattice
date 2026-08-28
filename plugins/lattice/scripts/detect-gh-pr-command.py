@@ -18,6 +18,13 @@ an invocation from a word that merely spells "gh":
 
 A backwards scan cannot distinguish `sudo -u me gh` from `echo gh` without
 re-deriving where the command word starts, so we derive that directly.
+
+Accepted limitation (pinned by tests): nested-shell payloads are invisible by
+design — the hook normalizer strips quoted strings before we run, so
+`bash -c 'gh pr create'`, `sh -c …`, and `eval "gh pr merge"` are NOT detected.
+Same tradeoff class as the heredoc-body note in strip-quoted-and-heredocs.py:
+this hook is a guardrail for direct commands, not a sandbox boundary against
+an operator who deliberately wraps a call.
 """
 
 from __future__ import annotations
@@ -69,6 +76,28 @@ WRAPPERS = {
 # strict mode must not be bypassable by inventing another wrapper name.
 SAFE_ARGUMENT_COMMANDS = {
     "echo", "printf", "grep", "egrep", "fgrep", "rg",
+}
+
+# More commands whose words are data, never dispatched as a command —
+# `touch gh pr create` creates three files; `git checkout -- gh pr create`
+# restores paths. Without this list the fail-closed fallback below treats any
+# argument sequence spelling `gh pr create` as an invocation and blocks
+# legitimate file work (the worst hook failure mode). Dual-natured commands
+# that CAN dispatch (find -exec, xargs) are NOT here: xargs is a WRAPPER,
+# find is handled by EXEC_CAPABLE_COMMANDS below.
+DATA_ARGUMENT_COMMANDS = {
+    "[", "basename", "cat", "cd", "chmod", "chown", "cmp", "comm", "cp",
+    "cut", "diff", "dirname", "du", "file", "head", "ln", "ls", "mkdir",
+    "mv", "paste", "pwd", "readlink", "realpath", "rm", "rmdir", "sort",
+    "stat", "tail", "test", "touch", "tr", "uniq", "wc", "git",
+}
+
+# Dual-natured: words are data UNLESS an exec flag appears in the same region
+# (`find . -name gh -o -name pr -o -name create` is a search; `find . -exec
+# gh pr create {} +` runs gh). Without an exec flag → treat as data; with one
+# → fall through to the fail-closed unknown-prefix scan.
+EXEC_CAPABLE_COMMANDS = {
+    "find": {"-exec", "-execdir", "-ok", "-okdir"},
 }
 
 ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
@@ -199,6 +228,19 @@ def contains(command: str, verb: str) -> bool:
         command_name = os.path.basename(items[index])
         if command_name in SAFE_ARGUMENT_COMMANDS:
             continue
+        if command_name in DATA_ARGUMENT_COMMANDS:
+            continue
+        if command_name in EXEC_CAPABLE_COMMANDS:
+            exec_flags = EXEC_CAPABLE_COMMANDS[command_name]
+            cursor = index + 1
+            has_exec = False
+            while cursor < len(items) and items[cursor] not in BOUNDARIES:
+                if items[cursor] in exec_flags:
+                    has_exec = True
+                    break
+                cursor += 1
+            if not has_exec:
+                continue
 
         # Unknown command prefixes may be command runners. Treat a later valid
         # gh mutation in the same region as executable instead of maintaining
