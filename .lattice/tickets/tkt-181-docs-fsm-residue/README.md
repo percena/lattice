@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/181 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -51,4 +51,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-183 merged: 2026-08-28T15:19:27Z — https://github.com/percena/lattice/pull/183 (base merge)
+- issue #181 closed: 2026-08-28T15:19:34Z — https://github.com/percena/lattice/issues/181
