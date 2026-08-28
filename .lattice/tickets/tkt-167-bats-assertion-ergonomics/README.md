@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/167 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,13 +25,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-167-bats-assertion-ergonomics` |
 | worktree | sibling `…/lattice.worktrees/tkt-167-bats-assertion-ergonomics/` |
-| prs | (none) |
+| prs | pr-182 — https://github.com/percena/lattice/pull/182 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Every existing bats test's pass/fail outcome is gated by at least one effective assertion (no test whose only discriminating assertions are non-terminal `[[ ]]` / `! cmd`).
-- [ ] **A2** Rule documented (CONTRIBUTING or test doc) + optional lint guard proven against a planted-bug fixture.
-- [ ] **A3** Full `bash tools/ci-local.sh` green after the sweep.
+- [x] **A1** Every existing bats test's pass/fail outcome is gated by at least one effective assertion (no test whose only discriminating assertions are non-terminal `[[ ]]` / `! cmd`).
+- [x] **A2** Rule documented (CONTRIBUTING or test doc) + optional lint guard proven against a planted-bug fixture.
+- [x] **A3** Full `bash tools/ci-local.sh` green after the sweep.
 
 ## Notes
 

@@ -55,8 +55,8 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"lattice: 2.3.4 (changed)"* ]]
-  [[ "$output" == *"validate-plugin-versions: OK"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: 2.3.4 (changed)"
+  printf '%s\n' "$output" | grep -qF "validate-plugin-versions: OK"
 }
 
 @test "release check: bundled change with equal version fails (--release-check)" {
@@ -66,7 +66,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
   [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.4)"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: bundled content changed without a version increment (2.3.4)"
 }
 
 @test "release check: bundled change with version bump passes (--release-check)" {
@@ -76,7 +76,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
   [ "$status" -eq 0 ]
-  [[ "$output" == *"validate-plugin-versions: OK"* ]]
+  printf '%s\n' "$output" | grep -qF "validate-plugin-versions: OK"
 }
 
 @test "non-decrease enforced in dev mode (version must not go backwards)" {
@@ -86,7 +86,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: version must increase, got 2.3.4 -> 2.3.3"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: version must increase, got 2.3.4 -> 2.3.3"
 }
 
 @test "non-decrease enforced in release check mode" {
@@ -96,7 +96,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
   [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: version must increase, got 2.3.4 -> 2.3.3"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: version must increase, got 2.3.4 -> 2.3.3"
 }
 
 # --- existing behavioral tests (updated for release-boundary model) ---
@@ -108,7 +108,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"marketplace version '2.3.4' does not match manifest '2.3.5'"* ]]
+  printf '%s\n' "$output" | grep -qF "marketplace version '2.3.4' does not match manifest '2.3.5'"
 }
 
 @test "unrelated repository changes do not require plugin bumps" {
@@ -118,7 +118,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"lattice: 2.3.4 (unchanged)"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: 2.3.4 (unchanged)"
 }
 
 @test "plugin hook change requires version bump at release boundary" {
@@ -129,7 +129,7 @@ commit_fixture() {
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check --json
   [ "$status" -eq 0 ]
   json_output="$output"
-  [[ "$output" == *'"cache_path": "~/.claude/plugins/cache/percena/lattice/2.3.5"'* ]]
+  printf '%s\n' "$output" | grep -qF '"cache_path": "~/.claude/plugins/cache/percena/lattice/2.3.5"'
   python3 -c 'import json,sys; p={x["name"]:x for x in json.load(sys.stdin)["plugins"]}; assert p["lattice"]["bundle_changed"] is True' <<<"$json_output"
 }
 
@@ -140,9 +140,9 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"previous_version": "2.3.4"'* ]]
-  [[ "$output" == *'"cache_identity": "percena/lattice@2.3.5"'* ]]
-  [[ "$output" == *'"cache_path": "~/.claude/plugins/cache/percena/lattice/2.3.5"'* ]]
+  printf '%s\n' "$output" | grep -qF '"previous_version": "2.3.4"'
+  printf '%s\n' "$output" | grep -qF '"cache_identity": "percena/lattice@2.3.5"'
+  printf '%s\n' "$output" | grep -qF '"cache_path": "~/.claude/plugins/cache/percena/lattice/2.3.5"'
 }
 
 @test "a changed bundle cannot use a lower semantic version" {
@@ -152,7 +152,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: version must increase, got 2.3.4 -> 2.3.3"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: version must increase, got 2.3.4 -> 2.3.3"
 }
 
 @test "uncommitted bundle changes are included in local validation (dev mode passes)" {
@@ -160,7 +160,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"lattice: 2.3.4 (changed)"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: 2.3.4 (changed)"
 }
 
 @test "uncommitted bundle changes fail at release boundary" {
@@ -168,20 +168,20 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE" --release-check
   [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: bundled content changed without a version increment (2.3.4)"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: bundled content changed without a version increment (2.3.4)"
 }
 
 @test "missing base fails closed instead of skipping change detection" {
   git -C "$TMP_REPO" branch -M feature
   run env -u PLUGIN_VERSION_BASE_REF python3 "$VALIDATOR" --repo-root "$TMP_REPO"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"no comparison base"* ]]
+  printf '%s\n' "$output" | grep -qF "no comparison base"
 }
 
 @test "zero OID base fails closed with an explicit error" {
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref 0000000000000000000000000000000000000000
   [ "$status" -eq 1 ]
-  [[ "$output" == *"zero OID"* ]]
+  printf '%s\n' "$output" | grep -qF "zero OID"
 }
 
 @test "initial publish validates current metadata without a comparison base" {
@@ -196,13 +196,13 @@ commit_fixture() {
     >"$TMP_REPO/plugins/lattice/.claude-plugin/plugin.json"
   run env -u PLUGIN_VERSION_BASE_REF python3 "$VALIDATOR" --repo-root "$TMP_REPO" --initial-publish
   [ "$status" -eq 1 ]
-  [[ "$output" == *"does not match manifest"* ]]
+  printf '%s\n' "$output" | grep -qF "does not match manifest"
 }
 
 @test "initial publish cannot be combined with an explicit base" {
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --initial-publish --base-ref "$BASE"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"cannot be combined"* ]]
+  printf '%s\n' "$output" | grep -qF "cannot be combined"
 }
 
 @test "auto-detects origin/main when --base-ref is omitted (dev mode: lenient)" {
@@ -266,7 +266,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$DUAL_BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"extra: plugin was removed from the marketplace and disk without a replacement entry"* ]]
+  printf '%s\n' "$output" | grep -qF "extra: plugin was removed from the marketplace and disk without a replacement entry"
 }
 
 @test "marketplace drop without deleting plugin tree still fails" {
@@ -285,7 +285,7 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$DUAL_BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"extra: plugin was removed from the marketplace without a replacement entry"* ]]
+  printf '%s\n' "$output" | grep -qF "extra: plugin was removed from the marketplace without a replacement entry"
 }
 
 @test "invalid manifest JSON at the base commit is a clean error, not a traceback" {
@@ -299,8 +299,8 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BROKEN_BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"lattice: cannot inspect base state"* ]]
-  [[ "$output" != *"Traceback"* ]]
+  printf '%s\n' "$output" | grep -qF "lattice: cannot inspect base state"
+  [ -z "$(printf '%s\n' "$output" | grep -F "Traceback")" ]
 }
 
 @test "external skill symlink fails validation" {
@@ -311,5 +311,5 @@ commit_fixture() {
 
   run python3 "$VALIDATOR" --repo-root "$TMP_REPO" --base-ref "$BASE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"escapes repository root"* ]]
+  printf '%s\n' "$output" | grep -qF "escapes repository root"
 }

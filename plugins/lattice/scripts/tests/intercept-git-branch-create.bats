@@ -39,14 +39,14 @@ run_hook() {  # <cwd> <command>
 @test "main clone: blocks git checkout -b (unbound)" {
   run run_hook "$MAIN_ROOT" 'git checkout -b tmp-fix'
   [ "$status" -eq 2 ]
-  [[ "$output" == *"blocked in the main clone"* ]]
-  [[ "$output" == *ensure-workspace* ]]
+  printf '%s\n' "$output" | grep -qF "blocked in the main clone"
+  printf '%s\n' "$output" | grep -qF ensure-workspace
 }
 
 @test "main clone: blocks git checkout -b (BOUND name — the recorded drift)" {
   run run_hook "$MAIN_ROOT" 'git checkout -b tkt-8-foo'
   [ "$status" -eq 2 ]
-  [[ "$output" == *"blocked"* ]]
+  printf '%s\n' "$output" | grep -qF "blocked"
 }
 
 @test "main clone: blocks git switch -c" {

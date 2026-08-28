@@ -51,13 +51,13 @@ teardown() {
 @test "unsupported extension is rejected before any upload" {
   run bash "$UPLOAD" "$TEST_DIR/notes.txt" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Unsupported file type"* ]]
+  printf '%s\n' "$output" | grep -qF "Unsupported file type"
 }
 
 @test "missing file is a clear error" {
   run bash "$UPLOAD" "$TEST_DIR/nope.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"File not found"* ]]
+  printf '%s\n' "$output" | grep -qF "File not found"
 }
 
 @test "direct media symlink is rejected before token fetch or upload" {
@@ -77,7 +77,7 @@ EOF
 
   run bash "$UPLOAD" "$TEST_DIR/release.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"symlinked upload path component"* ]]
+  printf '%s\n' "$output" | grep -qF "symlinked upload path component"
   [ ! -e "$GH_CALLED" ]
   [ ! -e "$CURL_CALLED" ]
 }
@@ -89,7 +89,7 @@ EOF
 
   run bash "$UPLOAD" "$TEST_DIR/media/shot.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"symlinked upload path component"* ]] || [[ "$output" == *"outside the current Git worktree"* ]]
+  printf '%s\n' "$output" | grep -qF "symlinked upload path component" || printf '%s\n' "$output" | grep -qF "outside the current Git worktree"
 }
 
 @test "ordinary outside-repo file requires an explicit override" {
@@ -98,7 +98,7 @@ EOF
 
   run bash "$UPLOAD" "$OUTSIDE_DIR/shot.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"outside the current Git worktree"* ]]
+  printf '%s\n' "$output" | grep -qF "outside the current Git worktree"
 
   run bash "$UPLOAD" --allow-outside-repo "$OUTSIDE_DIR/shot.png" 12345
   [ "$status" -eq 0 ]
@@ -116,28 +116,28 @@ EOF
 
   run bash "$UPLOAD" --allow-outside-repo "$OUTSIDE_DIR/link.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"symlinked upload path component"* ]]
+  printf '%s\n' "$output" | grep -qF "symlinked upload path component"
 }
 
 @test "non-201 HTTP response fails with status and body" {
   export CURL_MODE="http422"
   run bash "$UPLOAD" "$TEST_DIR/shot.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HTTP 422"* ]]
-  [[ "$output" == *"Validation Failed"* ]]
+  printf '%s\n' "$output" | grep -qF "HTTP 422"
+  printf '%s\n' "$output" | grep -qF "Validation Failed"
 }
 
 @test "curl network failure gives a friendly error, not a bare abort" {
   export CURL_MODE="netfail"
   run bash "$UPLOAD" "$TEST_DIR/shot.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"before any HTTP response"* ]]
+  printf '%s\n' "$output" | grep -qF "before any HTTP response"
 }
 
 @test "non-numeric repository id is rejected" {
   run bash "$UPLOAD" "$TEST_DIR/shot.png" abc
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must be numeric"* ]]
+  printf '%s\n' "$output" | grep -qF "must be numeric"
 }
 
 @test "missing jq is preflighted before any token fetch" {
@@ -157,7 +157,7 @@ EOF
   ln -s "$STUB_BIN/curl" "$FAKE_BIN/curl"
   run env PATH="$FAKE_BIN" bash "$UPLOAD" "$TEST_DIR/shot.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"jq is required"* ]]
+  printf '%s\n' "$output" | grep -qF "jq is required"
   [ ! -e "$TEST_DIR/gh-called.log" ]
 }
 
@@ -176,7 +176,7 @@ EOF
   chmod +x "$FAKE_BIN/gh"
   run env PATH="$FAKE_BIN" bash "$UPLOAD" "$TEST_DIR/shot.png" 12345
   [ "$status" -eq 1 ]
-  [[ "$output" == *"curl is required"* ]]
+  printf '%s\n' "$output" | grep -qF "curl is required"
   [ ! -e "$TEST_DIR/gh-called.log" ]
 }
 

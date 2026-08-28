@@ -31,14 +31,14 @@ payload_for_command() {
 @test "advisory is the product default and allows bare gh pr merge with guidance" {
   run run_advisory_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"recommended path"* ]]
-  [[ "$output" == *"Hook mode: advisory"* ]]
+  printf '%s\n' "$output" | grep -qF "recommended path"
+  printf '%s\n' "$output" | grep -qF "Hook mode: advisory"
 }
 
 @test "unknown hook mode degrades to advisory" {
   run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}' | LATTICE_HOOK_MODE=unexpected '$HOOK_SCRIPT' 2>&1"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Hook mode: advisory"* ]]
+  printf '%s\n' "$output" | grep -qF "Hook mode: advisory"
 }
 
 @test "allows non-Bash tools (Read)" {
@@ -49,13 +49,13 @@ payload_for_command() {
 @test "blocks bare gh pr merge" {
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"finish-work"* ]]
+  printf '%s\n' "$output" | grep -qF "finish-work"
 }
 
 @test "blocks gh pr merge with flags" {
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 3 --squash --delete-branch\"}}"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"finish-work"* ]]
+  printf '%s\n' "$output" | grep -qF "finish-work"
 }
 
 @test "blocks documented repository flag placements around pr" {
@@ -73,7 +73,7 @@ payload_for_command() {
 @test "advisory notices repository-flag merge variants" {
   run run_advisory_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh -R owner/repo pr merge 3\"}}"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"recommended path"* ]]
+  printf '%s\n' "$output" | grep -qF "recommended path"
 }
 
 @test "allows phrase inside single-quoted string" {

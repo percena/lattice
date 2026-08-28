@@ -114,13 +114,13 @@ MD
   write_issue_body
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"binder stamped"* ]]
+  printf '%s\n' "$output" | grep -qF "binder stamped"
   grep -q '| prs | pr-12 — https://github.com/acme/repo/pull/12 |' "$BINDER"
   grep -q '| status | pr-open |' "$BINDER"
   # issue number parsed from the binder github row; body edited via --body-file
   grep -Fq -- 'issue edit 7' "$GH_LOG"
   grep -q -- '- \[x\] \*\*A1\*\* first thing done' "$TEST_DIR/edited-body.md"
-  [[ "$output" == *"checked 1 acceptance box(es) on issue #7"* ]]
+  printf '%s\n' "$output" | grep -qF "checked 1 acceptance box(es) on issue #7"
 }
 
 @test "A*-id match: A1 checked mirrors only A1; A2 stays unchecked" {
@@ -143,8 +143,8 @@ MD
   cp "$TEST_DIR/edited-body.md" "$ISSUE_BODY"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"binder no change (idempotent)"* ]]
-  [[ "$output" == *"already in sync (idempotent)"* ]]
+  printf '%s\n' "$output" | grep -qF "binder no change (idempotent)"
+  printf '%s\n' "$output" | grep -qF "already in sync (idempotent)"
   [ "$(grep -c 'pr-12' "$BINDER")" -eq 1 ]
   [ "$(grep -c -- 'issue edit 7' "$GH_LOG")" -eq 1 ]
 }
@@ -157,9 +157,9 @@ MD
   cp "$ISSUE_BODY" "$TEST_DIR/body-before.md"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"posted acceptance comment"* ]]
+  printf '%s\n' "$output" | grep -qF "posted acceptance comment"
   grep -Fq -- 'issue comment 7' "$GH_LOG"
-  ! grep -q -- 'issue edit' "$GH_LOG"
+  if grep -q -- 'issue edit' "$GH_LOG"; then false; fi
   grep -q -- '- \[x\] \*\*A1\*\* first thing done' "$TEST_DIR/posted-comment.md"
   grep -Fq 'lattice:stamp-pr-open pr-12' "$TEST_DIR/posted-comment.md"
   # a re-run that sees its own comment posts nothing
@@ -168,8 +168,8 @@ MD
   : >"$GH_LOG"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already carries the pr-12 comment (idempotent)"* ]]
-  ! grep -q -- 'issue comment' "$GH_LOG"
+  printf '%s\n' "$output" | grep -qF "already carries the pr-12 comment (idempotent)"
+  if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
 }
 
 @test "id-less binder items mirror by ordinal position" {
@@ -192,17 +192,17 @@ MD
   cp "$BINDER" "$TEST_DIR/binder-before.md"
   run_spo --pr 12 --binder "$BINDER" --dry-run
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DRY-RUN"* ]]
+  printf '%s\n' "$output" | grep -qF "DRY-RUN"
   cmp -s "$BINDER" "$TEST_DIR/binder-before.md"
-  ! grep -q -- 'issue edit' "$GH_LOG"
-  ! grep -q -- 'issue comment' "$GH_LOG"
+  if grep -q -- 'issue edit' "$GH_LOG"; then false; fi
+  if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
   [ ! -f "$TEST_DIR/edited-body.md" ]
 }
 
 @test "no binder file: skip with note, exit 0 (ticket-only flow)" {
   run_spo --pr 12 --binder "$BINDER_DIR/nonexistent.md"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skip"* ]]
+  printf '%s\n' "$output" | grep -qF "skip"
 }
 
 @test "refuses a non-numeric --pr and a non-OPEN PR" {
@@ -210,7 +210,7 @@ MD
   write_issue_body
   run_spo --pr "https://github.com/attacker/repo/pull/1" --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--pr must be a positive GitHub PR number"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--pr must be a positive GitHub PR number"
 
   cat >"$TEST_DIR/bin/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -222,7 +222,7 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not OPEN"* ]]
+  printf '%s\n' "$output" | grep -qF "not OPEN"
   grep -q '| prs | (none) |' "$BINDER"
 }
 
@@ -237,7 +237,7 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
   grep -q '| prs | (none) |' "$BINDER"
 }
 
@@ -246,7 +246,7 @@ EOF
   write_issue_body
   run_spo --pr 12 --binder "$BINDER" --check-all
   [ "$status" -eq 0 ]
-  [[ "$output" == *"1 acceptance box(es) checked"* ]]
+  printf '%s\n' "$output" | grep -qF "1 acceptance box(es) checked"
   # binder: A2 now checked too; canonical stamp still applied
   grep -q -- '- \[x\] \*\*A1\*\* first thing done' "$BINDER"
   grep -q -- '- \[x\] \*\*A2\*\* second thing not done' "$BINDER"
@@ -255,7 +255,7 @@ EOF
   # issue: BOTH boxes mirrored in one pass
   grep -q -- '- \[x\] \*\*A1\*\* first thing done' "$TEST_DIR/edited-body.md"
   grep -q -- '- \[x\] \*\*A2\*\* second thing not done' "$TEST_DIR/edited-body.md"
-  [[ "$output" == *"checked 2 acceptance box(es) on issue #7"* ]]
+  printf '%s\n' "$output" | grep -qF "checked 2 acceptance box(es) on issue #7"
 }
 
 @test "--check-all refuses when the Acceptance section carries a deferral note" {
@@ -267,20 +267,20 @@ EOF
   cp "$BINDER" "$TEST_DIR/binder-before.md"
   run_spo --pr 12 --binder "$BINDER" --check-all
   [ "$status" -eq 1 ]
-  [[ "$output" == *"--check-all refused"* ]]
-  [[ "$output" == *"deferred to tkt-99"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--check-all refused"
+  printf '%s\n' "$output" | grep -qF "deferred to tkt-99"
   # nothing mutated: binder byte-identical, no gh issue traffic
   cmp -s "$BINDER" "$TEST_DIR/binder-before.md"
-  ! grep -q -- 'issue edit' "$GH_LOG"
-  ! grep -q -- 'issue comment' "$GH_LOG"
+  if grep -q -- 'issue edit' "$GH_LOG"; then false; fi
+  if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
 }
 
 @test "usage header states the ordering law (check boxes, then stamp)" {
   run_spo --help
   [ "$status" -eq 2 ]
-  [[ "$output" == *"check binder acceptance boxes, then stamp"* ]]
-  [[ "$output" == *"mirrors only checked boxes"* ]]
-  [[ "$output" == *"--check-all"* ]]
+  printf '%s\n' "$output" | grep -qF "check binder acceptance boxes, then stamp"
+  printf '%s\n' "$output" | grep -qF "mirrors only checked boxes"
+  printf '%s\n' "$output" | grep -qF -- "--check-all"
 }
 
 @test "adopted binder: dedup read failure skips comment post (fail-closed)" {
@@ -303,7 +303,7 @@ EOF
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'comment post skipped (fail-closed'
-  ! grep -q -- 'issue comment' "$GH_LOG"
+  if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
 }
 
 @test "adopted binder: unparseable comments JSON skips comment post (fail-closed)" {
@@ -325,7 +325,7 @@ EOF
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'comments JSON unparseable'
-  ! grep -q -- 'issue comment' "$GH_LOG"
+  if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
 }
 
 @test "adopted binder: valid JSON with wrong shape skips comment post (fail-closed)" {
@@ -347,5 +347,5 @@ EOF
   run_spo --pr 12 --binder "$BINDER"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'comments JSON unparseable'
-  ! grep -q -- 'issue comment' "$GH_LOG"
+  if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
 }

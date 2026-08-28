@@ -74,7 +74,7 @@ teardown() {
   [ "$status" -eq 0 ]
   last=$(printf '%s\n' "$output" | grep '^{' | tail -1)
   printf '%s' "$last" | jq -e '.default_branch == "main" and .default_branch_source == "fallback"'
-  [[ "$output" == *"could not resolve the default branch"* ]]
+  printf '%s\n' "$output" | grep -qF "could not resolve the default branch"
 }
 
 @test "missing gh fails the preflight with an error" {
@@ -85,5 +85,5 @@ teardown() {
   done
   run env PATH="$NOGH_BIN" bash "$CTX"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"gh not found"* ]]
+  printf '%s\n' "$output" | grep -qF "gh not found"
 }

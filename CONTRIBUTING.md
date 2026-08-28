@@ -74,6 +74,16 @@ BATS_TEST_TMPDIR=$(mktemp -d) bats <suite-dir>
 
 New tests should prefer self-managed temp dirs (`mktemp -d` in `setup`, cleaned up in `teardown`) rather than adding new `BATS_TEST_TMPDIR` dependencies.
 
+### Assertion ergonomics (enforced by `tools/check-bats-assertions.py`)
+
+bash `set -e` never fires on a failing `[[ … ]]` (compound command) or `! cmd` (negation) outside a test body's last command — such assertions are silently decorative. Write assertions in errexit-effective forms:
+
+- content match: `printf '%s\n' "$output" | grep -qF 'literal'` (or `grep -qE` for regexes)
+- negative match: `[ -z "$(printf '%s\n' "$output" | grep -F 'literal')" ]` — never `grep -q` inside `$()`
+- exact/numeric/file tests: `[ "$a" = "$b" ]`, `[ "$n" -eq 2 ]`, `[ -f path ]`
+
+`python3 tools/check-bats-assertions.py` (wired into the `tools/tests` suite) fails on the banned forms.
+
 ## Pull requests
 
 - Prefer a Lattice ticket binder + Spec line when work is multi-session.

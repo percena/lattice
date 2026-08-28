@@ -20,15 +20,15 @@ teardown() {
 @test "creates skeleton + config default strict" {
   run bash "$INIT" --root "$TEST_DIR/repo" --json
   [ "$status" -eq 0 ]
-  [[ -d "$TEST_DIR/repo/.lattice/specs" ]]
-  [[ -d "$TEST_DIR/repo/.lattice/reviews" ]]
-  [[ -d "$TEST_DIR/repo/.lattice/tickets" ]]
-  [[ -d "$TEST_DIR/repo/.lattice/tickets" ]]
-  [[ -f "$TEST_DIR/repo/.lattice/config.yaml" ]]
+  [ -d "$TEST_DIR/repo/.lattice/specs" ]
+  [ -d "$TEST_DIR/repo/.lattice/reviews" ]
+  [ -d "$TEST_DIR/repo/.lattice/tickets" ]
+  [ -d "$TEST_DIR/repo/.lattice/tickets" ]
+  [ -f "$TEST_DIR/repo/.lattice/config.yaml" ]
   grep -q 'profile: strict' "$TEST_DIR/repo/.lattice/config.yaml"
-  [[ -f "$TEST_DIR/repo/.lattice/gitignore.snippet" ]]
-  [[ -f "$TEST_DIR/repo/.lattice/README.md" ]]
-  [[ "$output" == *'"ok": true'* ]] || [[ "$output" == *'"ok": true'* ]]
+  [ -f "$TEST_DIR/repo/.lattice/gitignore.snippet" ]
+  [ -f "$TEST_DIR/repo/.lattice/README.md" ]
+  printf '%s\n' "$output" | grep -qF '"ok": true' || printf '%s\n' "$output" | grep -qF '"ok": true'
 }
 
 @test "idempotent second run keeps existing config" {
@@ -58,7 +58,7 @@ teardown() {
   run bash "$INIT" --root "$TEST_DIR/repo" --write-gitignore --json
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing symlinked managed path"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing symlinked managed path"
   [ "$(cat "$TEST_DIR/victim/config.txt")" = "keep-me" ]
   [ ! -e "$TEST_DIR/repo/.lattice" ]
 }
@@ -82,7 +82,7 @@ teardown() {
   run bash "$INIT" --root "$TEST_DIR/repo" --json
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing symlinked managed path"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing symlinked managed path"
   [ -z "$(find "$TEST_DIR/victim/lattice" -mindepth 1 -print -quit)" ]
 }
 
@@ -93,7 +93,7 @@ teardown() {
   run bash "$INIT" --root "$TEST_DIR/repo" --json
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing symlinked managed path"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing symlinked managed path"
   [ -z "$(find "$TEST_DIR/victim/specs" -mindepth 1 -print -quit)" ]
 }
 
@@ -105,7 +105,7 @@ teardown() {
   run bash "$INIT" --root "$TEST_DIR/repo" --json
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing symlinked managed path"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing symlinked managed path"
   [ "$(cat "$TEST_DIR/victim/preferences.md")" = "keep-me" ]
 }
 
@@ -123,8 +123,8 @@ EOF
     --root "$TEST_DIR/repo" --sync-labels --json
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"labels_ran": false'* ]]
-  [[ "$output" == *"sync script not found"* ]]
+  printf '%s\n' "$output" | grep -qF '"labels_ran": false'
+  printf '%s\n' "$output" | grep -qF "sync script not found"
   [ ! -e "$TEST_DIR/consumer-sync-executed" ]
 }
 
@@ -143,7 +143,7 @@ EOF
     --root "$TEST_DIR/repo" --sync-labels --json
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"labels_ran": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"labels_ran": true'
   [ "$(cat "$TEST_DIR/trusted-sync-executed")" = "trusted" ]
 }
 
@@ -169,7 +169,7 @@ EOF
     --root "$TEST_DIR/repo" --sync-labels --json
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"labels_ran": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"labels_ran": true'
   [ "$(cat "$TEST_DIR/trusted-sync-executed")" = "trusted" ]
   [ ! -e "$TEST_DIR/consumer-sync-executed" ]
 }
@@ -188,6 +188,6 @@ EOF
   done
   run env PATH="$FAKE_BIN" bash "$INIT" --root "$TEST_DIR/repo" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *"python3 is required"* ]]
+  printf '%s\n' "$output" | grep -qF "python3 is required"
   [ ! -d "$TEST_DIR/repo/.lattice" ]
 }

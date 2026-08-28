@@ -50,20 +50,20 @@ teardown() {
   printf 'enhancement\nP1\n' >>"$GH_LIST_FILE"
   run bash "$SYNC"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"exists:  enhancement"* ]]
-  [[ "$output" == *"exists:  P1"* ]]
-  ! grep -q '^label create enhancement' "$GH_CALL_LOG"
-  ! grep -q '^label create P1' "$GH_CALL_LOG"
+  printf '%s\n' "$output" | grep -qF "exists:  enhancement"
+  printf '%s\n' "$output" | grep -qF "exists:  P1"
+  if grep -q '^label create enhancement' "$GH_CALL_LOG"; then false; fi
+  if grep -q '^label create P1' "$GH_CALL_LOG"; then false; fi
 }
 
 @test "creates missing labels and skips existing ones" {
   printf 'enhancement\nbug\n' >"$GH_LIST_FILE"
   run bash "$SYNC"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"exists:  enhancement"* ]]
-  [[ "$output" == *"exists:  bug"* ]]
-  [[ "$output" == *"created: chore"* ]]
-  [[ "$output" == *"created: adr"* ]]
+  printf '%s\n' "$output" | grep -qF "exists:  enhancement"
+  printf '%s\n' "$output" | grep -qF "exists:  bug"
+  printf '%s\n' "$output" | grep -qF "created: chore"
+  printf '%s\n' "$output" | grep -qF "created: adr"
   # 10 catalog labels (live canon, tkt-65), 2 already exist
   [ "$(grep -c '^label create' "$GH_CALL_LOG")" -eq 8 ]
 }
@@ -72,7 +72,7 @@ teardown() {
   printf 'enhancement\n' >"$GH_LIST_FILE"
   run bash "$SYNC" --force-color
   [ "$status" -eq 0 ]
-  [[ "$output" == *"updated: enhancement"* ]]
+  printf '%s\n' "$output" | grep -qF "updated: enhancement"
   [ "$(grep -c '^label edit' "$GH_CALL_LOG")" -eq 1 ]
 }
 
@@ -80,6 +80,6 @@ teardown() {
   export GH_LIST_FAIL=1
   run bash "$SYNC"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"aborting"* ]]
-  ! grep -q '^label create' "$GH_CALL_LOG"
+  printf '%s\n' "$output" | grep -qF "aborting"
+  if grep -q '^label create' "$GH_CALL_LOG"; then false; fi
 }

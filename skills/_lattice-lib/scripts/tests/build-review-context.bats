@@ -118,36 +118,36 @@ teardown() {
 @test "spec input resolves tickets from front matter" {
   run bash "$BRC" --spec 9 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"input | spec spc-9"* ]]
-  [[ "$output" == *"spc-9-demo.md"* ]]
-  [[ "$output" == *"### tkt-1"* ]]
-  [[ "$output" == *"### tkt-2"* ]]
-  [[ "$output" == *"tkt-1-alpha/README.md"* ]]
-  [[ "$output" == *"tkt-2-beta/README.md"* ]]
+  printf '%s\n' "$output" | grep -qF "input | spec spc-9"
+  printf '%s\n' "$output" | grep -qF "spc-9-demo.md"
+  printf '%s\n' "$output" | grep -qF "### tkt-1"
+  printf '%s\n' "$output" | grep -qF "### tkt-2"
+  printf '%s\n' "$output" | grep -qF "tkt-1-alpha/README.md"
+  printf '%s\n' "$output" | grep -qF "tkt-2-beta/README.md"
 }
 
 @test "ids input works with bare and prefixed ids" {
   run bash "$BRC" --ids tkt-1 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"### tkt-1"* ]]
-  [[ "$output" != *"### tkt-2"* ]]
+  printf '%s\n' "$output" | grep -qF "### tkt-1"
+  [ -z "$(printf '%s\n' "$output" | grep -F "### tkt-2")" ]
 
   run bash "$BRC" --ids 1,2 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"### tkt-1"* ]]
-  [[ "$output" == *"### tkt-2"* ]]
+  printf '%s\n' "$output" | grep -qF "### tkt-1"
+  printf '%s\n' "$output" | grep -qF "### tkt-2"
 }
 
 @test "missing binder → non-zero, fail loud" {
   run bash "$BRC" --ids 1,3 --home "$MAIN/.lattice"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"missing binder for tkt-3"* ]]
+  printf '%s\n' "$output" | grep -qF "missing binder for tkt-3"
 }
 
 @test "missing spec → non-zero" {
   run bash "$BRC" --spec 99 --home "$MAIN/.lattice"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"spc-99 not found"* ]]
+  printf '%s\n' "$output" | grep -qF "spc-99 not found"
 }
 
 @test "exactly one input mode required" {
@@ -161,44 +161,44 @@ teardown() {
   run bash "$BRC" --spec 9 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
   # tkt-1 has real content everywhere except Pending decisions
-  [[ "$output" == *"approach=present · decision-journal=present · pending-decisions=empty · attempts=present"* ]]
+  printf '%s\n' "$output" | grep -qF "approach=present · decision-journal=present · pending-decisions=empty · attempts=present"
   # tkt-2 sections hold only HTML template comments → empty
-  [[ "$output" == *"approach=empty · decision-journal=empty · pending-decisions=empty · attempts=empty"* ]]
-  [[ "$output" == *"tkt-2: approach, decision-journal, attempts empty"* ]]
+  printf '%s\n' "$output" | grep -qF "approach=empty · decision-journal=empty · pending-decisions=empty · attempts=empty"
+  printf '%s\n' "$output" | grep -qF "tkt-2: approach, decision-journal, attempts empty"
 }
 
 @test "ADR citation resolves to docs/adr file" {
   run bash "$BRC" --spec 9 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ADR-004"* ]]
-  [[ "$output" == *"docs/adr/004-example.md (exists)"* ]]
+  printf '%s\n' "$output" | grep -qF "ADR-004"
+  printf '%s\n' "$output" | grep -qF "docs/adr/004-example.md (exists)"
 }
 
 @test "gh fallback failure degrades to a note for (none) prs row" {
   export GH_MODE=fail
   run bash "$BRC" --ids 2 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"gh query failed — binder row is the only source"* ]]
+  printf '%s\n' "$output" | grep -qF "gh query failed — binder row is the only source"
 }
 
 @test "gh fallback success surfaces search hits marked verify-linkage" {
   export GH_MODE=ok
   run bash "$BRC" --ids 2 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"prs (gh fallback, verify linkage): pr-12 https://github.com/acme/r/pull/12"* ]]
+  printf '%s\n' "$output" | grep -qF "prs (gh fallback, verify linkage): pr-12 https://github.com/acme/r/pull/12"
 }
 
 @test "gh fallback empty result is reported as no PR found" {
   export GH_MODE=empty
   run bash "$BRC" --ids 2 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"(no PR found for #2)"* ]]
+  printf '%s\n' "$output" | grep -qF "(no PR found for #2)"
 }
 
 @test "binder prs row is surfaced without gh" {
   run bash "$BRC" --ids 1 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"prs (binder row): pr-11 / https://github.com/acme/r/pull/11"* ]]
+  printf '%s\n' "$output" | grep -qF "prs (binder row): pr-11 / https://github.com/acme/r/pull/11"
 }
 
 @test "batch report input extracts ticket set" {
@@ -209,8 +209,8 @@ teardown() {
 EOF
   run bash "$BRC" --batch-report "$TEST_DIR/report.md" --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"### tkt-1"* ]]
-  [[ "$output" == *"### tkt-2"* ]]
+  printf '%s\n' "$output" | grep -qF "### tkt-1"
+  printf '%s\n' "$output" | grep -qF "### tkt-2"
 
   run bash "$BRC" --batch-report "$TEST_DIR/nope.md" --home "$MAIN/.lattice"
   [ "$status" -ne 0 ]
@@ -264,10 +264,10 @@ EOF
   chmod +x "$STUB_BIN/gh"
   run bash "$BRC" --ids 2 --home "$MAIN/.lattice" --from-heads
   [ "$status" -eq 0 ]
-  [[ "$output" == *"binder source: head:pr-22 (tkt-2-beta-head)"* ]]
+  printf '%s\n' "$output" | grep -qF "binder source: head:pr-22 (tkt-2-beta-head)"
   # head state, not the local in-progress/(none) state
-  [[ "$output" == *"- status: pr-open"* ]]
-  [[ "$output" == *"decision-journal=present"* ]]
+  printf '%s\n' "$output" | grep -qF -- "- status: pr-open"
+  printf '%s\n' "$output" | grep -qF "decision-journal=present"
   # local file untouched (read-only contract)
   grep -q '| status | in-progress |' "$MAIN/.lattice/tickets/tkt-2-beta/README.md"
 }
@@ -278,8 +278,8 @@ EOF
   run bash "$BRC" --ids 1 --home "$MAIN/.lattice" --from-heads
   [ "$status" -eq 0 ]
   # tkt-1's binder row names pr-11, but gh pr view fails → local source marked
-  [[ "$output" == *"binder source: local ("* ]]
-  [[ "$output" == *"- status: pr-open"* ]]
+  printf '%s\n' "$output" | grep -qF "binder source: local ("
+  printf '%s\n' "$output" | grep -qF -- "- status: pr-open"
 }
 
 @test "--from-heads marks a non-open PR as local source" {
@@ -294,13 +294,13 @@ EOF
   chmod +x "$STUB_BIN/gh"
   run bash "$BRC" --ids 1 --home "$MAIN/.lattice" --from-heads
   [ "$status" -eq 0 ]
-  [[ "$output" == *"binder source: local (pr-11 is MERGED — not an open head)"* ]]
+  printf '%s\n' "$output" | grep -qF "binder source: local (pr-11 is MERGED — not an open head)"
 }
 
 @test "without --from-heads no binder-source line is emitted" {
   run bash "$BRC" --ids 1 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"binder source:"* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F "binder source:")" ]
 }
 
 # tkt-91: the placeholder predicate matches any `(none…)` variant — a
@@ -313,8 +313,8 @@ EOF
   export GH_MODE=ok
   run bash "$BRC" --ids 2 --home "$MAIN/.lattice"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"prs (binder row): (none — rides tkt-81 PR)"* ]]
-  [[ "$output" == *"prs (gh fallback, verify linkage): pr-12 https://github.com/acme/r/pull/12"* ]]
+  printf '%s\n' "$output" | grep -qF "prs (binder row): (none — rides tkt-81 PR)"
+  printf '%s\n' "$output" | grep -qF "prs (gh fallback, verify linkage): pr-12 https://github.com/acme/r/pull/12"
 }
 
 @test "--from-heads is immune to a concurrently-swapped FETCH_HEAD (per-process ref)" {
@@ -352,6 +352,6 @@ EOF
   # a mid-body [[ ]] assertion is NOT (bash exempts it from set -e).
   printf '%s\n' "$output" | grep -qF 'binder source: head:pr-22 (tkt-2-beta-head)'
   printf '%s\n' "$output" | grep -qF -- '- status: pr-open'
-  ! printf '%s\n' "$output" | grep -qF -- '- status: in-progress'
+  if printf '%s\n' "$output" | grep -qF -- '- status: in-progress'; then false; fi
 
 }
