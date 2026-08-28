@@ -48,7 +48,7 @@ A ticket that hit fallback bounds stamps `status: stuck` + `wait_reason` (`unblo
 | --- | --- | --- | --- |
 | `unblock` | Answer the question / fix the env | Stamp `queued` (re-queue into a later batch) | `stuck → queued` |
 | `re-scope` | Scope escape = planning defect | Revise Spec/ticket via `create-spec` / `create-tickets` | `stuck → M1` (Spec revision) |
-| (either) | Cancel the ticket | Stamp `closed` without merge | `any → closed` |
+| (either) | Cancel the ticket | Stamp `closed` without merge via `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> \| --issue M) --binder <path>` (no PR row, no `mergedAt`; requires human reason + firm close time or a gh-verified CLOSED issue) | `any → closed` |
 
 Never silently retry a `stuck` ticket — the Attempts ledger and caps carry across sessions (`fallback-policy.md`). A `stuck` ticket with a complete ledger and one well-formed question is a first-class deliverable (ADR-004 §5).
 
@@ -86,7 +86,7 @@ For each PR the operator decides to merge (in DAG-respecting order — the diges
 1. `finish-work pr <N>` — runs preflight (CI + base update + alignment-check HARD gate + mini-review scan).
 2. `gh pr merge` (human-owned; the `.batch-work-active` marker is removed by finish-work at merge).
 3. `close-fixed-issues.sh` closes the ticket's GitHub issue.
-4. `finish-ledger.sh` stamps the binder's `## Finish` ledger (`mergedAt` + `status: closed`).
+4. `finish-ledger.sh` stamps the binder's `## Finish` ledger (`mergedAt` + `status: closed`). For a cancel before any PR, use `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> | --issue M) --binder <path>` (no PR row, no `mergedAt`; requires human reason + firm close time or a gh-verified CLOSED issue — an OPEN/unverifiable issue fails closed).
 
 The batch marker (`.lattice/.batch-work-active`) prevented any agent from merging during the night. finish-work removes it after a successful human-driven merge.
 

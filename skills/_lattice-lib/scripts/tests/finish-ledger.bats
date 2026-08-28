@@ -429,14 +429,155 @@ EOF
   done
 }
 
-@test "parked binder: status is NOT auto-flipped (needs human attention)" {
+@test "parked binder with a closed issue flips to closed (tkt-150: parked no longer stranded)" {
   write_fresh_binder
   sed -i.bak 's#| status | open |#| status | parked |#' "$BINDER"
   rm -f "$BINDER.bak"
   run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
-  grep -qE '\| status \| parked \|' "$BINDER"
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+# tkt-150: the cancel path and the full working-state vocabulary. The prior
+# parked-preservation regression codified the contradiction (a closed issue left
+# the binder working); it is replaced by a cancel-from-any-state matrix and the
+# negative open/unknown cases.
+
+@test "cancel-from-any-state matrix: --cancel closes every working state" {
+  for st in open queued in-progress parked stuck pr-open rework deferred; do
+    write_fresh_binder
+    sed -i.bak "s#| status | open |#| status | $st |#" "$BINDER"
+    rm -f "$BINDER.bak"
+    run bash "$FL" --cancel --reason "human cancel: wontfix" \
+      --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+    [ "$status" -eq 0 ]
+    grep -qE '\| status \| closed \|' "$BINDER"
+    grep -q '^- cancelled: human cancel: wontfix — 2026-07-31T10:01:00Z' "$BINDER"
+    # no fabricated PR evidence
+    ! grep -qE '^- pr-' "$BINDER"
+    ! grep -q 'merged' "$BINDER"
+    # prs row untouched (no PR URL, no warning fabricated into a row)
+    grep -q '| prs | (none yet) |' "$BINDER"
+  done
+}
+
+@test "cancel with a gh-verified CLOSED issue closes the ticket and stamps issue line" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":"2026-07-31T10:01:00Z"}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "dup of #9" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  grep -q '^- cancelled: dup of #9' "$BINDER"
+  grep -q '^- issue #7 closed: 2026-07-31T10:01:00Z — https://github.com/acme/repo/issues/7' "$BINDER"
+  ! grep -qE '^- pr-' "$BINDER"
+}
+
+@test "cancel with an OPEN issue fails closed (no terminal evidence)" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"OPEN","closedAt":null}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "x" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"requires terminal evidence"* ]]
+  [[ "$output" == *"not closed"* ]]
+  # binder untouched — no cancel line, status still open
+  ! grep -q '^- cancelled:' "$BINDER"
+  grep -qE '\| status \| open \|' "$BINDER"
+}
+
+@test "cancel with an unverifiable issue (no gh / foreign repo) fails closed" {
+  write_fresh_binder
+  # no origin → binder repo unresolved → gh not usable → issue cannot be verified
+  run bash "$FL" --cancel --reason "x" --issue 7 --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"requires terminal evidence"* ]]
+  ! grep -q '^- cancelled:' "$BINDER"
+}
+
+@test "cancel rejects --pr, missing --reason, and missing terminal evidence" {
+  write_fresh_binder
+  # --pr is forbidden on the no-PR cancel path
+  run bash "$FL" --cancel --reason "x" --pr 5 --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"no-PR path"* ]]
+  # --reason is required
+  run bash "$FL" --cancel --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"--cancel requires --reason"* ]]
+  # terminal evidence is required
+  run bash "$FL" --cancel --reason "x" --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"requires terminal evidence"* ]]
+  # --pr-state/--merged-at forbidden on cancel
+  run bash "$FL" --cancel --reason "x" --pr-state MERGED --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"no-PR path"* ]]
+  # binder untouched across all
+  grep -q '(none yet)' "$BINDER"
+}
+
+@test "cancel is idempotent and atomic: re-run updates reason, leaves no temp residue" {
+  write_fresh_binder
+  bash "$FL" --cancel --reason "first" --closed-at 2026-07-31T10:01:00Z --binder "$BINDER" >/dev/null
+  run bash "$FL" --cancel --reason "second" --closed-at 2026-07-31T10:02:00Z --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^- cancelled:' "$BINDER")" -eq 1 ]
+  grep -q '^- cancelled: second — 2026-07-31T10:02:00Z' "$BINDER"
+  ! grep -q '^- cancelled: first' "$BINDER"
+  [ "$(grep -c '^## Finish' "$BINDER")" -eq 1 ]
+  run bash -c "ls -A '$BINDER_DIR' | grep -cE '\.(lock|tmp)$' || true"
+  [[ "$output" == "0" ]]
+}
+
+@test "merged from parked/stuck/deferred flips to closed and surfaces anomaly (A2)" {
+  for st in parked stuck deferred; do
+    write_fresh_binder
+    sed -i.bak "s#| status | open |#| status | $st |#" "$BINDER"
+    rm -f "$BINDER.bak"
+    bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice --pr-state MERGED \
+      --merged-at 2026-07-31T10:00:00Z >/dev/null
+    grep -qE '\| status \| closed \|' "$BINDER"
+    grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
+    # literal backticks around the prior status — printf avoids command substitution
+    anom_pat=$(printf 'anomaly: prior status `%s`' "$st")
+    grep -qF "$anom_pat" "$BINDER"
+    # anomaly line is not duplicated on re-run
+    bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice --pr-state MERGED \
+      --merged-at 2026-07-31T10:00:00Z >/dev/null
+    [ "$(grep -c '^- anomaly:' "$BINDER")" -eq 1 ]
+  done
+}
+
+@test "closed-without-merge from parked with a closed issue flips to closed (no mergedAt)" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | parked |#' "$BINDER"
+  rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --pr-state CLOSED \
+    --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -q "pr-12 closed without merge" "$BINDER"
+  ! grep -q "pr-12 merged" "$BINDER"
+  grep -qE '\| status \| closed \|' "$BINDER"
 }
 
 # tkt-91: the prs grammar is single-sourced in lib/binder_rows.py — writers
