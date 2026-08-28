@@ -8,10 +8,18 @@
 # Fail when:
 #   show-toplevel == MAIN_ROOT  AND  current branch is a team base
 #   (main | master | dev | origin/HEAD default)
+#   OR (strict profile only) show-toplevel == MAIN_ROOT  AND  on a non-base
+#   branch — a plain feature branch in the main clone is the recorded drift
+#   path (strict-profile-sibling-worktree-default memory); strict blocks it so
+#   worktree-vs-branch is machine-enforced, not self-enforced. light profile
+#   keeps the legacy pass (non-base branch on main clone is a valid escape).
 #
 # Pass when:
 #   - inside a linked worktree (show-toplevel != MAIN_ROOT), or
-#   - on a non-base branch on the main clone (--mode branch escape hatch)
+#   - on a non-base branch on the main clone under LIGHT profile (--mode branch
+#     escape hatch), or
+#   - explicitly authorized via --allow-base-write --reason (covers base AND
+#     strict non-base-on-main-clone; requires a clean tree + a reason).
 #
 # Explicit user-authorized base-direct escape:
 #   --allow-base-write --reason <why>
@@ -65,6 +73,16 @@ MAIN_ROOT=$(lattice_main_root || echo "$REPO_ROOT")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 # Detached HEAD reports "HEAD" — treat as empty for base checks.
 [[ "$BRANCH" == "HEAD" ]] && BRANCH=""
+
+# Profile (strict default | light). Under strict, a non-base branch on the
+# main clone is non-shippable (forces worktree); light keeps the legacy pass.
+PROFILE="strict"
+if command -v lattice_profile >/dev/null 2>&1; then
+  PROFILE=$(lattice_profile 2>/dev/null || echo "strict")
+elif [[ -n "${LATTICE_PROFILE:-}" ]]; then
+  PROFILE=$(printf '%s' "${LATTICE_PROFILE}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+fi
+case "$PROFILE" in light|strict) ;; *) PROFILE="strict" ;; esac
 
 DEFAULT_BASE=""
 BASE_SOURCE=""
@@ -126,6 +144,15 @@ if $on_main_clone && $is_base; then
   fi
 fi
 
+# Strict profile: a non-base branch on the main clone is non-shippable (the
+# recorded drift path). Light profile keeps the legacy pass.
+NONBASE_ON_MAIN=false
+if $on_main_clone && ! $is_base && [[ -n "$BRANCH" ]] && [[ "$PROFILE" == "strict" ]]; then
+  NONBASE_ON_MAIN=true
+  OK=false
+  REASON="non_base_on_main_clone"
+fi
+
 # Preserve the physical checkout/branch fact before an authorized escape changes
 # REASON. Consumers use this field for audit reporting, not only pass/fail.
 ON_TEAM_BASE=false
@@ -148,7 +175,11 @@ if ! $OK && $ALLOW_BASE_WRITE; then
     exit 1
   fi
   OK=true
-  REASON="authorized_base_direct"
+  if $NONBASE_ON_MAIN; then
+    REASON="authorized_nonbase_direct"
+  else
+    REASON="authorized_base_direct"
+  fi
   BASE_ESCAPE=true
 fi
 

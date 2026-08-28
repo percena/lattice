@@ -14,6 +14,12 @@
           { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/intercept-gh-pr-create.sh\"" },
           { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/intercept-gh-pr-merge.sh\"" }
         ]
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/intercept-shippable-write.sh\"" }
+        ]
       }
     ],
     "UserPromptSubmit": [
