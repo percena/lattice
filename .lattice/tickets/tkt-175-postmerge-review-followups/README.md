@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/175 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -53,4 +53,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-178 merged: 2026-08-28T13:59:35Z — https://github.com/percena/lattice/pull/178 (base merge)
+- issue #175 closed: 2026-08-28T13:59:41Z — https://github.com/percena/lattice/issues/175
