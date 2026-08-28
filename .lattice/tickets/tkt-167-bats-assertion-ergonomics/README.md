@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/167 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -54,4 +54,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-182 merged: 2026-08-28T15:14:51Z — https://github.com/percena/lattice/pull/182 (base merge)
+- issue #167 closed: 2026-08-28T15:14:58Z — https://github.com/percena/lattice/issues/167
