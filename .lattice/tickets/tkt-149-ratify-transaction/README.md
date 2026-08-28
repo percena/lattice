@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-149-ratify-transaction` |
 | worktree | sibling `…/lattice.worktrees/tkt-149-ratify-transaction/` |
-| prs | (none) |
+| prs | pr-158 — https://github.com/percena/lattice/pull/158 |
 
 ## Acceptance
 
