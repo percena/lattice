@@ -65,14 +65,33 @@ npx skills add percena/lattice -a claude-code -a codex -g -y
 
 | Rule | Detail |
 | --- | --- |
-| Default fail | `assert-shippable-cwd.sh` exits 1 when `show-toplevel == MAIN_ROOT` **and** branch is `main`/`master`/`dev` (or live default) |
-| Pass | Linked worktree (`show-toplevel != MAIN_ROOT`) **or** non-base branch on main clone (`--mode branch` escape) |
-| Base-direct escape | Explicit user authorization + clean starting tree + `--allow-base-write --reason …`; output records the deviation |
+| Default fail | `assert-shippable-cwd.sh` exits 1 when `show-toplevel == MAIN_ROOT` **and** branch is `main`/`master`/`dev` (or live default). Under **strict** it also fails a **non-base branch on the main clone** (`non_base_on_main_clone`) — a bound-name temp branch in the main clone is the recorded drift path and is no longer a pass. |
+| Pass | Linked worktree (`show-toplevel != MAIN_ROOT`); **or** non-base branch on main clone under **light** profile (`--mode branch` escape). |
+| Base-direct escape | Explicit user authorization + clean starting tree + `--allow-base-write --reason …`; output records the deviation. Under strict it is also the escape for a non-base main-clone branch (`authorized_nonbase_direct`). |
 | Order | `gh issue create` may run on base (metadata only) → **ensure-workspace + cd** → then Spec / ticket binder / product Write |
 | **Review exempt (Review-only)** | `create-review` may write `.lattice/reviews/` on team base. Same-pass co-create defaults to one worktree; reasoned escapes remain available. Never bind a worktree to `rev-` alone |
 | After finish | `check-base-residue.sh` on MAIN; cleanup-workspace warns if residue remains |
 
 **Do not** treat accidental or dirty base writes as a happy path. Base-direct is an explicit user-authorized delivery choice, not a silent model convenience.
+
+## Machine-enforced worktree discipline (strict profile)
+
+The isolation default above was historically **self-enforced** — soft guidance that agents routinely drifted past via a bare `git checkout -b` in the main clone. Under `strict` profile it is now **machine-enforced** by a three-layer PreToolUse stack (see `ADR-006`, `spc-145`):
+
+| Layer | What it blocks | How |
+| --- | --- | --- |
+| **L1 — git hook** | Raw `git checkout -b`/`-B`, `git switch -c`/`-C`, `git branch <create>`, and switch to an existing non-base branch — when CWD is the main clone | `plugins/lattice/hooks/intercept-git-branch-create.sh`; gates on **location** (main clone vs worktree), not branch name, so a bound name in the main clone is still blocked. The blessed `ensure-workspace.sh` invocation is never matched (its internal git ops are subprocess calls inside the script, not Bash tool calls). |
+| **L2 — assert hardening** | Non-base branch on main clone (strict) | `assert-shippable-cwd.sh` now fails `non_base_on_main_clone` under strict; escape via `--allow-base-write --reason`. |
+| **L3 — Write/Edit hook** | Shippable writes (`.lattice/specs|tickets|lineage/**`, tracked product code) when the cwd is not a shippable workspace | `plugins/lattice/hooks/intercept-shippable-write.sh`; runs assert before the write and denies (exit 2) on fail. Exempts `.lattice/reviews/**` and `docs/adr/**` (documented base-write policy). Does not trust the L1 sentinel — the spoof backstop. |
+
+**Non-standard flow (interactive-confirmation escape):** the strict default blocks drift. When the user explicitly authorizes a non-standard flow (plain branch or base-direct commit), the agent must **ask the user first and wait for confirmation**, then route through the audited escape so the reason is recorded:
+
+```
+ensure-workspace.sh --mode branch --branch <name> --allow-unbound --reason "user-authorized: <why>"
+assert-shippable-cwd.sh --allow-base-write --reason "user-authorized: <why>"
+```
+
+The "ask the user first" step is a procedure expectation (the hook cannot verify a confirmation happened); the recorded `--reason` is the audit trail, and drift (no authorization) remains blocked at L1/L3. Switching to a base branch and working inside a linked worktree are always allowed.
 
 ## Profiles (`strict` | `light`)
 
