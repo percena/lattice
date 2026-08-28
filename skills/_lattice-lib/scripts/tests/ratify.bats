@@ -296,3 +296,15 @@ MD
   [ "$status" -eq 2 ]
   [[ "$output" == *"unknown arg: --bogus"* ]]
 }
+
+@test "A2: multi-line --decision is rejected (no embedded newlines)" {
+  write_parked_binder
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm init
+  # Embed a literal newline in --decision via $'…'
+  run bash "$RF" --binder "$BINDER" --decision $'line one\nline two'
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"single line (no embedded newlines)"* ]]
+  # binder untouched
+  grep -qE '\| status \| parked \|' "$BINDER"
+  ! grep -q "line one" "$BINDER"
+}

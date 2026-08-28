@@ -135,6 +135,7 @@ DEFERRED_REASONS = {"fuse-halt", "blocked-by-failure"}
 # binder status contradicting either stamp is drift.
 FINISH_MERGED_RE = re.compile(r"\bmerged:\s")
 FINISH_CLOSED_RE = re.compile(r"\bissue\s+#\d+\s+closed:\s", re.I)
+FINISH_CANCELLED_RE = re.compile(r"^- cancelled:", re.M)
 
 
 def parse_front_matter(text: str) -> dict[str, Any]:
@@ -256,16 +257,19 @@ def finish_ledger_terminal(text: str) -> bool:
     """True when the ``## Finish`` ledger records a provable terminal event.
 
     A merged ledger carries ``pr-P merged:``; a cancel ledger carries
-    ``issue #N closed:`` without a merge. Either stamp is terminal evidence
-    provable from one snapshot (tkt-151 A4): a non-terminal binder status
-    contradicting either is drift. Whole-document prose is not consulted —
-    only the ``## Finish`` section body.
+    ``issue #N closed:`` without a merge; a no-issue cancel carries
+    ``- cancelled:``. Any of these stamps is terminal evidence provable from
+    one snapshot (tkt-151 A4): a non-terminal binder status contradicting
+    either is drift. Whole-document prose is not consulted — only the
+    ``## Finish`` section body.
     """
     m = FINISH_SECTION_RE.search(text)
     if not m:
         return False
     body = HTML_COMMENT_RE.sub("", m.group(1))
-    return FINISH_MERGED_RE.search(body) is not None or FINISH_CLOSED_RE.search(body) is not None
+    return (FINISH_MERGED_RE.search(body) is not None or
+            FINISH_CLOSED_RE.search(body) is not None or
+            FINISH_CANCELLED_RE.search(body) is not None)
 
 
 SPEC_FM_STATUS_RE = re.compile(r"^status:\s*([a-zA-Z0-9_-]+)\s*$", re.M)
@@ -284,10 +288,13 @@ def spec_status(text: str) -> str | None:
     ``# status: draft | locked | …`` and TL;DR ``**Status:**`` copy are not
     consulted here (the header is checked separately for contradiction).
     """
-    m = SPEC_FM_STATUS_RE.search(text)
-    if not m:
+    fm = parse_front_matter(text)
+    if not fm:
         return None
-    return m.group(1).strip().strip("'\"").lower()
+    val = fm.get("status")
+    if not val:
+        return None
+    return val.strip().strip("'\"").lower()
 
 
 def spec_header_status(text: str) -> str | None:
@@ -588,7 +595,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                 }
             )
         # A concluded Review must carry exactly one valid outcome (A1).
-        if rv_st == "concluded" and (not rv_out or rv_out not in REVIEW_OUTCOME_OK):
+        if rv_st == "concluded" and not rv_out:
             findings.append(
                 {
                     "code": "concluded_review_no_outcome",

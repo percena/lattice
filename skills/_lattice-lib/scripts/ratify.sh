@@ -6,6 +6,13 @@
 # between the two writes to a single reviewable commit (ADR-004 amd
 # tkt-136 Option A — "single-commit, crash window narrowed, not eliminated").
 #
+# Recovery recipe: if `git commit` fails AFTER the atomic `os.replace` succeeds
+# (e.g. a hook rejects the commit), the binder is left mutated on disk (status
+# `queued`) but uncommitted. A re-run refuses because the status is no longer
+# `parked`. To recover, discard the mutation and re-run:
+#   git checkout -- <binder> && git restore --staged <binder>
+# Full transactional rollback is NOT implemented (ADR-004 design tradeoff).
+#
 # When --pending <substring> is supplied, the matching bullet line under
 # `## Pending decisions` is settled (removed) — the decision is now journaled,
 # so it is no longer pending. Exactly one match is required; zero or multiple
@@ -53,6 +60,10 @@ done
 
 [[ -n "$BINDER" ]]   || { echo "Error: --binder required" >&2; usage; exit 2; }
 [[ -n "$DECISION" ]] || { echo "Error: --decision required" >&2; usage; exit 2; }
+if [[ "$DECISION" == *$'\n'* ]]; then
+  echo "Error: --decision must be a single line (no embedded newlines)" >&2
+  exit 2
+fi
 
 # --- Locate the repo root from the binder's own directory -------------------
 # A binder outside any git worktree cannot be contained or committed safely.

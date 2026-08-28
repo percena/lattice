@@ -344,6 +344,14 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
   $ISSUE_CLOSED || CLOSED_AT=""
 fi
 
+# ISO-8601 validation for CLOSED_AT that runs for BOTH the cancel path and the
+# issue path (tkt-179 A3): the only prior check was inside the ISSUE_M block, so
+# the no-issue cancel path bypassed it and garbage values were stamped verbatim.
+if [[ -n "$CLOSED_AT" && ! "$CLOSED_AT" =~ $ISO8601_RE ]]; then
+  echo "Error: --closed-at must be an ISO-8601 timestamp, got: $CLOSED_AT" >&2
+  exit 1
+fi
+
 # Cancel path: terminal evidence is mandatory. An OPEN/unverifiable issue is not
 # a cancel — fail closed rather than strand the binder in a working state or
 # stamp a fabricated terminal. A no-issue cancel already required --closed-at.
