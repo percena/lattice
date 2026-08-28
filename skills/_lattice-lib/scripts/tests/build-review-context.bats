@@ -316,3 +316,42 @@ EOF
   [[ "$output" == *"prs (binder row): (none — rides tkt-81 PR)"* ]]
   [[ "$output" == *"prs (gh fallback, verify linkage): pr-12 https://github.com/acme/r/pull/12"* ]]
 }
+
+@test "--from-heads is immune to a concurrently-swapped FETCH_HEAD (per-process ref)" {
+  setup_from_heads_fixture
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "pr list") printf '22\n' ;;
+  "pr view") printf '%s\n' '{"state":"OPEN","headRefName":"tkt-2-beta-head"}' ;;
+esac
+exit 0
+EOF
+  chmod +x "$STUB_BIN/gh"
+  # Wrap git: after every successful fetch, point FETCH_HEAD at the baseline
+  # (where the binder still says in-progress) — simulating a concurrent
+  # batch-work fetch swapping the shared file inside the fetch→show window.
+  REAL_GIT="$(command -v git)"
+  BASELINE_OID="$("$REAL_GIT" -C "$MAIN" rev-parse main)"
+  cat >"$STUB_BIN/git" <<EOF
+#!/usr/bin/env bash
+"$REAL_GIT" "\$@"
+rc=\$?
+if [ "\$3" = "fetch" ] && [ "\$rc" -eq 0 ]; then
+  printf '%s\n' "$BASELINE_OID" >"$MAIN/.git/FETCH_HEAD"
+fi
+exit \$rc
+EOF
+  chmod +x "$STUB_BIN/git"
+  run bash "$BRC" --ids 2 --home "$MAIN/.lattice" --from-heads
+  [ "$status" -eq 0 ]
+  # per-process temp refs are cleaned up
+  [ -z "$("$REAL_GIT" -C "$MAIN" for-each-ref 'refs/lattice-review-ctx/*')" ]
+  # still the head-stamped state, not the poisoned FETCH_HEAD baseline.
+  # NOTE: grep -q (plain command) is errexit-effective in any position;
+  # a mid-body [[ ]] assertion is NOT (bash exempts it from set -e).
+  printf '%s\n' "$output" | grep -qF 'binder source: head:pr-22 (tkt-2-beta-head)'
+  printf '%s\n' "$output" | grep -qF -- '- status: pr-open'
+  ! printf '%s\n' "$output" | grep -qF -- '- status: in-progress'
+
+}

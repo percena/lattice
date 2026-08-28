@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/163 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,13 +25,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-163-review-path-robustness` |
 | worktree | sibling `…/lattice.worktrees/tkt-163-review-path-robustness/` |
-| prs | (none) |
+| prs | pr-168 — https://github.com/percena/lattice/pull/168 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Head snapshot no longer races through shared `FETCH_HEAD`; a concurrent fetch cannot yield a mislabeled `head:pr-N` manifest entry.
-- [ ] **A2** When the dedup read fails, no comment is posted (warning printed, clearly-marked outcome); a successful re-run posts exactly one comment.
-- [ ] **A3** Bats coverage: ref-isolation (or concurrent-fetch simulation) for A1; gh-failure path for A2.
+- [x] **A1** Head snapshot no longer races through shared `FETCH_HEAD`; a concurrent fetch cannot yield a mislabeled `head:pr-N` manifest entry.
+- [x] **A2** When the dedup read fails, no comment is posted (warning printed, clearly-marked outcome); a successful re-run posts exactly one comment.
+- [x] **A3** Bats coverage: ref-isolation (or concurrent-fetch simulation) for A1; gh-failure path for A2.
 
 ## Notes
 
