@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/184 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -44,4 +44,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-185 merged: 2026-08-28T15:32:24Z — https://github.com/percena/lattice/pull/185 (base merge)
+- issue #184 closed: 2026-08-28T15:32:32Z — https://github.com/percena/lattice/issues/184
