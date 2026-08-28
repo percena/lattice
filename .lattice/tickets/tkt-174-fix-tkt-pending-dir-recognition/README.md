@@ -43,3 +43,8 @@ Add `TKT_PENDING_DIR_RE` regex to recognize `tkt-pending-<slug>` dir names. Exem
 - GitHub issue: https://github.com/percena/lattice/issues/174
 - PR #173 (tkt-155 original fix — introduced the contradiction)
 - Code-review findings (6 findings, 3 high-severity tkt-pending contradiction cluster)
+
+## Finish
+
+- pr-177 merged: 2026-08-28T13:55:19Z — https://github.com/percena/lattice/pull/177 (base merge)
+- issue #174 closed: 2026-08-28T13:55:33Z — https://github.com/percena/lattice/issues/174
