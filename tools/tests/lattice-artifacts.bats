@@ -129,13 +129,17 @@ setup_file() {
   [[ "$output" == *onesided_spec_ticket_edge*tkt-4*spc-4* ]]
 }
 
-# tkt-90: inverse coherence — a merged Finish ledger requires terminal status.
+# tkt-90: inverse coherence — a merged OR cancel ## Finish ledger requires
+# terminal status (tkt-151 A4 extended this to cancel ledgers: an
+# `issue #N closed:` stamp without a merge is also terminal evidence).
 
-@test "merged Finish ledger with working status fails; cancel ledger is exempt" {
+@test "merged Finish ledger with working status fails; cancel ledger with closed status is clean" {
   run python3 "$VAL" --home "$FIX/finish-status-mismatch" --json
   [ "$status" -eq 1 ]
   [[ "$output" == *finish_without_terminal_status* ]]
   [[ "$output" == *tkt-70-merged-but-pr-open* ]]
+  # tkt-71 carries a cancel ledger (`issue #71 closed:`) but its status IS
+  # closed, so no finding fires for it.
   [[ "$output" != *tkt-71-cancel-ok* ]]
 }
 
@@ -247,4 +251,93 @@ setup_file() {
   [ "$status" -eq 0 ]
   [[ "$output" == *binder_github_malformed* ]]
   [[ "$output" == *tkt-208-pending-url* ]]
+}
+
+# tkt-151: Spec/Review/coupled-ticket/Finish-evidence state invariants.
+
+@test "spec done with open non-deferred acceptance fails" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *spec_done_open_acceptance* ]]
+  [[ "$output" == *spc-10-done-open* ]]
+}
+
+@test "unknown spec status fails" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *invalid_spec_status* ]]
+  [[ "$output" == *"'bogus'"* ]]
+  [[ "$output" == *spc-11-bad-status* ]]
+}
+
+@test "superseded spec without a valid link fails" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *spec_superseded_no_link* ]]
+  [[ "$output" == *spc-12-superseded-nolink* ]]
+}
+
+@test "terminal spec with contradictory display status fails (not warns)" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *spec_header_status_mismatch* ]]
+  [[ "$output" == *spc-13-done-stale-header* ]]
+  # Error-level (terminal), not a warning — the home fails.
+  [[ "$output" == *'"ok": false'* ]]
+}
+
+@test "unknown review status and outcome fail" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *invalid_review_status* ]]
+  [[ "$output" == *"'bogus'"* ]]
+  [[ "$output" == *rev-bad-status* ]]
+  [[ "$output" == *invalid_review_outcome* ]]
+  [[ "$output" == *rev-bad-outcome* ]]
+}
+
+@test "concluded review without exactly one valid outcome fails" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *concluded_review_no_outcome* ]]
+  [[ "$output" == *rev-no-outcome* ]]
+}
+
+@test "stuck without a valid wait_reason fails (missing and contradictory)" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *stuck_without_valid_wait_reason* ]]
+  [[ "$output" == *tkt-50-stuck-noreason* ]]
+  # Contradictory: stuck + a deferred reason (fuse-halt) must also fail.
+  [[ "$output" == *tkt-52-stuck-contradictory* ]]
+  [[ "$output" == *'fuse-halt'* ]]
+}
+
+@test "deferred without a valid reason fails" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *deferred_without_valid_reason* ]]
+  [[ "$output" == *tkt-51-deferred-noreason* ]]
+}
+
+@test "cancel Finish ledger with non-terminal status fails (A4)" {
+  run python3 "$VAL" --home "$FIX/spec-state-fail" --json
+  [ "$status" -eq 1 ]
+  [[ "$output" == *finish_without_terminal_status* ]]
+  [[ "$output" == *tkt-53-cancel-open* ]]
+}
+
+@test "spec-state pass home: done/deferred/superseded/locked, concluded reviews, coupled fields all clean" {
+  run python3 "$VAL" --home "$FIX/spec-state-pass" --json
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'"ok": true'* ]]
+  [[ "$output" == *'"warning_count": 0'* ]]
+  [[ "$output" != *spec_done_open_acceptance* ]]
+  [[ "$output" != *spec_header_status_mismatch* ]]
+  [[ "$output" != *spec_superseded_no_link* ]]
+  [[ "$output" != *invalid_review* ]]
+  [[ "$output" != *concluded_review_no_outcome* ]]
+  [[ "$output" != *stuck_without_valid_wait_reason* ]]
+  [[ "$output" != *deferred_without_valid_reason* ]]
+  [[ "$output" != *finish_without_terminal_status* ]]
 }

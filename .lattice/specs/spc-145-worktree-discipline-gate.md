@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: PreToolUse hard-enforcement stack for worktree discipline
 
 > **TL;DR:** Make worktree-vs-branch a machine-enforced gate (not self-enforced): PreToolUse hooks block raw branch creation / shippable writes on the main clone; non-standard flows require user authorization + an agent second confirmation, routed through the audited `--reason` escape.
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P1
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P1
 > **Path:** spc-145 → ADR-006 → tkt-… → pr-…
 
 ## Why
