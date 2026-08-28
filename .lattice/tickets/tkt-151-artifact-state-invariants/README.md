@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-151-artifact-state-invariants` |
 | worktree | sibling `…/lattice.worktrees/tkt-151-artifact-state-invariants/` |
-| prs | (none) |
+| prs | pr-157 — https://github.com/percena/lattice/pull/157 |
 
 ## Acceptance
 
