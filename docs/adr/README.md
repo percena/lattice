@@ -9,3 +9,4 @@
 | [003](./003-review-code-extended-axes-and-solution-oriented-findings.md) | review-code skill — extended axes (CI/CD, syntax/lint, docs-sync, interface-impact) + solution-oriented findings | Accepted | — |
 | [004](./004-attention-contract-and-night-shift-delivery.md) | Attention contract and night-shift delivery laws | Accepted | — |
 | [005](./005-version-bump-at-release-boundary.md) | Version bump enforced at dev→main release boundary, not per-PR on dev | Proposed | — |
+| [006](./006-worktree-discipline-hard-enforcement.md) | Worktree discipline via PreToolUse hard enforcement (location gate + interactive-confirmation escape) | Accepted | — |
