@@ -11,7 +11,7 @@ summary: "Three-layer physical enforcement (git hook + assert hardening + Write 
 created: 2026-08-28
 updated: 2026-08-28
 tickets: [tkt-146, tkt-147, tkt-148]
-prs: []
+prs: [pr-154]
 reviews: []
 supersedes: []
 superseded_by: null

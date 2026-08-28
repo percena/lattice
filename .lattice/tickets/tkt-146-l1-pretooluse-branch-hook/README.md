@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-147, tkt-148 (same PR) |
 | **worktree_bind** | `spc-145-worktree-discipline-gate` (one-PR serial; rebinding to tkt-146 optional) |
 | worktree | sibling `…/lattice.worktrees/spc-145-worktree-discipline-gate/` |
-| prs | (none yet) |
+| prs | pr-154 — https://github.com/percena/lattice/pull/154 |
 
 ## Acceptance (this slice)
 
