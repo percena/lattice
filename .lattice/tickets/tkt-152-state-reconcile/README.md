@@ -19,7 +19,7 @@
 | covers | A1, A2, A3, A4, A5 |
 | blocked_by | #150, #151 |
 | parallel_group | G2 |
-| paths | new skills/_lattice-lib/scripts reconciliation helper and tests; tools/ci-local.sh or documented entry point; recovery docs |
+| paths | skills/_lattice-lib/scripts/reconcile-state.sh; skills/_lattice-lib/scripts/tests/reconcile-state.bats; docs/morning-triage.md; skills/finish-work/references/flow.md; tools/ci-local.sh (only if a credential-free mode is wired) |
 | solo_merge | yes after blockers land |
 | **primary_ticket** | tkt-152 |
 | **related_tickets** | (none) |

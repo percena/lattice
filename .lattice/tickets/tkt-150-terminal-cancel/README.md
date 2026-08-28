@@ -19,7 +19,7 @@
 | covers | A1, A2, A3, A4, A5 |
 | blocked_by | (none) |
 | parallel_group | G1 |
-| paths | skills/_lattice-lib/scripts/finish-ledger.sh; finish-ledger Bats; cancel workflow docs |
+| paths | skills/_lattice-lib/scripts/finish-ledger.sh; skills/_lattice-lib/scripts/tests/finish-ledger.bats; skills/finish-work/SKILL.md; skills/finish-work/references/flow.md; skills/start-work/SKILL.md; docs/morning-triage.md; docs/workflow-fsm.md |
 | solo_merge | yes |
 | **primary_ticket** | tkt-150 |
 | **related_tickets** | (none) |

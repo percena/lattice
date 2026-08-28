@@ -19,7 +19,7 @@
 | covers | A1, A2, A3, A4, A5, A6, A7 |
 | blocked_by | (none) |
 | parallel_group | G1 |
-| paths | tools/validate-lattice-artifacts.py; tools/tests/lattice-artifacts.bats; validator fixtures; .lattice/specs/**; skills/batch-work/** wording |
+| paths | tools/validate-lattice-artifacts.py; tools/tests/lattice-artifacts.bats; tools/tests/fixtures/lattice-artifacts/**; skills/create-tickets/references/templates/ticket-binder.md; .lattice/specs/**; skills/batch-work/SKILL.md; skills/batch-work/references/flow.md |
 | solo_merge | yes |
 | **primary_ticket** | tkt-151 |
 | **related_tickets** | (none) |
