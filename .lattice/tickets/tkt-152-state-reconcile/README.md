@@ -29,11 +29,11 @@
 
 ## Acceptance
 
-- [ ] **A1** Reconciled fixtures return `ok:true`; each drift class returns `ok:false` with stable reason codes and affected ids.
-- [ ] **A2** GitHub unavailable/unauthorized is `unknown` and nonzero, never a false clean result.
-- [ ] **A3** The helper is read-only and repository-identity-bound; tests prove it performs no GitHub or binder mutation.
-- [ ] **A4** Morning triage and finish recovery docs name the check and manual recovery route.
-- [ ] **A5** Full `bash tools/ci-local.sh` passes.
+- [x] **A1** Reconciled fixtures return `ok:true`; each drift class returns `ok:false` with stable reason codes and affected ids.
+- [x] **A2** GitHub unavailable/unauthorized is `unknown` and nonzero, never a false clean result.
+- [x] **A3** The helper is read-only and repository-identity-bound; tests prove it performs no GitHub or binder mutation.
+- [x] **A4** Morning triage and finish recovery docs name the check and manual recovery route.
+- [x] **A5** Full `bash tools/ci-local.sh` passes.
 
 ## Approach
 
@@ -50,6 +50,10 @@
 - CI integration — disposition: agent-decides; default to an explicit operator/recovery check unless live GitHub credentials are intentionally available.
 
 ## Decision journal
+
+- 2026-08-28 — Helper name: `reconcile-state.sh` (follows `verb-noun.sh` sibling convention in `_lattice-lib/scripts/`). JSON schema: `{ok, result:"ok"|"drift"|"unknown", binder, ticket, repo, status, issue, prs, finish_ledger, drifts:[{code, detail, ids}], read_only:true}`. Exit codes: 0 ok, 1 drift, 2 unknown/usage (mirrors alignment-check.sh). [agent-decides — resolved]
+- 2026-08-28 — CI integration: NOT wired into `tools/ci-local.sh` as a step. The script requires live GitHub credentials (gh auth + network); ci-local.sh is credential-free. The bats suite (24 tests using fake gh) IS run by ci-local.sh's existing bats discovery. The optional credential-free entry point was deemed inappropriate — reconciliation by definition needs GitHub state. [agent-decides — resolved]
+- 2026-08-28 — Repo identity for web URLs: added `repo_identity_from_web_url()` alongside `repo_identity_from_url()` (git origin). GitHub issue/PR URLs carry extra path segments (`/issues/7`, `/pull/12`) beyond owner/repo; the git-origin resolver expects exactly 2 segments. The web-URL resolver takes the first 2 path segments. [discovered during implementation]
 
 ## Pending decisions
 

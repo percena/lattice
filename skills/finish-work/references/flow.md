@@ -15,6 +15,7 @@ Labels: **INVARIANT** · **DEFAULT** · **HINT**.
 - [2.5 Artifact alignment (INVARIANT before merge)](#25-artifact-alignment-invariant-before-merge)
 - [2.6 Land-time Spec drift (INVARIANT when Spec applies)](#26-land-time-spec-drift-invariant-when-spec-applies)
 - [2.7 Mini-review scan (DEFAULT-on, advice-only — embedded)](#27-mini-review-scan-default-on-advice-only--embedded)
+- [2.8 Cross-system state reconciliation (interrupted recovery)](#28-cross-system-state-reconciliation-interrupted-recovery)
 - [3. Merge or close](#3-merge-or-close)
 - [3.4 Sequential merge queue (DEFAULT when landing a queue of PRs)](#34-sequential-merge-queue-default-when-landing-a-queue-of-prs)
 - [3.5 Close Fixes issues (mandatory after successful **merge**)](#35-close-fixes-issues-mandatory-after-successful-merge)
@@ -199,6 +200,27 @@ A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratif
 - Do **not** widen to whole-repo architecture or drive-by refactors.
 - Do **not** persist findings (PR comment / `rev`) — that stays in `/review-code` full skill.
 - The standalone `/review-code` skill remains the full-function superset (full axes, 4-question bar, Confidence field, persistence, 5-mode target resolution, hard-stop-for-fixes) for pre-`create-pr` or dedicated review passes.
+
+## 2.8 Cross-system state reconciliation (interrupted recovery)
+
+When a batch was interrupted (fuse-halt, crash, manual abort), binder state may drift from what GitHub actually shows — a `pr-open` binder whose PR was already merged, a `closed` issue with a still-working binder, or a `pr-open` with no resolvable PR. The read-only `reconcile-state.sh` helper detects this drift before merge so the operator can recover manually:
+
+```bash
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+[[ "$SKILL_ROOT" = /* && -f "$SKILL_ROOT/SKILL.md" ]] || { echo "Error: resolve the active SKILL.md directory to absolute LATTICE_SKILL_ROOT" >&2; exit 1; }
+bash "$SKILL_ROOT/../_lattice-lib/scripts/reconcile-state.sh" \
+  --binder .lattice/tickets/tkt-N-slug/README.md [--json]
+```
+
+| Result | Action |
+| --- | --- |
+| `ok:true` (exit 0) | No drift — proceed to §3 merge |
+| `ok:false` (exit 1) | Drift detected — manually update binder (status/prs/Finish ledger) or GitHub (close issue/merge PR), then re-run |
+| `result:unknown` (exit 2) | GitHub unreachable (auth/network) — do not assume clean; fix credentials/network and re-run |
+
+The check is **read-only**: it performs no `gh issue edit/close/create`, no `gh pr edit/close/merge`, and no binder mutation. It is not a merge gate — the HARD gate stays `alignment-check.sh` (§2.5). Use it when an interrupted workflow may have left cross-system state inconsistent.
+
+See `docs/morning-triage.md` Step 5.5 for the full manual recovery route.
 
 ## 3. Merge or close
 
