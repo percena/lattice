@@ -427,14 +427,33 @@ if $ADOPTED; then
   # Adopted / hand-created issue bodies are append-only: ONE comment, deduped
   # by a hidden marker so re-runs post nothing.
   MARKER="<!-- lattice:stamp-pr-open pr-$PR_N -->"
-  COMMENTS_JSON=$(gh issue view "$ISSUE_M" ${GH_ARGS[@]+"${GH_ARGS[@]}"} --json comments 2>/dev/null || true)
-  if [[ -n "$COMMENTS_JSON" ]] && printf '%s' "$COMMENTS_JSON" | MARKER="$MARKER" python3 -c '
+  # Dedup reads fail CLOSED: if gh errors or returns unparseable JSON we must
+  # not post blind — a duplicate comment breaks the "re-runs post nothing"
+  # contract above. Skip posting with a warning; the PR flow itself stays
+  # unblocked (exit 0) per the decision-policy note at the top of this block.
+  # (Known window: gh returns only the ~100 latest comments, so a marker older
+  # than that still re-posts — acceptable; transient-error dupes were the
+  # common case and are now closed.)
+  if ! COMMENTS_JSON=$(gh issue view "$ISSUE_M" ${GH_ARGS[@]+"${GH_ARGS[@]}"} --json comments 2>/dev/null) \
+    || [[ -z "$COMMENTS_JSON" ]]; then
+    echo "stamp-pr-open: WARNING — could not read issue #$ISSUE_M comments for dedup; comment post skipped (fail-closed: re-run once gh recovers)" >&2
+    exit 0
+  fi
+  DEDUP_RC=0
+  printf '%s' "$COMMENTS_JSON" | MARKER="$MARKER" python3 -c '
 import json, os, sys
-d = json.load(sys.stdin)
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(2)
 marker = os.environ["MARKER"]
 sys.exit(0 if any(marker in (c.get("body") or "") for c in d.get("comments") or []) else 1)
-'; then
+' || DEDUP_RC=$?
+  if [[ "$DEDUP_RC" -eq 0 ]]; then
     echo "stamp-pr-open: issue #$ISSUE_M already carries the pr-$PR_N comment (idempotent)"
+    exit 0
+  elif [[ "$DEDUP_RC" -eq 2 ]]; then
+    echo "stamp-pr-open: WARNING — issue #$ISSUE_M comments JSON unparseable; comment post skipped (fail-closed)" >&2
     exit 0
   fi
   {

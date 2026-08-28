@@ -18,11 +18,14 @@
 # Options:
 #   --from-heads        pre-merge mode: for each ticket with an OPEN PR (number
 #                       from the binder prs row, else the gh search fallback),
-#                       `git fetch origin <headRef>` and read the binder from
-#                       `FETCH_HEAD:<binder path>` — stamped state (pr-open,
-#                       journals) lives on unmerged PR heads. Falls back to the
-#                       local file when the head is unavailable; each ticket's
-#                       manifest entry marks its source (`local` vs `head:pr-N`).
+#                       fetch the head into a per-process ref
+#                       (refs/lattice-review-ctx/<pid>/pr-N — FETCH_HEAD is
+#                       shared across worktrees and races under batch-work)
+#                       and read the binder from `<tmpref>:<binder path>` —
+#                       stamped state (pr-open, journals) lives on unmerged PR
+#                       heads. Falls back to the local file when the head is
+#                       unavailable; each ticket's manifest entry marks its
+#                       source (`local` vs `head:pr-N`).
 #
 # Output (stdout): a Markdown manifest — chosen over JSON because the consumer
 # is an LLM reviewer and the format stays grep-able/diff-able like every other
@@ -35,9 +38,9 @@
 #                          candidates; feed review-delivery findings)
 #
 # Contract:
-#   - READ-ONLY: never writes or mutates repo files. (`--from-heads` runs
-#     `git fetch origin <ref>`, which only refreshes FETCH_HEAD — no worktree,
-#     branch, or artifact is touched.)
+#   - READ-ONLY: never writes or mutates repo files. (`--from-heads` fetches
+#     into a per-process temp ref that is deleted before return — no worktree,
+#     branch, FETCH_HEAD consumers, or artifact is touched.)
 #   - Fail loud (exit 1) on: missing spec file, spec with no tickets, missing
 #     binder for any requested ticket, missing batch report.
 #   - gh PR lookup is best-effort fallback ONLY when the binder `prs` row is
@@ -288,9 +291,9 @@ command -v gh >/dev/null 2>&1 && GH_AVAILABLE=true
 
 # --- --from-heads: read binder state from open PR heads -----------------------
 # Stamped state (pr-open, journals) lives on unmerged PR branches; pre-merge,
-# the local binder under-reports evidence. `git fetch origin <headRef>` only
-# refreshes FETCH_HEAD (read-only for worktree + artifacts); the binder content
-# is read with `git show`, never a checkout.
+# the local binder under-reports evidence. Heads are fetched into per-process
+# refs (deleted after the read; read-only for worktree + artifacts); the binder
+# content is read with `git show`, never a checkout.
 HEADS_TMP=""
 if $FROM_HEADS; then
   HEADS_TMP="$(mktemp -d "${TMPDIR:-/tmp}/brc-heads.XXXXXX")"
@@ -340,9 +343,18 @@ print(d.get("state") or "-", d.get("headRefName") or "-")
   fi
   relpath="${b#"$REPO_ROOT"/}"
   snap="$HEADS_TMP/tkt-$id-head.md"
-  if git -C "$REPO_ROOT" fetch --quiet origin "$headref" 2>/dev/null \
-    && git -C "$REPO_ROOT" show "FETCH_HEAD:$relpath" >"$snap" 2>/dev/null; then
-    printf '%s\thead:pr-%s (%s)\n' "$snap" "$prn" "$headref"
+  # FETCH_HEAD lives in the common git dir shared by every worktree — a
+  # concurrent batch-work fetch could swap it between our fetch and show.
+  # Fetch into a per-process ref and read from that instead: no shared window.
+  tmpref="refs/lattice-review-ctx/$$/pr-$prn"
+  if git -C "$REPO_ROOT" fetch --quiet origin "$headref:$tmpref" 2>/dev/null; then
+    if git -C "$REPO_ROOT" show "$tmpref:$relpath" >"$snap" 2>/dev/null; then
+      git -C "$REPO_ROOT" update-ref -d "$tmpref" 2>/dev/null || true
+      printf '%s\thead:pr-%s (%s)\n' "$snap" "$prn" "$headref"
+    else
+      git -C "$REPO_ROOT" update-ref -d "$tmpref" 2>/dev/null || true
+      printf '%s\tlocal (show failed for pr-%s head %s)\n' "$b" "$prn" "$headref"
+    fi
   else
     printf '%s\tlocal (fetch/show failed for pr-%s head %s)\n' "$b" "$prn" "$headref"
   fi
