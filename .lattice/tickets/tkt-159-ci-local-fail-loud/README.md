@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/159 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,13 +25,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-159-ci-local-fail-loud` |
 | worktree | sibling `…/lattice.worktrees/tkt-159-ci-local-fail-loud/` |
-| prs | (none) |
+| prs | pr-166 — https://github.com/percena/lattice/pull/166 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Unresolvable `--base-ref` → plugin-versions step FAILs with explicit error and nonzero exit (never recorded as clean `skip`).
-- [ ] **A2** `--help` prints clean text (no shebang leak), fully documents `--release-check` and `--fast`, no mid-sentence truncation.
-- [ ] **A3** `tools/tests/ci-local.bats` covers arg parsing, the skip/fail distinction, and exit-code aggregation.
+- [x] **A1** Unresolvable `--base-ref` → plugin-versions step FAILs with explicit error and nonzero exit (never recorded as clean `skip`).
+- [x] **A2** `--help` prints clean text (no shebang leak), fully documents `--release-check` and `--fast`, no mid-sentence truncation.
+- [x] **A3** `tools/tests/ci-local.bats` covers arg parsing, the skip/fail distinction, and exit-code aggregation.
 
 ## Notes
 
