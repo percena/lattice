@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/174 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,7 +25,7 @@
 | **related_tickets** | tkt-155 (original PR #173) |
 | **worktree_bind** | `tkt-174-fix-tkt-pending-dir-recognition` |
 | worktree | sibling `…/lattice.worktrees/tkt-174-fix-tkt-pending-dir-recognition/` |
-| prs | (none) |
+| prs | pr-177 — https://github.com/percena/lattice/pull/177 |
 
 ## Acceptance (this slice)
 
