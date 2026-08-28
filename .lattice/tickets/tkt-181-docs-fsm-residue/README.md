@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/181 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,12 +25,12 @@
 | **related_tickets** | tkt-161 |
 | **worktree_bind** | `tkt-181-docs-fsm-residue` |
 | worktree | sibling `…/lattice.worktrees/tkt-181-docs-fsm-residue/` |
-| prs | (none) |
+| prs | pr-183 — https://github.com/percena/lattice/pull/183 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** morning-triage Step 4 describes current behavior (deferred stamped at trip time; human step is re-queue/cancel review); no "Known gap (FSM-2)" future-tense block; summary/recipe-table/NOT-do rows consistent.
-- [ ] **A2** batch-work SKILL.md contract count is "five" everywhere (consistent with the invariants table + contract section + flow.md template).
+- [x] **A1** morning-triage Step 4 describes current behavior (deferred stamped at trip time; human step is re-queue/cancel review); no "Known gap (FSM-2)" future-tense block; summary/recipe-table/NOT-do rows consistent.
+- [x] **A2** batch-work SKILL.md contract count is "five" everywhere (consistent with the invariants table + contract section + flow.md template).
 
 ## Notes
 
