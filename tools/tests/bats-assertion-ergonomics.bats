@@ -62,3 +62,26 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'files clean'
 }
+
+@test "guard ignores heredoc-embedded fixtures but still flags real violations" {
+  cat >"$FIX/with-heredoc.bats" <<'EOF'
+@test "embeds fixtures" {
+  cat >"$T/inner.bats" <<'INNER'
+@test "inner" {
+  [[ "$output" == *"not a real assertion"* ]]
+  ! grep -q nothing /dev/null
+}
+INNER
+  run true
+  [ "$status" -eq 0 ]
+}
+EOF
+  # heredoc body must not be flagged → clean file passes
+  run python3 "$CHECKER" "$FIX/with-heredoc.bats"
+  [ "$status" -eq 0 ]
+  # same file plus one REAL banned line outside the heredoc → flagged
+  printf '  [[ "$output" == *"real violation"* ]]\n' >>"$FIX/with-heredoc.bats"
+  run python3 "$CHECKER" "$FIX/with-heredoc.bats"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF 'bare [[ ]] assertion'
+}
