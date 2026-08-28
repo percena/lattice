@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/184 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,12 +25,12 @@
 | **related_tickets** | tkt-167 |
 | **worktree_bind** | `tkt-184-bats-guard-heredoc-aware` |
 | worktree | sibling `…/lattice.worktrees/tkt-184-bats-guard-heredoc-aware/` |
-| prs | (none) |
+| prs | pr-185 — https://github.com/percena/lattice/pull/185 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Checker skips heredoc bodies (`<<TAG` / `<<-TAG`, quoted or unquoted delimiters).
-- [ ] **A2** Regression test: heredoc-embedded banned forms are NOT flagged; a real banned line still is. ci-local green on dev.
+- [x] **A1** Checker skips heredoc bodies (`<<TAG` / `<<-TAG`, quoted or unquoted delimiters).
+- [x] **A2** Regression test: heredoc-embedded banned forms are NOT flagged; a real banned line still is. ci-local green on dev.
 
 ## Notes
 
