@@ -39,8 +39,8 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run bash -c "cd '$MAIN' && PATH='$TEST_DIR/bin:$PATH' python3 '$REVIEW_CONTEXT' --branch HEAD"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'- Base: `origin/dev`'* ]]
-  [[ "$output" == *'- Has changes: `no`'* ]]
+  printf '%s\n' "$output" | grep -qF -- '- Base: `origin/dev`'
+  printf '%s\n' "$output" | grep -qF -- '- Has changes: `no`'
 }
 
 @test "explicit base still wins over GitHub metadata" {
@@ -51,8 +51,8 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run bash -c "cd '$MAIN' && PATH='$TEST_DIR/bin:$PATH' python3 '$REVIEW_CONTEXT' --branch HEAD --base origin/main"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'- Base: `origin/main`'* ]]
-  [[ "$output" == *'- Has changes: `yes`'* ]]
+  printf '%s\n' "$output" | grep -qF -- '- Base: `origin/main`'
+  printf '%s\n' "$output" | grep -qF -- '- Has changes: `yes`'
 }
 
 @test "--pr without gh on PATH is a clean error, not a traceback" {
@@ -62,9 +62,9 @@ EOF
   ln -s "$(command -v python3)" "$NOGH/python3"
   run bash -c "cd '$MAIN' && PATH='$NOGH' python3 '$REVIEW_CONTEXT' --pr 5"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Error: gh pr view 5"* ]]
-  [[ "$output" == *"gh is not available"* ]]
-  [[ "$output" != *"Traceback"* ]]
+  printf '%s\n' "$output" | grep -qF "Error: gh pr view 5"
+  printf '%s\n' "$output" | grep -qF "gh is not available"
+  [ -z "$(printf '%s\n' "$output" | grep -F "Traceback")" ]
 }
 
 @test "configured base wins over GitHub metadata" {
@@ -77,6 +77,6 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run bash -c "cd '$MAIN' && PATH='$TEST_DIR/bin:$PATH' python3 '$REVIEW_CONTEXT' --branch HEAD"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'- Base: `origin/main`'* ]]
-  [[ "$output" == *'- Has changes: `yes`'* ]]
+  printf '%s\n' "$output" | grep -qF -- '- Base: `origin/main`'
+  printf '%s\n' "$output" | grep -qF -- '- Has changes: `yes`'
 }

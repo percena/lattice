@@ -159,11 +159,11 @@ Fixes #30" "$HEAD"
   make_coherent_lifecycle
   run bash "$ALIGN" --pr 42
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ok=True"* ]]
-  [[ "$output" == *"hard=0"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=True"
+  printf '%s\n' "$output" | grep -qF "hard=0"
   # linkage actually resolved (not a vacuous pass)
-  [[ "$output" == *"issues [30]"* ]]
-  [[ "$output" == *"binders 1"* ]]
+  printf '%s\n' "$output" | grep -qF "issues [30]"
+  printf '%s\n' "$output" | grep -qF "binders 1"
 }
 
 @test "A4: breaking the issue<->diff edge fails alignment (not a no-op gate)" {
@@ -174,8 +174,8 @@ Fixes #30" "$HEAD"
   run bash "$ALIGN" --pr 42
   echo "$output"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"ok=False"* ]]
-  [[ "$output" == *"open Acceptance"* ]] || [[ "$output" == *"HARD"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=False"
+  printf '%s\n' "$output" | grep -qF "open Acceptance" || printf '%s\n' "$output" | grep -qF "HARD"
 }
 
 @test "A1/A3: finish stage closes Fixes issue then cleans up (JSON contract)" {
@@ -189,7 +189,7 @@ Fixes #30" "$HEAD"
   run bash "$CLOSE" --pr 42 --expected-closing-ids 30
   echo "$output"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"status: ok"* ]]
+  printf '%s\n' "$output" | grep -qF "status: ok"
   [ "$(cat "$GH_ISSUE_STATE_FILE")" == "CLOSED" ]
 
   # cleanup-workspace: worktree + local branch removed; JSON contract present.
@@ -199,5 +199,5 @@ Fixes #30" "$HEAD"
   json=$(printf '%s\n' "$output" | grep '^{' | tail -1)
   echo "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] is True, d; assert d["removed_worktree"] is True, d; assert d["deleted_local_branch"] is True, d'
   [ ! -d "$WT" ]
-  ! git -C "$MAIN" show-ref --verify --quiet "refs/heads/$HEAD"
+  if git -C "$MAIN" show-ref --verify --quiet "refs/heads/$HEAD"; then false; fi
 }

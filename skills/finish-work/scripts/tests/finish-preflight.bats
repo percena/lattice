@@ -69,13 +69,13 @@ EOF
 @test "update-pr-base --help" {
   run bash "$UPDATE" --help
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Usage"* ]]
+  printf '%s\n' "$output" | grep -qF "Usage"
 }
 
 @test "alignment-check --help" {
   run bash "$ALIGN" --help
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Usage"* ]]
+  printf '%s\n' "$output" | grep -qF "Usage"
 }
 
 # --- --rebase path against a real origin (stubbed gh, no network) ---
@@ -141,7 +141,7 @@ teardown() {
   cd "$LOCAL"
   run bash "$UPDATE" --pr 1 --rebase
   [ "$status" -eq 1 ]
-  [[ "$output" == *"stale_local_diverged"* ]]
+  printf '%s\n' "$output" | grep -qF "stale_local_diverged"
   after=$(git -C "$SEED" ls-remote origin feat-x | cut -f1)
   # remote tip unchanged: remote-only commit still present
   [ "$after" = "$before" ]
@@ -153,7 +153,7 @@ teardown() {
   export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"dev","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"release","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "head_is_default"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "head_is_default"'
 }
 
 @test "rebase rejects non-default long-lived head main when default is dev" {
@@ -162,8 +162,8 @@ teardown() {
   export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"main","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "head_is_long_lived"'* ]]
-  [[ "$output" == *'"head": "main"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "head_is_long_lived"'
+  printf '%s\n' "$output" | grep -qF '"head": "main"'
 }
 
 @test "rebase rejects conventional long-lived head release when default is dev" {
@@ -172,8 +172,8 @@ teardown() {
   export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"release","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "head_is_long_lived"'* ]]
-  [[ "$output" == *'"head": "release"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "head_is_long_lived"'
+  printf '%s\n' "$output" | grep -qF '"head": "release"'
 }
 
 @test "rebase rejects a fork head even when its short branch name exists upstream" {
@@ -181,8 +181,8 @@ teardown() {
   export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"contributor/repo"},"isCrossRepository":true,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "fork_head"'* ]]
-  [[ "$output" == *'contributor/repo'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "fork_head"'
+  printf '%s\n' "$output" | grep -qF 'contributor/repo'
 }
 
 @test "rebase rejects when git origin is not the GitHub repository being reviewed" {
@@ -191,8 +191,8 @@ teardown() {
   cd "$LOCAL"
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "origin_repository_mismatch"'* ]]
-  [[ "$output" == *'someone-else/repo'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "origin_repository_mismatch"'
+  printf '%s\n' "$output" | grep -qF 'someone-else/repo'
 }
 
 @test "rebase rejects when origin pushurl targets a different repository" {
@@ -202,8 +202,8 @@ teardown() {
   cd "$LOCAL"
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "origin_repository_mismatch"'* ]]
-  [[ "$output" == *'"originPushRepository": "push-target/repo"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "origin_repository_mismatch"'
+  printf '%s\n' "$output" | grep -qF '"originPushRepository": "push-target/repo"'
 }
 
 @test "rebase refuses when fetched head no longer matches the PR head OID" {
@@ -212,7 +212,7 @@ teardown() {
   cd "$LOCAL"
   run bash "$UPDATE" --pr 1 --rebase
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "head_oid_changed"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "head_oid_changed"'
 }
 
 @test "update-branch permission errors are never accepted as noop" {
@@ -221,8 +221,8 @@ teardown() {
   export GH_UPDATE_OUTPUT="GraphQL: Cannot update branch: update branch permission denied"
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "update_failed"'* ]]
-  [[ "$output" != *'"ok": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "update_failed"'
+  [ -z "$(printf '%s\n' "$output" | grep -F '"ok": true')" ]
 }
 
 @test "update-branch fails when refreshed state remains behind" {
@@ -230,7 +230,7 @@ teardown() {
   export GH_POST_JSON='{"headRefOid":"3333333333333333333333333333333333333333","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND"}'
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "behind_after_update"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "behind_after_update"'
 }
 
 @test "already up-to-date state is a verified noop without calling update-branch" {
@@ -238,7 +238,7 @@ teardown() {
   export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","isDraft":false}'
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"action": "noop"'* ]]
+  printf '%s\n' "$output" | grep -qF '"action": "noop"'
   [ ! -e "$GH_UPDATE_CALLED_FILE" ]
 }
 
@@ -246,8 +246,8 @@ teardown() {
   setup_gh_stub
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"action": "update_branch"'* ]]
-  [[ "$output" == *'"mergeStateStatus": "CLEAN"'* ]]
+  printf '%s\n' "$output" | grep -qF '"action": "update_branch"'
+  printf '%s\n' "$output" | grep -qF '"mergeStateStatus": "CLEAN"'
   [ -e "$GH_UPDATE_CALLED_FILE" ]
   grep -q 'pullRequestId=PR_test' "$GH_UPDATE_ARGS_FILE"
   grep -q 'expectedHeadOid=1111111111111111111111111111111111111111' "$GH_UPDATE_ARGS_FILE"
@@ -258,7 +258,7 @@ teardown() {
   export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"UNKNOWN","mergeStateStatus":"UNKNOWN","isDraft":false}'
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "unverified_initial_mergeable"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "unverified_initial_mergeable"'
   [ ! -e "$GH_UPDATE_CALLED_FILE" ]
 }
 
@@ -267,7 +267,7 @@ teardown() {
   export GH_POST_JSON='{"headRefOid":"3333333333333333333333333333333333333333","mergeable":"UNKNOWN","mergeStateStatus":"CLEAN"}'
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason": "unverified_mergeable_after_update"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason": "unverified_mergeable_after_update"'
 }
 
 # --- interruption during rebase (real signal, not a simulated one) ---

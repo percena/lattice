@@ -50,15 +50,15 @@ MD
   run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
-  [[ "$output" == *"stamped"* ]]
+  printf '%s\n' "$output" | grep -qF "stamped"
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z — https://github.com/percena/lattice/pull/12" "$BINDER"
   grep -q "issue #7 closed: 2026-07-31T10:01:00Z — https://github.com/percena/lattice/issues/7" "$BINDER"
   # issue URL must not be doubled
-  ! grep -q "github.com/https://github.com" "$BINDER"
+  if grep -q "github.com/https://github.com" "$BINDER"; then false; fi
   grep -qE '\| status \| closed \|' "$BINDER"
   [ "$(grep -c '^## Finish' "$BINDER")" -eq 1 ]
-  ! grep -q '(none yet)' "$BINDER"
+  if grep -q '(none yet)' "$BINDER"; then false; fi
 }
 
 @test "idempotent: re-run does not duplicate the pr line" {
@@ -79,14 +79,14 @@ MD
   bash "$FL" --pr 12 --issue 7 --binder "$BINDER" \
     --merged-at 2026-07-31T11:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
   grep -q "pr-12 merged: 2026-07-31T11:00:00Z" "$BINDER"
-  ! grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
+  if grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"; then false; fi
 }
 
 @test "no binder file: skip with note, exit 0 (not a failure)" {
   run bash "$FL" --pr 12 --binder "$BINDER_DIR/nonexistent.md" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skip"* ]]
+  printf '%s\n' "$output" | grep -qF "skip"
 }
 
 @test "multiple PRs: appends to the same ## Finish (no second heading)" {
@@ -114,7 +114,7 @@ MD
   run bash "$FL" --pr 12 --binder "$BINDER" --pr-state CLOSED
   [ "$status" -eq 0 ]
   grep -q "pr-12 closed without merge" "$BINDER"
-  ! grep -q "pr-12 merged" "$BINDER"
+  if grep -q "pr-12 merged" "$BINDER"; then false; fi
   # no merge happened, so the ticket is not silently marked closed
   grep -qE '\| status \| open \|' "$BINDER"
 }
@@ -133,7 +133,7 @@ MD
   write_fresh_binder
   run bash "$FL" --pr 12 --binder "$BINDER" --pr-state OPEN
   [ "$status" -eq 1 ]
-  [[ "$output" == *"still OPEN"* ]]
+  printf '%s\n' "$output" | grep -qF "still OPEN"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -156,7 +156,7 @@ MD
   done
   # Locking must not leave repository-visible sidecars or atomic-write temps.
   run bash -c "ls -A '$BINDER_DIR' | grep -cE '\.(lock|tmp)$' || true"
-  [[ "$output" == "0" ]]
+  [ "$output" = "0" ]
 }
 
 @test "refuses a non-numeric --pr (URL from prose would stamp another repo)" {
@@ -164,7 +164,7 @@ MD
   run bash "$FL" --pr "https://github.com/attacker/repo/pull/1" --binder "$BINDER" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--pr must be a positive GitHub PR number"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--pr must be a positive GitHub PR number"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -173,12 +173,12 @@ MD
   run bash "$FL" --pr 12 --issue "7 --repo other/repo" --binder "$BINDER" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--issue must be a positive GitHub issue number"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--issue must be a positive GitHub issue number"
 
   run bash "$FL" --pr 12 --binder "$BINDER" --repo "owner/repo/../../x" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--repo must be owner/name"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--repo must be owner/name"
 }
 
 @test "refuses a symlinked binder pointing outside .lattice" {
@@ -189,7 +189,7 @@ MD
   run bash "$FL" --pr 12 --binder "$BINDER_DIR/link.md" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"symlinked binder path component"* ]]
+  printf '%s\n' "$output" | grep -qF "symlinked binder path component"
   [ "$(cat "$secret")" = "do not touch" ]
 }
 
@@ -198,7 +198,7 @@ MD
   printf '# repo readme\n' >"$outside"
   run bash "$FL" --pr 12 --binder "$outside" --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must live under"* ]]
+  printf '%s\n' "$output" | grep -qF "must live under"
   [ "$(cat "$outside")" = "# repo readme" ]
 }
 
@@ -206,7 +206,7 @@ MD
   write_fresh_binder
   run bash "$FL" --pr 12 --binder "$BINDER" --merged-at null
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not an ISO-8601 timestamp"* ]]
+  printf '%s\n' "$output" | grep -qF "not an ISO-8601 timestamp"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -217,7 +217,7 @@ MD
   [ "$status" -eq 0 ]
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
   grep -qi "not closed" "$BINDER"
-  ! grep -q "closed: null" "$BINDER"
+  if grep -q "closed: null" "$BINDER"; then false; fi
   grep -qE '\| status \| open \|' "$BINDER"
 }
 
@@ -229,7 +229,7 @@ MD
   perms=$(ls -l "$BINDER" | cut -c1-10)
   [ "$perms" = "-rw-r-----" ]
   run bash -c "ls -A '$BINDER_DIR' | grep -c '^\.finish-ledger\.' || true"
-  [[ "$output" == "0" ]]
+  [ "$output" = "0" ]
 }
 
 @test "refuses to stamp a PR from a different repository into this binder" {
@@ -246,7 +246,7 @@ EOF
 
   run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --pr 12 --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -341,7 +341,7 @@ EOF
   git -C "$REPO" remote add origin https://github.com/owner-a/repo-a.git
   run bash "$FL" --pr 12 --binder "$BINDER" --repo owner-b/repo-b
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
 }
 
 @test "same owner/repo on a different GitHub host is still refused" {
@@ -357,9 +357,9 @@ EOF
   run env PATH="$TEST_DIR/bin:$PATH" GH_HOST=ghe.example.com \
     bash "$FL" --pr 12 --binder "$BINDER" --repo acme/repo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
-  [[ "$output" == *"github.com/acme/repo"* ]]
-  [[ "$output" == *"ghe.example.com/acme/repo"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
+  printf '%s\n' "$output" | grep -qF "github.com/acme/repo"
+  printf '%s\n' "$output" | grep -qF "ghe.example.com/acme/repo"
 }
 
 @test "--repo rejects traversal-shaped components" {
@@ -368,7 +368,7 @@ EOF
     run bash "$FL" --pr 12 --binder "$BINDER" --repo "$bad" --pr-state MERGED \
       --merged-at 2026-07-31T10:00:00Z
     [ "$status" -eq 2 ]
-    [[ "$output" == *"--repo must be owner/name"* ]]
+    printf '%s\n' "$output" | grep -qF -- "--repo must be owner/name"
   done
   # a real name that merely starts with a dot is still accepted
   run bash "$FL" --pr 12 --binder "$BINDER" --repo "owner/.github" --pr-state MERGED \
@@ -386,7 +386,7 @@ EOF
       --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
     [ "$status" -eq 0 ]
     grep -q '| prs | pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
-    ! grep -qF "$placeholder ·" "$BINDER"
+    if grep -qF "$placeholder ·" "$BINDER"; then false; fi
   done
 }
 
@@ -455,8 +455,8 @@ EOF
     grep -qE '\| status \| closed \|' "$BINDER"
     grep -q '^- cancelled: human cancel: wontfix — 2026-07-31T10:01:00Z' "$BINDER"
     # no fabricated PR evidence
-    ! grep -qE '^- pr-' "$BINDER"
-    ! grep -q 'merged' "$BINDER"
+    if grep -qE '^- pr-' "$BINDER"; then false; fi
+    if grep -q 'merged' "$BINDER"; then false; fi
     # prs row untouched (no PR URL, no warning fabricated into a row)
     grep -q '| prs | (none yet) |' "$BINDER"
   done
@@ -480,7 +480,7 @@ EOF
   grep -qE '\| status \| closed \|' "$BINDER"
   grep -q '^- cancelled: dup of #9' "$BINDER"
   grep -q '^- issue #7 closed: 2026-07-31T10:01:00Z — https://github.com/acme/repo/issues/7' "$BINDER"
-  ! grep -qE '^- pr-' "$BINDER"
+  if grep -qE '^- pr-' "$BINDER"; then false; fi
 }
 
 @test "cancel with an OPEN issue fails closed (no terminal evidence)" {
@@ -498,10 +498,10 @@ EOF
   run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "x" \
     --issue 7 --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"requires terminal evidence"* ]]
-  [[ "$output" == *"not closed"* ]]
+  printf '%s\n' "$output" | grep -qF "requires terminal evidence"
+  printf '%s\n' "$output" | grep -qF "not closed"
   # binder untouched — no cancel line, status still open
-  ! grep -q '^- cancelled:' "$BINDER"
+  if grep -q '^- cancelled:' "$BINDER"; then false; fi
   grep -qE '\| status \| open \|' "$BINDER"
 }
 
@@ -510,8 +510,8 @@ EOF
   # no origin → binder repo unresolved → gh not usable → issue cannot be verified
   run bash "$FL" --cancel --reason "x" --issue 7 --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"requires terminal evidence"* ]]
-  ! grep -q '^- cancelled:' "$BINDER"
+  printf '%s\n' "$output" | grep -qF "requires terminal evidence"
+  if grep -q '^- cancelled:' "$BINDER"; then false; fi
 }
 
 @test "cancel rejects --pr, missing --reason, and missing terminal evidence" {
@@ -519,19 +519,19 @@ EOF
   # --pr is forbidden on the no-PR cancel path
   run bash "$FL" --cancel --reason "x" --pr 5 --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"no-PR path"* ]]
+  printf '%s\n' "$output" | grep -qF "no-PR path"
   # --reason is required
   run bash "$FL" --cancel --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--cancel requires --reason"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--cancel requires --reason"
   # terminal evidence is required
   run bash "$FL" --cancel --reason "x" --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"requires terminal evidence"* ]]
+  printf '%s\n' "$output" | grep -qF "requires terminal evidence"
   # --pr-state/--merged-at forbidden on cancel
   run bash "$FL" --cancel --reason "x" --pr-state MERGED --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"no-PR path"* ]]
+  printf '%s\n' "$output" | grep -qF "no-PR path"
   # binder untouched across all
   grep -q '(none yet)' "$BINDER"
 }
@@ -543,10 +543,10 @@ EOF
   [ "$status" -eq 0 ]
   [ "$(grep -c '^- cancelled:' "$BINDER")" -eq 1 ]
   grep -q '^- cancelled: second — 2026-07-31T10:02:00Z' "$BINDER"
-  ! grep -q '^- cancelled: first' "$BINDER"
+  if grep -q '^- cancelled: first' "$BINDER"; then false; fi
   [ "$(grep -c '^## Finish' "$BINDER")" -eq 1 ]
   run bash -c "ls -A '$BINDER_DIR' | grep -cE '\.(lock|tmp)$' || true"
-  [[ "$output" == "0" ]]
+  [ "$output" = "0" ]
 }
 
 @test "merged from parked/stuck/deferred flips to closed and surfaces anomaly (A2)" {
@@ -576,7 +576,7 @@ EOF
     --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
   grep -q "pr-12 closed without merge" "$BINDER"
-  ! grep -q "pr-12 merged" "$BINDER"
+  if grep -q "pr-12 merged" "$BINDER"; then false; fi
   grep -qE '\| status \| closed \|' "$BINDER"
 }
 
@@ -619,7 +619,7 @@ PY
     --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 0 ]
   grep -q '| prs | (none yet) |' "$BINDER"
-  ! grep -qE '\| prs \| pr-12 \|' "$BINDER"
+  if grep -qE '\| prs \| pr-12 \|' "$BINDER"; then false; fi
 }
 
 @test "A3: garbage --closed-at on cancel path is rejected (ISO-8601 validation)" {
@@ -627,8 +627,8 @@ PY
   run bash "$FL" --cancel --reason "wontfix" --closed-at "garbage-not-a-timestamp" \
     --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must be an ISO-8601 timestamp"* ]]
+  printf '%s\n' "$output" | grep -qF "must be an ISO-8601 timestamp"
   # binder untouched
   grep -q '(none yet)' "$BINDER"
-  ! grep -q '^- cancelled:' "$BINDER"
+  if grep -q '^- cancelled:' "$BINDER"; then false; fi
 }

@@ -76,7 +76,7 @@ spc_out() {
   [[ "$stderr" == *"NOT team SoT"* ]] || [[ "$output" == *"NOT team SoT"* ]] || {
     # bats may merge streams depending on version — check full run output via re-run
     run bash -c "bash \"$NEXT_ID\" --kind spc --home \"$TEST_HOME\" 2>&1 >/dev/null"
-    [[ "$output" == *"NOT team SoT"* ]]
+    printf '%s\n' "$output" | grep -qF "NOT team SoT"
   }
 }
 
@@ -85,7 +85,7 @@ spc_out() {
 @test "rev allocates R1 UTC token matching YYYYMMDD-HHMMSSZ" {
   run bash "$NEXT_ID" --kind rev --home "$TEST_HOME" --claim
   [ "$status" -eq 0 ]
-  [[ "$output" =~ ^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$ ]]
+  printf '%s\n' "$output" | grep -qE '^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$'
   [ -d "$TEST_HOME/.ids/rev-${output}" ]
 }
 
@@ -105,7 +105,7 @@ spc_out() {
   run bash "$NEXT_ID" --kind rev --home "$TEST_HOME" --claim
   [ "$status" -eq 0 ]
   [ "$output" != "$tok" ]
-  [[ "$output" =~ ^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$ ]]
+  printf '%s\n' "$output" | grep -qE '^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$'
 }
 
 @test "invalid kind is rejected" {
@@ -124,6 +124,6 @@ spc_out() {
   unset LATTICE_HOME
   run bash "$NEXT_ID" --kind rev --claim
   [ "$status" -eq 0 ]
-  [[ "$output" =~ ^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$ ]]
+  printf '%s\n' "$output" | grep -qE '^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$'
   [ -d "$TEST_HOME/repo/.lattice/.ids/rev-${output}" ]
 }

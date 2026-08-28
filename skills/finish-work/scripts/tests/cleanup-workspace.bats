@@ -29,16 +29,16 @@ teardown() {
   # remote delete is default — no --delete-remote required
   run bash "$CLEANUP" --branch tkt-5-victim --dry-run
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"dry_run": true'* ]]
-  [[ "$output" == *"DRY:"* ]]
+  printf '%s\n' "$output" | grep -qF '"dry_run": true'
+  printf '%s\n' "$output" | grep -qF "DRY:"
   [ -d "$WT" ]
   git show-ref --verify --quiet refs/heads/tkt-5-victim
   # offline contract: the intended remote delete is logged, not probed
-  [[ "$output" == *"remote stays unprobed"* ]]
+  printf '%s\n' "$output" | grep -qF "remote stays unprobed"
   # must not claim the remote was deleted without ls-remote
-  [[ "$output" == *'"deleted_remote_branch": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": false'
   # fully merged tip may claim local delete intent
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
 }
 
 @test "dry-run does not claim local delete success for an unmerged unique tip" {
@@ -46,10 +46,10 @@ teardown() {
   git -C "$MAIN" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "main advance"
   run bash "$CLEANUP" --branch tkt-5-victim --keep-remote --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"dry_run": true'* ]]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
-  [[ "$output" == *'"ok": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"dry_run": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
+  printf '%s\n' "$output" | grep -qF '"ok": false'
   [ -d "$WT" ]
   git show-ref --verify --quiet refs/heads/tkt-5-victim
 }
@@ -58,11 +58,11 @@ teardown() {
   echo x >"$WT/dirty.txt"
   run bash "$CLEANUP" --branch tkt-5-victim --keep-remote --dry-run
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]]
-  [[ "$output" == *'"was_dirty": true'* ]]
-  [[ "$output" == *'"removed_worktree": false'* ]]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF '"was_dirty": true'
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": false'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
   [ -d "$WT" ]
   git show-ref --verify --quiet refs/heads/tkt-5-victim
 }
@@ -70,16 +70,16 @@ teardown() {
 @test "dry-run --delete-remote is a no-op alias for the default" {
   run bash "$CLEANUP" --branch tkt-5-victim --dry-run --delete-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *"remote stays unprobed"* ]]
-  [[ "$output" == *'"deleted_remote_branch": false'* ]]
+  printf '%s\n' "$output" | grep -qF "remote stays unprobed"
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": false'
 }
 
 @test "dry-run --keep-remote skips remote delete intent" {
   run bash "$CLEANUP" --branch tkt-5-victim --dry-run --keep-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"dry_run": true'* ]]
-  [[ "$output" != *"if remote branch exists"* ]]
-  [[ "$output" != *"git push origin --delete"* ]]
+  printf '%s\n' "$output" | grep -qF '"dry_run": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F "if remote branch exists")" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F "git push origin --delete")" ]
   [ -d "$WT" ]
   git show-ref --verify --quiet refs/heads/tkt-5-victim
 }
@@ -87,16 +87,16 @@ teardown() {
 @test "real run removes worktree and merged branch" {
   run bash "$CLEANUP" --branch tkt-5-victim --keep-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"removed_worktree": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": true'
   [ ! -d "$WT" ]
-  ! git show-ref --verify --quiet refs/heads/tkt-5-victim
+  if git show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
 }
 
 @test "refuses dirty worktree without --force" {
   echo x > "$WT/dirty.txt"
   run bash "$CLEANUP" --branch tkt-5-victim
   [ "$status" -eq 1 ]
-  [[ "$output" == *"dirty"* ]]
+  printf '%s\n' "$output" | grep -qF "dirty"
   [ -d "$WT" ]
 }
 
@@ -118,9 +118,9 @@ teardown() {
   tip=$(git -C "$WT" rev-parse HEAD)
   run bash "$CLEANUP" --branch tkt-5-victim --keep-worktree --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"branch that remains checked out"* ]]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
+  printf '%s\n' "$output" | grep -qF "branch that remains checked out"
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
   [ -d "$WT" ]
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
   [ "$(git -C "$WT" rev-parse HEAD)" = "$tip" ]
@@ -130,8 +130,8 @@ teardown() {
   tip=$(git -C "$WT" rev-parse HEAD)
   run bash "$CLEANUP" --branch tkt-5-victim --keep-worktree --keep-branch --keep-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": false'
   [ -d "$WT" ]
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
   [ "$(git -C "$WT" rev-parse HEAD)" = "$tip" ]
@@ -143,10 +143,10 @@ teardown() {
 
   run bash "$CLEANUP" --branch tkt-5-victim --worktree-path "$WT" --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"branch that remains checked out"* ]]
-  [[ "$output" == *'"removed_worktree": true'* ]]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
+  printf '%s\n' "$output" | grep -qF "branch that remains checked out"
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
   [ ! -d "$WT" ]
   [ -d "$SECOND_WT" ]
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
@@ -155,7 +155,7 @@ teardown() {
 @test "refuses to remove the main checkout" {
   run bash "$CLEANUP" --branch main --worktree-path "$MAIN"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing"
 }
 
 @test "worktree path containing spaces is found and removed" {
@@ -166,9 +166,9 @@ teardown() {
   [ -d "$SPACEY" ]
   run bash "$CLEANUP" --branch tkt-6-spacey
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"removed_worktree": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": true'
   [ ! -d "$SPACEY" ]
-  ! git show-ref --verify --quiet refs/heads/tkt-6-spacey
+  if git show-ref --verify --quiet refs/heads/tkt-6-spacey; then false; fi
 }
 
 @test "unmerged unique branch is preserved without force or merged PR proof" {
@@ -179,8 +179,8 @@ teardown() {
   git -C "$MAIN" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "main advance"
   run bash "$CLEANUP" --branch tkt-5-victim --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
   git show-ref --verify --quiet refs/heads/tkt-5-victim
 }
 
@@ -196,9 +196,9 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run env PATH="$TEST_DIR/bin:$PATH" bash "$CLEANUP" --branch tkt-5-victim --pr 42 --keep-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"merged_proof": true'* ]]
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
-  ! git show-ref --verify --quiet refs/heads/tkt-5-victim
+  printf '%s\n' "$output" | grep -qF '"merged_proof": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
+  if git show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
 }
 
 @test "merged PR name match without tip oid match preserves divergent local tip" {
@@ -216,10 +216,10 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run env PATH="$TEST_DIR/bin:$PATH" bash "$CLEANUP" --branch tkt-5-victim --pr 999 --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"merged_proof": false'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
-  [[ "$output" == *"local branch tip does not match PR #999 headRefOid"* ]]
+  printf '%s\n' "$output" | grep -qF '"merged_proof": false'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
+  printf '%s\n' "$output" | grep -qF "local branch tip does not match PR #999 headRefOid"
   git show-ref --verify --quiet refs/heads/tkt-5-victim
   [ "$(git rev-parse tkt-5-victim)" = "$new_oid" ]
 }
@@ -247,13 +247,13 @@ EOF
 
   run env PATH="$TEST_DIR/bin:$PATH" bash "$CLEANUP" --branch tkt-5-victim --pr 42
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"local_pr_proof": true'* ]]
-  [[ "$output" == *'"remote_pr_proof": false'* ]]
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
-  [[ "$output" == *'"deleted_remote_branch": false'* ]]
-  [[ "$output" == *'"remote_residual": true'* ]]
-  [[ "$output" == *'"ok": false'* ]]
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
+  printf '%s\n' "$output" | grep -qF '"local_pr_proof": true'
+  printf '%s\n' "$output" | grep -qF '"remote_pr_proof": false'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": false'
+  printf '%s\n' "$output" | grep -qF '"remote_residual": true'
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
   [ "$(git -C "$MAIN" ls-remote --heads origin tkt-5-victim | cut -f1)" = "$remote_oid" ]
 }
 
@@ -271,11 +271,11 @@ EOF
 
   run bash "$CLEANUP" --branch tkt-5-victim
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
-  [[ "$output" == *'"local_deleted_oid": "'"$local_oid"'"'* ]]
-  [[ "$output" == *'"deleted_remote_branch": false'* ]]
-  [[ "$output" == *'"remote_residual": true'* ]]
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
+  printf '%s\n' "$output" | grep -qF '"local_deleted_oid": "'"$local_oid"'"'
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": false'
+  printf '%s\n' "$output" | grep -qF '"remote_residual": true'
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
   [ "$(git -C "$MAIN" ls-remote --heads origin tkt-5-victim | cut -f1)" = "$remote_oid" ]
 }
 
@@ -288,14 +288,14 @@ EOF
 
   run bash "$CLEANUP" --branch tkt-5-victim
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
-  [[ "$output" == *'"local_deleted_oid": "'"$tip"'"'* ]]
-  [[ "$output" == *'"remote_delete_expected_oid": "'"$tip"'"'* ]]
-  [[ "$output" == *'"deleted_remote_branch": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
+  printf '%s\n' "$output" | grep -qF '"local_deleted_oid": "'"$tip"'"'
+  printf '%s\n' "$output" | grep -qF '"remote_delete_expected_oid": "'"$tip"'"'
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": true'
   json_line=$(printf '%s\n' "$output" | tail -1)
   printf '%s' "$json_line" | python3 -c 'import json,sys; raise SystemExit(0 if json.load(sys.stdin)["deleted_remote_branch"] is True else 1)'
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
-  ! git -C "$MAIN" ls-remote --exit-code --heads origin tkt-5-victim >/dev/null
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
+  if git -C "$MAIN" ls-remote --exit-code --heads origin tkt-5-victim >/dev/null; then false; fi
 }
 
 @test "runs from inside the target worktree: full cleanup including remote delete" {
@@ -311,12 +311,12 @@ EOF
   run bash "$CLEANUP" --branch tkt-5-victim
   cd "$MAIN"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"removed_worktree": true'* ]]
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
-  [[ "$output" == *'"deleted_remote_branch": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": true'
   [ ! -d "$WT" ]
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
-  ! git -C "$MAIN" ls-remote --exit-code --heads origin tkt-5-victim >/dev/null
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
+  if git -C "$MAIN" ls-remote --exit-code --heads origin tkt-5-victim >/dev/null; then false; fi
 }
 
 @test "remote-only exact merged PR head is deleted with its OID lease" {
@@ -339,13 +339,13 @@ EOF
 
   run env PATH="$TEST_DIR/bin:$PATH" bash "$CLEANUP" --branch tkt-5-victim --pr 42
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"remote_pr_proof": true'* ]]
-  [[ "$output" == *'"deleted_remote_branch": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"remote_pr_proof": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": true'
   json_line=$(printf '%s\n' "$output" | tail -1)
   printf '%s' "$json_line" | python3 -c 'import json,sys; raise SystemExit(0 if json.load(sys.stdin)["deleted_remote_branch"] is True else 1)'
   expected_oid=$(printf '%s' "$json_line" | python3 -c 'import json,sys; print(json.load(sys.stdin)["remote_delete_expected_oid"])')
   [ "$expected_oid" = "$tip" ]
-  ! git -C "$MAIN" ls-remote --exit-code --heads origin tkt-5-victim >/dev/null
+  if git -C "$MAIN" ls-remote --exit-code --heads origin tkt-5-victim >/dev/null; then false; fi
 }
 
 @test "remote lease preserves a ref advanced after proof" {
@@ -380,11 +380,11 @@ EOF
   run env PATH="$TEST_DIR/bin:$PATH" REAL_GIT="$real_git" REMOTE="$REMOTE" RACE_OID="$race_oid" \
     bash "$CLEANUP" --branch tkt-5-victim --pr 42
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"deleted_remote_branch": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": false'
   json_line=$(printf '%s\n' "$output" | tail -1)
   after_oid=$(printf '%s' "$json_line" | python3 -c 'import json,sys; print(json.load(sys.stdin)["remote_after_oid"])')
   [ "$after_oid" = "$race_oid" ]
-  [[ "$output" == *'"remote_residual": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"remote_residual": true'
   [ "$(git -C "$MAIN" ls-remote --heads origin tkt-5-victim | cut -f1)" = "$race_oid" ]
 }
 
@@ -415,9 +415,9 @@ EOF
   run env PATH="$TEST_DIR/bin:$PATH" REAL_GIT="$real_git" REMOTE="$REMOTE" RACE_OID="$race_oid" \
     COUNT_FILE="$TEST_DIR/ls-remote-count" bash "$CLEANUP" --branch tkt-5-victim
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"deleted_local_branch": true'* ]]
-  [[ "$output" == *'"deleted_remote_branch": false'* ]]
-  [[ "$output" == *'"remote_residual": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": true'
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": false'
+  printf '%s\n' "$output" | grep -qF '"remote_residual": true'
   json_line=$(printf '%s\n' "$output" | tail -1)
   after_oid=$(printf '%s' "$json_line" | python3 -c 'import json,sys; print(json.load(sys.stdin)["remote_after_oid"])')
   [ "$after_oid" = "$race_oid" ]
@@ -450,9 +450,9 @@ EOF
   run env PATH="$TEST_DIR/bin:$PATH" REAL_GIT="$real_git" MAIN="$MAIN" RACE_OID="$race_oid" \
     bash "$CLEANUP" --branch tkt-5-victim --pr 42 --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"deleted_local_branch": false'* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
-  [[ "$output" == *"local compare-and-delete failed"* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_local_branch": false'
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
+  printf '%s\n' "$output" | grep -qF "local compare-and-delete failed"
   [ "$(git -C "$MAIN" rev-parse tkt-5-victim)" = "$race_oid" ]
 }
 
@@ -466,7 +466,7 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run env PATH="$TEST_DIR/bin:$PATH" bash "$CLEANUP" --branch tkt-5-victim --pr 42 --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not a merged same-repository PR"* ]]
+  printf '%s\n' "$output" | grep -qF "not a merged same-repository PR"
   [ -d "$WT" ]
   git show-ref --verify --quiet refs/heads/tkt-5-victim
 }
@@ -474,7 +474,7 @@ EOF
 @test "refuses force-delete of protected branch name main" {
   run bash "$CLEANUP" --branch main --force --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"protected"* || "$output" == *"refusing"* ]]
+  printf '%s\n' "$output" | grep -qE 'protected|refusing'
 }
 
 @test "refuses remote-only protected branch deletion even with --force" {
@@ -483,11 +483,11 @@ EOF
   git -C "$MAIN" remote add origin "$REMOTE"
   git -C "$MAIN" push -q origin HEAD:dev
 
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/dev
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/dev; then false; fi
   run bash "$CLEANUP" --branch dev --force --keep-worktree
   [ "$status" -eq 1 ]
-  [[ "$output" == *"protected remote branch"* ]]
-  [[ "$output" == *'"unsafe_delete_blocked": true'* ]]
+  printf '%s\n' "$output" | grep -qF "protected remote branch"
+  printf '%s\n' "$output" | grep -qF '"unsafe_delete_blocked": true'
   git -C "$MAIN" ls-remote --exit-code --heads origin dev >/dev/null
 }
 
@@ -499,10 +499,10 @@ EOF
   mkdir -p "$MAIN/.lattice"
   printf '%s\n' 'base_branch: origin/release' >"$MAIN/.lattice/config.yaml"
 
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/release
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/release; then false; fi
   run bash "$CLEANUP" --branch release --force --keep-worktree
   [ "$status" -eq 1 ]
-  [[ "$output" == *"protected remote branch"* ]]
+  printf '%s\n' "$output" | grep -qF "protected remote branch"
   git -C "$MAIN" ls-remote --exit-code --heads origin release >/dev/null
 }
 
@@ -515,8 +515,8 @@ EOF
 
   run bash "$CLEANUP" --branch tkt-5-victim --keep-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"remote_residual": false'* ]]
-  [[ "$output" == *'"ok": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"remote_residual": false'
+  printf '%s\n' "$output" | grep -qF '"ok": true'
   [ "$(git -C "$MAIN" ls-remote --heads origin tkt-5-victim | cut -f1)" = "$remote_oid" ]
 }
 
@@ -529,11 +529,11 @@ EOF
 
   run bash "$CLEANUP" --branch tkt-5-victim --worktree-path "$OTHER_WT" --force --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"does not check out branch"* ]] || [[ "$output" == *"worktree_path_branch_mismatch"* ]]
-  [[ "$output" == *'"removed_worktree": false'* ]]
-  [[ "$output" == *'"worktree_identity_blocked": true'* ]]
-  [[ "$output" == *'"worktree_identity_reason": "worktree_path_branch_mismatch"'* ]]
-  [[ "$output" == *'"ok": false'* ]]
+  printf '%s\n' "$output" | grep -qF "does not check out branch" || printf '%s\n' "$output" | grep -qF "worktree_path_branch_mismatch"
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": false'
+  printf '%s\n' "$output" | grep -qF '"worktree_identity_blocked": true'
+  printf '%s\n' "$output" | grep -qF '"worktree_identity_reason": "worktree_path_branch_mismatch"'
+  printf '%s\n' "$output" | grep -qF '"ok": false'
   [ -d "$OTHER_WT" ]
   [ -d "$WT" ]
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
@@ -545,9 +545,9 @@ EOF
   mkdir -p "$FAKE"
   run bash "$CLEANUP" --branch tkt-5-victim --worktree-path "$FAKE" --force --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not a registered worktree"* ]]
-  [[ "$output" == *'"removed_worktree": false'* ]]
-  [[ "$output" == *'"worktree_identity_reason": "worktree_path_unregistered"'* ]]
+  printf '%s\n' "$output" | grep -qF "not a registered worktree"
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": false'
+  printf '%s\n' "$output" | grep -qF '"worktree_identity_reason": "worktree_path_unregistered"'
   [ -d "$FAKE" ]
   [ -d "$WT" ]
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
@@ -560,9 +560,9 @@ EOF
 
   run bash "$CLEANUP" --branch tkt-5-victim --worktree-path "$DETACHED_WT" --force --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"detached"* ]]
-  [[ "$output" == *'"removed_worktree": false'* ]]
-  [[ "$output" == *'"worktree_identity_reason": "worktree_path_detached"'* ]]
+  printf '%s\n' "$output" | grep -qF "detached"
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": false'
+  printf '%s\n' "$output" | grep -qF '"worktree_identity_reason": "worktree_path_detached"'
   [ -d "$DETACHED_WT" ]
   [ -d "$WT" ]
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-5-victim
@@ -571,10 +571,10 @@ EOF
 @test "matching explicit worktree path still removes the bound tree" {
   run bash "$CLEANUP" --branch tkt-5-victim --worktree-path "$WT" --keep-remote
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"removed_worktree": true'* ]]
-  [[ "$output" != *'"worktree_identity_blocked": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"removed_worktree": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F '"worktree_identity_blocked": true')" ]
   [ ! -d "$WT" ]
-  ! git show-ref --verify --quiet refs/heads/tkt-5-victim
+  if git show-ref --verify --quiet refs/heads/tkt-5-victim; then false; fi
 }
 
 # ============================================================
@@ -609,7 +609,7 @@ assert d['unsafe_delete_blocked'] is True, d
   cd "$MAIN/embedded"
   run bash "$CLEANUP" --branch main --keep-remote
   [ "$status" -eq 1 ]
-  [[ "$output" == *"git submodule"* ]]
+  printf '%s\n' "$output" | grep -qF "git submodule"
   assert_refusal_json "$output" "submodule_checkout"
 }
 
@@ -636,7 +636,7 @@ assert d['unsafe_delete_blocked'] is True, d
   done
   run env PATH="$NOGH_BIN" bash "$CLEANUP" --branch tkt-5-victim --keep-remote --pr 12
   [ "$status" -eq 1 ]
-  [[ "$output" == *"requires gh"* ]]
+  printf '%s\n' "$output" | grep -qF "requires gh"
   assert_refusal_json "$output" "gh_required_for_pr_verification"
 }
 
@@ -698,21 +698,21 @@ SHIMEOF
 
   run bash "$CLEANUP" --branch tkt-5-victim
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"deleted_remote_branch": true'* ]]
-  [[ "$output" == *'"remote_residual": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"deleted_remote_branch": true'
+  printf '%s\n' "$output" | grep -qF '"remote_residual": false'
   # the exact branch is gone; the tail-matching sibling is untouched
   run git -C "$MAIN" ls-remote --heads origin "refs/heads/tkt-5-victim"
   [ -z "$output" ]
   run git -C "$MAIN" ls-remote --heads origin "refs/heads/a/tkt-5-victim"
-  [[ "$output" == *"$decoy_oid"* ]]
+  printf '%s\n' "$output" | grep -qF "$decoy_oid"
 }
 
 @test "--branch refuses an option-shaped or malformed name" {
   run bash "$CLEANUP" --branch "--upload-pack=./x"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"not a valid git branch name"* ]]
+  printf '%s\n' "$output" | grep -qF "not a valid git branch name"
 
   run bash "$CLEANUP" --branch "bad..name"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"not a valid git branch name"* ]]
+  printf '%s\n' "$output" | grep -qF "not a valid git branch name"
 }

@@ -19,10 +19,10 @@ teardown() {
 @test "initializes missing skeleton + config" {
   run bash "$ENSURE" --root "$TEST_DIR/repo" --json
   [ "$status" -eq 0 ]
-  [[ -f "$TEST_DIR/repo/.lattice/config.yaml" ]]
-  [[ -d "$TEST_DIR/repo/.lattice/specs" ]]
-  [[ "$output" == *'"action": "initialized"'* ]] || [[ "$output" == *'"action":"initialized"'* ]]
-  [[ "$output" == *'"ready": true'* ]] || [[ "$output" == *'"ready":true'* ]]
+  [ -f "$TEST_DIR/repo/.lattice/config.yaml" ]
+  [ -d "$TEST_DIR/repo/.lattice/specs" ]
+  printf '%s\n' "$output" | grep -qF '"action": "initialized"' || printf '%s\n' "$output" | grep -qF '"action":"initialized"'
+  printf '%s\n' "$output" | grep -qF '"ready": true' || printf '%s\n' "$output" | grep -qF '"ready":true'
   grep -q 'profile: strict' "$TEST_DIR/repo/.lattice/config.yaml"
 }
 
@@ -31,7 +31,7 @@ teardown() {
   grep -q 'profile: light' "$TEST_DIR/repo/.lattice/config.yaml"
   run bash "$ENSURE" --root "$TEST_DIR/repo" --profile strict --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"action": "ready"'* ]] || [[ "$output" == *'"action":"ready"'* ]]
+  printf '%s\n' "$output" | grep -qF '"action": "ready"' || printf '%s\n' "$output" | grep -qF '"action":"ready"'
   grep -q 'profile: light' "$TEST_DIR/repo/.lattice/config.yaml"
 }
 
@@ -41,7 +41,7 @@ teardown() {
   bash "$ENSURE" --root "$TEST_DIR/repo" >/dev/null
   run bash "$ENSURE" --root "$TEST_DIR/repo" --check-only --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ready": true'* ]] || [[ "$output" == *'"ready":true'* ]]
+  printf '%s\n' "$output" | grep -qF '"ready": true' || printf '%s\n' "$output" | grep -qF '"ready":true'
 }
 
 @test "default write-gitignore appends once" {
@@ -62,8 +62,8 @@ teardown() {
   run bash "$ENSURE" --root "$TEST_DIR/repo" --json
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing symlinked managed path"* ]]
-  [[ "$output" == *"Lattice ensure failed"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing symlinked managed path"
+  printf '%s\n' "$output" | grep -qF "Lattice ensure failed"
   [ "$(cat "$TEST_DIR/victim/config.txt")" = "keep-me" ]
   [ ! -e "$TEST_DIR/repo/.lattice" ]
 }
@@ -73,7 +73,7 @@ teardown() {
   MISSING="$TEST_DIR/never-made"
   run bash "$ENSURE" --check-only --root "$MISSING"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not ready"* ]]
+  printf '%s\n' "$output" | grep -qF "not ready"
   [ ! -d "$MISSING" ]
 }
 
@@ -81,11 +81,11 @@ teardown() {
   run bash "$ENSURE" --root "$TEST_DIR/repo" --json
   [ "$status" -eq 0 ]
   PREFS="$TEST_DIR/repo/.lattice/preferences.md"
-  [[ -f "$PREFS" ]]
+  [ -f "$PREFS" ]
   grep -q '^## INVARIANT' "$PREFS"
   grep -q '^## DEFAULT' "$PREFS"
   grep -q '^## HINT' "$PREFS"
-  [[ "$output" == *'"created_preferences": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"created_preferences": true'
 }
 
 @test "second run never overwrites a user-modified preferences.md" {
@@ -94,7 +94,7 @@ teardown() {
   printf '# team law\n- DEFAULT: tabs are illegal (added 2026-08-26)\n' >"$PREFS"
   run bash "$ENSURE" --root "$TEST_DIR/repo" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"created_preferences": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"created_preferences": false'
   [ "$(cat "$PREFS")" = '# team law
 - DEFAULT: tabs are illegal (added 2026-08-26)' ]
 }
@@ -118,7 +118,7 @@ teardown() {
   ln -s ../../victim/prefs.md "$TEST_DIR/repo/.lattice/preferences.md"
   run bash "$ENSURE" --root "$TEST_DIR/repo"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing symlinked managed path"* ]]
+  printf '%s\n' "$output" | grep -qF "refusing symlinked managed path"
   [ "$(cat "$TEST_DIR/victim/prefs.md")" = "keep-me" ]
 }
 
@@ -126,6 +126,6 @@ teardown() {
   MISSING="$TEST_DIR/never-made-json"
   run bash "$ENSURE" --check-only --json --root "$MISSING"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
   [ ! -d "$MISSING" ]
 }

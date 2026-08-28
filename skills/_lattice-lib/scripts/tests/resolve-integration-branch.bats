@@ -34,16 +34,16 @@ teardown() {
 @test "user on dev (long-lived) → base=dev, source=user_branch" {
   run bash "$RIB" --repo-root "$WORK" --user-branch dev --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"recommended_base": "dev"'* ]]
-  [[ "$output" == *'"base_source": "user_branch"'* ]]
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "dev"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "user_branch"'
 }
 
 @test "user on main (long-lived) → base=main, source=user_branch" {
   git checkout -q main
   run bash "$RIB" --repo-root "$WORK" --user-branch main --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"recommended_base": "main"'* ]]
-  [[ "$output" == *'"base_source": "user_branch"'* ]]
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "main"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "user_branch"'
 }
 
 @test "temp branch forked from dev → base=dev via fork-point" {
@@ -51,8 +51,8 @@ teardown() {
   git -c user.email=t@t -c user.name=t commit -q --allow-empty -m "feature"
   run bash "$RIB" --repo-root "$WORK" --user-branch tkt-42-demo --head tkt-42-demo --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"recommended_base": "dev"'* ]]
-  [[ "$output" == *'"base_source": "fork_point"'* ]]
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "dev"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "fork_point"'
 }
 
 @test "temp branch forked from main → base=main via fork-point" {
@@ -60,16 +60,16 @@ teardown() {
   git -c user.email=t@t -c user.name=t commit -q --allow-empty -m "fix"
   run bash "$RIB" --repo-root "$WORK" --user-branch tkt-7-fix --head tkt-7-fix --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"recommended_base": "main"'* ]]
-  [[ "$output" == *'"base_source": "fork_point"'* ]]
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "main"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "fork_point"'
 }
 
 @test "long_lived set discovers main + dev from remotes" {
   run bash "$RIB" --repo-root "$WORK" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"long_lived": ['* ]]
-  [[ "$output" == *"main"* ]]
-  [[ "$output" == *"dev"* ]]
+  printf '%s\n' "$output" | grep -qF '"long_lived": ['
+  printf '%s\n' "$output" | grep -qF "main"
+  printf '%s\n' "$output" | grep -qF "dev"
 }
 
 @test "config long_lived_patterns adds a custom long-lived branch" {
@@ -80,8 +80,8 @@ teardown() {
   git checkout -q integration
   run bash "$RIB" --repo-root "$WORK" --user-branch integration --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"recommended_base": "integration"'* ]]
-  [[ "$output" == *'"base_source": "user_branch"'* ]]
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "integration"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "user_branch"'
 }
 
 @test "release/* glob matches a release branch" {
@@ -89,8 +89,8 @@ teardown() {
   git push -q origin release/1.0
   run bash "$RIB" --repo-root "$WORK" --user-branch release/1.0 --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *"release/1.0"* ]]
-  [[ "$output" == *'"recommended_base": "release/1.0"'* ]]
+  printf '%s\n' "$output" | grep -qF "release/1.0"
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "release/1.0"'
 }
 
 @test "no remote (pure local repo) does not crash; LL={main}, base=main" {
@@ -102,6 +102,6 @@ teardown() {
   git -C "$LOCAL_ONLY" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
   run bash "$RIB" --repo-root "$LOCAL_ONLY" --user-branch main --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"recommended_base": "main"'* ]]
-  [[ "$output" == *'"base_source": "user_branch"'* ]]
+  printf '%s\n' "$output" | grep -qF '"recommended_base": "main"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "user_branch"'
 }

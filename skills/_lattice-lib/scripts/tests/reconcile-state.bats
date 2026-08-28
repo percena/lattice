@@ -126,8 +126,8 @@ run_rs() {
   make_fake_gh
   run_rs
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ok=true"* ]]
-  [[ "$output" == *"no drift detected"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=true"
+  printf '%s\n' "$output" | grep -qF "no drift detected"
 }
 
 @test "reconciled: closed issue, closed binder, merged PR → ok:true" {
@@ -146,7 +146,7 @@ EOF
   chmod +x "$GH_FAKE/gh"
   run_rs
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ok=true"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=true"
 }
 
 @test "reconciled: pr-open binder with an open PR → ok:true" {
@@ -154,7 +154,7 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ok=true"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=true"
 }
 
 # ---------------------------------------------------------------------------
@@ -174,8 +174,8 @@ EOF
   chmod +x "$GH_FAKE/gh"
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"closed_issue_working_binder"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "closed_issue_working_binder"
 }
 
 @test "drift: merged PR vs nonterminal binder" {
@@ -183,8 +183,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"merged_pr_nonterminal_binder"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "merged_pr_nonterminal_binder"
 }
 
 @test "drift: closed PR vs nonterminal binder" {
@@ -192,8 +192,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"closed_pr_nonterminal_binder"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "closed_pr_nonterminal_binder"
 }
 
 @test "drift: open PR vs closed binder" {
@@ -202,8 +202,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"open_pr_closed_binder"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "open_pr_closed_binder"
 }
 
 @test "drift: pr-open with missing PR (no prs entries)" {
@@ -211,8 +211,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"pr_open_missing_pr"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "pr_open_missing_pr"
 }
 
 @test "drift: pr-open with unresolvable PR (404 on GitHub)" {
@@ -220,8 +220,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"pr_open_unresolvable_pr"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "pr_open_unresolvable_pr"
 }
 
 @test "drift: repo identity mismatch (github URL points to foreign repo)" {
@@ -232,8 +232,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"repo_identity_mismatch"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "repo_identity_mismatch"
 }
 
 @test "drift: PR URL points to a foreign repo" {
@@ -241,8 +241,8 @@ EOF
   make_fake_gh
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"repo_identity_mismatch"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "repo_identity_mismatch"
 }
 
 # ---------------------------------------------------------------------------
@@ -262,8 +262,8 @@ EOF
   : >"$GH_LOG"
   run env PATH="$NOGH_BIN" bash "$RS" --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown"* ]]
-  [[ "$output" == *"gh CLI not installed"* ]]
+  printf '%s\n' "$output" | grep -qF "unknown"
+  printf '%s\n' "$output" | grep -qF "gh CLI not installed"
 }
 
 @test "unknown: gh auth failure → result=unknown, exit 2" {
@@ -274,8 +274,8 @@ EOF
   : >"$GH_LOG"
   run env PATH="$GH_FAKE:$PATH" GH_LOG="$GH_LOG" RS_AUTH_FAIL=1 bash "$RS" --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown"* ]]
-  [[ "$output" == *"auth status failed"* ]]
+  printf '%s\n' "$output" | grep -qF "unknown"
+  printf '%s\n' "$output" | grep -qF "auth status failed"
 }
 
 @test "unknown: never a false clean result when auth fails" {
@@ -284,7 +284,7 @@ EOF
   : >"$GH_LOG"
   run env PATH="$GH_FAKE:$PATH" GH_LOG="$GH_LOG" RS_AUTH_FAIL=1 bash "$RS" --binder "$BINDER"
   [ "$status" -ne 0 ]
-  [[ "$output" != *"ok=true"* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F "ok=true")" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -296,7 +296,7 @@ EOF
   make_fake_gh
   run_rs
   # The log records every gh invocation. Verify no mutation subcommands.
-  ! grep -qE '\b(issue|pr)\s+(edit|close|create|merge|comment|reopen|lock|delete)\b' "$GH_LOG"
+  if grep -qE '\b(issue|pr)\s+(edit|close|create|merge|comment|reopen|lock|delete)\b' "$GH_LOG"; then false; fi
 }
 
 @test "read-only: no git push/commit calls during reconciliation" {
@@ -304,7 +304,7 @@ EOF
   make_fake_gh
   run_rs
   # git is never invoked by reconcile-state (only gh for read queries)
-  ! grep -qE '\bgit\s+(push|commit|merge|rebase)\b' "$GH_LOG" || true
+  [ -z "$(grep -E '(^|[^[:alnum:]_])git[[:space:]]+(push|commit|merge|rebase)([^[:alnum:]_]|$)' "$GH_LOG")" ]
   # gh log should only contain view/auth (read-only) subcommands
   grep -qE '^(auth|issue view|pr view)' "$GH_LOG" || \
     grep -qE '^auth ' "$GH_LOG"
@@ -325,7 +325,7 @@ EOF
   run_rs
   # Every logged line must start with auth, issue view, or pr view
   while IFS= read -r line; do
-    [[ "$line" =~ ^(auth\ |issue\ view\ |pr\ view\ ) ]]
+    printf '%s\n' "$line" | grep -qE '^(auth\ |issue\ view\ |pr\ view\ )'
   done <"$GH_LOG"
 }
 
@@ -396,7 +396,7 @@ assert len(d["errors"])>0
   make_fake_gh
   run_rs --repo "owner/../evil"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--repo must be owner/name"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--repo must be owner/name"
 }
 
 @test "refuses a --repo that disagrees with binder origin" {
@@ -404,7 +404,7 @@ assert len(d["errors"])>0
   make_fake_gh
   run_rs --repo "attacker/otherrepo"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
 }
 
 @test "binder not inside a git worktree is refused" {
@@ -412,7 +412,7 @@ assert len(d["errors"])>0
   printf '# tkt-7-demo\n\n| status | queued |\n' >"$nomad"
   run bash "$RS" --binder "$nomad"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"not inside a git worktree"* ]]
+  printf '%s\n' "$output" | grep -qF "not inside a git worktree"
 }
 
 # ---------------------------------------------------------------------------
@@ -434,8 +434,8 @@ EOF
   chmod +x "$GH_FAKE/gh"
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"open_issue_closed_binder"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "open_issue_closed_binder"
 }
 
 @test "A8: drift: merged PR + terminal binder but no Finish ledger (merged_pr_missing_finish_ledger)" {
@@ -455,8 +455,8 @@ EOF
   chmod +x "$GH_FAKE/gh"
   run_rs
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ok=false"* ]]
-  [[ "$output" == *"merged_pr_missing_finish_ledger"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=false"
+  printf '%s\n' "$output" | grep -qF "merged_pr_missing_finish_ledger"
 }
 
 @test "A9: --repo with no origin but matching github URL identity is accepted" {
@@ -466,7 +466,7 @@ EOF
   make_fake_gh
   run_rs --repo percena/lattice
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ok=true"* ]]
+  printf '%s\n' "$output" | grep -qF "ok=true"
 }
 
 @test "A9: --repo with no origin and no github URL is refused" {
@@ -479,7 +479,7 @@ EOF
   make_fake_gh
   run_rs --repo percena/lattice
   [ "$status" -eq 2 ]
-  [[ "$output" == *"no binder repo identity available"* ]]
+  printf '%s\n' "$output" | grep -qF "no binder repo identity available"
 }
 
 @test "A9: --repo with no origin but mismatching github URL is refused" {
@@ -489,5 +489,5 @@ EOF
   make_fake_gh
   run_rs --repo attacker/otherrepo
   [ "$status" -eq 2 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
 }

@@ -68,7 +68,7 @@ build_plugin_tree() {
 @test "green fixture tree passes" {
   run bash "$VALIDATE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"validate-skills: OK"* ]]
+  printf '%s\n' "$output" | grep -qF "validate-skills: OK"
 }
 
 @test "name: in body prose cannot satisfy the frontmatter check" {
@@ -89,7 +89,7 @@ name: sneaky-body-line
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing frontmatter name:"* ]]
+  printf '%s\n' "$output" | grep -qF "missing frontmatter name:"
 }
 
 @test "agents: in body prose cannot satisfy the codex check" {
@@ -111,7 +111,7 @@ agents: "claude-code,codex" must not count.
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing metadata.agents"* ]]
+  printf '%s\n' "$output" | grep -qF "missing metadata.agents"
 }
 
 @test "description: below the closing --- cannot satisfy the check" {
@@ -132,7 +132,7 @@ description: not-frontmatter (line 6, inside old head -n 30 window)
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing frontmatter description:"* ]]
+  printf '%s\n' "$output" | grep -qF "missing frontmatter description:"
 }
 
 @test "missing codex in frontmatter agents still fails" {
@@ -153,28 +153,28 @@ metadata:
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"does not list codex"* ]]
+  printf '%s\n' "$output" | grep -qF "does not list codex"
 }
 
 @test "cwd fallback through an unset CLAUDE_SKILL_DIR fails" {
   printf '\nRun "${CLAUDE_SKILL_DIR:-.}/scripts/helper.sh"\n' >>"$LATTICE_SKILLS_DIR/start-work/SKILL.md"
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'unsafe ${CLAUDE_SKILL_DIR:-.} fallback'* ]]
+  printf '%s\n' "$output" | grep -qF 'unsafe ${CLAUDE_SKILL_DIR:-.} fallback'
 }
 
 @test "consumer-repository lattice-lib executable fallback fails" {
   printf '\nRESOLVE="skills/_lattice-lib/scripts/resolve-lattice-lib.sh"\n' >>"$LATTICE_SKILLS_DIR/create-pr/SKILL.md"
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"cwd-relative skills/_lattice-lib/scripts"* ]]
+  printf '%s\n' "$output" | grep -qF "cwd-relative skills/_lattice-lib/scripts"
 }
 
 @test "unregistered skills/ directory fails registration integrity" {
   mkdir -p "$LATTICE_SKILLS_DIR/rogue-skill"
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"skills/rogue-skill not registered"* ]]
+  printf '%s\n' "$output" | grep -qF "skills/rogue-skill not registered"
 }
 
 @test "full plugin bundle passes; a missing bundle symlink fails" {
@@ -184,7 +184,7 @@ EOF
   rm "$TEST_TMP/plugins/lattice/skills/batch-work"
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"plugin bundle missing symlink for skills/batch-work"* ]]
+  printf '%s\n' "$output" | grep -qF "plugin bundle missing symlink for skills/batch-work"
 }
 
 @test "consumer-root runtime helper fallback fails" {
@@ -196,5 +196,5 @@ bash "$SYNC"
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"consumer-root skill script executable fallback"* ]]
+  printf '%s\n' "$output" | grep -qF "consumer-root skill script executable fallback"
 }

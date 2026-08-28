@@ -38,7 +38,7 @@ run_write() {  # <cwd> <file_path>
 @test "base: blocks .lattice/specs write" {
   run run_write "$MAIN_ROOT" "$MAIN_ROOT/.lattice/specs/spc-1.md"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"shippable write blocked"* ]]
+  printf '%s\n' "$output" | grep -qF "shippable write blocked"
 }
 
 @test "base: blocks .lattice/tickets write" {
@@ -98,5 +98,5 @@ run_write() {  # <cwd> <file_path>
   git -C "$MAIN_ROOT" checkout -q -b drift-branch
   run run_write "$MAIN_ROOT" "$MAIN_ROOT/.lattice/specs/spc-2.md"
   [ "$status" -eq 2 ]
-  [[ "$output" == *non_base_on_main_clone* ]]
+  printf '%s\n' "$output" | grep -qF non_base_on_main_clone
 }

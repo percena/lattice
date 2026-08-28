@@ -26,7 +26,7 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/claim-adr-file.sh" \
     --num 001 --slug beta --template "$TEMPLATE" --home "$TMP"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"expected 002"* ]]
+  printf '%s\n' "$output" | grep -qF "expected 002"
   [ ! -e "$TMP/001-beta.md" ]
 }
 
@@ -34,7 +34,7 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/claim-adr-file.sh" \
     --num 002 --slug skipped --template "$TEMPLATE" --home "$TMP"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"expected 001"* ]]
+  printf '%s\n' "$output" | grep -qF "expected 001"
   [ ! -e "$TMP/002-skipped.md" ]
 }
 
@@ -43,7 +43,7 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/claim-adr-file.sh" \
     --num 002 --slug gamma --template "$TEMPLATE" --home "$TMP"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"multiple files"* ]]
+  printf '%s\n' "$output" | grep -qF "multiple files"
 }
 
 @test "concurrent claims for one number produce exactly one file" {

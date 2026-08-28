@@ -13,16 +13,16 @@ setup_file() {
   TMP=$(mktemp -d)
   run bash "$LIB_INIT" --root "$TMP" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]] || [[ "$output" == *'"ok":true'* ]]
-  [[ -f "$TMP/.lattice/config.yaml" ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true' || printf '%s\n' "$output" | grep -qF '"ok":true'
+  [ -f "$TMP/.lattice/config.yaml" ]
   rm -rf "$TMP"
 }
 
 @test "resolve-lattice-lib.sh finds monorepo scripts" {
   run bash "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"/skills/_lattice-lib/scripts"* ]]
-  [[ -f "$output/_lattice-home.sh" ]]
+  printf '%s\n' "$output" | grep -qF "/skills/_lattice-lib/scripts"
+  [ -f "$output/_lattice-home.sh" ]
 }
 
 @test "resolve-lattice-lib.sh does not accept legacy lattice-lib dir name" {
@@ -33,18 +33,18 @@ setup_file() {
   cp "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh" "$TMP/bin/"
   touch "$TMP/skills/lattice-lib/scripts/_lattice-home.sh"
   # Source must not list bare lattice-lib path candidates
-  ! grep -E '["$]/lattice-lib/scripts' "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh"
+  if grep -E '["$]/lattice-lib/scripts' "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh"; then false; fi
   # Only legacy sibling present → fail; error mentions _lattice-lib / LATTICE_LIB_SCRIPTS
   run bash -c 'cd "$1" && unset LATTICE_LIB_SCRIPTS && bash "$2" --from "$3"' \
     _ "$TMP" "$TMP/bin/resolve-lattice-lib.sh" "$TMP/skills/start-work"
   [ "$status" -ne 0 ]
-  [[ "$output" != *"/skills/lattice-lib/scripts"* ]]
-  [[ "$output" == *"_lattice-lib"* ]] || [[ "$output" == *"LATTICE_LIB_SCRIPTS"* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F "/skills/lattice-lib/scripts")" ]
+  printf '%s\n' "$output" | grep -qF "_lattice-lib" || printf '%s\n' "$output" | grep -qF "LATTICE_LIB_SCRIPTS"
   # Env override still works
   run env LATTICE_LIB_SCRIPTS="$REPO_ROOT/skills/_lattice-lib/scripts" \
     bash "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"/skills/_lattice-lib/scripts"* ]]
+  printf '%s\n' "$output" | grep -qF "/skills/_lattice-lib/scripts"
   rm -rf "$TMP"
 }
 
@@ -62,9 +62,11 @@ setup_file() {
     _ "$TMP" "$TMP/skills/_lattice-lib/scripts/resolve-lattice-lib.sh" "$TMP/skills/start-work"
   [ "$status" -eq 0 ]
   # Must resolve to the flat-install lib, not the real monorepo path.
-  [[ "$output" == "$TMP/skills/_lattice-lib/scripts" ]]
-  [[ "$output" != *"$REPO_ROOT"* ]]
-  [[ -f "$output/_lattice-home.sh" ]]
+  # The resolver canonicalizes (realpath); mktemp on macOS returns the
+  # /var symlink spelling, so compare against the physical path.
+  [ "$output" = "$(cd "$TMP/skills/_lattice-lib/scripts" && pwd -P)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F "$REPO_ROOT")" ]
+  [ -f "$output/_lattice-home.sh" ]
   rm -rf "$TMP"
 }
 
@@ -75,8 +77,8 @@ setup_file() {
 
   run bash "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh" --from "$TMP/consumer"
   [ "$status" -eq 0 ]
-  [[ "$output" == "$REPO_ROOT/skills/_lattice-lib/scripts" ]]
-  [[ "$output" != "$TMP/consumer/scripts" ]]
+  [ "$output" = "$REPO_ROOT/skills/_lattice-lib/scripts" ]
+  [ "$output" != "$TMP/consumer/scripts" ]
   rm -rf "$TMP"
 }
 
@@ -84,7 +86,7 @@ setup_file() {
   run env LATTICE_LIB_SCRIPTS=skills/_lattice-lib/scripts \
     bash "$REPO_ROOT/skills/_lattice-lib/scripts/resolve-lattice-lib.sh"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must be an absolute"* ]]
+  printf '%s\n' "$output" | grep -qF "must be an absolute"
 }
 
 @test "upload-github-asset lives under lattice-lib only" {

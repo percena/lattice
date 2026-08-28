@@ -13,7 +13,7 @@ setup() {
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'Usage: bash tools/ci-local.sh'
   # negative grep is terminal: `! cmd` only gates a test in last position (#167)
-  ! printf '%s\n' "$output" | grep -qF '!/usr/bin/env'
+  if printf '%s\n' "$output" | grep -qF '!/usr/bin/env'; then false; fi
 }
 
 @test "ci-local --help documents --release-check and --fast without truncation" {
@@ -29,14 +29,14 @@ setup() {
 @test "ci-local rejects unknown arguments with exit 2" {
   run bash "$CI_LOCAL" --definitely-not-a-flag
   [ "$status" -eq 2 ]
-  [[ "$output" == *'unknown argument'* ]]
+  printf '%s\n' "$output" | grep -qF 'unknown argument'
 }
 
 @test "ci-local --base-ref with an unresolvable ref FAILs plugin-versions (no silent skip)" {
   run bash "$CI_LOCAL" --fast --base-ref bogus-ref-tkt159
   [ "$status" -ne 0 ]
-  [[ "$output" == *"does not resolve to a commit"* ]]
-  [[ "$output" != *'skip   no bundled paths changed vs bogus-ref-tkt159'* ]]
+  printf '%s\n' "$output" | grep -qF "does not resolve to a commit"
+  [ -z "$(printf '%s\n' "$output" | grep -F 'skip   no bundled paths changed vs bogus-ref-tkt159')" ]
 }
 
 @test "ci-local --base-ref with a valid ref does not trip the fail-loud guard" {
@@ -44,5 +44,5 @@ setup() {
   # Assert only guard-specific behavior: whole-run exit 0 would couple this
   # test to host state (shellcheck presence) and tree dirtiness.
   printf '%s\n' "$output" | grep -qE 'plugin-versions +(pass|skip)'
-  ! printf '%s\n' "$output" | grep -qF 'does not resolve to a commit'
+  if printf '%s\n' "$output" | grep -qF 'does not resolve to a commit'; then false; fi
 }

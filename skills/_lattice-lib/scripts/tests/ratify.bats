@@ -63,14 +63,14 @@ MD
     --decision "use retry-lib not backoff-lib (source: preference retry-at-most-once)" \
     --pending "retry-lib vs backoff-lib"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"single commit written"* ]]
+  printf '%s\n' "$output" | grep -qF "single commit written"
   # status flipped parked → queued
   grep -qE '\| status \| queued \|' "$BINDER"
   # exactly one dated decision entry recorded
   [ "$(grep -Ec '^[-*] .*ratified 20[0-9]{2}-[0-9]{2}-[0-9]{2}T' "$BINDER")" -eq 1 ]
   grep -q "use retry-lib not backoff-lib" "$BINDER"
   # pending decision settled (removed)
-  ! grep -q "retry-lib vs backoff-lib — disposition" "$BINDER"
+  if grep -q "retry-lib vs backoff-lib — disposition" "$BINDER"; then false; fi
   # ## Decision journal header appears exactly once
   [ "$(grep -c '^## Decision journal$' "$BINDER")" -eq 1 ]
   [ "$(grep -c '^## Pending decisions$' "$BINDER")" -eq 1 ]
@@ -90,8 +90,8 @@ MD
   [ "$(git -C "$REPO" rev-list --count "$before..$after")" -eq 1 ]
   # the commit touches only the binder path
   changed=$(git -C "$REPO" show --name-only --oneline "$after" | tail -n +2)
-  [[ "$changed" == *"tkt-7-demo/README.md"* ]]
-  [[ "$changed" != *"notes.md"* ]]
+  printf '%s\n' "$changed" | grep -qF "tkt-7-demo/README.md"
+  [ -z "$(printf '%s\n' "$changed" | grep -F "notes.md")" ]
 }
 
 @test "A3: journal at EOF ratifies and appends the entry" {
@@ -113,8 +113,8 @@ MD
   before=$(git -C "$REPO" rev-parse HEAD)
   run bash "$RF" --binder "$BINDER" --decision "pick foo"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"status is 'queued'"* ]]
-  [[ "$output" == *"expected 'parked'"* ]]
+  printf '%s\n' "$output" | grep -qF "status is 'queued'"
+  printf '%s\n' "$output" | grep -qF "expected 'parked'"
   after=$(git -C "$REPO" rev-parse HEAD)
   # no new commit
   [ "$before" = "$after" ]
@@ -131,11 +131,11 @@ MD
   before=$(git -C "$REPO" rev-parse HEAD)
   run bash "$RF" --binder "$BINDER" --decision "nope"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"status is 'queued'"* ]]
+  printf '%s\n' "$output" | grep -qF "status is 'queued'"
   after=$(git -C "$REPO" rev-parse HEAD)
   [ "$before" = "$after" ]
   grep -qE '\| status \| queued \|' "$BINDER"
-  ! grep -q "nope" "$BINDER"
+  if grep -q "nope" "$BINDER"; then false; fi
 }
 
 @test "A2: missing ## Decision journal section is refused before mutation" {
@@ -152,7 +152,7 @@ MD
   before=$(git -C "$REPO" rev-parse HEAD)
   run bash "$RF" --binder "$BINDER" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"no "'`## Decision journal`'" section"* ]]
+  printf '%s\n' "$output" | grep -qF "no "'`## Decision journal`'" section"
   after=$(git -C "$REPO" rev-parse HEAD)
   [ "$before" = "$after" ]
 }
@@ -164,7 +164,7 @@ MD
   git -C "$REPO" rm -q --cached "$BINDER" 2>/dev/null || true
   run bash "$RF" --binder "$BINDER" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not tracked by git"* ]]
+  printf '%s\n' "$output" | grep -qF "not tracked by git"
 }
 
 @test "A2: out-of-home binder (outside .lattice/tickets) is refused" {
@@ -173,7 +173,7 @@ MD
   git -C "$REPO" add README.md && git -C "$REPO" commit -qm readme
   run bash "$RF" --binder "$outside" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must live under"* ]]
+  printf '%s\n' "$output" | grep -qF "must live under"
   [ "$(cat "$outside")" = "$(printf '# repo readme\n\n| status | parked |\n\n## Decision journal\n')" ]
 }
 
@@ -185,7 +185,7 @@ MD
   ln -sf "$secret" "$BINDER_DIR/link.md"
   run bash "$RF" --binder "$BINDER_DIR/link.md" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"symlinked binder path component"* ]]
+  printf '%s\n' "$output" | grep -qF "symlinked binder path component"
   [ "$(cat "$secret")" = "do not touch" ]
 }
 
@@ -198,10 +198,10 @@ MD
   before=$(git -C "$REPO" rev-parse HEAD)
   run bash "$RF" --binder "$BINDER" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"unrelated pre-staged path"* ]]
+  printf '%s\n' "$output" | grep -qF "unrelated pre-staged path"
   after=$(git -C "$REPO" rev-parse HEAD)
   [ "$before" = "$after" ]
-  ! grep -q "ratified" "$BINDER"
+  if grep -q "ratified" "$BINDER"; then false; fi
   # the staged junk remains staged but is NOT committed
   git -C "$REPO" diff --cached --name-only | grep -q 'junk.txt'
 }
@@ -225,7 +225,7 @@ MD
   git -C "$REPO" add -A && git -C "$REPO" commit -qm init
   run bash "$RF" --binder "$BINDER" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"no \`| status | … |\` field row"* ]]
+  printf '%s\n' "$output" | grep -qF "no \`| status | … |\` field row"
 }
 
 @test "A1: --pending with zero matches is refused before mutation" {
@@ -233,8 +233,8 @@ MD
   git -C "$REPO" add -A && git -C "$REPO" commit -qm init
   run bash "$RF" --binder "$BINDER" --decision "x" --pending "no-such-decision"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"matched no pending decision bullet"* ]]
-  ! grep -q "ratified" "$BINDER"
+  printf '%s\n' "$output" | grep -qF "matched no pending decision bullet"
+  if grep -q "ratified" "$BINDER"; then false; fi
   grep -qE '\| status \| parked \|' "$BINDER"
 }
 
@@ -258,7 +258,7 @@ MD
   git -C "$REPO" add -A && git -C "$REPO" commit -qm init
   run bash "$RF" --binder "$BINDER" --decision "x" --pending "dup"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"matched 2 pending decision bullets"* ]]
+  printf '%s\n' "$output" | grep -qF "matched 2 pending decision bullets"
 }
 
 @test "A1: omitting --pending leaves the pending section untouched" {
@@ -279,22 +279,22 @@ MD
   perms=$(ls -l "$BINDER" | cut -c1-10)
   [ "$perms" = "-rw-r-----" ]
   run bash -c "ls -A '$BINDER_DIR' | grep -cE '\.(lock|tmp)\$' || true"
-  [[ "$output" == "0" ]]
+  [ "$output" = "0" ]
 }
 
 @test "usage: missing --binder and missing --decision exit 2" {
   run bash "$RF"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--binder required"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--binder required"
   run bash "$RF" --binder "$BINDER"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--decision required"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--decision required"
 }
 
 @test "usage: unknown argument exits 2" {
   run bash "$RF" --binder "$BINDER" --decision "x" --bogus
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown arg: --bogus"* ]]
+  printf '%s\n' "$output" | grep -qF "unknown arg: --bogus"
 }
 
 @test "A2: multi-line --decision is rejected (no embedded newlines)" {
@@ -303,8 +303,8 @@ MD
   # Embed a literal newline in --decision via $'…'
   run bash "$RF" --binder "$BINDER" --decision $'line one\nline two'
   [ "$status" -eq 2 ]
-  [[ "$output" == *"single line (no embedded newlines)"* ]]
+  printf '%s\n' "$output" | grep -qF "single line (no embedded newlines)"
   # binder untouched
   grep -qE '\| status \| parked \|' "$BINDER"
-  ! grep -q "line one" "$BINDER"
+  if grep -q "line one" "$BINDER"; then false; fi
 }

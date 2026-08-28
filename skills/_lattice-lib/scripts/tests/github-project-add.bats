@@ -56,7 +56,7 @@ teardown() {
   export LATTICE_GITHUB_PROJECT_NUMBER=12
   run bash "$ADD" "https://github.com/acme/r/issues/1"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to acme/projects/12"* ]]
+  printf '%s\n' "$output" | grep -qF "added to acme/projects/12"
   grep -F -e "project item-add 12 --owner acme --url https://github.com/acme/r/issues/1" "$GH_LOG"
 }
 
@@ -68,7 +68,7 @@ LATTICE_GITHUB_PROJECT_NUMBER=7
 EOF
   run env LATTICE_GITHUB_PROJECT_ALLOW_DOTENV=1 bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to from-env-file/projects/7"* ]]
+  printf '%s\n' "$output" | grep -qF "added to from-env-file/projects/7"
   grep -F -e "project item-add 7 --owner from-env-file" "$GH_LOG"
 }
 
@@ -83,7 +83,7 @@ LATTICE_GITHUB_PROJECT_NUMBER=99
 EOF
   run env LATTICE_GITHUB_PROJECT_ALLOW_DOTENV=1 bash "$ADD" "https://github.com/acme/r/pull/3"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to local/projects/99"* ]]
+  printf '%s\n' "$output" | grep -qF "added to local/projects/99"
 }
 
 @test ".env quoted value keeps ' # ' inside quotes; trailing comment after quote dropped" {
@@ -115,7 +115,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_NUMBER=42
   run bash "$ADD" "https://github.com/acme/r/issues/4"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to env-owner/projects/42"* ]]
+  printf '%s\n' "$output" | grep -qF "added to env-owner/projects/42"
 }
 
 @test "ADD_ISSUES=false skips issues" {
@@ -124,7 +124,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_ADD_ISSUES=false
   run bash "$ADD" "https://github.com/acme/r/issues/5"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ADD_ISSUES disabled"* ]]
+  printf '%s\n' "$output" | grep -qF "ADD_ISSUES disabled"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -134,7 +134,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_ADD_PRS=false
   run bash "$ADD" "https://github.com/acme/r/pull/6"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ADD_PRS disabled"* ]]
+  printf '%s\n' "$output" | grep -qF "ADD_PRS disabled"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -144,7 +144,7 @@ EOF
   export GH_MODE=already
   run bash "$ADD" "https://github.com/acme/r/issues/7"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already on acme/projects/12"* ]]
+  printf '%s\n' "$output" | grep -qF "already on acme/projects/12"
 }
 
 @test "missing project scope → exit 0 with hint" {
@@ -153,7 +153,7 @@ EOF
   export GH_MODE=scope
   run bash "$ADD" "https://github.com/acme/r/issues/8"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"gh missing project scope"* ]]
+  printf '%s\n' "$output" | grep -qF "gh missing project scope"
 }
 
 @test "generic gh failure → exit 0 non-fatal" {
@@ -162,7 +162,7 @@ EOF
   export GH_MODE=fail
   run bash "$ADD" "https://github.com/acme/r/issues/9"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"item-add failed (non-fatal)"* ]]
+  printf '%s\n' "$output" | grep -qF "item-add failed (non-fatal)"
 }
 
 @test "non-digit project number → skip without gh" {
@@ -170,7 +170,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_NUMBER=some-project
   run bash "$ADD" "https://github.com/acme/r/issues/10"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"must be digits"* ]]
+  printf '%s\n' "$output" | grep -qF "must be digits"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -179,21 +179,21 @@ EOF
   export LATTICE_GITHUB_PROJECT_NUMBER=12
   run bash "$ADD" "https://example.com/x"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"not a github.com URL"* ]]
+  printf '%s\n' "$output" | grep -qF "not a github.com URL"
   [ ! -s "$GH_LOG" ]
 }
 
 @test "no URL → skip exit 0" {
   run bash "$ADD"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"no URL"* ]]
+  printf '%s\n' "$output" | grep -qF "no URL"
 }
 
 @test "missing --url value → exit 0 (no hang)" {
   # Regression: shift 2 || true with only --url never advanced argv.
   run bash "$ADD" --url
   [ "$status" -eq 0 ]
-  [[ "$output" == *"requires a value"* ]]
+  printf '%s\n' "$output" | grep -qF "requires a value"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -211,7 +211,7 @@ LATTICE_GITHUB_PROJECT_NUMBER=1
 EOF
   run bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"cannot authorize writing to an external board"* ]]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -224,5 +224,5 @@ EOF
     bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
   grep -F -e "project item-add 5 --owner trusted" "$GH_LOG"
-  ! grep -q "attacker-org" "$GH_LOG"
+  if grep -q "attacker-org" "$GH_LOG"; then false; fi
 }

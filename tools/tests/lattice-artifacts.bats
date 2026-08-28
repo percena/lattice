@@ -9,17 +9,17 @@ setup_file() {
 @test "pass fixture is clean" {
   run python3 "$VAL" --home "$FIX/pass" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
 }
 
 @test "fail fixture reports invalid status, covers, onesided edge, malformed review id" {
   run python3 "$VAL" --home "$FIX/fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]]
-  [[ "$output" == *invalid_ticket_status* ]]
-  [[ "$output" == *covers_not_on_spec* ]]
-  [[ "$output" == *onesided_spec_ticket_edge* ]]
-  [[ "$output" == *malformed_review_id* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF invalid_ticket_status
+  printf '%s\n' "$output" | grep -qF covers_not_on_spec
+  printf '%s\n' "$output" | grep -qF onesided_spec_ticket_edge
+  printf '%s\n' "$output" | grep -qF malformed_review_id
 }
 
 @test "binder field rows come from the first table only; example table cannot shadow" {
@@ -28,15 +28,15 @@ setup_file() {
   # shadow the binder card.
   run python3 "$VAL" --home "$FIX/first-table" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
 }
 
 @test "slugless spec filename derives id without the .md extension" {
   # spc-12.md has no front-matter id and no slug; fallback must yield spc-12.
   run python3 "$VAL" --home "$FIX/first-table" --json
   [ "$status" -eq 0 ]
-  [[ "$output" != *malformed_spec_id* ]]
-  [[ "$output" != *'spc-12.md'*'is not spc-N'* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F malformed_spec_id)" ]
+  [ -z "$(printf '%s' "$output" | tr -d '\n' | grep -E 'spc-12\.md.*is not spc-N')" ]
 }
 
 @test "bold A-id in prose outside Acceptance is not coverable" {
@@ -44,37 +44,37 @@ setup_file() {
   # only Acceptance-section A-ids are coverable.
   run python3 "$VAL" --home "$FIX/acceptance-scope" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *covers_not_on_spec* ]]
-  [[ "$output" == *"A7"* ]]
+  printf '%s\n' "$output" | grep -qF covers_not_on_spec
+  printf '%s\n' "$output" | grep -qF "A7"
 }
 
 @test "working FSM states (pr-open) and closed-with-Finish pass clean" {
   run python3 "$VAL" --home "$FIX/status-fsm" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *'"warning_count": 0'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"warning_count": 0'
 }
 
 @test "unknown status value fails" {
   run python3 "$VAL" --home "$FIX/status-fsm-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *invalid_ticket_status* ]]
-  [[ "$output" == *"'bogus'"* ]]
+  printf '%s\n' "$output" | grep -qF invalid_ticket_status
+  printf '%s\n' "$output" | grep -qF "'bogus'"
 }
 
 @test "closed without real Finish ledger content fails" {
   run python3 "$VAL" --home "$FIX/status-fsm-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *closed_without_finish* ]]
-  [[ "$output" == *tkt-63-closed-empty* ]]
+  printf '%s\n' "$output" | grep -qF closed_without_finish
+  printf '%s\n' "$output" | grep -qF tkt-63-closed-empty
 }
 
 @test "legacy open warns but passes (lazy migration)" {
   run python3 "$VAL" --home "$FIX/status-legacy-open" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *legacy_open_status* ]]
-  [[ "$output" == *'"warning_count": 1'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF legacy_open_status
+  printf '%s\n' "$output" | grep -qF '"warning_count": 1'
 }
 
 @test "header Status copy contradicting the field table warns (does not fail)" {
@@ -82,10 +82,10 @@ setup_file() {
   # still passes (warnings never fail the run).
   run python3 "$VAL" --home "$FIX/header-status" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *header_status_mismatch* ]]
-  [[ "$output" == *tkt-70-mismatch* ]]
-  [[ "$output" == *'"warning_count": 1'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF header_status_mismatch
+  printf '%s\n' "$output" | grep -qF tkt-70-mismatch
+  printf '%s\n' "$output" | grep -qF '"warning_count": 1'
 }
 
 @test "matching, legacy-open, and prose-mention headers do not warn" {
@@ -93,9 +93,9 @@ setup_file() {
   # prose mention of **Status:** below the binder card — none may fire.
   run python3 "$VAL" --home "$FIX/header-status" --json
   [ "$status" -eq 0 ]
-  [[ "$output" != *tkt-71-match* ]]
-  [[ "$output" != *tkt-72-legacy-header* ]]
-  [[ "$output" != *tkt-73-prose-mention* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-71-match)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-72-legacy-header)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-73-prose-mention)" ]
 }
 
 @test "malformed filled prs row warns (does not fail)" {
@@ -104,10 +104,10 @@ setup_file() {
   # legacy rows).
   run python3 "$VAL" --home "$FIX/prs-row" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *prs_row_format* ]]
-  [[ "$output" == *tkt-80-malformed* ]]
-  [[ "$output" == *'"warning_count": 1'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF prs_row_format
+  printf '%s\n' "$output" | grep -qF tkt-80-malformed
+  printf '%s\n' "$output" | grep -qF '"warning_count": 1'
 }
 
 @test "canonical, comma-separated multi-PR, and placeholder prs rows are silent" {
@@ -115,9 +115,9 @@ setup_file() {
   # `(none — rides tkt-81 PR)` placeholder — none may fire.
   run python3 "$VAL" --home "$FIX/prs-row" --json
   [ "$status" -eq 0 ]
-  [[ "$output" != *tkt-81-canonical* ]]
-  [[ "$output" != *tkt-82-placeholder* ]]
-  [[ "$output" != *tkt-83-multi* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-81-canonical)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-82-placeholder)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-83-multi)" ]
 }
 
 @test "prose backtick mention must not mask onesided_spec_ticket_edge" {
@@ -125,8 +125,8 @@ setup_file() {
   # in prose; the one-sided edge must still fire.
   run python3 "$VAL" --home "$FIX/onesided-prose" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]]
-  [[ "$output" == *onesided_spec_ticket_edge*tkt-4*spc-4* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s' "$output" | tr -d '\n' | grep -qE 'onesided_spec_ticket_edge.*tkt-4.*spc-4'
 }
 
 # tkt-90: inverse coherence — a merged OR cancel ## Finish ledger requires
@@ -136,19 +136,19 @@ setup_file() {
 @test "merged Finish ledger with working status fails; cancel ledger with closed status is clean" {
   run python3 "$VAL" --home "$FIX/finish-status-mismatch" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *finish_without_terminal_status* ]]
-  [[ "$output" == *tkt-70-merged-but-pr-open* ]]
+  printf '%s\n' "$output" | grep -qF finish_without_terminal_status
+  printf '%s\n' "$output" | grep -qF tkt-70-merged-but-pr-open
   # tkt-71 carries a cancel ledger (`issue #71 closed:`) but its status IS
   # closed, so no finding fires for it.
-  [[ "$output" != *tkt-71-cancel-ok* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-71-cancel-ok)" ]
 }
 
 @test "two binder dirs claiming one tkt id fail with duplicate_ticket_id" {
   run python3 "$VAL" --home "$FIX/dup-ticket-id" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *duplicate_ticket_id* ]]
-  [[ "$output" == *tkt-3-first* ]]
-  [[ "$output" == *tkt-3-second* ]]
+  printf '%s\n' "$output" | grep -qF duplicate_ticket_id
+  printf '%s\n' "$output" | grep -qF tkt-3-first
+  printf '%s\n' "$output" | grep -qF tkt-3-second
 }
 
 # spc-104 A1: feature-map format + status vocabulary (checked when the file exists).
@@ -156,15 +156,15 @@ setup_file() {
 @test "well-formed feature map passes clean" {
   run python3 "$VAL" --home "$FIX/feature-map" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"warning_count": 0'* ]]
+  printf '%s\n' "$output" | grep -qF '"warning_count": 0'
 }
 
 @test "feature map: unknown status errors, empty oracle warns" {
   run python3 "$VAL" --home "$FIX/feature-map-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *feature_map_status* ]]
-  [[ "$output" == *"'verified'"* ]]
-  [[ "$output" == *feature_map_row_format* ]]
+  printf '%s\n' "$output" | grep -qF feature_map_status
+  printf '%s\n' "$output" | grep -qF "'verified'"
+  printf '%s\n' "$output" | grep -qF feature_map_row_format
 }
 
 # tkt-121: three latent validator defects — status fallback scope, finish
@@ -177,9 +177,9 @@ setup_file() {
   # so no invalid_ticket_status fires.
   run python3 "$VAL" --home "$FIX/status-prose-mention" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" != *invalid_ticket_status* ]]
-  [[ "$output" != *tkt-200* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F invalid_ticket_status)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-200)" ]
 }
 
 @test "finish ledger exempts the whole (none…) placeholder family" {
@@ -188,8 +188,8 @@ setup_file() {
   # is exempt, so has_finish_ledger returns False and closed_without_finish fires.
   run python3 "$VAL" --home "$FIX/finish-placeholder-family" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *closed_without_finish* ]]
-  [[ "$output" == *tkt-201-placeholder* ]]
+  printf '%s\n' "$output" | grep -qF closed_without_finish
+  printf '%s\n' "$output" | grep -qF tkt-201-placeholder
 }
 
 @test "A-ids inline on the Acceptance heading line are coverable" {
@@ -197,9 +197,9 @@ setup_file() {
   # Heading-line A-ids must register, so covers_not_on_spec must NOT fire.
   run python3 "$VAL" --home "$FIX/acceptance-heading-aids" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" != *covers_not_on_spec* ]]
-  [[ "$output" != *tkt-202* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F covers_not_on_spec)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-202)" ]
 }
 
 # tkt-123: bounded-loop invariant — fix_cycles field-table row + cap (>2 warns).
@@ -209,10 +209,10 @@ setup_file() {
   # warning level). tkt-204 has fix_cycles 2 → no warning.
   run python3 "$VAL" --home "$FIX/fix-cycles" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *fix_cycles_exceeded* ]]
-  [[ "$output" == *tkt-203-over* ]]
-  [[ "$output" != *tkt-204-ok* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF fix_cycles_exceeded
+  printf '%s\n' "$output" | grep -qF tkt-203-over
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-204-ok)" ]
 }
 
 # tkt-155: binder-dir-N vs github-field-N desync — phantom binders and mismatches.
@@ -221,17 +221,17 @@ setup_file() {
   # tkt-205-match: github issue #205, dir tkt-205 → no finding.
   run python3 "$VAL" --home "$FIX/github-field-clean" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" != *tkt-205-match* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-205-match)" ]
 }
 
 @test "dir N vs github issue N mismatch errors" {
   # tkt-206-mismatch: dir tkt-206 but github issue #888 → error.
   run python3 "$VAL" --home "$FIX/github-field-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *binder_dir_github_mismatch* ]]
-  [[ "$output" == *tkt-206* ]]
-  [[ "$output" == *888* ]]
+  printf '%s\n' "$output" | grep -qF binder_dir_github_mismatch
+  printf '%s\n' "$output" | grep -qF tkt-206
+  printf '%s\n' "$output" | grep -qF 888
 }
 
 @test "numeric dir with placeholder github warns phantom_binder_smell" {
@@ -239,9 +239,9 @@ setup_file() {
   # phantom_binder_smell warning (run passes — warning level).
   run python3 "$VAL" --home "$FIX/github-field-warn" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *phantom_binder_smell* ]]
-  [[ "$output" == *tkt-207-phantom* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF phantom_binder_smell
+  printf '%s\n' "$output" | grep -qF tkt-207-phantom
 }
 
 @test "github URL that is not an issues path warns binder_github_malformed" {
@@ -249,8 +249,8 @@ setup_file() {
   # binder_github_malformed warning (run passes — warning level).
   run python3 "$VAL" --home "$FIX/github-field-warn" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *binder_github_malformed* ]]
-  [[ "$output" == *tkt-208-pending-url* ]]
+  printf '%s\n' "$output" | grep -qF binder_github_malformed
+  printf '%s\n' "$output" | grep -qF tkt-208-pending-url
 }
 
 # tkt-151: Spec/Review/coupled-ticket/Finish-evidence state invariants.
@@ -258,88 +258,88 @@ setup_file() {
 @test "spec done with open non-deferred acceptance fails" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *spec_done_open_acceptance* ]]
-  [[ "$output" == *spc-10-done-open* ]]
+  printf '%s\n' "$output" | grep -qF spec_done_open_acceptance
+  printf '%s\n' "$output" | grep -qF spc-10-done-open
 }
 
 @test "unknown spec status fails" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *invalid_spec_status* ]]
-  [[ "$output" == *"'bogus'"* ]]
-  [[ "$output" == *spc-11-bad-status* ]]
+  printf '%s\n' "$output" | grep -qF invalid_spec_status
+  printf '%s\n' "$output" | grep -qF "'bogus'"
+  printf '%s\n' "$output" | grep -qF spc-11-bad-status
 }
 
 @test "superseded spec without a valid link fails" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *spec_superseded_no_link* ]]
-  [[ "$output" == *spc-12-superseded-nolink* ]]
+  printf '%s\n' "$output" | grep -qF spec_superseded_no_link
+  printf '%s\n' "$output" | grep -qF spc-12-superseded-nolink
 }
 
 @test "terminal spec with contradictory display status fails (not warns)" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *spec_header_status_mismatch* ]]
-  [[ "$output" == *spc-13-done-stale-header* ]]
+  printf '%s\n' "$output" | grep -qF spec_header_status_mismatch
+  printf '%s\n' "$output" | grep -qF spc-13-done-stale-header
   # Error-level (terminal), not a warning — the home fails.
-  [[ "$output" == *'"ok": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
 }
 
 @test "unknown review status and outcome fail" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *invalid_review_status* ]]
-  [[ "$output" == *"'bogus'"* ]]
-  [[ "$output" == *rev-bad-status* ]]
-  [[ "$output" == *invalid_review_outcome* ]]
-  [[ "$output" == *rev-bad-outcome* ]]
+  printf '%s\n' "$output" | grep -qF invalid_review_status
+  printf '%s\n' "$output" | grep -qF "'bogus'"
+  printf '%s\n' "$output" | grep -qF rev-bad-status
+  printf '%s\n' "$output" | grep -qF invalid_review_outcome
+  printf '%s\n' "$output" | grep -qF rev-bad-outcome
 }
 
 @test "concluded review without exactly one valid outcome fails" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *concluded_review_no_outcome* ]]
-  [[ "$output" == *rev-no-outcome* ]]
+  printf '%s\n' "$output" | grep -qF concluded_review_no_outcome
+  printf '%s\n' "$output" | grep -qF rev-no-outcome
 }
 
 @test "stuck without a valid wait_reason fails (missing and contradictory)" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *stuck_without_valid_wait_reason* ]]
-  [[ "$output" == *tkt-50-stuck-noreason* ]]
+  printf '%s\n' "$output" | grep -qF stuck_without_valid_wait_reason
+  printf '%s\n' "$output" | grep -qF tkt-50-stuck-noreason
   # Contradictory: stuck + a deferred reason (fuse-halt) must also fail.
-  [[ "$output" == *tkt-52-stuck-contradictory* ]]
-  [[ "$output" == *'fuse-halt'* ]]
+  printf '%s\n' "$output" | grep -qF tkt-52-stuck-contradictory
+  printf '%s\n' "$output" | grep -qF 'fuse-halt'
 }
 
 @test "deferred without a valid reason fails" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *deferred_without_valid_reason* ]]
-  [[ "$output" == *tkt-51-deferred-noreason* ]]
+  printf '%s\n' "$output" | grep -qF deferred_without_valid_reason
+  printf '%s\n' "$output" | grep -qF tkt-51-deferred-noreason
 }
 
 @test "cancel Finish ledger with non-terminal status fails (A4)" {
   run python3 "$VAL" --home "$FIX/spec-state-fail" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *finish_without_terminal_status* ]]
-  [[ "$output" == *tkt-53-cancel-open* ]]
+  printf '%s\n' "$output" | grep -qF finish_without_terminal_status
+  printf '%s\n' "$output" | grep -qF tkt-53-cancel-open
 }
 
 @test "spec-state pass home: done/deferred/superseded/locked, concluded reviews, coupled fields all clean" {
   run python3 "$VAL" --home "$FIX/spec-state-pass" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *'"warning_count": 0'* ]]
-  [[ "$output" != *spec_done_open_acceptance* ]]
-  [[ "$output" != *spec_header_status_mismatch* ]]
-  [[ "$output" != *spec_superseded_no_link* ]]
-  [[ "$output" != *invalid_review* ]]
-  [[ "$output" != *concluded_review_no_outcome* ]]
-  [[ "$output" != *stuck_without_valid_wait_reason* ]]
-  [[ "$output" != *deferred_without_valid_reason* ]]
-  [[ "$output" != *finish_without_terminal_status* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"warning_count": 0'
+  [ -z "$(printf '%s\n' "$output" | grep -F spec_done_open_acceptance)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F spec_header_status_mismatch)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F spec_superseded_no_link)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F invalid_review)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F concluded_review_no_outcome)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F stuck_without_valid_wait_reason)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F deferred_without_valid_reason)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F finish_without_terminal_status)" ]
 }
 
 # tkt-174: tkt-pending-<slug> dirs are a valid transient state — not malformed.
@@ -349,10 +349,10 @@ setup_file() {
   # → binder_github_pending warning only (no malformed_ticket_id error).
   run python3 "$VAL" --home "$FIX/github-field-warn" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *binder_github_pending* ]]
-  [[ "$output" == *tkt-pending-noissue* ]]
-  [[ "$output" != *malformed_ticket_id*tkt-pending-noissue* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF binder_github_pending
+  printf '%s\n' "$output" | grep -qF tkt-pending-noissue
+  [ -z "$(printf '%s' "$output" | tr -d '\n' | grep -E 'malformed_ticket_id.*tkt-pending-noissue')" ]
 }
 
 # tkt-179: post-merge review fixes — validator improvements.
@@ -363,8 +363,8 @@ setup_file() {
   # so finish_without_terminal_status must fire.
   run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *finish_without_terminal_status* ]]
-  [[ "$output" == *tkt-54-cancel-no-issue* ]]
+  printf '%s\n' "$output" | grep -qF finish_without_terminal_status
+  printf '%s\n' "$output" | grep -qF tkt-54-cancel-no-issue
 }
 
 @test "A5: concluded review with invalid outcome fires exactly one finding (no double)" {
@@ -373,8 +373,8 @@ setup_file() {
   # (the fix narrowed the condition to `not rv_out` only).
   run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *invalid_review_outcome* ]]
-  [[ "$output" == *rev-concluded-bad-outcome* ]]
+  printf '%s\n' "$output" | grep -qF invalid_review_outcome
+  printf '%s\n' "$output" | grep -qF rev-concluded-bad-outcome
   # Count occurrences of concluded_review_no_outcome — must be zero
   nocount=$(echo "$output" | grep -c 'concluded_review_no_outcome' || true)
   [ "$nocount" -eq 0 ]
@@ -385,5 +385,5 @@ setup_file() {
   # The old full-text regex would match it → invalid_spec_status; the new
   # parse_front_matter scoping returns None → no status check fires.
   run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
-  [[ "$output" != *invalid_spec_status*spc-14* ]]
+  [ -z "$(printf '%s' "$output" | tr -d '\n' | grep -E 'invalid_spec_status.*spc-14')" ]
 }

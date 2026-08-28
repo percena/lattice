@@ -32,7 +32,7 @@ run_eval() {
 @test "repository behavioral corpus validates" {
   run python3 "$RUNNER" --repo-root "$REPO_ROOT" --validate-only
   [ "$status" -eq 0 ]
-  [[ "$output" == *"behavioral corpus: OK"* ]]
+  printf '%s\n' "$output" | grep -qF "behavioral corpus: OK"
 }
 
 @test "repository behavioral corpus executes with free fake provider" {
@@ -52,8 +52,8 @@ run_eval() {
     >"$FIXTURE/skills/demo/evals/evals.json"
   run python3 "$RUNNER" --repo-root "$FIXTURE" --validate-only
   [ "$status" -eq 2 ]
-  [[ "$output" == *"schema_version must be 1"* ]]
-  [[ "$output" == *"cases must be a non-empty array"* ]]
+  printf '%s\n' "$output" | grep -qF "schema_version must be 1"
+  printf '%s\n' "$output" | grep -qF "cases must be a non-empty array"
 }
 
 @test "candidate and no-skill baseline run in isolated sandboxes with artifacts" {
@@ -110,7 +110,7 @@ PY
   printf '%s\n' '{"default":{"candidate":[true,true],"baseline":[false,false]}}' >"$SCENARIO"
   run_eval --timeout 0
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--timeout must be a finite number greater than 0"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--timeout must be a finite number greater than 0"
 }
 
 @test "artifacts path must be a directory" {
@@ -118,7 +118,7 @@ PY
   printf '%s\n' 'occupied' >"$ARTIFACTS"
   run_eval
   [ "$status" -eq 2 ]
-  [[ "$output" == *"artifacts path is not a directory"* ]]
+  printf '%s\n' "$output" | grep -qF "artifacts path is not a directory"
 }
 
 @test "provider protocol failures return status 2 and preserve raw artifacts" {
@@ -144,7 +144,7 @@ PY
     --run-id test-run \
     --timeout 1
   [ "$status" -eq 2 ]
-  [[ "$output" == *"timed out after"* ]]
+  printf '%s\n' "$output" | grep -qF "timed out after"
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert "timed out" in d["error"] and "partial output" in d["stdout"]' \
     "$ARTIFACTS/cases/demo/one/candidate/invoke.json"
 }
@@ -168,7 +168,7 @@ PY
     --run-id test-run \
     --timeout 1
   [ "$status" -eq 2 ]
-  [[ "$output" == *"timed out after"* ]]
+  printf '%s\n' "$output" | grep -qF "timed out after"
   [ -f "$PID_FILE" ]
   grandchild="$(cat "$PID_FILE")"
   # Allow a beat for SIGKILL delivery and init reaping the orphan.
@@ -176,7 +176,7 @@ PY
     kill -0 "$grandchild" 2>/dev/null || break
     sleep 0.2
   done
-  ! kill -0 "$grandchild" 2>/dev/null
+  if kill -0 "$grandchild" 2>/dev/null; then false; fi
 }
 
 @test "shlex-quoted provider path containing spaces works end-to-end" {
@@ -201,7 +201,7 @@ PY
     --artifacts-dir "$ARTIFACTS" \
     --run-id test-run
   [ "$status" -eq 2 ]
-  [[ "$output" == *"provider command failed to start"* ]]
+  printf '%s\n' "$output" | grep -qF "provider command failed to start"
   python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); assert s["harness_errors"] >= 1 and s["ok"] is False' \
     "$ARTIFACTS/summary.json"
 }
@@ -232,11 +232,11 @@ PY
 
   run bash -c 'printf '\''%s\n'\'' '\''{"phase":"invoke","prompt":"hello","skill_text":"rules","protocol_version":1}'\'' | python3 "$1" --claude-command "$2"' _ "$LIVE_PROVIDER" "$STUB"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"text": "stub response"'* ]]
+  printf '%s\n' "$output" | grep -qF '"text": "stub response"'
 
   run bash -c 'printf '\''%s\n'\'' '\''{"phase":"assert","prompt":"hello","response_text":"answer","expectations":["does it"],"protocol_version":1}'\'' | python3 "$1" --claude-command "$2"' _ "$LIVE_PROVIDER" "$STUB"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"evidence": "stub evidence"'* ]]
+  printf '%s\n' "$output" | grep -qF '"evidence": "stub evidence"'
   grep -q -- '--safe-mode' "$ARGS_LOG"
   grep -q -- '--no-session-persistence' "$ARGS_LOG"
   grep -q -- '--json-schema' "$ARGS_LOG"
