@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/150 |
-| status | in-progress |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -77,4 +77,4 @@
 
 
 - pr-156 merged: 2026-08-28T13:21:39Z — https://github.com/percena/lattice/pull/156 (base merge)
-- issue #150: not closed (closed-without-merge? status recorded without mergedAt claim)
+- issue #150 closed: 2026-08-28T13:24:41Z — https://github.com/percena/lattice/issues/150
