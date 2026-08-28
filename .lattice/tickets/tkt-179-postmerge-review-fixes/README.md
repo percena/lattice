@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/179 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | true |
@@ -25,7 +25,7 @@
 | **related_tickets** | tkt-149, tkt-150, tkt-151, tkt-152 |
 | **worktree_bind** | `tkt-179-postmerge-review-fixes` |
 | worktree | sibling `…/lattice.worktrees/tkt-179-postmerge-review-fixes/` |
-| prs | (none) |
+| prs | pr-180 |
 
 ## Acceptance
 
