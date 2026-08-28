@@ -152,7 +152,7 @@ MD
   before=$(git -C "$REPO" rev-parse HEAD)
   run bash "$RF" --binder "$BINDER" --decision "x"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"no `## Decision journal` section"* ]]
+  [[ "$output" == *"no "'`## Decision journal`'" section"* ]]
   after=$(git -C "$REPO" rev-parse HEAD)
   [ "$before" = "$after" ]
 }
