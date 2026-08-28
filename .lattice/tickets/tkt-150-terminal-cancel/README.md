@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-150-terminal-cancel` |
 | worktree | sibling `…/lattice.worktrees/tkt-150-terminal-cancel/` |
-| prs | (none) |
+| prs | pr-156 — https://github.com/percena/lattice/pull/156 |
 
 ## Acceptance
 
@@ -75,4 +75,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-156 merged: 2026-08-28T13:21:39Z — https://github.com/percena/lattice/pull/156 (base merge)
+- issue #150: not closed (closed-without-merge? status recorded without mergedAt claim)
