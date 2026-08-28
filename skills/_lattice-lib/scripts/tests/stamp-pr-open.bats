@@ -327,3 +327,25 @@ EOF
   printf '%s\n' "$output" | grep -qF 'comments JSON unparseable'
   ! grep -q -- 'issue comment' "$GH_LOG"
 }
+
+@test "adopted binder: valid JSON with wrong shape skips comment post (fail-closed)" {
+  write_fresh_binder
+  write_issue_body
+  sed -i.bak 's/| adopted | false |/| adopted | true |/' "$BINDER"
+  rm -f "$BINDER.bak"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$GH_LOG"
+case "$1 $2" in
+  "repo view") printf '%s\n' 'https://github.com/acme/repo' ;;
+  "pr view")   printf '%s\n' '{"url":"https://github.com/acme/repo/pull/12","state":"OPEN"}' ;;
+  "issue view") printf '%s\n' '[]' ;;
+esac
+exit 0
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF 'comments JSON unparseable'
+  ! grep -q -- 'issue comment' "$GH_LOG"
+}
