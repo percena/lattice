@@ -13,6 +13,10 @@ Checks (selected, not exhaustive):
   - binder ``prs`` row format: a filled row must be canonical ``pr-N — <URL>``
     entries, comma-separated for multi-PR tickets; ``(none…)`` placeholders are
     exempt (warning permanently — adopt flows may reintroduce legacy rows)
+  - binder ``github`` field vs directory ``tkt-N``: a real issue URL's issue
+    number must match the N in ``tkt-N-<slug>`` (error on mismatch); a
+    placeholder/empty value on a numeric dir emits the phantom-binder smell
+    warning (guessed dir number without ``gh issue create``)
   - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal)
   - ``covers`` A* ids that do not exist on the parent Spec Acceptance
   - one-sided local edges: ticket lists Spec but Spec.tickets omits the ticket
@@ -50,6 +54,18 @@ STATUS_TABLE_RE = re.compile(r"^\|\s*status\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
 STATUS_TLDR_RE = re.compile(r"\*\*Status:\*\*\s*([a-zA-Z0-9_-]+)", re.I)
 SPEC_REF_RE = re.compile(r"\|\s*spec\s*\|\s*(spc-[1-9][0-9]*)\b", re.I)
 PRS_TABLE_RE = re.compile(r"^\|\s*prs\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+# Binder github field row (tkt-155). The value is a GitHub issue URL whose
+# trailing number must match the N in the directory name tkt-N-<slug>, or a
+# placeholder when the issue has not been created yet.
+GITHUB_TABLE_RE = re.compile(r"^\|\s*github\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+# A github field value that is a placeholder — not a real issue URL. Matches:
+# empty, `(to be created)`, `pending`, `(none…)`, `(none yet)`, etc. The
+# `(none…)` family shares grammar with PRS_PLACEHOLDER_RE (binder_rows.py).
+GITHUB_PLACEHOLDER_RE = re.compile(
+    r"^(?:\(none.*\)|\(to be created\)|pending|)$", re.I
+)
+# Extract the trailing issue number from a GitHub issue URL.
+GITHUB_ISSUE_URL_RE = re.compile(r"/issues/([1-9][0-9]*)\b")
 # A row that is entirely a `(none…)` parenthetical is a placeholder, not a
 # filled ledger entry (e.g. `(none)`, `(none yet)`, `(none — rides tkt-5 PR)`).
 # Grammar single-sourced with the writers in
@@ -412,6 +428,76 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                         ),
                     }
                 )
+        # Binder github field vs directory tkt-N (tkt-155): the github row
+        # names the GH issue that owns this binder. A real URL's issue number
+        # must match the N in tkt-N-<slug> (error on mismatch — lineage key
+        # fork); a placeholder/empty value on a numeric dir is the phantom
+        # smell (warning — likely a guessed dir number without gh issue
+        # create). Absent row is OK (lazy migration — mirrors fix_cycles).
+        gh_m = GITHUB_TABLE_RE.search(first_table_block(text))
+        if gh_m:
+            gh_val = gh_m.group(1).strip()
+            if GITHUB_PLACEHOLDER_RE.fullmatch(gh_val):
+                # Placeholder/empty github value. On a numeric dir this is
+                # the phantom-binder smell (binder_github_pending is
+                # subsumed — the phantom signal is the actionable one); on
+                # a non-numeric dir it is just pending.
+                dir_n_m = re.match(r"tkt-([1-9][0-9]*)$", tid) if tid else None
+                if dir_n_m:
+                    findings.append(
+                        {
+                            "code": "phantom_binder_smell",
+                            "level": "warning",
+                            "path": str(path),
+                            "detail": (
+                                f"numeric dir {tid} but github field is "
+                                f"placeholder ({gh_val!r}) — likely a guessed "
+                                "dir number without gh issue create; use "
+                                "`tkt-pending-<slug>` until the issue exists"
+                            ),
+                        }
+                    )
+                else:
+                    findings.append(
+                        {
+                            "code": "binder_github_pending",
+                            "level": "warning",
+                            "path": str(path),
+                            "detail": (
+                                f"github field is pending/placeholder "
+                                f"({gh_val!r}) — create the issue and update"
+                            ),
+                        }
+                    )
+            else:
+                url_m = GITHUB_ISSUE_URL_RE.search(gh_val)
+                if url_m:
+                    gh_issue_n = url_m.group(1)
+                    dir_n_m = re.match(r"tkt-([1-9][0-9]*)$", tid) if tid else None
+                    if dir_n_m and gh_issue_n != dir_n_m.group(1):
+                        findings.append(
+                            {
+                                "code": "binder_dir_github_mismatch",
+                                "path": str(path),
+                                "detail": (
+                                    f"dir {tid} but github issue #{gh_issue_n} "
+                                    "— lineage key fork (dir N must match "
+                                    "issue N)"
+                                ),
+                            }
+                        )
+                else:
+                    findings.append(
+                        {
+                            "code": "binder_github_malformed",
+                            "level": "warning",
+                            "path": str(path),
+                            "detail": (
+                                f"github row {gh_val!r} is neither a real "
+                                "issue URL nor a recognized placeholder"
+                            ),
+                        }
+                    )
         if st in STATUS_TERMINAL and not has_finish_ledger(text):
             findings.append(
                 {

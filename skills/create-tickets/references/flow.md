@@ -177,9 +177,9 @@ mkdir -p "$DIR/assets"
 ```
 
 - Fill `## Approach` + `## Anticipated decisions` from the §2.2 scan; user-unresolved must-ask items → `## Pending decisions`.
-- Rename `tkt-pending-<slug>` → `tkt-N-<slug>` if needed.
+- Rename `tkt-pending-<slug>` → `tkt-N-<slug>` if needed. **Never** pre-guess the number — create the issue first, capture N from the URL, then rename. The validator (`validate-lattice-artifacts.py`) errors when dir N ≠ github issue N, and warns `phantom_binder_smell` when a numeric dir carries a placeholder `github` field (tkt-155).
 - Spec front matter `tickets: […, tkt-N]` bare ids.
-- id = GitHub issue number always.
+- id = GitHub issue number always. The binder `github` field URL must point to that same issue.
 
 ## 4. Handoff
 
