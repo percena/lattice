@@ -10,7 +10,7 @@ priority: P1
 summary: "Add ensure-python3.sh guard + hook advisory so missing python3 fails with a friendly install hint instead of a cryptic mid-script error"
 created: 2026-08-29
 updated: 2026-08-29
-tickets: []
+tickets: [tkt-213]
 prs: []
 reviews: []
 supersedes: []
