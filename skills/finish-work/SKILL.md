@@ -1,9 +1,9 @@
 ---
 name: finish-work
-description: "Merge or close a GitHub PR after base update, artifact alignment, and a default-on mini code-review scan, then clean up the feature branch and worktree. Prefer explicit targets: PR number, tkt-N/#N, spc-N, or branch. Use when landing a PR, merge and delete branch, remove worktree after ship, or finish workflow cleanup. Not for opening a PR or starting workspace."
+description: "Merge or close a GitHub PR after base update, artifact alignment, and a default-on mini code-review scan, then clean up the feature branch and worktree. Multi-PR mode (--ids/--groups) lands several PRs in dependency order. Prefer explicit targets: PR number, tkt-N/#N, spc-N, or branch. Use when landing a PR, merge and delete branch, remove worktree after ship, or finish workflow cleanup. Not for opening a PR or starting workspace."
 allowed-tools: Bash Read Grep Glob AskUserQuestion
 user-invocable: true
-argument-hint: "[pr <N> | tkt <N> | spc <N> | #N | --branch <name>] [--close] [--dry-run] [--rebase] [--no-update-branch]"
+argument-hint: "[pr <N> | tkt <N> | spc <N> | #N | --branch <name> | --ids ID1,ID2,… | --groups] [--close] [--dry-run] [--rebase] [--no-update-branch] [--report <path>]"
 metadata:
   agents: "claude-code,codex"
 ---
@@ -21,6 +21,7 @@ Close the loop after SHIP: **resolve target → preflight (CI + base update + al
 | When | Read |
 | --- | --- |
 | Full preflight / alignment dimensions / land-time drift / **mini-review full text (§2.7)** / **sequential merge queue (§3.4)** | `references/flow.md` |
+| **Multi-PR DAG-aware merge (§7):** DAG build, layer loop, stacked retarget, halt mapping, report shape | `references/flow.md` |
 | Profile / acceptance / adopted-issue tables | `references/policy.md` |
 | Constraint severity labels | `../_lattice-lib/references/constraint-language.md` |
 | Claiming shippable / tests green | `../_lattice-lib/references/definition-of-done.md` |
@@ -40,17 +41,20 @@ Close the loop after SHIP: **resolve target → preflight (CI + base update + al
 | --- | --- |
 | `pr N` / `pr-N` | `gh pr view N` |
 | `tkt N` / `#N` | Open PR head `tkt-N-*` or body Fixes/Refs #N |
-| `spc N` / `spc-N` | Open PR head `spc-N-*` or body `Spec: spc-N` |
+| `spc N` / `spc-N` | Open PR head `spc-N-*` or body `Spec: spc-N`. ≥2 open PRs → **multi-PR mode** (DAG); 1 → single path |
 | `--branch name` / bare branch | PR for head or cleanup only |
+| `--ids ID1,ID2,…` | **Multi-PR mode:** resolve each id's open PR, build merge-order DAG, land in layer order (halt on first failure). See `flow.md` §7 |
+| `--groups` | **Multi-PR mode:** read `merge_blocked_by`/`blocked_by` from all binders with open PRs; build DAG |
 | *(none)* | Current branch only if **one** open PR — else stop and ask |
 
 | Flag | Effect |
 | --- | --- |
 | `--close` | Close without merge |
-| `--dry-run` | Plan only; still run alignment + base dry-run |
+| `--dry-run` | Plan only; still run alignment + base dry-run (multi-PR: print DAG, exit before marker/merge) |
 | `--rebase` | Feature rebase via `update-pr-base.sh --rebase` |
 | `--no-update-branch` | Skip base update (user asserts ready) |
 | `--keep-worktree` / `--keep-branch` / `--keep-remote` | Cleanup opts (remote delete is **default**) |
+| `--report <path>` | Multi-PR mode: write the batch report (Markdown table) to <path> (always also stdout) |
 
 Finish **does not invent** which PR to merge.
 
@@ -63,6 +67,7 @@ Finish **does not invent** which PR to merge.
 - [ ] `alignment-check.sh --json` + human dimensions; retain its approved `closing_ids` through merge; **land-time Spec drift** when `Spec:` / Spec-bound Fixes apply; DoD honesty — drift ⇒ remediate (a) commits (b) tickets (c) Spec, **no merge**
 - [ ] **Mini-review scan (default-on):** load PR diff, 5-axis light scan, present material findings, `AskUserQuestion` on material items (high → default Hold); advice, **not** a gate — HARD gate stays alignment-check
 - [ ] **Sequential merge queue (multi-PR landing):** before **each** merge in the queue, `gh pr checks <N>` rollup — fail/pending surfaced to the operator (distinguish transient CI reds from real failures), never merge on `mergeable` alone; conflicts resolved **file-explicit only** (`git checkout --ours`/`--theirs` per named path — `git add -A` forbidden); post-merge `grep -rn '<<<<<<<'` over touched paths; in-flight head-branch runs waited-for or `gh run cancel`-ed before `--delete-branch` (flow.md §3.4)
+- [ ] **Multi-PR DAG-aware mode (`--ids`/`--groups`/multi-PR `spc N`):** resolve all open PRs, build merge-order DAG from `merge_blocked_by` (fallback `blocked_by`), remove marker once after human ack, merge in layer order with **halt-on-failure** + layer barrier (flow.md §7). Single target → single-PR path (unchanged)
 - [ ] merge|close
 - [ ] After **merge**: `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` — fail if the PR closing set changed; otherwise actionable local delivery issues CLOSED
 - [ ] branch + worktree cleanup; remote head gone by default
@@ -101,6 +106,8 @@ Finish **does not invent** which PR to merge.
 
 ## Short path
 
+> **Multi-PR mode:** if multiple targets (`--ids`/`--groups`/`spc N` resolving ≥2 open PRs) → load `references/flow.md` §7 (resolve all open PRs, build merge-order DAG, remove marker once after human ack, merge in layer order with halt-on-failure + barrier, report). Else single-PR path below.
+
 1. Resolve target → record PR_N / HEAD / BASE.
 2. **Batch-work marker gate (machine-enforced, spc-187 A1):** the merge hook blocks `gh pr merge` while the `.lattice/.batch-work-active` marker exists at the repo MAIN clone `.lattice/`. If present → stop and print "batch-work marker is present — night-shift PRs may not merge; human must authorize" (do not merge, do not proceed to base update). Proceed to merge only after the human authorizes the escape. **Remove the marker as a deliberate scripted step BEFORE merge** (after human ack) via `batch-merge-gate.sh --remove --reason "user-authorized: <why>"` — not after. Unapproved crossings are invalid (redo/rollback); ADR-007 §5c.
 3. Preflight (draft, checks, mergeable). **Red-run disposition (DEFAULT 15):** list the branch's failed runs (`gh run list --branch <HEAD>`) and disposition each in the binder — transient vs real, one line each — before relying on the green rollup. **Base-mismatch advice:** if `BASE` (PR base) ≠ the user's current integration branch (long-lived, e.g. on `dev` but PR targets `main`), surface a one-line warning **before** `gh pr merge` and let the operator confirm or switch. Advice only — HARD gate stays `alignment-check.sh`.
@@ -136,6 +143,7 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 | --- | --- |
 | "Aligned in chat" without editing issue/PR/binder | Not durable L0 |
 | Merge half-done land because Spec primary still open | Land-time gate; epic is not a buffer |
+| Multi-PR merge ignoring `merge_blocked_by`/`blocked_by` layer order | Stacked/dependent PRs land broken; merge base-first |
 
 ## Relationship
 
@@ -146,6 +154,7 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 | `create-tickets` | Issues that Fixes may close |
 | `review-code` | Full-function code review (pre-create-pr / dedicated pass); the embedded mini is a bounded projection of its contract |
 | `review-production` | Optional advice — **not** a merge gate |
+| `batch-work` | Produces the PRs + `.batch-work-active` marker that finish-work's multi-PR mode consumes (removes once, merges in DAG order) |
 
 ## Common Rationalizations
 
@@ -178,6 +187,10 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 | "mergeable=MERGEABLE means safe to merge" | Mergeable is a git-tree statement, not a CI verdict — the `gh pr checks` rollup is part of preflight; surface fail/pending and distinguish transient CI reds from real failures before any merge |
 | "add -A is faster during conflicts" | File-explicit only: `git checkout --ours`/`--theirs` per named conflicted path, then `git add <path>`; `git add -A` staged raw conflict markers into dev (repair 628e4cb) |
 | "operator held the PR — state is obvious from the open PR" | State is never inferred from PR existence (ADR-004 §6); Hold with named findings stamps binder `status: rework` so resume finds the brief |
+| "multi-PR — merge in any order, stacks sort out" | Stacked PRs must merge base-first or the dependent's diff won't clean; `merge_blocked_by` (fallback `blocked_by`) governs layer order (§7) |
+| "one PR failed mid-batch — keep going, independents are fine" | Halt-on-failure: stop the batch (a mid-batch failure may mean the base is in an unexpected state); dependents → `blocked-by-failure`, independents → `halted`; re-run after fixing |
+| "remove the marker per-PR to re-confirm each merge" | Marker removed **once** at batch start after human ack; the batch owns the whole merge window (§7) |
+| "batch-finish needs background agents like batch-work" | Merges serialize on the base branch; multi-PR mode is host-owned (no agents, no worktrees, no RAM/watchdog/fuse) |
 
 ## Red Flags
 
@@ -195,6 +208,9 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - Ignoring local paths, credentials, or closed-source project names in the diff
 - Using open Spec primary / `label:epic` as cover for unfinished Fixes land
 - Rewriting hand-created issue bodies at land to green the gate
+- Multi-PR merge in arbitrary order when `merge_blocked_by`/`blocked_by` edges exist (stacks must land base-first)
+- Retargeting a stacked PR's base before its deps merged (would orphan the stack — §7 fires retarget only when deps merged)
+- Continuing the batch after a failure instead of halting (halt-on-failure; dependents → `blocked-by-failure`)
 
 ## Verification
 
@@ -219,3 +235,14 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - [ ] Binder `## Finish` ledger stamped on merge base (mergedAt + prs + status); idempotent; no-binder skipped not failed
 - [ ] Spec primary: if workstream complete → closed (or explicit hold); if not complete → still open **and** residual work tracked
 - [ ] Adopted Fixes issues: optional one settlement comment if body left append-only
+
+**Multi-PR mode (`--ids`/`--groups`/multi-PR `spc N`) — flow.md §7:**
+
+- [ ] Merge-order DAG built from `merge_blocked_by` (fallback `blocked_by`); layers printed (cycle → fail closed, no merge)
+- [ ] Stacked base PRs land in earlier layers than their dependents
+- [ ] `.batch-work-active` marker removed **once** after human ack (or no-op if absent); not per-PR
+- [ ] Layer barrier: all layer-0 PRs merged before any layer-1 PR begins
+- [ ] Stacked retarget fired only when deps merged + `baseRefName` ≠ integration branch
+- [ ] Halt-on-failure: first failure stops the batch; dependents → `deferred`/`blocked-by-failure`; independents → `halted`/`pr-open`; partial report emitted
+- [ ] Batch report (ticket, layer, PR, status, binder, mergedAt) emitted to stdout + `--report`
+- [ ] Single-target path unchanged (single PR → existing short path)

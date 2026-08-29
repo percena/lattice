@@ -3,7 +3,7 @@
 <!-- Binder is a thin recovery card (not a second issue tracker).
      required: kind, priority, github, status, created/updated, acceptance, primary_ticket / worktree_bind when shipping
      recommended: covers, spec, summary/TL;DR, Path
-     optional (parallel / C): blocked_by, parallel_group, paths, solo_merge, related_tickets -->
+     optional (parallel / C): blocked_by, merge_blocked_by, parallel_group, paths, solo_merge, related_tickets -->
 
 > **TL;DR:** <one sentence slice — standalone>
 > **Kind:** feat · **Priority:** P2 <!-- status lives in the field table -->
@@ -25,6 +25,7 @@
 | spec | spc-N — <one-line> (path: ../../specs/spc-N-<slug>.md) |
 | covers | A1, A2 |
 | blocked_by | (none \| #N) |
+| merge_blocked_by | (none \| #N) | merge-order DAG — #N must MERGE before this ticket's PR lands (distinct from `blocked_by` = work-start order; usually the same but governs landing order for stacked PRs / logical deps). Consumed by `finish-work` multi-PR mode; falls back to `blocked_by` when absent |
 | parallel_group | G1 \| (serial) |
 | paths | approx globs this slice may touch |
 | solo_merge | yes \| no |
@@ -91,6 +92,7 @@
 - Related / sub-tickets: …
 - Covers: **A1, A2**
 - Blocked by: … (dependency DAG — not parent)
+- Merge blocked by: … (merge-order DAG — not work-start; consumed by finish-work multi-PR mode)
 - Parallel group: …
 - Worktree bind: …
 - Child PRs: … (GitHub Fixes/Refs is SoT)
