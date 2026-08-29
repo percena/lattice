@@ -109,6 +109,14 @@ Not part of the delivery loop — six tiers, none create lineage nodes:
 
 `git`, `gh`, `jq`, `python3` (≥ 3.8), `curl` — plus an agent that runs [Agent Skills](https://agentskills.io/) or Claude Code plugins. Hook tests need `bats`.
 
+**`python3` is used for the standard library only — no `pip`, no virtualenv, no third-party packages.** Claude Code itself does not install Python, so on some platforms you must add it:
+
+- **macOS:** `xcode-select --install` (or `brew install python`) — `/usr/bin/python3` is a stub that pops a GUI dialog until Command Line Tools are installed.
+- **Arch:** `sudo pacman -S python` (removed from `base` ~2024).
+- **Alpine / minimal Docker:** `apk add python3` (or `apt-get`/`dnf install python3`).
+
+Lattice scripts detect a missing `python3` and print the right install command for your platform (`skills/_lattice-lib/scripts/ensure-python3.sh`).
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).

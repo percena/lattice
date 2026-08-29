@@ -96,6 +96,12 @@ _read_profile() {
   fi
 }
 
+# Minimal JSON string escaper for the python3-absent degrade path (spc-212).
+# The normal path uses python3 json.dumps; this keeps the degrade emit valid.
+_jl_json_str() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 if $CHECK_ONLY; then
   READY=false
   if _skeleton_ok; then
@@ -103,6 +109,17 @@ if $CHECK_ONLY; then
   fi
   ACTIVE_PROFILE=$(_read_profile || true)
   if $AS_JSON; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      # Degrade: emit minimal JSON without the interpreter (spc-212 A2).
+      # profile is null when absent (matches the python3 path's `prof or None`).
+      _pf='null'
+      [[ -z "${ACTIVE_PROFILE:-}" ]] || _pf="\"$(_jl_json_str "${ACTIVE_PROFILE:-}")\""
+      printf '{"ok":%s,"ready":%s,"root":"%s","lattice":"%s","action":"check","profile":%s}\n' \
+        "$([[ "$READY" == true ]] && echo true || echo false)" \
+        "$([[ "$READY" == true ]] && echo true || echo false)" \
+        "$(_jl_json_str "$ROOT")" "$(_jl_json_str "$LATTICE")" "$_pf"
+      if $READY; then exit 0; else exit 1; fi
+    fi
     python3 - "$ROOT" "$LATTICE" "$READY" "${ACTIVE_PROFILE:-}" <<'PY'
 import json, sys
 root, lattice, ready, prof = sys.argv[1:5]
@@ -168,7 +185,7 @@ INIT_ARGS=(--root "$ROOT")
 $WRITE_GITIGNORE && INIT_ARGS+=(--write-gitignore)
 $SYNC_LABELS && INIT_ARGS+=(--sync-labels)
 [[ -n "$PROFILE" ]] && INIT_ARGS+=(--profile "$PROFILE")
-$AS_JSON && INIT_ARGS+=(--json)
+$AS_JSON && command -v python3 >/dev/null 2>&1 && INIT_ARGS+=(--json)
 
 # Keep stdout vs stderr separate so --json is not poisoned by warnings.
 INIT_ERR_FILE=$(mktemp "${TMPDIR:-/tmp}/ensure-lattice.XXXXXX.err")
@@ -249,6 +266,13 @@ ACTIVE_PROFILE=$(_read_profile || true)
 [[ -z "${ACTIVE_PROFILE:-}" ]] && ACTIVE_PROFILE="${PROFILE:-strict}"
 
 if $AS_JSON; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    # Degrade: emit minimal JSON without the interpreter (spc-212 A2).
+    printf '{"ok":true,"ready":true,"action":"%s","root":"%s","lattice":"%s","profile":"%s","created_preferences":%s}\n' \
+      "$(_jl_json_str "$ACTION")" "$(_jl_json_str "$ROOT")" "$(_jl_json_str "$LATTICE")" "$(_jl_json_str "$ACTIVE_PROFILE")" \
+      "$([[ "$PREFS_CREATED" == true ]] && echo true || echo false)"
+    exit 0
+  fi
   if printf '%s' "$INIT_OUT" | python3 -c 'import json,sys; json.load(sys.stdin)' >/dev/null 2>&1; then
     printf '%s' "$INIT_OUT" | python3 -c '
 import json, sys

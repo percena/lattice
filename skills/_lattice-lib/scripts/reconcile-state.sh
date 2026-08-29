@@ -34,6 +34,9 @@
 #   2 — unknown (gh unavailable / auth / network) or usage / binder invalid
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+bash "$(dirname "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
+
 BINDER=""
 REPO=""
 AS_JSON=false

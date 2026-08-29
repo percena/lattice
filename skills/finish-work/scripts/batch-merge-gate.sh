@@ -112,6 +112,13 @@ case "$ACTION" in
     if $allowed; then exit 0; else exit 1; fi
     ;;
   status)
+    if ! command -v python3 >/dev/null 2>&1; then
+      # Degrade: emit JSON without the interpreter (spc-212 A2 — no bare
+      # "command not found"). Paths are Lattice-home paths (no quotes).
+      printf '{"marker_present":%s,"escape_present":%s,"allowed":%s,"home":"%s","marker_path":"%s","python3":"missing"}\n' \
+        "$marker_present" "$escape_present" "$allowed" "$HOME_DIR" "$MARKER_PATH"
+      exit 0
+    fi
     BG_MARKER_PRESENT="$marker_present" \
     BG_ESCAPE_PRESENT="$escape_present" \
     BG_ALLOWED="$allowed" \

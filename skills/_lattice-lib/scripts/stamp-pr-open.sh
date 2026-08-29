@@ -26,6 +26,9 @@
 #   Exits 0 on success or no-binder-skip; 1 on gh/IO failure; 2 on usage.
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+bash "$(dirname "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
+
 PR_N=""
 ISSUE_M=""
 BINDER=""

@@ -35,6 +35,11 @@
 # stdout: JSON summary (last line); exit 0 on success, 1 on preserved/residual work
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+# Cleanup is destructive; identity verification needs python3, so refuse rather
+# than blind-delete on a python3-less system.
+bash "$(dirname "${BASH_SOURCE[0]}")/../../_lattice-lib/scripts/ensure-python3.sh" || exit 1
+
 BRANCH=""
 WT_PATH=""
 WT_PATH_EXPLICIT=false
@@ -85,12 +90,8 @@ if [[ "$BRANCH" == -* ]] || ! git check-ref-format --branch "$BRANCH" >/dev/null
   exit 2
 fi
 
-# python3 preflight comes first: every JSON emission below needs it, so this
-# is the one abort that legitimately cannot honour the JSON contract.
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "Error: python3 is required by cleanup-workspace.sh" >&2
-  exit 1
-fi
+# python3 availability is enforced by the ensure-python3.sh entry guard at the
+# top of this script (spc-212) — no duplicate preflight here.
 
 # Refusals and aborts that exit before the full summary emitter still honor
 # the "stdout: JSON summary (last line)" contract: ok:false + reason, fail

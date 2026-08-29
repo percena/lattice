@@ -55,6 +55,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Advisory sensor — never blocks (spc-212 A2/D3 degrade path). If python3 is
+# absent, emit a mode-appropriate empty/degraded result instead of a bare
+# "command not found" mid-sensor.
+if ! command -v python3 >/dev/null 2>&1; then
+  case "$MODE" in
+    banner) echo "Queue health: unavailable (python3 missing — install per ensure-python3.sh)." ;;
+    section) echo "Queue health: unavailable (python3 missing — install per ensure-python3.sh)." ;;
+    json)   echo '{}' ;;
+  esac
+  exit 0
+fi
+
 # Resolve lattice home (same priority as ci-gate-check.sh / alignment-check.sh).
 if [[ -z "$HOME_DIR" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

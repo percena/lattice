@@ -109,6 +109,14 @@ npx skills add percena/lattice -g -y
 
 `git`、`gh`、`jq`、`python3`（≥ 3.8）、`curl`——加一个能运行 [Agent Skills](https://agentskills.io/) 或 Claude Code 插件的智能体。Hook 测试需 `bats`。
 
+**仅使用 `python3` 标准库——无需 `pip`、无需虚拟环境、无任何第三方包。** Claude Code 自身并不安装 Python，因此部分平台需自行安装：
+
+- **macOS：** `xcode-select --install`（或 `brew install python`）——未安装 Command Line Tools 时 `/usr/bin/python3` 是个会弹 GUI 对话框的占位 stub。
+- **Arch：** `sudo pacman -S python`（约 2024 年起已从 `base` 移除）。
+- **Alpine / 最小 Docker 镜像：** `apk add python3`（或 Debian/Ubuntu/Fedora 用 `apt-get`/`dnf install python3`）。
+
+Lattice 脚本会检测 `python3` 缺失并打印对应平台的安装命令（`skills/_lattice-lib/scripts/ensure-python3.sh`）。
+
 ## 许可证
 
 MIT——见 [LICENSE](./LICENSE)。
