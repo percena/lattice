@@ -3,7 +3,7 @@ id: spc-186
 slug: hard-limit-closure
 title: Hard-limit enforcement closure — machine-checked transitions, human-adjudicated escapes
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P1
 summary: Close the enforcement asymmetry found in rev-20260829-160834Z — make the documented safety laws (batch merge gate, FSM transitions, CI gate, caps) machine-checked per the ADR-007 boundary law, with human-adjudicated exception channels.
@@ -18,7 +18,7 @@ superseded_by: null
 
 # spc-186: Hard-limit enforcement closure
 
-> **Status:** locked (2026-08-29) — scope confirmed in the review dialogue; macro sign-off given by operator.
+> **Status:** done (2026-08-29) — scope confirmed in the review dialogue; macro sign-off given by operator.
 
 ## Why
 
