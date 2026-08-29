@@ -10,9 +10,9 @@
 | priority | P1 | |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/191 | |
-| status | queued | |
+| status | pr-open | |
 | created | 2026-08-29T11:09:34Z | |
-| updated | 2026-08-29T11:09:34Z | |
+| updated | 2026-08-29T12:22:20Z | |
 | adopted | false | |
 | summary | Ticket binders carry no created/updated timestamps (Specs/Reviews have them) — time-in-state uncomputable for in-flight tickets. Blocks A5. | |
 | spec | spc-186 | |
@@ -25,7 +25,7 @@
 | related_tickets | tkt-189, tkt-192 | 192 (staleness) depends on this |
 | worktree_bind | tkt-191-binder-timestamps | |
 | worktree | sibling `…/lattice.worktrees/tkt-191-binder-timestamps/` | |
-| prs | (none) | |
+| prs | pr-206 — https://github.com/percena/lattice/pull/206 | |
 
 ## Acceptance (this slice)
 
@@ -51,6 +51,7 @@ Add `created`/`updated` rows to the ticket-binder template field table (placemen
 - 2026-08-29: `updated` bump posture → bump-if-present, never insert (source: agent-judgment; mirrors `fix_cycles` lazy-migration precedent — missing row is a no-op, the validator warns; new binders carry the row from the template so the bump takes effect going forward). Rejected insert-if-missing as more invasive and a risk to table integrity across three stamping scripts.
 - 2026-08-29: shared bump helper → `binder_rows.stamp_updated()` in lib/binder_rows.py (source: preference; single-sources the binder-row write grammar like `merge_row`). Validator keeps validator-local `BINDER_TS_RE` (writers emit, never validate — same posture as `FIX_CYCLES_RE`; no parity test needed for a lib-only function). ratify wired to import binder_rows (was lib-free).
 - 2026-08-29: idempotency preserved → bump gated on `s != orig` (real mutation) so a no-op re-run does not touch `updated` and the "no change (idempotent)" contract holds (source: agent-judgment; stamp-pr-open/finish-ledger idempotency tests assert byte-identical re-runs).
+- 2026-08-29T12:22:20Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #206) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
