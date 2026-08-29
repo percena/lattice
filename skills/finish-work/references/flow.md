@@ -23,6 +23,7 @@ Labels: **INVARIANT** · **DEFAULT** · **HINT**.
 - [4. Cleanup workspace (mandatory after merge|close)](#4-cleanup-workspace-mandatory-after-mergeclose)
 - [5. Lineage bookkeeping (when Lattice exists)](#5-lineage-bookkeeping-when-lattice-exists)
 - [6. Report](#6-report)
+- [7. Multi-PR DAG-aware merge (batch mode — `--ids`/`--groups`/multi-PR `spc N`)](#7-multi-pr-dag-aware-merge-batch-mode---ids--groupsmulti-pr-spc-n)
 - [Examples](#examples)
 
 ## 1. Resolve target PR (INVARIANT: no multi-PR guess)
@@ -361,6 +362,144 @@ git ls-remote --heads origin "<HEAD_BRANCH>"   # must be empty
 
 PR URL + state · branch deleted? remote gone? worktree removed? · residual paths · **actionable local delivery issues closed?** + **epic/unsupported exclusions reported?** (`close-fixed-issues.sh` output: `closed` / `skipped_epic` / `unsupported_references`) · land-time Spec alignment · **Spec primary:** complete → closed (or hold); incomplete → open + residual work · alignment summary.
 
+## 7. Multi-PR DAG-aware merge (batch mode — `--ids`/`--groups`/multi-PR `spc N`)
+
+**Why a separate mode:** PR landing order forms a DAG — stacked PRs (B based on A; A must merge first or B's diff won't clean) and logical deps (B's code calls a symbol A introduces). Single-PR finish ignores order. Multi-PR mode builds a merge-order DAG and lands PRs **base-first**, reusing finish-work's existing per-PR flow (§2–§6) in layer order.
+
+**Why not a separate skill (like batch-work):** merges serialize on the base branch — there is no parallelism, so batch-work's parallel/worktree/RAM/watchdog/fuse machinery does not apply. Multi-PR mode is host-owned prose calling the **same scripts** the single-PR path uses; it adds the DAG build, layer barrier, halt-on-failure, and a report only.
+
+**Entry:** `--ids ID1,ID2,…` | `--groups` | `spc N` resolving ≥2 open PRs. Single target → single-PR path (§1–§6), unchanged.
+
+### Arg parsing
+
+`--ids` and `--groups` are mutually exclusive with each other and with any single positional target (`pr`/`tkt`/`spc`/`#N`/`--branch`). `spc N` enters multi-PR mode **only** when it resolves ≥2 open PRs; one open PR → single path. `--close`/`--dry-run`/`--rebase`/`--no-update-branch`/`--report` apply per-mode (`--dry-run` prints the DAG and exits before marker/merge).
+
+### RESOLVE PRs
+
+For each id (under `--groups`, **every** binder under `.lattice/tickets/` that has an open PR):
+
+1. Locate `.lattice/tickets/tkt-<id>-*/README.md`. No binder → record `no-pr` (skip); do not fail the batch.
+2. Resolve the open PR via §1 target resolution (head `tkt-<id>-*` or body `Fixes`/`Refs #<id>`). No open PR → record `no-pr` (skip).
+3. Parse the binder for `merge_blocked_by` (fallback `blocked_by` when `merge_blocked_by` absent or `(none)`), `primary_ticket`, `worktree_bind`.
+4. Record PR number, head branch, `baseRefName`, binder path.
+
+Fail closed only if **zero** ids resolve to an open PR ("no open PRs in the batch; nothing to finish"). A mixed batch (some `no-pr`) proceeds on the resolved set.
+
+### BUILD DAG
+
+Nodes = tickets-with-open-PRs. Edges = `merge_blocked_by` (fallback `blocked_by`): ticket B `merge_blocked_by A` means **A must MERGE before B**.
+
+Layer assignment (Kahn's algorithm):
+
+- Layer 0: PRs with no within-batch `merge_blocked_by` (or deps only on tickets outside the batch — treated as already-satisfied).
+- Layer k: PR whose every `merge_blocked_by` dep is in a layer < k.
+- Within a layer, PRs merge in binder-id order (order does not affect correctness — they are merge-independent); the layer barrier ensures all of layer k lands before layer k+1 begins.
+- Cross-batch deps (the `merge_blocked_by` target is not in the batch) are treated as already-satisfied preconditions.
+
+Cycle detection: if Kahn's leaves unprocessed nodes → fail closed: "merge-order DAG has a cycle: <ids>". Do not merge.
+
+This is host-owned (no script) — the host performs the topological sort, mirroring `batch-work`'s DAG build.
+
+### DRY-RUN
+
+If `--dry-run`: print
+
+```
+finish-work multi-PR dry-run
+base: <resolved integration branch>
+layers:
+  L0: [tkt-213 → pr-214 (head tkt-213-…, base dev), tkt-214 → pr-215 (…)]
+  L1: [tkt-215 → pr-216 (merge_blocked_by: tkt-213, tkt-214)]
+binders:
+  tkt-213 → .lattice/tickets/tkt-213-…/README.md
+  ...
+```
+
+Exit 0 before the marker gate and any merge.
+
+### MARKER GATE (once)
+
+If `.lattice/.batch-work-active` is present at the repo MAIN clone `.lattice/` (single gate point):
+
+- `AskUserQuestion`: confirm "finish-work will remove the batch-work marker and merge N PRs in DAG order. Proceed?" (batch-id + PR count + layer summary).
+- On ack: `bash "$SKILL_ROOT/scripts/batch-merge-gate.sh" --remove --reason "user-authorized: batch-finish <batch-id>"`; paste the emitted trace line into a batch Decision-journal note.
+- On reject: stop; do not merge.
+
+If the marker is **absent** (no prior batch-work, or already removed): no-op; proceed. The batch owns the whole merge window — no per-PR marker dance.
+
+### LAYER LOOP
+
+For each layer L0..Lk, for each PR in the layer (binder-id order), run the **single-PR short path (SKILL.md steps 3–11) inline**, **minus the marker-gate step** (removed once above). Concretely per PR:
+
+1. **Stacked-PR base retarget** (only when all this PR's `merge_blocked_by` deps have merged):
+   - `gh pr view <N> --json baseRefName`. If `baseRefName` ≠ the resolved integration branch → `gh pr edit <N> --base <integration-branch>`.
+   - **Never** retarget a PR whose deps have not all merged — that would orphan the stack. The check is "all deps in `merged-ok` set"; if any dep failed/halted, this PR is `blocked-by-failure` (skip, not retargeted).
+2. **Preflight** (§2): `ci-gate-check.sh --pr <N>`; red-run disposition; base-mismatch advice. Pending or real-CI-red → **failure** for this PR (halt).
+3. `update-pr-base.sh --pr <N>` (unless `--no-update-branch`). After layer 0 merges, layer-1 `update-pr-base` pulls layer-0's landed work → stacked diffs clean. Honor the rebase-verdict rule (`diff_changed`/`conflict` from JSON).
+4. `alignment-check.sh --pr <N>` + land-time Spec drift. HARD gap → **failure** (halt).
+5. **Mini-review** (§2.7): load PR diff, 5-axis scan. Operator `Hold` with named findings → stamp `rework` + `bump-fix-cycle.sh` → **failure** (halt, not `blocked-by-failure`; the PR needs rework). High finding default `Hold`.
+6. `gh pr merge <N> --squash --delete-branch` (or `gh pr close <N>` under `--close`). After: `verify-mutation.sh --pr <N>` (verify-after-mutate). Failed/empty probe → **failure** (halt).
+7. **After merge:** `close-fixed-issues.sh --pr <N> --expected-closing-ids <approved-set>` (required). Changed set → fail closed → **failure** (halt).
+8. `cleanup-workspace.sh --branch <HEAD> --pr <N>` (required). `ok:false` or remote residual → **failure** (halt, fix residual).
+9. `finish-ledger.sh --pr <N> --issue <closing_M> --binder <path>` on the merge base. Stamps `pr-open → closed` + `## Finish` ledger line.
+
+**On success:** record `ok` + merged PR URL + mergedAt; add PR to the `merged-ok` set (used by dependents' retarget check).
+
+**On failure (halt-on-failure):**
+
+- Stop the batch immediately. Do **not** merge remaining PRs in this layer or any later layer.
+- **Failed PR:** leave at its finish-work disposition (`rework` if mini-review Hold, else `pr-open` + record the failure reason in the report). Do not stamp `closed`.
+- **Dependents** (any PR whose `merge_blocked_by` chain includes the failed PR): stamp binder `status: deferred` + `wait_reason: blocked-by-failure` (mirrors batch-work's blocked-by-failure). Record as `blocked-by-failure`.
+- **Remaining independents** (same layer or later layers, not depending on the failed PR): leave binder `pr-open`; record as `halted` (re-runnable — re-run resumes at their layer).
+- Jump to REPORT.
+
+**Layer barrier (automatic):** the loop is serial — all PRs in layer k finish before layer k+1 begins. No synchronization primitive needed; the for-loop over layers is the barrier. After layer 0 lands, layer-1 PRs' `update-pr-base` (step 3) sees layer-0's work in the integration branch.
+
+### Never-merged reason mapping
+
+| Report status | Binder status | Binder wait_reason | When |
+| --- | --- | --- | --- |
+| `no-pr` | (unchanged, `pr-open` or `queued`) | (none) | No open PR for this id (skip). |
+| `halted` | `pr-open` (unchanged) | (none) | Batch stopped (a peer failed) before this PR's turn; still schedulable on re-run. |
+| `blocked-by-failure` | `deferred` | `blocked-by-failure` | A `merge_blocked_by` dep failed; the merge-order dep is unsatisfied. `deferred → queued` is a human transition. |
+| `failed` | `rework` (mini-review Hold) or `pr-open` | (`unblock` if `rework`) | This PR's own finish failed (alignment/CI/merge/cleanup). |
+
+No new binder enum values — `deferred`/`blocked-by-failure` already exist (mirrors batch-work). `halted` is report-level, not a binder enum (binder stays `pr-open`).
+
+### REPORT
+
+Markdown table emitted to stdout and `--report <path>`:
+
+```markdown
+# finish-work multi-PR report
+
+base: <resolved integration branch>
+ran: <UTC timestamp>
+
+| ticket | layer | pr | status | binder | mergedAt |
+| --- | --- | --- | --- | --- | --- |
+| tkt-213 | L0 | #214 | ok | .lattice/tickets/tkt-213-…/README.md | 2026-08-30 |
+| tkt-214 | L0 | #215 | ok | … | 2026-08-30 |
+| tkt-215 | L1 | #216 | blocked-by-failure | … | — |
+| tkt-216 | L1 | — | halted | … | — |
+| tkt-217 | — | — | no-pr | … | — |
+
+## Summary
+- merged: 2
+- failed: 0
+- blocked-by-failure: 1
+- halted: 1
+- no-pr: 1
+
+## Handoff
+Re-run `finish-work --ids …` after fixing the failed PR.
+Halted PRs re-enter at their layer; blocked-by-failure PRs need their dep merged first
+(`deferred → queued` is a manual transition before re-run).
+Marker removed once at batch start (no per-PR marker step on re-run).
+```
+
+Report-status vocabulary (`ok | failed | blocked-by-failure | halted | no-pr`) is **report-level**, not the binder enum.
+
 ## Examples
 
 ```text
@@ -368,4 +507,7 @@ PR URL + state · branch deleted? remote gone? worktree removed? · residual pat
 /finish-work tkt N
 /finish-work #N --dry-run
 /finish-work --branch tkt-N-workflow-skills --close
+/finish-work --ids 213,214,215
+/finish-work --groups --dry-run
+/finish-work spc 220
 ```
