@@ -1,6 +1,6 @@
 ---
 name: run-e2e
-description: "Reference pattern for writing ego-browser heredoc JS end-to-end test scripts: one Bash invocation per story, fail-loud auth checks, structured JSON output via console.log. Not a YAML runner, not ERP auto-playwright. Use when authoring or reviewing e2e stories that drive a real Chromium browser against a local or deployed web app."
+description: "Reference pattern for writing end-to-end test scripts: one Bash invocation per story, fail-loud auth checks, structured JSON output via console.log. Platform-aware per ADR-009 — macOS uses ego-browser (ego-lite) heredocs; Linux uses camoufox-js (anti-detect Firefox) driven via Playwright in a node heredoc. Confirm-first install gate. Not a YAML runner, not ERP auto-playwright. Use when authoring or reviewing e2e stories that drive a real browser against a local or deployed web app."
 allowed-tools: Bash Read Grep Glob
 metadata:
   agents: "claude-code,codex"
@@ -14,9 +14,33 @@ This skill documents the pattern; it is **not** a separate runner. There is no Y
 
 **Foundation (ADR-002 §2):** ego-browser is the foundation for browser automation in this stack — not ERP's auto-playwright, not a bespoke driver. Task-space login-state inheritance eliminates cross-port auth engineering: an agent-owned space reuses the user's already-logged-in Chromium profile, so a story that targets an authenticated app does not need to re-login, persist cookies, or mint tokens.
 
+**Platform dispatch (ADR-009):** run-e2e is platform-aware. The first step of
+every story run is the preflight `skills/run-e2e/scripts/ensure-e2e-runtime.sh`:
+
+| Platform | Backend | Story entry |
+| --- | --- | --- |
+| **macOS** | ego-lite (`ego-browser` CLI) | `ego-browser nodejs <<'EOF' … EOF` heredoc with ego-browser's preloaded Playwright-style facade. ADR-002 §2 task-space login-state inheritance applies. |
+| **Linux** | camoufox-js (anti-detect Firefox) via Playwright | `node <<'EOF' … EOF` heredoc that `import`s `Camoufox` from `camoufox-js` and drives a real Playwright `Page` with full BrowserForge fingerprint injection. Login state is carried via a persistent context / `storageState`, not ego task spaces (Linux has no ego-lite). |
+
+**Confirm-first install gate (INVARIANT):** the preflight **never auto-installs**.
+If the chosen runtime is missing, it prints install guidance to stderr and exits
+non-zero. The calling agent surfaces that guidance to the user and **waits for
+explicit confirmation** before running any install step (a browser download is
+multi-hundred-MB and outward-facing — never trigger it silently). After the
+user confirms and the install completes, re-run the preflight; passing the
+presence check is the gate, so subsequent runs proceed directly without
+re-prompting. **No sentinel file** — the check is re-run every invocation.
+
+Fallback (NOT primary, documented for scale): the camoufox Python remote-server
+(`python -m camoufox server` → `firefox.connect(ws://…)`) is experimental with
+non-rotating fingerprints; use it only for pool/fingerprint-rotation at scale.
+
 ## Primitives
 
-Every story composes these ego-browser primitives. Names mirror the ego-browser facade (Playwright-style).
+Every story composes these primitives. They are Playwright-style on both
+backends — the only divergence is the launch preamble and login-state carrier.
+Names mirror the ego-browser facade (macOS) and the standard Playwright Page
+API (Linux).
 
 | Primitive | ego-browser call | Notes |
 | --- | --- | --- |
@@ -34,6 +58,28 @@ Every story composes these ego-browser primitives. Names mirror the ego-browser 
 | **wait (response)** | `page.waitForResponse` | Register before the triggering action. waitForResponse throws on timeout (not falsy); wrap in try/catch. |
 | **fetch** | `fetch.server(...)` / `fetch.browser(...)` | Node-side or in-origin requests; escape hatch for API-level probes. |
 | **cdp** | `cdp('Page.handleJavaScriptDialog', { accept: true })` | Escape hatch only; dismiss dialogs via `page.info()` first. |
+
+## Primitives → backend mapping (ADR-009)
+
+The primitives are Playwright-style on both backends. The divergence is the
+launch preamble and the login-state carrier — the page-level calls are
+near-identical. macOS details live in the table above; the Linux
+(camoufox-js) column maps each primitive to the standard Playwright Page API.
+
+| Primitive | macOS (ego-browser) | Linux (camoufox-js / Playwright) |
+| --- | --- | --- |
+| **launch** | `ego-browser nodejs <<'EOF' … EOF` (facade preloaded) | `import { Camoufox } from 'camoufox-js'; const browser = await Camoufox({ headless: true }); const page = await browser.newPage();` |
+| **login state** | `taskSpaces.useOrCreate('<name>')` (ADR-002 §2 inheritance) | `storageState` file or `Camoufox({ persistentContext: … })` — no task spaces on Linux |
+| **goto** | `browser.openOrReuseTab(url, { wait: true, timeout })` | `await page.goto(url, { waitUntil: 'load', timeout: 20000 })` |
+| **subscribe** | `page.on('console'\|'pageerror'\|'response'\|'requestfailed', …)` | identical Playwright `page.on(…)` |
+| **snapshot** | `await page.snapshot()` (AX ref map) | `await page.accessibility.snapshot()` (Playwright AX tree) — or drive locators directly |
+| **locator** | `page.locator(sel)` / `page.getByRole(…)` / `page.getByLabel(…)` | identical Playwright locator API |
+| **click / fill / select / press** | `await locator.click()` / `.fill(v)` / `.selectOption(v)` / `page.keyboard.press(…)` | identical Playwright calls |
+| **screenshot** | `await page.screenshot({ path, fullPage: true })` | identical `page.screenshot(…)` |
+| **assert** | `await page.evaluate(() => { …; return bool })` | identical `page.evaluate(…)` — no `JSON.parse` of the result |
+| **wait (state/response)** | `page.waitForURL` / `waitForLoadState` / `waitForFunction` / `waitForResponse` | identical Playwright waits; register before the triggering action |
+| **fetch** | `fetch.server(…)` (Node-side) / `fetch.browser(…)` (in-origin) | Node `fetch(…)` (server-side) or `page.evaluate(() => fetch(…))` (browser-side) |
+| **cdp** | `cdp('Page.handleJavaScriptDialog', …)` | n/a — Firefox uses Juggler, not CDP; use page-level dialog handling (`page.on('dialog')`) |
 
 ## Fail-loud auth check
 
@@ -187,6 +233,8 @@ If you reach for a runner, write the heredoc instead.
 
 Consumer repos keep stories in a catalog at `.lattice/e2e/stories/*.story.md` — one flow per file, traceability header at the top; the feature map's `story` column points there.
 
+0. **Preflight (ADR-009).** Run `bash skills/run-e2e/scripts/ensure-e2e-runtime.sh`. On success it prints `E2E_BACKEND=<ego|camoufox>` and selects the backend for the story entry (`ego-browser nodejs` on macOS; `node` with camoufox-js on Linux). On failure it prints install guidance to stderr and exits non-zero — surface that guidance to the user and **wait for explicit confirmation** before installing; never auto-install. Re-run after install.
+
 1. **Select task space.** `const task = await taskSpaces.useOrCreate('app smoke')`.
 2. **Subscribe to console/page/HTTP errors** before navigation, so errors during load are captured: `page.on('console')` + `page.on('pageerror')` + `page.on('response')` (first-party `status >= 400`) + `page.on('requestfailed')` (failed first-party requests).
 3. **Navigate.** `await browser.openOrReuseTab(url, { wait: true, timeout: 20000 })`.
@@ -249,5 +297,7 @@ Before declaring a story done, confirm:
 - [ ] No `.js` file written; no Playwright import; no second browser launched.
 
 # References:
-- [Story heredoc template](references/story-template.md)
+- [Story heredoc template (macOS / ego-browser)](references/story-template.md)
+- [Story heredoc template (Linux / camoufox-js)](references/story-template-linux.md)
 - [Example: app smoke story](examples/smoke-test.story.md)
+- Architecture decision: `ADR-009` (`docs/adr/009-platform-stratified-e2e-runtime.md`) — platform split + confirm-first preflight
