@@ -1,6 +1,6 @@
 # tkt-191 — Ticket binder created/updated timestamps
 
-> **Status:** queued · kind feat · priority P1 · covers spc-186 A4
+> **Status:** pr-open · kind feat · priority P1 · covers spc-186 A4
 
 ## Field table
 
