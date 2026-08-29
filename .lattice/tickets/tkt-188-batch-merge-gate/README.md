@@ -10,7 +10,7 @@
 | priority | P0 |
 | labels | feat, P0 |
 | github | https://github.com/percena/lattice/issues/188 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Make the "night states never reach merged" invariant machine-checked: a merge hook blocks bare `gh pr merge` while the batch-work marker is present, with a human-adjudicated escape (ADR-007) |
 | spec | spc-186 |
@@ -81,3 +81,8 @@ The invariant "night states never reach merged" was prose-only — finish-work S
 - Parent spec: spc-186 — https://github.com/percena/lattice/issues/187
 - Origin review: rev-20260829-160834Z
 - GitHub issue: #188
+
+## Finish
+
+- pr-197 merged: 2026-08-29T11:37:26Z — https://github.com/percena/lattice/pull/197 (base merge)
+- issue #188 closed: 2026-08-29T11:37:33Z — https://github.com/percena/lattice/issues/188
