@@ -90,6 +90,30 @@ intercept_gh_pr_main() {
         exit 0
     fi
 
+    # Batch-work merge gate (spc-187 A1, ADR-007 five-piece contract): a bare
+    # `gh pr merge` while the .batch-work-active marker is present at the repo
+    # MAIN clone .lattice/ is blocked fail-closed. Runs only for the merge verb;
+    # create is unaffected. Fails OPEN when the lattice home cannot be resolved
+    # (hook contract) so a missing root never deadlocks a legitimate merge.
+    if [[ "${INTERCEPT_GH_PR_VERB:-}" == "merge" ]]; then
+        # shellcheck source=/dev/null
+        source "${_INTERCEPT_LIB_DIR}/batch-merge-gate.sh" 2>/dev/null || exit 0
+        if ! batch_gate_allows_merge 2>/dev/null; then
+            if [[ "$hook_mode" == "strict" ]]; then
+                batch_gate_advice_text >&2
+                exit 2
+            fi
+            # Advisory: JSON on stdout (exit 0) so the model sees the context.
+            local batch_advice
+            batch_advice=$(batch_gate_advice_text)
+            jq -cn --arg ctx "$batch_advice" \
+                --arg msg "lattice: batch-work merge gate blocked gh pr merge (marker present)" \
+                '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$ctx},systemMessage:$msg}' \
+                2>/dev/null || true
+            exit 0
+        fi
+    fi
+
     if [[ -z "$session_id" || ! "$session_id" =~ ^[A-Za-z0-9_-]+$ ]]; then
         exit 0
     fi

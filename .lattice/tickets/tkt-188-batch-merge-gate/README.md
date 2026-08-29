@@ -1,6 +1,6 @@
 # tkt-188 — Machine-enforce the batch merge gate (marker lifecycle + human-adjudicated escape)
 
-> **Status:** in-progress · kind feat · priority P0 · covers spc-186 A1,A8
+> **Status:** in-progress · kind feat · priority P0 · covers spc-187 A1,A8
 
 ## Field table
 
@@ -10,10 +10,10 @@
 | priority | P0 |
 | labels | feat, P0 |
 | github | https://github.com/percena/lattice/issues/188 |
-| status | pr-open |
+| status | in-progress |
 | adopted | false |
 | summary | Make the "night states never reach merged" invariant machine-checked: a merge hook blocks bare `gh pr merge` while the batch-work marker is present, with a human-adjudicated escape (ADR-007) |
-| spec | spc-186 |
+| spec | spc-187 |
 | covers | A1, A8 |
 | blocked_by | (none) |
 | parallel_group | g1 |
@@ -22,7 +22,7 @@
 | primary_ticket | true |
 | related_tickets | tkt-189, tkt-190, tkt-193 |
 | worktree_bind | (worktree) tkt-188-batch-merge-gate |
-| prs | pr-197 — https://github.com/percena/lattice/pull/197 |
+| prs | (none) |
 
 ## Acceptance (this slice)
 
@@ -46,14 +46,14 @@ The invariant "night states never reach merged" was prose-only — finish-work S
 
 | Decision | Disposition | Notes |
 | --- | --- | --- |
-| Marker location: MAIN `.lattice/` vs per-worktree | pre-resolved (spc-186 A1) | single gate point at MAIN; retire per-worktree copies — one gate the human controls |
-| Removal timing: before vs after merge | pre-resolved (spc-186 A1 / ADR-007 §5c) | BEFORE merge (after human ack); the merge hook enforces fail-closed — fixes C3 contradiction |
+| Marker location: MAIN `.lattice/` vs per-worktree | pre-resolved (spc-187 A1) | single gate point at MAIN; retire per-worktree copies — one gate the human controls |
+| Removal timing: before vs after merge | pre-resolved (spc-187 A1 / ADR-007 §5c) | BEFORE merge (after human ack); the merge hook enforces fail-closed — fixes C3 contradiction |
 | Escape mechanism: remove marker vs authorized-merge flag | agent-decides (implemented both) | remove = batch done; flag = keep batch active, merge with trace |
 | Root resolution: env override vs git | agent-decides | LATTICE_BATCH_GATE_HOME override (tests/manual) else git rev-parse --git-common-dir → MAIN .lattice; fail-open on unresolved |
 
 ## Decision journal
 
-- 2026-08-29 — Created binder; tkt-188 binder was missing from the spc-186 POST_SPLIT set (setup gap). Reversible + ticket-local → self-decide + journal. Resolution source: decision-policy §reversible+ticket-local. Approach derived from the spc-186 A1 acceptance + ADR-007 five-piece contract.
+- 2026-08-29 — Created binder; tkt-188 binder was missing from the spc-187 POST_SPLIT set (setup gap). Reversible + ticket-local → self-decide + journal. Resolution source: decision-policy §reversible+ticket-local. Approach derived from the spc-187 A1 acceptance + ADR-007 five-piece contract.
 - 2026-08-29 — GitHub issue #188 title/body is "Spec supersede trip-time sweep" (A3, duplicate of #190), NOT batch-merge-gate (A1). No dedicated A1 issue exists. Used "Refs #188" (not "Fixes #188") in the PR body to avoid incorrectly auto-closing the A3 issue on merge — reversible (operator can edit PR body + reconcile #188's title/body). Resolution source: decision-policy §cross-contract + ADR-007 (unapproved durable-state crossings invalid).
 
 ## Pending decisions
@@ -66,11 +66,11 @@ The invariant "night states never reach merged" was prose-only — finish-work S
 
 ## Notes
 
-- The spec spc-186 and ADR-007 ship on dev under `.lattice-worktrees/spc-186-hard-limit-closure/` (committed at e0f724e). The canonical cite path `.lattice/specs/spc-186-hard-limit-closure.md` is used for consistency with sibling binders; the operator may reconcile the spec's committed location later.
+- The spec spc-187 and ADR-007 ship on dev under `.lattice-worktrees/spc-187-hard-limit-closure/` (committed at e0f724e). The canonical cite path `.lattice/specs/spc-187-hard-limit-closure.md` is used for consistency with sibling binders; the operator may reconcile the spec's committed location later.
 
 ## References
 
-- Spec: `.lattice/specs/spc-186-hard-limit-closure.md` (A1, A8)
+- Spec: `.lattice/specs/spc-187-hard-limit-closure.md` (A1, A8)
 - Law: `docs/adr/007-hard-limit-scope-law.md` — boundary law + escape adjudication (§4 five-piece, §5b/§5c human-adjudicated)
 - Review: `rev-20260829-160834Z` (F- findings — merge gate prose-only)
 - Guard site: `plugins/lattice/hooks/lib/intercept-gh-pr-common.sh` (merge verb path)
@@ -78,6 +78,6 @@ The invariant "night states never reach merged" was prose-only — finish-work S
 
 ## Lineage
 
-- Parent spec: spc-186 — https://github.com/percena/lattice/issues/187
+- Parent spec: spc-187 — https://github.com/percena/lattice/issues/187
 - Origin review: rev-20260829-160834Z
 - GitHub issue: #188

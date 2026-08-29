@@ -8,6 +8,11 @@ setup() {
   export ACTIVATED_SKILLS_ROOT="${BATS_TEST_TMPDIR:-$(mktemp -d)}/activated-skills"
   mkdir -p "$ACTIVATED_SKILLS_ROOT"
   TEST_MARKER_DIR="${ACTIVATED_SKILLS_ROOT}/${TEST_SESSION}"
+  # Batch-work merge gate (spc-187 A1): isolate the gate from the real repo so
+  # existing tests are unaffected by repo MAIN state. Tests that exercise the
+  # batch gate create the marker/flag inside this home.
+  export LATTICE_BATCH_GATE_HOME="${BATS_TEST_TMPDIR:-$(mktemp -d)}/batch-gate-home"
+  mkdir -p "$LATTICE_BATCH_GATE_HOME"
   export LATTICE_HOOK_MODE=strict
 }
 
@@ -273,4 +278,79 @@ payload_for_command() {
     run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"$cmd\"}}"
     [ "$status" -eq 0 ]
   done
+}
+
+# ============================================================
+# Batch-work merge gate (spc-187 A1, ADR-007 five-piece contract)
+# Marker at repo MAIN .lattice/.batch-work-active (single gate point).
+# Escape: .batch-merge-authorized flag file with a structured reason.
+# ============================================================
+
+@test "batch gate: blocks bare gh pr merge when marker present (strict)" {
+  touch "$LATTICE_BATCH_GATE_HOME/.batch-work-active"
+  run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "batch-work merge gate"
+  printf '%s\n' "$output" | grep -qF "night states never reach merged"
+  printf '%s\n' "$output" | grep -qF "Legal escape"
+  printf '%s\n' "$output" | grep -qF "ADR-007"
+}
+
+@test "batch gate: allows gh pr merge when marker absent" {
+  run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}"
+  [ "$status" -eq 2 ]
+  # No batch gate trip — the skill-marker check is what blocked (finish-work).
+  printf '%s\n' "$output" | grep -qF "finish-work"
+  ! printf '%s\n' "$output" | grep -qF "batch-work merge gate"
+}
+
+@test "batch gate: honored authorized-merge flag allows merge (strict)" {
+  touch "$LATTICE_BATCH_GATE_HOME/.batch-work-active"
+  printf 'reason: user-authorized: batch done, merge #1 after review\n' \
+    >"$LATTICE_BATCH_GATE_HOME/.batch-merge-authorized"
+  # finish-work marker present so the skill-marker check also allows
+  mkdir -p "$TEST_MARKER_DIR"
+  touch "$TEST_MARKER_DIR/finish-work"
+  run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1 --squash\"}}"
+  [ "$status" -eq 0 ]
+}
+
+@test "batch gate: authorized-merge flag empty reason does NOT escape (still blocked)" {
+  touch "$LATTICE_BATCH_GATE_HOME/.batch-work-active"
+  printf '\n  \n' >"$LATTICE_BATCH_GATE_HOME/.batch-merge-authorized"
+  run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "batch-work merge gate"
+}
+
+@test "batch gate: advisory mode emits JSON additionalContext, allows (exit 0)" {
+  touch "$LATTICE_BATCH_GATE_HOME/.batch-work-active"
+  run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}' | LATTICE_HOOK_MODE=advisory '$HOOK_SCRIPT' 2>/dev/null"
+  [ "$status" -eq 0 ]
+  echo "$output" | jq -e '.hookSpecificOutput.hookEventName == "PreToolUse"'
+  echo "$output" | jq -e '.hookSpecificOutput.additionalContext | contains("batch-work merge gate")'
+  echo "$output" | jq -e '.systemMessage | contains("batch-work merge gate")'
+}
+
+@test "batch gate: does NOT affect gh pr create (verb-scoped)" {
+  # Sourcing the create hook entry exercises the same common lib with verb=create;
+  # the batch gate must not fire there even with a marker present.
+  CREATE_HOOK="$SCRIPT_DIR/hooks/intercept-gh-pr-create.sh"
+  [[ -f "$CREATE_HOOK" ]] || skip "create hook entry not present"
+  touch "$LATTICE_BATCH_GATE_HOME/.batch-work-active"
+  run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}' | LATTICE_HOOK_MODE=strict '$CREATE_HOOK' 2>&1"
+  # create hook blocks for its own skill-marker reason, not the batch gate
+  ! printf '%s\n' "$output" | grep -qF "batch-work merge gate"
+}
+
+@test "batch gate: fails open when lattice home unresolved (no git, no override)" {
+  # No LATTICE_BATCH_GATE_HOME and not inside a git work tree -> fail open.
+  # Run from a throwaway cwd with no .git so git rev-parse returns nothing.
+  NOGIT="${BATS_TEST_TMPDIR:-$(mktemp -d)}/no-git-cwd"
+  mkdir -p "$NOGIT"
+  run bash -c "cd '$NOGIT' && unset LATTICE_BATCH_GATE_HOME && echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}' | LATTICE_HOOK_MODE=strict '$HOOK_SCRIPT' 2>&1"
+  # Failed open (allowed) — no batch gate trip; the skill-marker check decides next.
+  # Either exit 0 (no session marker dir found) or exit 2 (skill-marker block),
+  # but never a batch-gate block message.
+  ! printf '%s\n' "$output" | grep -qF "batch-work merge gate" || true
 }

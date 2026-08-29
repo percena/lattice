@@ -106,9 +106,10 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      ```
      Worktree: <path> (branch <branch>). cd there before any work.
      Run: start-work tkt-<id>.
-     Batch marker: .lattice/.batch-work-active is present in this worktree —
-     finish-work merge is BLOCKED. Do not call finish-work.
-     Never `git add -A`; stage named paths (the batch marker must stay untracked).
+     Batch marker: .lattice/.batch-work-active is present at the repo MAIN clone
+     .lattice/ (single gate point — NOT in this worktree). The merge hook blocks
+     `gh pr merge` while it exists. Do not call finish-work; do not remove the marker.
+     Never `git add -A`; stage named paths.
      Implement to the ticket's Acceptance criteria. Then open a PR via create-pr.
      Stop after create-pr. Report the PR URL.
 
@@ -149,7 +150,7 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      Interface contracts you depend on: <exact file/section names from the
      prior layer's tickets>.
      ```
-   - Before spawning, write the batch marker: `touch <path>/.lattice/.batch-work-active`.
+   - Before spawning the FIRST agent, write the batch marker at the repo MAIN clone (single gate point, spc-187 A1): `printf 'batch-id: %s\nstarted: %s\n' "$(date -u +%Y%m%d)-$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > <MAIN>/.lattice/.batch-work-active`. Do NOT write per-worktree copies. The marker stays untracked (MAIN `.lattice/.gitignore` or base-residue check tolerates it).
    - Record agent handle + ticket id + worktree path + **spawn timestamp** (watchdog input).
 
 ## WATCHDOG / TIMEBOX
@@ -194,7 +195,7 @@ Before spawning a ticket whose `blocked_by` includes a failed ticket: mark it `b
 
 ## STACKED DEPENDENCY BASES (blocked_by layers)
 
-The gap this closes: a `blocked_by` layer needs the earlier layers' output, but the batch marker forbids merging anything mid-night. The dependency is satisfied by **stacking**, not merging:
+The gap this closes: a `blocked_by` layer needs the earlier layers' output, but the batch marker (at repo MAIN .lattice/) forbids merging anything mid-night. The dependency is satisfied by **stacking**, not merging:
 
 1. At each layer boundary with unmerged dependencies, the **orchestrator** builds a local integration branch: start from the true base, then **sequentially merge** each prior layer head (`git merge <head>` one at a time, in layer order). **NOT octopus** (`git merge h1 h2 h3`) — octopus fails on shared-file edit conflicts (observed: parallel branches touching the same manifest files abort an octopus).
 2. Pass the integration branch to the next layer via `ensure-workspace.sh … --base <integration-branch>`.
@@ -210,7 +211,7 @@ After the last layer's barrier (or after a fuse trip's drain, over whatever PRs 
 1. Run `review-delivery` with the batch report path as input (`../review-delivery/SKILL.md`) — artifact-only chain review: fidelity, cross-PR coherence + throwaway integration build, decision-ratification queue, per-PR findings.
 2. **Material findings** (review-code material bar) dispatch a bounded fix loop: re-brief the ticket's implementer agent **in its existing worktree** with the findings as the new brief (address-review shape; binder `pr-open → rework → in-progress → pr-open` per `docs/workflow-fsm.md`). **≤ 2 cycles per ticket** — the fallback-policy / review-fix bound; still-material findings after cycle 2 stay in the digest as `deep-review`.
 3. Finalize the digest only after the fix loop settles; the digest (persisted under `.lattice/reviews/`, `kind: digest`) is the **batch's final report artifact** — the REPORT table is referenced from it.
-4. Advice only: no `gh pr merge`, no marker removal. Merge authority is unchanged — batch marker + human `finish-work`.
+4. Advice only: no `gh pr merge`, no marker removal. Merge authority is unchanged — batch marker + human `finish-work` (which removes the marker BEFORE merge, after human ack).
 
 ## REPORT
 
@@ -241,7 +242,7 @@ ran: <UTC timestamp>
 
 ## Handoff
 Human reviews open PRs, then runs finish-work per PR.
-The .lattice/.batch-work-active marker ensured no agent merged.
+The repo-MAIN .lattice/.batch-work-active marker ensured no agent merged.
 ```
 
 Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by the agents: `queued → in-progress → pr-open` (or `stuck`/`parked` per policy); **fuse-halted tickets stamp `deferred`+reason `fuse-halt`** (ADR-004 amd tkt-136 Option B), **blocked-by-failure dependents stamp `deferred`+reason `blocked-by-failure`**, **watchdog-timeout stamps `stuck`+`wait_reason: unblock`** (FSM-2b, tkt-132); never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
