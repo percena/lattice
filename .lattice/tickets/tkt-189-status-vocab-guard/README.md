@@ -2,7 +2,7 @@
 
 > **TL;DR:** Single-source the ticket status vocabulary + coupled-field rules into one machine-readable module; add a side-state guard to stamp-pr-open so parked/stuck/rework are not silently overwritten by a pr-open stamp without an operator-adjudicated override.
 > **Kind:** feat · **Priority:** P1
-> **Path:** spc-187 A2 → tkt-189 → (pr-…)
+> **Path:** spc-186 A2 → tkt-189 → (pr-…)
 
 | Field | Value |
 | --- | --- |
@@ -15,7 +15,7 @@
 | wait_reason | (none) |
 | adopted | false |
 | summary | single-source status vocabulary + stamp-pr-open side-state guard (ADR-007 five-piece contract) |
-| spec | spc-187 |
+| spec | spc-186 |
 | covers | A2, A8 |
 | blocked_by | (none) |
 | parallel_group | (none) |
@@ -43,7 +43,7 @@ The working-status vocabulary (`queued | in-progress | parked | stuck | pr-open 
 ## Anticipated decisions
 
 - Whether to make `NONTERMINAL_RE` a compiled regex or expose the alternation string — disposition: agent-decides (expose both; the compiled regex `.pattern` is the parity-checked artifact). [resolved]
-- Whether the direct `queued → pr-open` jump should be refused (force the in-progress stamp) — disposition: pre-resolved (spc-187 D5: allow + WARN; the in-progress stamp is the default but a jump is logged, not silently lost). [resolved]
+- Whether the direct `queued → pr-open` jump should be refused (force the in-progress stamp) — disposition: pre-resolved (spc-186 D5: allow + WARN; the in-progress stamp is the default but a jump is logged, not silently lost). [resolved]
 
 ## Decision journal
 
@@ -63,14 +63,14 @@ The working-status vocabulary (`queued | in-progress | parked | stuck | pr-open 
 
 ## References
 
-- Spec: `spc-187` (A2 + A8)
+- Spec: `spc-186` (A2 + A8)
 - Law: `docs/adr/007-hard-limit-scope-law.md` (ADR-007 — five-piece contract + escape adjudication)
 - Precedent: `skills/_lattice-lib/scripts/lib/binder_rows.py` (tkt-91 single-source pattern)
 - FSM: `docs/workflow-fsm.md` sec.5
 
 ## Lineage
 
-- Parent spec: spc-187
+- Parent spec: spc-186
 - Primary ticket: tkt-189
 
 ## Finish
