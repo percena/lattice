@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-196-installed-tree-drift` |
 | worktree | sibling `…/lattice.worktrees/tkt-196-installed-tree-drift/` |
-| prs | pr-… — (stamped on PR open) |
+| prs | pr-195 — https://github.com/percena/lattice/pull/195 |
 
 ## Acceptance (this slice)
 
@@ -59,4 +59,4 @@
 
 ## Finish
 
-- (stamped on PR open)
+- (pending merge — human merges per tkt-196 STOP POINT; finish-work not called)
