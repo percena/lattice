@@ -251,16 +251,19 @@ EOF
 
 @test "unknown: gh not installed → result=unknown, exit 2" {
   write_binder "queued" "(none yet)"
-  # Build a PATH with git and python3 but WITHOUT gh. gh typically lives in
-  # /opt/homebrew/bin, /usr/local/bin, OR /usr/bin on CI runners; we use a
-  # truly clean bin dir so shutil.which("gh") returns None on every platform.
+  # Build a PATH without gh. We symlink every executable from each PATH
+  # directory into one shadow dir, then delete the gh symlink — this avoids
+  # a fragile whitelist that breaks whenever a new dependency is added.
   NOGH_BIN="$TEST_DIR/nogh_bin"
   mkdir -p "$NOGH_BIN"
-  ln -sf "$(command -v git)" "$NOGH_BIN/git"
-  ln -sf "$(command -v python3)" "$NOGH_BIN/python3"
-  ln -sf "$(command -v bash)" "$NOGH_BIN/bash"
-  ln -sf "$(command -v dirname)" "$NOGH_BIN/dirname"
-  ln -sf "$(command -v uname)" "$NOGH_BIN/uname"
+  local IFS=':'
+  for d in $PATH; do
+    [ -d "$d" ] || continue
+    for f in "$d"/*; do
+      [ -x "$f" ] && [ ! -d "$f" ] && ln -sf "$f" "$NOGH_BIN/" 2>/dev/null || true
+    done
+  done
+  rm -f "$NOGH_BIN/gh"
   : >"$GH_LOG"
   run env PATH="$NOGH_BIN" bash "$RS" --binder "$BINDER"
   [ "$status" -eq 2 ]
