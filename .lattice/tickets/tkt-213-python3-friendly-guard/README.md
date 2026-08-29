@@ -12,7 +12,7 @@
 | priority | P1 |
 | labels | chore, P1 |
 | github | https://github.com/percena/lattice/issues/213 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | ensure-python3.sh guard + script guards + hook advisory + docs prereq |
 | spec | spc-212 — make python3 dependency explicit and user-friendly (path: ../../specs/spc-212-python3-friendly-guard.md) |
@@ -66,4 +66,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-214 merged: 2026-08-29T15:18:15Z — https://github.com/percena/lattice/pull/214 (base merge)
+- issue #213 closed: 2026-08-29T15:18:32Z — https://github.com/percena/lattice/issues/213
