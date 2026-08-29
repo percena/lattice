@@ -37,13 +37,13 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2** `finish-work --ids ID1,ID2,…` (no deps between them) merges all PRs in id order through the full finish cycle; each binder reaches `status: closed` with a `## Finish` ledger line.
-- [ ] **A3** `finish-work --groups --dry-run` prints the merge-order DAG (layers + PR numbers + binder paths) and exits before any marker/merge.
-- [ ] **A4** Two PRs where B `merge_blocked_by A` land in order L0=[A], L1=[B]; after A merges, B's `update-pr-base` pulls A's work; if B's `baseRefName` was A's branch, the retarget to integration branch fires; B's diff cleans; B merges; ledger stamped.
-- [ ] **A5** A failure (alignment gap / CI red / merge conflict / cleanup `ok:false`) on the first PR halts the batch; dependents stamp `deferred` + `wait_reason: blocked-by-failure`; independents stay `pr-open` (`halted`); marker already removed; partial report emitted; re-run resumes.
-- [ ] **A6** Single-target `finish-work pr N` is unchanged (existing path, no behavior change).
-- [ ] **A7** Mutual `merge_blocked_by` (cycle) → fail closed, no merge.
-- [ ] **A8** `.batch-work-active` absent (no prior batch-work) → marker gate no-ops; multi-PR merges proceed.
+- [x] **A2** `finish-work --ids ID1,ID2,…` (no deps between them) merges all PRs in id order through the full finish cycle; each binder reaches `status: closed` with a `## Finish` ledger line.
+- [x] **A3** `finish-work --groups --dry-run` prints the merge-order DAG (layers + PR numbers + binder paths) and exits before any marker/merge.
+- [x] **A4** Two PRs where B `merge_blocked_by A` land in order L0=[A], L1=[B]; after A merges, B's `update-pr-base` pulls A's work; if B's `baseRefName` was A's branch, the retarget to integration branch fires; B's diff cleans; B merges; ledger stamped.
+- [x] **A5** A failure (alignment gap / CI red / merge conflict / cleanup `ok:false`) on the first PR halts the batch; dependents stamp `deferred` + `wait_reason: blocked-by-failure`; independents stay `pr-open` (`halted`); marker already removed; partial report emitted; re-run resumes.
+- [x] **A6** Single-target `finish-work pr N` is unchanged (existing path, no behavior change).
+- [x] **A7** Mutual `merge_blocked_by` (cycle) → fail closed, no merge.
+- [x] **A8** `.batch-work-active` absent (no prior batch-work) → marker gate no-ops; multi-PR merges proceed.
 
 ## Approach
 

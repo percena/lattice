@@ -37,7 +37,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `merge_blocked_by` field exists in `skills/create-tickets/references/templates/ticket-binder.md` field table (after `blocked_by`) + Lineage section + optional-row comment, and is documented in `skills/create-tickets/references/policy.md` as merge-order (not work-start) with fallback-to-`blocked_by` noted.
+- [x] **A1** `merge_blocked_by` field exists in `skills/create-tickets/references/templates/ticket-binder.md` field table (after `blocked_by`) + Lineage section + optional-row comment, and is documented in `skills/create-tickets/references/policy.md` as merge-order (not work-start) with fallback-to-`blocked_by` noted.
 
 ## Approach
 
