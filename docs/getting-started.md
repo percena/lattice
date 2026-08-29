@@ -200,6 +200,44 @@ claude plugin marketplace add /path/to/lattice
 claude plugin install lattice@percena
 ```
 
+### Detect installed-tree drift (fail loud, never silent)
+
+Lattice dogfoods itself through the globally installed skill tree. That install
+can drift **bidirectionally** from the repo — older files (an installed
+`ensure-lattice.sh` that exits 2 silently while the repo ships a fuller
+version), whole skills missing from the install, or install-side files that
+are *newer* than the repo (local edits / not-yet-merged work). Silent staleness
+undermines every skill-level guarantee, so the repo ships a drift check that
+**fails loud (exit 1, never a silent exit 2)** with an actionable inventory:
+
+```bash
+# Run from a Lattice checkout (worktree). Uses repo skills/ as the truth set.
+bash skills/_lattice-lib/scripts/check-installed-skill-drift.sh
+#   LATTICE_SKILL_ROOT=<repo skills dir>            (default: this script's own ../../..)
+#   LATTICE_INSTALLED_SKILL_HOME=<installed skills> (default: $HOME/.claude/skills)
+#   --json     machine-readable payload
+#   --check-only  no-op alias (the check never writes)
+# Exit 0 = in sync; 1 = drift (loud, actionable); 2 = misuse (bad args / missing dirs)
+```
+
+The check reports three categories and **never auto-clobbers** — you decide the
+refresh, because a blind overwrite would destroy install-side newer/local content:
+
+| Category | Meaning | Operator action |
+| --- | --- | --- |
+| `skill-absent-install` | whole skill missing from install (stalest case) | Refresh the full pack |
+| `repo-only` | file in repo, absent from install (install is stale) | Refresh pulls these in |
+| `install-only` | file in install, absent from repo (local edit OR stale artifact) | **Do not clobber** — review; may be newer-than-repo work |
+| `differs` | content mismatch — either side may be newer | `diff` the two, then refresh or reconcile |
+
+Non-Lattice skills that live in the install dir (e.g. `bailian-cli`,
+`ego-browser`) are out of scope — only skills shipped under the repo `skills/`
+are compared. Generated `__pycache__`/`*.pyc` is ignored. The bidirectional
+report is the point: refresh is operator-gated, never a blind `cp -R`.
+
+When drift is found, refresh per **Refresh install** above (full pack, local
+tip, or Claude plugin reinstall), then re-run the check until it exits 0.
+
 ## 2. Consumer repo — no manual init
 
 After skills are on the machine, **open the consumer repo and run a Lattice skill** (`/start-work`, `/create-spec`, …). Agents **must** run the deterministic script:
@@ -348,6 +386,7 @@ Lattice keeps **batch principal confirmation** (not one-question-per-turn like M
 | `ensure-lattice.sh` / `ensure-workspace.sh` not found | Install **`_lattice-lib`** with the six user skills (full pack) |
 | `ensure-workspace` unbound error | Prefer issue/Spec; or pass semantic `--branch`, `--allow-unbound`, and a concrete `--reason` |
 | Global skill text or plugins look stale | Re-run full pack + reinstall **`lattice@percena`** (section 1 / Refresh install) |
+| Need the exact drift inventory (which files differ / are missing / are newer) | Run `bash skills/_lattice-lib/scripts/check-installed-skill-drift.sh` — bidirectional report, exit 1 on drift (never silent) |
 | Forgot to install `lattice@percena` | Install `lattice@percena` for full Claude path; or use portable skills only |
 | Want fewer worktrees | Set `profile: light` and use `--mode branch` with bind — or skip Lattice for pure throwaways |
 | Agent asks you to run `bash $HOME/.../lattice-init.sh` | **Reject** — reinstall pack or set `LATTICE_LIB_SCRIPTS`; skills must call `ensure-lattice` internally |
