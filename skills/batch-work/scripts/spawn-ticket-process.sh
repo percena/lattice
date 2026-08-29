@@ -52,8 +52,8 @@ usage: spawn-ticket-process.sh --cwd <worktree> --brief-file <path>
                          Must carry all six spawn-brief contract items
                          (ADR-008 D4); the orchestrator assembles it.
   --state-file <path>    Per-batch state file. Appends a TSV record:
-                         pid<TAB>worktree<TAB>started_iso. Default: a temp file
-                         path is printed to stdout for the caller.
+                         pid<TAB>worktree<TAB>started_iso<TAB>base<TAB>repo.
+                         Default: a temp file path is printed to stdout for the caller.
   --permission-mode      Passed to claude (default: acceptEdits).
   --base <ref>           Recorded in state for traceability (not passed to
                          claude; the worktree already branched off this base).
@@ -80,20 +80,6 @@ is_alive() {
   local pid="$1"
   [[ "$pid" =~ ^[0-9]+$ ]] || return 1
   kill -0 "$pid" 2>/dev/null
-}
-
-# Enrichment only: best-effort read of `claude agents --json` to confirm the
-# PID appears as a known background agent. Tolerates schema drift / CLI absence
-# by falling back to the kill -0 ground truth (returned via stdout "yes"/"no",
-# empty string on any failure — caller treats empty as "unknown, trust kill -0").
-agent_known() {
-  local pid="$1"
-  command -v claude >/dev/null 2>&1 || { echo ""; return 0; }
-  local out
-  out=$(claude agents --json 2>/dev/null || true)
-  [[ -n "$out" ]] || { echo ""; return 0; }
-  # Match the pid anywhere in the JSON blob (schema-agnostic) — enrichment.
-  if printf '%s' "$out" | grep -q "\"$pid\""; then echo "yes"; else echo "no"; fi
 }
 
 # Append a TSV state record: pid<TAB>worktree<TAB>started_iso[<TAB>base,repo]
