@@ -1,8 +1,8 @@
-# tkt-196-installed-tree-drift
+# tkt-200-installed-tree-drift
 
 > **TL;DR:** The globally installed Lattice skill tree (~/.claude/skills/) had drifted from the repo — bidirectionally — and the drift was silent. Add a drift check that fails LOUD (exit 1, never silent exit 2) with an actionable bidirectional inventory, a documented refresh path, and tests.
 > **Kind:** bug · **Priority:** P2
-> **Path:** rev-20260829-160834Z dogfood → tkt-196 → (pr-…)
+> **Path:** rev-20260829-160834Z dogfood → tkt-200 → (pr-…)
 
 | Field | Value |
 | --- | --- |
@@ -21,10 +21,10 @@
 | parallel_group | G1 |
 | paths | skills/_lattice-lib/scripts/check-installed-skill-drift.sh; skills/_lattice-lib/scripts/tests/check-installed-skill-drift.bats; docs/getting-started.md |
 | solo_merge | yes |
-| **primary_ticket** | tkt-196 |
+| **primary_ticket** | tkt-200 |
 | **related_tickets** | (none) |
-| **worktree_bind** | `tkt-196-installed-tree-drift` |
-| worktree | sibling `…/lattice.worktrees/tkt-196-installed-tree-drift/` |
+| **worktree_bind** | `tkt-200-installed-tree-drift` |
+| worktree | sibling `…/lattice.worktrees/tkt-200-installed-tree-drift/` |
 | prs | pr-195 — https://github.com/percena/lattice/pull/195 |
 
 ## Acceptance (this slice)
@@ -59,4 +59,4 @@
 
 ## Finish
 
-- (pending merge — human merges per tkt-196 STOP POINT; finish-work not called)
+- (pending merge — human merges per tkt-200 STOP POINT; finish-work not called)
