@@ -95,6 +95,39 @@ combined-branch result, branch discarded.
 Attestation line names: binders scanned, pending/journal counts, promotion
 proposals emitted (or none eligible).
 
+## Axis 4b — NOTICED sweep (Observation-duty queue)
+
+Sweep the set's binders for `- NOTICED:` lines; each carries a disposition
+(ticket | one-liner | wontfix). Round-scoped; never dropped silently — the
+queue drains only through dispositions. Recipe: SKILL.md §4b.
+
+## Axis 4c — Queue health (staleness water-level — spc-186 A5, ADR-007 §8)
+
+```bash
+bash "$LIB/queue-health.sh" --section
+```
+
+A **whole-tree** sensor (scans all `.lattice/tickets/`, not just the set —
+pile-up is queue-wide, not per-PR). Surfaces:
+
+- **Side-state water levels** — counts + ages of `parked`/`stuck`/`deferred`
+  (the pile-up set; `rework` is active work, excluded). Age = now − binder
+  `updated` (tkt-191 stamps it atomically on each status transition).
+- **pr-open aging** — each pr-open binder's age vs the `pr_open_hours`
+  threshold. Age from binder `updated` (primary) or `gh pr view createdAt`
+  fallback for binders predating the row (lazy migration).
+
+Thresholds: `.lattice/config.yaml` `queue_health:` (defaults pr-open > 36h,
+side-state total > 5); tunable.
+
+This is a **sensor**, not a red line — advisory surfacing, never blocks
+(ADR-007 §8 escape-metric / boundary-sensor family). Zero rows is a valid
+good result — state it, don't skip the block. The section is pasted into the
+digest verbatim from the script's `--section` output.
+
+Attestation line names: binders scanned, side-state total vs threshold,
+pr-open count + stale count, any binder with unknown age (lazy migration).
+
 ## Axis 4 — per-PR findings (review-code contract, contained)
 
 For each PR in the set, apply `review-code`'s material-finding bar to its diff
