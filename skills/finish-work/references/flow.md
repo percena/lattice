@@ -41,11 +41,22 @@ Record: `PR_N`, `HEAD_BRANCH`, `BASE`, `URL`, optional `TKT_ID`.
 
 - Draft → do not merge until ready.
 - Checks: report failing/pending; stop unless user overrides.
-- CI empty-step ≤~5s + same failure on unrelated main → infra flake; re-run once; local bats/shellcheck OK; never skip real failures with logs.
+- **CI merge gate (machine-enforced, spc-186 A6/A8, ADR-007 §5a).** Run `ci-gate-check.sh --pr <N> --evidence "<local test output>" [--binder <path>]`. It fetches `gh pr checks <N> --json name,state,conclusion,link`, classifies each non-green check as infra-class (billing/quota/rate-limit/timeout/empty-step flake/runner-infra) or real via config-tunable patterns (`.lattice/config.yaml` ci_gate:) + log inspection, and:
+  - **Infra-only red + local evidence present** → pass with auto-stamped waiver (trace: `rule_id=ci-gate`, `authorizer=human-at-merge-time`). This is a **compiled corner case** (ADR-007 §5a) — the rule defines the legitimate path, NOT an exception requiring human adjudication.
+  - **Real/unknown failures** → HARD block (exit 1). This IS the red line.
+  - **Pending** → block (wait for CI to finish).
+  - **Infra-only red WITHOUT evidence** → HARD block (fail-closed).
+  - CI empty-step ≤~5s + same failure on unrelated main → infra flake; re-run once; local bats/shellcheck OK; never skip real failures with logs.
 - Base = PR `baseRefName` (not always `main`).
 - CONFLICTING before update → stop (unless about to `--rebase` in feature worktree you control).
 - Collect lineage pointers from PR body (do not invent).
 - Finish **one PR at a time**.
+
+```bash
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+[[ "$SKILL_ROOT" = /* && -f "$SKILL_ROOT/SKILL.md" ]] || { echo "Error: resolve the active SKILL.md directory to absolute LATTICE_SKILL_ROOT" >&2; exit 1; }
+bash "$SKILL_ROOT/scripts/ci-gate-check.sh" --pr "<PR_N>" --evidence "$(ci-local + bats green)" --binder ".lattice/tickets/tkt-N-*/README.md"
+```
 
 ## 2.4 Base update (DEFAULT unless `--no-update-branch` / `--close`)
 
@@ -250,7 +261,7 @@ gh pr close <N> --comment "Closing without merge; cleaning workspace."
 
 Landing several PRs into the same integration branch in sequence repeats §2–§4 per PR. The merge loop MUST NOT skip per-PR discipline for throughput. Five rules, each grounded in a live incident:
 
-1. **CI-checks gate (per merge).** Before **each** merge, fetch the checks rollup: `gh pr checks <N>`. On `fail`/`pending` → **surface to the operator** — distinguish **real failures** from transient noise and let the operator decide. **Never merge blind on `mergeable`/`MERGEABLE` alone**: mergeability is a git-tree statement, not a CI verdict, and merge automation that polls only `mergeable` merges red PRs (observed live 2026-08-26).
+1. **CI-checks gate (per merge, machine-enforced).** Before **each** merge, run `ci-gate-check.sh --pr <N> --evidence "<local test output>" [--binder <path>]` (spc-186 A6/A8, ADR-007 §5a). It fetches `gh pr checks <N> --json` rollup and classifies failures: infra-class (billing/quota/rate-limit/timeout/empty-step flake) → compiled waiver with auto-stamped trace (`rule_id=ci-gate`); real failures → HARD block (exit 1). **Never merge blind on `mergeable`/`MERGEABLE` alone**: mergeability is a git-tree statement, not a CI verdict, and merge automation that polls only `mergeable` merges red PRs (observed live 2026-08-26).
 
 2. **File-explicit conflict law (INVARIANT).** When a merge/base-update hits conflicts, resolution goes **path by path**: identify each conflicted file (`git diff --name-only --diff-filter=U`), decide per file, and take a side only via `git checkout --ours <named path>` / `git checkout --theirs <named path>` (or hand-edit that named file), then `git add <named path>`. **`git add -A` during conflict resolution is FORBIDDEN** — it stages unresolved conflict markers wholesale (live incident: markers reached `dev` via PR #59's merge automation; repair commit `628e4cb`). **Superset rule for shared files:** when successive PRs touch the same file, neither `--ours` nor `--theirs` may drop the earlier PR's landed changes — the resolved content must be the superset carrying both; verify the merged content, do not assume a side wins.
 
