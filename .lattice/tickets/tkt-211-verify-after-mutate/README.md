@@ -10,7 +10,7 @@
 | priority | P1 | process gap that caused a real incident (rev-20260829-140444Z) |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/211 | |
-| status | in-progress | |
+| status | closed | |
 | adopted | false | |
 | summary | Mechanize the rev-20260829-140444Z F5 lesson: every gh/git mutation confirmed via a follow-up probe; absence/nonzero = HARD failure, never "ambiguous, proceed." Defends batch-work against false-success from harness output-swallowing. | |
 | spec | (none — ticket-only) | spc-186 is done/closed; this is a standalone process-hardening ticket |
@@ -23,9 +23,9 @@
 | related_tickets | (none) | |
 | worktree_bind | tkt-211 | |
 | worktree | /Users/mxue/GitRepos/MVP/lattice.worktrees/tkt-211-verify-after-mutate | |
-| prs | (none) | |
+| prs | pr-215 — https://github.com/percena/lattice/pull/215 | |
 | created | 2026-08-29T14:08:00Z | |
-| updated | 2026-08-29T14:08:00Z | |
+| updated | 2026-08-29T14:53:18Z | |
 
 ## Acceptance (this slice)
 
@@ -79,3 +79,8 @@ batch-work wiring (ADR-007 §5a compiled check — part of the rule, not an esca
 - Primary ticket: tkt-211
 - Ticket-only (no Spec parent)
 - GH issue: #211
+
+## Finish
+
+- pr-215 merged: 2026-08-29T14:53:01Z — https://github.com/percena/lattice/pull/215 (base merge)
+- issue #211 closed: 2026-08-29T14:53:12Z — https://github.com/percena/lattice/issues/211
