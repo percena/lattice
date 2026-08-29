@@ -156,8 +156,8 @@ arr_json() {
   local i=0
   for f in "$@"; do
     [[ $i -gt 0 ]] && printf ','
-    # escape backslash and double-quote
-    printf '"%s"' "${f//\\/\\\\}"
+    local escaped="${f//\\/\\\\}"
+    printf '"%s"' "${escaped//\"/\\\"}"
     i=$((i + 1))
   done
   printf ']'

@@ -362,7 +362,7 @@ if check_all:
     else:
         print("stamp-pr-open: --check-all — binder has no Acceptance section; nothing to check", file=sys.stderr)
 
-# --- status row → pr-open with the side-state guard (tkt-189 / spc-187 A2) --
+# --- status row → pr-open with the side-state guard (tkt-189 / spc-186 A2) --
 # Vocabulary + policy single-sourced in lib/status_vocab.py. Never regress a
 # closed ticket (finish-ledger owns the terminal stamp). Side states
 # (parked/stuck/rework) hold an external signal a pr-open stamp would

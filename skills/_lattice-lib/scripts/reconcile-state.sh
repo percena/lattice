@@ -312,7 +312,7 @@ def finish_ledger_merged(text):
 
 # ---------------------------------------------------------------------------
 # Terminal rules (tkt-150 / tkt-151). Vocabulary single-sourced in
-# lib/status_vocab.py (tkt-189 / spc-187 A2): working = queued|in-progress|
+# lib/status_vocab.py (tkt-189 / spc-186 A2): working = queued|in-progress|
 # parked|stuck|pr-open|rework|deferred, legacy = open, terminal = closed.
 # ---------------------------------------------------------------------------
 STATUS_WORKING = status_vocab.STATUS_WORKING

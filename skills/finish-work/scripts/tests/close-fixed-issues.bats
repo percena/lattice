@@ -168,8 +168,14 @@ assert_log_lacks() {
   # Own mktemp dir: BATS_TEST_TMPDIR is unset before bats 1.4 and would
   # expand these paths into /.
   tmp=$(mktemp -d)
-  cp "$CLOSE" "$tmp/close.sh"
-  run bash "$tmp/close.sh" --body-stdin --dry-run --json <<<"Fixes #7"
+  # Recreate the relative directory layout so ensure-python3.sh resolves
+  # (the guard lives at ../../_lattice-lib/scripts/ relative to the script).
+  fwdir="$tmp/skills/finish-work/scripts"
+  libdir="$tmp/skills/_lattice-lib/scripts"
+  mkdir -p "$fwdir" "$libdir"
+  cp "$CLOSE" "$fwdir/close.sh"
+  cp "$(cd "$(dirname "$CLOSE")/../../_lattice-lib/scripts" && pwd)/ensure-python3.sh" "$libdir/"
+  run bash "$fwdir/close.sh" --body-stdin --dry-run --json <<<"Fixes #7"
   rm -rf "$tmp"
   [ "$status" -eq 2 ]
   printf '%s\n' "$output" | grep -qF '"ok":false'

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Batch-work merge gate helper for the finish-work skill (spc-187 A1, ADR-007).
+# Batch-work merge gate helper for the finish-work skill (spc-186 A1, ADR-007).
 #
 # This is the scripted step that removes the .batch-work-active marker BEFORE
-# merge, after a human ack — not "after" merge (the spc-187 A1 wording fix). The
+# merge, after a human ack — not "after" merge (the spc-186 A1 wording fix). The
 # merge hook (plugins/lattice/hooks/lib/batch-merge-gate.sh) blocks `gh pr merge`
 # while the marker is present; finish-work calls this helper to clear the gate
 # once the operator has authorized the merge, then proceeds to merge.
@@ -147,7 +147,7 @@ PY
     # writes it into the binder; chat is not a trace.
     ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "unknown")
     printf 'Decision journal entry (paste into binder ## Decision journal):\n'
-    printf -- '- %s — batch-merge-gate escape authorized (spc-187 A1, ADR-007 §5b). rule_id=batch-merge-gate; reason="%s"; authorizer=operator; marker_removed=%s; ts=%s\n' \
+    printf -- '- %s — batch-merge-gate escape authorized (spc-186 A1, ADR-007 §5b). rule_id=batch-merge-gate; reason="%s"; authorizer=operator; marker_removed=%s; ts=%s\n' \
       "$ts" "$REASON" "$MARKER_PATH" "$ts"
     # Clean a stale authorized-merge flag too so it does not accumulate.
     rm -f "$AUTH_PATH" 2>/dev/null || true

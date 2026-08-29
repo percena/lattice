@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: run-e2e platform dispatcher + confirm-first preflight
 
 > **TL;DR:** Make the repo-tracked `run-e2e` skill platform-aware — macOS keeps ego-lite; Linux uses camoufox-js driven via playwright-cli — and gate first-install behind explicit user confirmation. Implements ADR-009.
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** ADR-009 → spc-226 → tkt-… → pr-…
 
 ## Why
@@ -63,21 +63,21 @@ binary, so the agent never silently triggers a multi-hundred-MB download.
 
 ## Acceptance
 
-- [ ] **A1** On macOS with `ego-browser` installed,
+- [x] **A1** On macOS with `ego-browser` installed,
   `ensure-e2e-runtime.sh` exits 0 and prints `E2E_BACKEND=ego`; with
   `ego-browser` missing it exits non-zero, prints install guidance pointing at
   the ego-lite macOS DMG flow, and does not attempt install.
-- [ ] **A2** On Linux with camoufox-js + playwright-cli installed,
+- [x] **A2** On Linux with camoufox-js + playwright-cli installed,
   `ensure-e2e-runtime.sh` exits 0 and prints `E2E_BACKEND=camoufox`; with
   either missing it exits non-zero, prints install guidance
   (`npm i -g camoufox-js` + `npx camoufox-js fetch` + `npm i -g @playwright/cli`),
   and does not attempt install.
-- [ ] **A3** `run-e2e/SKILL.md`'s first step invokes `ensure-e2e-runtime.sh`;
+- [x] **A3** `run-e2e/SKILL.md`'s first step invokes `ensure-e2e-runtime.sh`;
   a missing runtime is surfaced to the user for confirmation before any install
   runs (never auto-installed).
-- [ ] **A4** `run-e2e/SKILL.md` cites ADR-009 and documents both backends plus
+- [x] **A4** `run-e2e/SKILL.md` cites ADR-009 and documents both backends plus
   the primitives→backend mapping table.
-- [ ] **A5** `skills/run-e2e/references/story-template-linux.md` exists and
+- [x] **A5** `skills/run-e2e/references/story-template-linux.md` exists and
   mirrors `story-template.md` structure (traceability header, fail-loud auth,
   mutation round-trip, JSON output).
 

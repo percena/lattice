@@ -265,7 +265,7 @@ def format_banner(data: Dict[str, object], thresholds: Dict[str, int]) -> str:
         parts.append(f"{len(stale_pr_open)} pr-open > {pr_open_hours}h")
     if not parts:
         return ""
-    return "water-level: " + " · " + " · ".join(parts) + " — triage advised (ADR-007 §8 sensor)"
+    return "water-level: " + " · ".join(parts) + " — triage advised (ADR-007 §8 sensor)"
 
 
 def format_section(data: Dict[str, object], thresholds: Dict[str, int]) -> str:
