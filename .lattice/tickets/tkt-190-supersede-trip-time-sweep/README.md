@@ -26,10 +26,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] A3: Superseding a Spec stamps its working-state child binders `deferred` + `wait_reason: spec-superseded` at supersede time
-- [ ] A3: Validator coupled-field rules accept the new wait_reason value
-- [ ] A3: finish-work land-time drift check remains as backstop
-- [ ] bats: sweep stamps correct binders, skips terminal ones
+- [x] A3: Superseding a Spec stamps its working-state child binders `deferred` + `wait_reason: spec-superseded` at supersede time
+- [x] A3: Validator coupled-field rules accept the new wait_reason value
+- [x] A3: finish-work land-time drift check remains as backstop
+- [x] bats: sweep stamps correct binders, skips terminal ones
 
 ## Approach
 
@@ -46,6 +46,9 @@ New script (e.g. `_lattice-lib/scripts/spec-supersede.sh`) invoked from create-s
 ## Decision journal
 
 - 2026-08-29 — Created from spc-186 POST_SPLIT; approach pre-resolved at split time. Resolution source: rev-20260829-160834Z + ADR-007.
+- 2026-08-29 — **Which states get stamped** (anticipated `agent-decides`): stamp `queued` + `in-progress` + `deferred` (per the launching agent's task instruction, overriding the binder's softer recommendation to flag in-progress for triage). Reasoning: the trip-time honesty principle (ADR-004 amd tkt-136/137) wins over the "agent may be mid-flight" caution — stamping `deferred` is non-destructive (it marks the binder, never kills a running process); an in-progress agent learns the work is obsolete on its next binder read. Side states (`parked`/`stuck`/`rework`) are skipped (ADR-007 sec.5b side-state guard — an external signal must not be silently overwritten); `pr-open` is skipped (a live PR is a human decision: close? re-point? — auto-deferring would orphan the PR); `closed` (terminal) and `open` (legacy) skipped. Resolution source: task instruction chain → Spec A3 → ADR-007 sec.5b.
+- 2026-08-29 — **Single-commit per binder** (interpretation of "single-commit per binder, ratify.sh pattern"): one git commit per stamped binder (the ratify.sh transactional model — each binder's status flip + wait_reason set + journal entry + updated bump is one atomic commit; a crash between binders never corrupts a half-written one). Resolution source: binder Approach → ratify.sh precedent.
+- 2026-08-29 — **wait_reason enum single-sourcing**: moved `STUCK_REASONS` + `DEFERRED_REASONS` into `lib/status_vocab.py` (the tkt-189 single source) and vendored the copy in the validator, extending the bats parity test to assert equality (the binder noted "extend it there; the validator vendors a parity-checked copy"). `spec-superseded` added to `DEFERRED_REASONS`. Resolution source: binder Approach → tkt-189 single-source pattern.
 
 ## Pending decisions
 
@@ -53,7 +56,7 @@ New script (e.g. `_lattice-lib/scripts/spec-supersede.sh`) invoked from create-s
 
 ## Attempts
 
-(none yet)
+- 2026-08-29 — Implemented: `spec-supersede.sh` (sweep script), `status_vocab.py` STUCK/DEFERRED enum (single source), validator vendored copy + parity test, `spec-supersede.bats` (11 tests), morning-triage/workflow-fsm/create-spec/template docs. ci-local all-green, check-bats clean.
 
 ## Notes
 

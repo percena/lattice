@@ -10,8 +10,8 @@ Checks (selected, not exhaustive):
     (requires a real ``## Finish`` ledger), legacy open (warning, lazy migration)
   - coupled ticket fields (tkt-151 A3): ``stuck`` requires
     ``wait_reason: unblock|re-scope``; ``deferred`` requires a valid
-    machine-readable reason (``fuse-halt|blocked-by-failure``); contradictory
-    values fail
+    machine-readable reason (``fuse-halt|blocked-by-failure|spec-superseded``);
+    contradictory values fail
   - Spec status vocabulary (tkt-151 A1/A2): ``draft|locked|done|superseded``;
     ``done`` with open non-deferred A* or a contradicting display status fails;
     ``superseded`` requires a valid ``superseded_by`` spc-N link
@@ -174,10 +174,14 @@ REVIEW_OUTCOME_OK = {
 # the reason for BOTH stuck and deferred statuses (tkt-151 anticipated decision
 # — reuse wait_reason semantics extended to deferred; grep-able single row).
 # stuck: unblock | re-scope (FSM-2b / tkt-132). deferred: fuse-halt |
-# blocked-by-failure (ADR-004 amd tkt-136 Option B — batch-work stamps these).
+# blocked-by-failure (ADR-004 amd tkt-136 Option B — batch-work stamps these)
+# | spec-superseded (spc-186 A3 — spec-supersede trip-time sweep stamps a
+# superseded Spec's still-active child binders at supersede time). Vendored
+# copy of lib/status_vocab.py STUCK_REASONS / DEFERRED_REASONS (tkt-190): edit
+# there, then mirror here (bats parity test asserts equality).
 WAIT_REASON_RE = re.compile(r"^\|\s*wait_reason\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
-STUCK_REASONS = {"unblock", "re-scope"}
-DEFERRED_REASONS = {"fuse-halt", "blocked-by-failure"}
+STUCK_REASONS = frozenset({"unblock", "re-scope"})
+DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "spec-superseded"})
 # Terminal Finish-evidence stamps (## Finish ledger). A merged ledger records
 # `pr-P merged:`; a cancel ledger records `issue #N closed:` without a merge.
 # Both are provable-from-one-snapshot terminal evidence (A4): a non-terminal
@@ -698,8 +702,9 @@ def validate_home(home: Path) -> list[dict[str, str]]:
             )
         # tkt-151 A3: coupled ticket fields. `stuck` requires a valid
         # wait_reason in {unblock, re-scope}; `deferred` requires a valid
-        # machine-readable reason in {fuse-halt, blocked-by-failure}. A
-        # contradictory value (e.g. stuck + fuse-halt, deferred + unblock) fails
+        # machine-readable reason in {fuse-halt, blocked-by-failure,
+        # spec-superseded}. A contradictory value (e.g. stuck + fuse-halt,
+        # deferred + unblock) fails
         # — the reason must match the status. Missing/(none) for either fails.
         wr = binder_wait_reason(text)
         if st == "stuck" and wr not in STUCK_REASONS:
@@ -721,7 +726,8 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "detail": (
                         f"status is deferred but wait_reason is {wr!r}; "
                         f"must be one of {sorted(DEFERRED_REASONS)} "
-                        "(ADR-004 amd tkt-136 Option B)"
+                        "(ADR-004 amd tkt-136 Option B; spc-186 A3 adds "
+                        "spec-superseded)"
                     ),
                 }
             )

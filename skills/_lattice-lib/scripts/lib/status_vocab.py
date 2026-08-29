@@ -66,6 +66,20 @@ NONTERMINAL_ALT = "|".join(_NONTERMINAL_VALUES)
 # form to test a bare value.
 NONTERMINAL_RE = re.compile(rf"(?:{NONTERMINAL_ALT})")
 
+# Coupled-field wait_reason vocabulary (tkt-190 / spc-186 A3). The wait_reason
+# binder field-table row carries the reason for BOTH stuck and deferred
+# statuses (tkt-151 anticipated decision -- one grep-able row). Single-sourced
+# here so the validator's vendored copy stays parity-equal (bats test).
+# stuck: unblock | re-scope (FSM-2b / tkt-132).
+# deferred: fuse-halt | blocked-by-failure (ADR-004 amd tkt-136 Option B --
+# batch-work stamps these at trip time) | spec-superseded (spc-186 A3 --
+# spec-supersede trip-time sweep stamps a superseded Spec's still-active child
+# binders at supersede time, generalizing the tkt-136/137 trip-time honesty
+# principle to spec supersede). A contradictory value (stuck + fuse-halt,
+# deferred + unblock) fails -- the reason must match the status.
+STUCK_REASONS = frozenset({"unblock", "re-scope"})
+DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "spec-superseded"})
+
 
 def is_terminal(status: str) -> bool:
     """True for closed (the only terminal status)."""
