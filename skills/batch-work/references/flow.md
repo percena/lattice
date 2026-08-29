@@ -113,6 +113,13 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      Implement to the ticket's Acceptance criteria. Then open a PR via create-pr.
      Stop after create-pr. Report the PR URL.
 
+     VERIFY-AFTER-MUTATE (Spawn-brief item 6): after gh pr create, run
+     `bash skills/_lattice-lib/scripts/verify-mutation.sh --pr <N>` and paste
+     the `verified:`/`FAILED:` line into your report. Absent output or nonzero
+     is HARD failure — do not treat it as "ambiguous, proceed"; stamp
+     `stuck` + `wait_reason: unblock` and stop. The host re-probes every
+     claimed PR in the report step; an unverified claim is flagged.
+
      TIMEBOX: <N> minutes wall-clock (mode <S|M|C>). Exceeding it marks this
      ticket failed; leave the binder ledger current at all times.
 
@@ -168,7 +175,7 @@ Failure isolation covered crashes; the watchdog extends it to **hangs**.
 
 Wait for all agents spawned in the current **wave** to complete (background-completion channel), enforcing the WATCHDOG above. For each:
 
-- Success with PR URL → `ok`, record PR URL.
+- Success with PR URL → `ok`, record PR URL. **Then probe it**: run `bash "$LIB/verify-mutation.sh" --pr <N>` (Spawn-brief item 6); the report's `verified` column is `ok` only if the probe confirms the PR exists OPEN at the claimed head. A claim whose probe `FAILED`s is recorded `unverified` (not `ok`) — the host does not merge on an unverified claim; morning triage investigates.
 - Agent reported failure / no PR → `failed`, record reason.
 - Timebox exceeded → `failed`, record `timeout` (watchdog).
 - Agent stopped under fallback policy (binder `status: stuck`) → `stuck`, record the binder's question.

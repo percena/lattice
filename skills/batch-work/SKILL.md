@@ -80,7 +80,7 @@ Do **not** pre-load every reference; stay on this file for the main protocol.
 
 ## Spawn-brief contract (INVARIANT)
 
-Every spawn brief carries all five items (full template: `references/flow.md` §SPAWN LAYER). Cite the policies — do not paste their bodies into the brief; the agent reads the referenced files.
+Every spawn brief carries all six items (full template: `references/flow.md` §SPAWN LAYER). Cite the policies — do not paste their bodies into the brief; the agent reads the referenced files.
 
 | # | Item | Content |
 | --- | --- | --- |
@@ -89,6 +89,7 @@ Every spawn brief carries all five items (full template: `references/flow.md` §
 | 3 | Evidence contract | Fresh test/validator output pasted in the PR body (no stale or paraphrased runs); decision journal entries in the binder; e2e evidence when UI is touched |
 | 4 | Scratch uniqueness | Parallel agents share one scratchpad — real collisions observed. Every scratch file/dir gets a per-ticket unique suffix or subdir (e.g. `…-tkt-<id>` or `tkt-<id>/`) |
 | 5 | Public-repo pre-authorization | A night agent cannot "explicitly confirm" `create-pr`'s public-repo step — no human is present. When the repo is PUBLIC, the orchestrator pre-authorizes PR creation **in the brief** and mandates the sanitize self-check (no internal URLs, personal paths, team/customer identifiers in title/body) before `gh pr create` |
+| 6 | Verify-after-mutate | A `gh pr create` / `gh pr merge` / `git push` that reported success but left no durable artifact is the highest-cost silent failure (rev-20260829-140444Z F5). After every such mutation, run `skills/_lattice-lib/scripts/verify-mutation.sh --pr <N>` (or `--commit`/`--branch`) and include the `verified:`/`FAILED:` line in your report. On `FAILED`, **do not proceed on assumed success** — stamp `stuck` + `wait_reason: unblock` and stop. The host also probes each agent-claimed PR in the report step |
 
 The brief also carries the per-ticket timebox, the binder `status` stamping instruction (`in-progress` on start, `pr-open` after `create-pr`), and — for stacked layers — the base ref, the Stacking note for the PR body, and the interface contracts (exact file/section names) the ticket depends on.
 
