@@ -23,13 +23,20 @@ Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260827-102420Z` (Finding 4).
 
 If the night ran with `batch-work --with-review`, the `review-delivery` skill produced a **morning digest** (persisted under `.lattice/reviews/`, `kind: digest`). Open it. It contains:
 
+- A **Queue health** section (spc-186 A5, ADR-007 §8) — read this **first**. It surfaces counts + ages of `parked`/`stuck`/`deferred` (the pile-up set) and `pr-open` binders beyond thresholds, computed from binder `updated` (tkt-191) + `gh pr view createdAt` fallback. This is the water-level sensor: it eliminates the silent-degradation channel where a pr-open pile-up or a deferred backlog grows invisible when triage is skipped. Items over threshold are the morning's first attention target — `morning-triage.md` §"unreviewed deferred pile is an invisible queue" is now a mechanism, not just a warning. Advisory only; never a gate.
 - A **ranked PR table** with one triage class per PR: `auto-pass` (all four axes clean — may merge on the digest alone) · `ratify-then-pass` (clean except pending decisions) · `deep-review` (material findings — read the PR itself).
 - A **decision-ratification queue** (Axis 3): pending decisions first, then journal entries by blast radius. Entries ratified ×2 get a preference-promotion proposal.
 - A **NOTICED sweep** (Axis 4b): out-of-paths observations from the set's binders, each with a disposition (`ticket` · `one-liner` · `wontfix`).
 
 Skill: `review-delivery` (`skills/review-delivery/SKILL.md` §5, triage classes `:99-106`).
 
-If no digest exists (batch ran without `--with-review`), triage PRs individually via `gh pr list` + `gh pr diff`.
+If no digest exists (batch ran without `--with-review`), run the water-level sensor directly:
+
+```bash
+bash skills/_lattice-lib/scripts/queue-health.sh --section
+```
+
+then triage PRs individually via `gh pr list` + `gh pr diff`.
 
 ### Step 2 — ratify decision-journal entries
 
@@ -135,7 +142,7 @@ Skill: `finish-work` (`skills/finish-work/SKILL.md` — Finish cycle, HARD gate 
 | Silent-retry a `stuck` ticket | Attempts caps are per-ticket, not per-session; stuck exits are operator-chosen |
 | Merge a `deep-review` PR without reading it | The class means the digest found material findings — read the PR |
 | Trust `mergeable=MERGEABLE` alone | Mergeable is a git-tree statement, not a CI verdict (`finish-work:178`) |
-| Leave `deferred` tickets without a decision | They were stamped at trip time; re-queue (`deferred → queued`) or cancel — an unreviewed deferred pile is an invisible queue |
+| Leave `deferred` tickets without a decision | They were stamped at trip time; re-queue (`deferred → queued`) or cancel — an unreviewed deferred pile is an invisible queue. The digest's **Queue health** section (spc-186 A5) now surfaces this pile-up as a water-level; ignore it and the sensor escalates the count the next night |
 | Merge without running `reconcile-state.sh` after an interrupt | A fuse-halt or crash can leave binder status/prs out of sync with GitHub; the check is read-only and catches drift before merge |
 
 ---
@@ -146,3 +153,4 @@ Skill: `finish-work` (`skills/finish-work/SKILL.md` — Finish cycle, HARD gate 
 - **State machine:** [workflow-fsm.md](./workflow-fsm.md) §2 (transition tables), §3 (human-owned white-list), §5 (M2 SoT)
 - **ADR-004** §1 (attention contract), §5 (bounded loops), §6 (binder status SoT)
 - Skills: `review-delivery` · `start-work` · `batch-work` · `finish-work` · `_lattice-lib/references/decision-policy.md` · `_lattice-lib/references/fallback-policy.md`
+- Water-level sensor: `skills/_lattice-lib/scripts/queue-health.sh` (spc-186 A5, ADR-007 §8 — advisory, never a block)

@@ -50,6 +50,10 @@ RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
 [[ -f "$RESOLVE" ]] || { echo "Error: _lattice-lib is not installed beside $SKILL_ROOT" >&2; exit 1; }
 LIB=$(bash "$RESOLVE")
 bash "$LIB/ensure-lattice.sh"
+# Water-level banner (spc-186 A5, ADR-007 §8 — advisory SENSOR, never a block):
+# prints one line when side-state total or pr-open aging exceeds a threshold,
+# empty when clean. Thresholds in .lattice/config.yaml queue_health:.
+bash "$LIB/queue-health.sh" --banner 2>/dev/null || true
 # Before shippable L0 write on team base:
 bash "$LIB/assert-shippable-cwd.sh" || {
   bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id N --slug <slug>

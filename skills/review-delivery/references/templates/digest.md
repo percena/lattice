@@ -96,6 +96,17 @@ related_prs: [pr-…]
 
 **Trend:** <one line vs prior digest — steady/rising/falling; what it implies for `auto-pass` trust>
 
+## Queue health (staleness water-level — spc-186 A5, ADR-007 §8)
+
+<!-- Emitted by: bash "$LIB/queue-health.sh --section"  (whole .lattice/tickets/
+     tree, not just the set — pile-up is queue-wide). Advisory sensor, never a
+     gate. Zero rows is a valid good result — state it, don't skip the block. -->
+
+<!-- Section block pasted here verbatim from queue-health.sh --section output:
+     side-state counts+ages (parked/stuck/deferred), pr-open aging beyond
+     thresholds. Thresholds from .lattice/config.yaml queue_health: (defaults
+     pr-open > 36h, side-state total > 5). -->
+
 ## References
 
 - Context manifest: <inline or path> · Spec: spc-N · ADRs: …

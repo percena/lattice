@@ -92,6 +92,18 @@ For each PR run the **review-code material-finding bar** — severity + failure 
 
 Sweep the set's binders for out-of-paths observations — `grep -rn '^- NOTICED:'` over the reviewed tickets' binder dirs (`.lattice/tickets/tkt-N-*/`). Every hit lands in the digest's Findings section with one disposition: `ticket` (point to / propose one) | `one-liner` (trivial — name the fix) | `wontfix` (say why). Round-scoped by default; never dropped silently — the queue drains only through dispositions (`../_lattice-lib/references/decision-policy.md` §Observation duty).
 
+### 4c. Queue health — staleness water-level (spc-186 A5, ADR-007 §8)
+
+Run the water-level sensor over the **whole** `.lattice/tickets/` tree (not just the set — pile-up is a queue-wide signal, not per-PR):
+
+```bash
+bash "$LIB/queue-health.sh" --section
+```
+
+The section surfaces counts + ages of `parked`/`stuck`/`deferred` (the pile-up set) and `pr-open` binders beyond thresholds. Age comes from the binder `updated` field (tkt-191) with a `gh pr view createdAt` fallback for pr-open binders predating the row (lazy migration). Thresholds live in `.lattice/config.yaml` `queue_health:` (defaults: pr-open > 36h, side-state total > 5); tunable.
+
+This is a **sensor**, not a red line — advisory surfacing, never blocks (ADR-007 §8 escape-metric / boundary-sensor family). Eliminates the silent-degradation channel: a pr-open pile-up or a deferred backlog that morning triage skips is no longer invisible.
+
 ### 5. Emit — digest + stdout
 
 Persist under `.lattice/reviews/` with create-review id conventions (`next-artifact-id.sh --kind rev --claim`; front matter `kind: digest`), template: `references/templates/digest.md`. Print the same digest to stdout.
@@ -157,6 +169,7 @@ Before claiming the digest is done:
 - [ ] Axis 3: decision queue ranked (pending first); ×2-ratified entries carry promotion proposals
 - [ ] Axis 4: per-PR findings satisfy the review-code material bar (severity, failure scenario, evidence, confidence, recommended solution)
 - [ ] NOTICED sweep run over the set's binders (`grep -rn '^- NOTICED:'`); every hit carries a disposition (ticket | one-liner | wontfix), or "none"
+- [ ] Queue health section emitted via `queue-health.sh --section` (water-level: side-state counts + ages, pr-open aging); advisory sensor, never a gate
 - [ ] Every PR has exactly one triage class + position in a DAG-respecting merge order
 - [ ] Per-axis attestation present for every axis of every PR row (no bare LGTM)
 - [ ] Digest persisted under `.lattice/reviews/` (`kind: digest`, R1 id) **and** printed to stdout
