@@ -10,7 +10,7 @@
 | priority | P1 | |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/194 | |
-| status | pr-open | |
+| status | closed | |
 | adopted | false | |
 | summary | CI merge gate is prose-only (alignment-check never runs `gh pr checks`); "never merge blind on mergeable" has no teeth. Compile infra-class failure detection + waiver stamp; real failures block. | |
 | spec | spc-186 | |
@@ -78,3 +78,8 @@ finish-preflight.sh (or a new ci-gate helper) calls `gh pr checks <N> --json nam
 - Covers: A6, A8
 - Blocked by: tkt-188
 - Parallel group: g3
+
+## Finish
+
+- pr-207 merged: 2026-08-29T13:02:54Z — https://github.com/percena/lattice/pull/207 (base merge)
+- issue #194 closed: 2026-08-29T13:03:08Z — https://github.com/percena/lattice/issues/194

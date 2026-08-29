@@ -10,7 +10,7 @@
 | priority | P0 |
 | labels | feat, P0 |
 | github | https://github.com/percena/lattice/issues/190 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Superseding a Spec stamps its still-active child binders deferred + spec-superseded at supersede time |
 | spec | spc-186 |
@@ -72,3 +72,8 @@ New script (e.g. `_lattice-lib/scripts/spec-supersede.sh`) invoked from create-s
 - Parent spec: spc-186 — https://github.com/percena/lattice/issues/187
 - Origin review: rev-20260829-160834Z
 - GitHub issue: #190
+
+## Finish
+
+- pr-208 merged: 2026-08-29T13:02:58Z — https://github.com/percena/lattice/pull/208 (base merge)
+- issue #190 closed: 2026-08-29T13:03:14Z — https://github.com/percena/lattice/issues/190
