@@ -57,6 +57,10 @@ Touch-set: ~15 files across scripts, tests, skills docs.
 
 ## Decision journal
 
+- 2026-08-29 — batch-merge-gate escape authorized (spc-186 A1, ADR-007 §5b). rule_id=batch-merge-gate; reason="user-authorized: stale tracked artifact from git rm --cached, not an active batch — this PR removes it"; authorizer=operator; marker_removed=true; ts=2026-08-29T17:10:00Z
+- 2026-08-29 — .gitignore revert: check-pr-context.sh invariant (line 36-39) requires .batch-work-active to stay untracked-dirty, not gitignored; code-review finding confirmed (source: code-review)
+- 2026-08-29 — reconcile-state.bats PATH approach: shadow-dir with gh removed replaces fragile whitelist; code-review finding addressed (source: code-review)
+
 ## Pending decisions
 
 ## Attempts
