@@ -7,9 +7,12 @@ Detailed step recipes for the `batch-work` skill. The `SKILL.md` is the protocol
 ```
 --ids ID1,ID2,...      Comma-separated GitHub issue numbers (one layer; all parallel if gates pass)
 --groups               Read parallel_group + blocked_by from each ticket binder; build DAG
+--spawn-mode {agent,process}  Execution primitive (default: agent). process spawns
+                       independent `claude --bg` detached processes per worktree + PID
+                       polling (ADR-008); all orchestration invariants hold in both modes
 --concurrency N        Max agents spawned per layer (default 3)
 --report <path>        Write Markdown report to <path> (always also stdout)
---dry-run              Print DAG + layer assignment; exit before any spawn
+--dry-run              Print DAG + layer assignment + spawn-mode; exit before any spawn
 --ram-threshold <GB>   Skip spawn if available RAM below this (default 10; 0 disables)
 --base <ref>           Base ref override passed to ensure-workspace.sh
 --with-review          After the last layer's barrier, chain review-delivery on the batch
@@ -66,6 +69,7 @@ If `--dry-run`: print
 ```
 batch-work dry-run
 base: <resolved base>
+spawn-mode: <agent|process>
 concurrency: <N>
 ram-threshold: <GB>
 layers:
@@ -195,6 +199,41 @@ At every wave/layer barrier:
    - Record every never-spawned ticket as `fuse-halted` in the report. **Stamp its binder `status: deferred` + `wait_reason: fuse-halt`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). No new enum values — `deferred` already exists.
    - Emit the partial REPORT (all completed results + the trip: layer, ratio, threshold) and stop the batch.
 3. Ratio ≤ threshold → continue normally.
+
+## PROCESS-MODE SPAWN (`--spawn-mode process`)
+
+When `--spawn-mode process`, SPAWN LAYER delegates to a helper script so the host LLM session never holds N child PIDs in-band and its context is not flooded by completion reports (ADR-008's core win).
+
+Per wave, after every ticket in the wave has been `ensure-workspace`'d and its brief written to a per-ticket file (the brief must carry all six Spawn-brief contract items — ADR-008 D4):
+
+1. Build the wave manifest (TSV; `#`/blank lines ignored). One row per ticket:
+   ```
+   ticket<TAB>worktree<TAB>brief_file<TAB>timebox_min
+   tkt-219<TAB>/…/lattice.worktrees/tkt-219-foo<TAB>/tmp/brief-219<TAB>60
+   ```
+2. Call:
+   ```bash
+   bash skills/batch-work/scripts/run-process-wave.sh \
+     --manifest <wave-manifest> \
+     --concurrency <N> --ram-threshold <GB> \
+     --state-file <batch-state> [--report <path>]
+   ```
+   The script spawns `claude --bg -p "$(cat brief_file)" --permission-mode acceptEdits` detached per worktree (via `spawn-ticket-process.sh`, which fixes the reference tool's shared-`cwd` defect by binding `cwd` to each ticket's sibling worktree — ADR-006 preserved), records pid+worktree+started-iso to the batch state file, and runs the barrier (below).
+3. The batch marker (`.lattice/.batch-work-active` at repo MAIN) is written before the first wave in **both** modes — process mode is not exempt.
+4. Concurrency cap + RAM gate are enforced inside the script (per-wave RAM re-check; below-threshold stops further spawns, in-flight continues). The host's `--concurrency` / `--ram-threshold` pass straight through.
+
+The host records the wave's report rows (compact: ticket/pid/status/timebox/duration) — NOT the per-agent transcript. The spawn-brief still carries the verify-after-mutate mandate (item 6); the host re-probes each `completed` ticket's PR via `verify-mutation.sh --pr <N>` in the report step.
+
+## PROCESS-MODE STATUS DETECTION (`--spawn-mode process`)
+
+In `process` mode the in-session background-completion channel is unavailable (agents are independent OS processes, not Task children). Status detection switches to OS-level polling, driven by `run-process-wave.sh`:
+
+- **Ground truth:** `kill -0 <pid>` liveness (portable across macOS/Linux). `claude agents --json` is enrichment, never the sole signal (schema-drift-tolerant; `spawn-ticket-process.sh --probe <pid>` wraps this).
+- **Watchdog:** each ticket's `spawn timestamp` (recorded in the batch state file) is compared to wall-clock at each poll; `elapsed > timebox` → kill the pid, mark `timeout`, stamp the binder `status: stuck` + `wait_reason: unblock` (FSM-2b, tkt-132). Same FSM as `agent` mode — the mode flag only selects the liveness source.
+- **Classification from PID alone:** `completed` (process exited within timebox) or `timeout` (killed past timebox). A `completed` ticket is **not** automatically `ok` — the host runs `verify-mutation.sh --pr <N>` to confirm the PR exists OPEN at the claimed head; an unverified claim is `unverified` (morning triage), exactly as in `agent` mode.
+- **Failure isolation:** one pid's death is invisible to peers (true process isolation — ADR-008's other core win). A host-process crash no longer kills the batch; the detached `claude --bg` processes survive.
+- **Fuse:** the wave script's `completed`/`timeout` counts feed the layer's failed+stuck ratio; a trip halts subsequent waves/layers with graceful drain (in-flight pids finish their attempt; no mid-write kills).
+
 
 ## NEXT-LAYER DEPENDENCY CHECK
 

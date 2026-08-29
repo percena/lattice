@@ -12,11 +12,11 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/221 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
-| updated | 2026-08-30T00:00:00Z |
+| updated | 2026-08-30T17:10:00Z |
 | adopted | false |
 | summary | --spawn-mode {agent,process} flag + process SPAWN LAYER + PID/agents status detection + docs |
 | spec | spc-213 — batch-work process-isolation spawn mode (path: ../../specs/spc-213-batch-work-process-spawn.md) |
@@ -33,12 +33,12 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** — `--spawn-mode {agent,process}` parsed in INTAKE; default `agent`; unknown value fails closed with usage. `--dry-run` prints `spawn-mode: <mode>` in the report header.
-- [ ] **A3** — `process` mode SPAWN LAYER calls `spawn-ticket-process.sh` (tkt-219) per ticket, bound to the ticket's sibling worktree via `ensure-workspace --mode worktree --bind tkt`; capped by `--concurrency` per wave, RAM-gated before each wave; host records PID + spawn timestamp (watchdog input).
-- [ ] **A4** — `process` mode LAYER/WAVE BARRIER polls `claude agents --json` + `process.kill(pid, 0)` to classify each ticket `ok`/`failed`/`timeout` (watchdog timebox still enforced on the recorded spawn timestamp), instead of the in-session background-completion channel. `agent` mode keeps the in-session channel unchanged.
-- [ ] **A5** — All orchestration invariants hold identically in both modes: independence gate, worktree-per-tkt, `.batch-work-active` merge marker (written before first spawn in both modes), fuse + graceful drain, spawn-brief contract (all six items ride the `process`-mode `-p` prompt / brief-file), stacked dependency bases, binder SoT stamping.
-- [ ] **A7** — SKILL.md + `references/flow.md` document `--spawn-mode`, the `process`-mode SPAWN LAYER recipe, the polling status-detection recipe, the cross-mode invariant clause, and the verification checklist item ("spawn-mode selection honored at SPAWN LAYER").
-- [ ] **A8** — No regression: `agent` mode behavior unchanged end-to-end; `--dry-run --ids ...` output identical except the added `spawn-mode:` line; existing callers omitting the flag get `agent` mode.
+- [x] **A1** — `--spawn-mode {agent,process}` parsed in INTAKE; default `agent`; unknown value fails closed with usage. `--dry-run` prints `spawn-mode: <mode>` in the report header.
+- [x] **A3** — `process` mode SPAWN LAYER calls `spawn-ticket-process.sh` (tkt-219) per ticket, bound to the ticket's sibling worktree via `ensure-workspace --mode worktree --bind tkt`; capped by `--concurrency` per wave, RAM-gated before each wave; host records PID + spawn timestamp (watchdog input).
+- [x] **A4** — `process` mode LAYER/WAVE BARRIER polls `claude agents --json` + `process.kill(pid, 0)` to classify each ticket `ok`/`failed`/`timeout` (watchdog timebox still enforced on the recorded spawn timestamp), instead of the in-session background-completion channel. `agent` mode keeps the in-session channel unchanged.
+- [x] **A5** — All orchestration invariants hold identically in both modes: independence gate, worktree-per-tkt, `.batch-work-active` merge marker (written before first spawn in both modes), fuse + graceful drain, spawn-brief contract (all six items ride the `process`-mode `-p` prompt / brief-file), stacked dependency bases, binder SoT stamping.
+- [x] **A7** — SKILL.md + `references/flow.md` document `--spawn-mode`, the `process`-mode SPAWN LAYER recipe, the polling status-detection recipe, the cross-mode invariant clause, and the verification checklist item ("spawn-mode selection honored at SPAWN LAYER").
+- [x] **A8** — No regression: `agent` mode behavior unchanged end-to-end; `--dry-run --ids ...` output identical except the added `spawn-mode:` line; existing callers omitting the flag get `agent` mode.
 
 ## Approach
 
