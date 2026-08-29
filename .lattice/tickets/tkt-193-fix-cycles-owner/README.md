@@ -8,7 +8,7 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/193 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Give fix_cycles a scripted owner and define the cap-exit: third rework return forces deep-review |
 | spec | spc-186 |
@@ -21,7 +21,7 @@
 | related_tickets | (none) |
 | worktree_bind | (pending start-work) |
 | worktree | (pending start-work) |
-| prs | (none) |
+| prs | pr-205 — https://github.com/percena/lattice/pull/205 |
 
 ## Acceptance (this slice)
 
@@ -48,6 +48,7 @@ Today fix_cycles is template-declared but written by no core-loop script (verifi
 - 2026-08-29 — Cap-hit stamps `rework` (binder "stays rework"): the findings are real, so rework is the honest state, but `fix_cycles` holds at 2 and a CAP-HIT journal trace FORCES the `deep-review` triage class — no auto-retry (source: spc-186 A6 + ADR-007 §4 five-piece). The cap-exit is class-forcing, not a hard stop; pending/deep-review is an accepted production cost (ADR-007 §5b).
 - 2026-08-29 — Validator stays WARNING (not error) at fix_cycles >2 (source: binder anticipated decision, pre-resolved). Documented why in the validator comment: a value >2 means a human authorized the `--extend-budget` escape (operator-adjudicated, journaled in ## Decision journal); the warning surfaces the exceeded cap for morning triage to read the escape trace, it does not block the run. The cap-exit is owned by the script + class-forcing, not the validator.
 - 2026-08-29 — Idempotent cap-hit re-run: re-running `bump-fix-cycle.sh` on a `rework` binder already at cap (fix_cycles ≥2) without `--extend-budget` reprints the CAP-HIT message and mutates nothing (the deep-review forcing is re-surfaced, not re-stamped); a `rework` binder below the cap is REFUSED so the cycle must return to pr-open first (source: agent-judgment; consistency with "no auto-retry").
+- 2026-08-29T12:14:49Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #205) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
