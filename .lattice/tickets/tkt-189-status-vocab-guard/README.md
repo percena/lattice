@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/189 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-189-status-vocab-guard` |
 | worktree | sibling `…/lattice.worktrees/tkt-189-status-vocab-guard/` |
-| prs | (none) |
+| prs | pr-199 — https://github.com/percena/lattice/pull/199 |
 
 ## Why
 
