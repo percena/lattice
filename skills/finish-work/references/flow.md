@@ -425,11 +425,11 @@ If `.lattice/.batch-work-active` is present at the repo MAIN clone `.lattice/` (
 - On ack: `bash "$SKILL_ROOT/scripts/batch-merge-gate.sh" --remove --reason "user-authorized: batch-finish <batch-id>"`; paste the emitted trace line into a batch Decision-journal note.
 - On reject: stop; do not merge.
 
-If the marker is **absent** (no prior batch-work, or already removed): no-op; proceed. The batch owns the whole merge window — no per-PR marker dance.
+If the marker is **absent** (no prior batch-work, or already removed): no-op; proceed. The batch owns the whole merge window — no per-PR marker dance. (Under `--close`, the marker gate is a no-op — it only blocks `gh pr merge`, not `gh pr close`; removal is harmless but unnecessary.)
 
 ### LAYER LOOP
 
-For each layer L0..Lk, for each PR in the layer (binder-id order), run the **single-PR short path (SKILL.md steps 3–11) inline**, **minus the marker-gate step** (removed once above). Concretely per PR:
+For each layer L0..Lk, for each PR in the layer (binder-id order), run the **single-PR short path (SKILL.md steps 3–11) inline**, **minus the marker-gate step** (removed once above). Each merge obeys §3.4's sequential-merge-queue rules (ci-gate before each merge, file-explicit conflict resolution `git checkout --ours`/`--theirs` per named path — `git add -A` forbidden, post-merge `grep -rn '<<<<<<<'` over touched paths). Concretely per PR:
 
 1. **Stacked-PR base retarget** (only when all this PR's `merge_blocked_by` deps have merged):
    - `gh pr view <N> --json baseRefName`. If `baseRefName` ≠ the resolved integration branch → `gh pr edit <N> --base <integration-branch>`.
@@ -462,7 +462,7 @@ For each layer L0..Lk, for each PR in the layer (binder-id order), run the **sin
 | `no-pr` | (unchanged, `pr-open` or `queued`) | (none) | No open PR for this id (skip). |
 | `halted` | `pr-open` (unchanged) | (none) | Batch stopped (a peer failed) before this PR's turn; still schedulable on re-run. |
 | `blocked-by-failure` | `deferred` | `blocked-by-failure` | A `merge_blocked_by` dep failed; the merge-order dep is unsatisfied. `deferred → queued` is a human transition. |
-| `failed` | `rework` (mini-review Hold) or `pr-open` | (`unblock` if `rework`) | This PR's own finish failed (alignment/CI/merge/cleanup). |
+| `failed` | `rework` (mini-review Hold) or `pr-open` | (none) | This PR's own finish failed (alignment/CI/merge/cleanup). |
 
 No new binder enum values — `deferred`/`blocked-by-failure` already exist (mirrors batch-work). `halted` is report-level, not a binder enum (binder stays `pr-open`).
 
