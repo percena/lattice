@@ -25,7 +25,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | spc-226-run-e2e-platform-dispatcher (spc-bound; rebinding to tkt optional — one PR, one tree) |
 | worktree | sibling `…/lattice.worktrees/spc-226-run-e2e-platform-dispatcher/` |
-| prs | (none) |
+| prs | pr-229 (https://github.com/percena/lattice/pull/229) |
 
 ## Acceptance (this slice)
 
@@ -60,7 +60,7 @@
 - Blocked by: (none)
 - Parallel group: (serial)
 - Worktree bind: spc-226-run-e2e-platform-dispatcher
-- Child PRs: (none yet)
+- Child PRs: pr-229 (https://github.com/percena/lattice/pull/229) — GitHub `Fixes #227` is SoT
 
 ## Assets
 
