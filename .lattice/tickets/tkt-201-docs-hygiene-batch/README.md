@@ -1,4 +1,4 @@
-# tkt-195 — Docs + small-script hygiene batch
+# tkt-201 — Docs + small-script hygiene batch
 
 > **Status:** queued · kind chore · priority P2 · covers spc-186 A7
 
@@ -19,7 +19,7 @@
 | parallel_group | g4 | layer 4 |
 | paths | docs/workflow-fsm.md, docs/morning-triage.md, docs/getting-started.md, skills/_lattice-lib/scripts/reconcile-state.sh, skills/create-adr/scripts/append-adr-index-row.sh, skills/finish-work/SKILL.md | |
 | solo_merge | true | one PR |
-| primary_ticket | tkt-195 | |
+| primary_ticket | tkt-201 | |
 | related_tickets | tkt-188, tkt-193 | blockers (shared docs) |
 | worktree_bind | (pending start-work) | |
 | worktree | (pending start-work) | |
@@ -67,7 +67,7 @@ Drive-by hygiene batch touching only docs + two small scripts. Each item is low-
 ## Lineage
 
 - Parent spec: spc-186
-- Primary ticket: tkt-195
+- Primary ticket: tkt-201
 - Related: tkt-188, tkt-193 (blockers)
 - Covers: A7
 - Blocked by: tkt-188, tkt-193
