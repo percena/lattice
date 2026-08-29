@@ -50,7 +50,7 @@ from typing import Any
 
 # Binder status FSM vocabulary + coupled-field transition policy (ADR-004 sec.6
 # / spc-42 A4, extended by ADR-007 sec.4 for the side-state guard). Vendored
-# copy of skills/_lattice-lib/scripts/lib/status_vocab.py (tkt-189 / spc-187
+# copy of skills/_lattice-lib/scripts/lib/status_vocab.py (tkt-189 / spc-186
 # A2): this file stays dependency-free so consumer repos can vendor the
 # validator alone. A bats test asserts the two stay parity-equal (constants +
 # compiled regex pattern); the lib is the canonical source -- edit there,

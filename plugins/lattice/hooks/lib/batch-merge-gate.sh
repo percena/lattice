@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Batch-work merge gate — spc-187 A1, ADR-007 five-piece contract.
+# Batch-work merge gate — spc-186 A1, ADR-007 five-piece contract.
 #
 # Blocks a bare `gh pr merge` while the batch-work marker is present, fail-closed
 # in strict mode. The marker lives at the repo MAIN clone .lattice/.batch-work-active
 # (single gate point — NOT per-worktree; one gate the human controls). Retiring
-# per-worktree marker copies is the spc-187 A1 scope decision.
+# per-worktree marker copies is the spc-186 A1 scope decision.
 #
 # Five pieces (ADR-007 §4 — a hard rule without all five is not done):
 #   check  — batch_gate_allows_merge: is the marker present at MAIN .lattice/?
@@ -79,7 +79,7 @@ batch_gate_advice_text() {
    MAIN clone .lattice/ — night-shift PRs may NOT merge while batch work is
    active (invariant: night states never reach merged).
 
-   Rule (spc-187 A1, ADR-007): a bare `gh pr merge` is blocked while the marker
+   Rule (spc-186 A1, ADR-007): a bare `gh pr merge` is blocked while the marker
    exists. This is a human-adjudicated red line — agents do not self-authorize
    red-line crossings; unapproved crossings are invalid (redo/rollback).
 

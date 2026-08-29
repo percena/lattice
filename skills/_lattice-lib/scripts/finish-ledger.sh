@@ -501,7 +501,7 @@ else:
 #    timestamps. The flip fires on: cancel (terminal evidence already
 #    verified), issue closed, or a merged PR with no linked issue. The
 #    nonterminal alternation is single-sourced in lib/status_vocab.py (tkt-189
-#    / spc-187 A2) so it cannot drift from the validator's vocabulary.
+#    / spc-186 A2) so it cannot drift from the validator's vocabulary.
 if cancel or issue_closed == "true" or (not issue_m and merged):
     s = re.sub(
         rf'(\| status \|)\s*{status_vocab.NONTERMINAL_RE.pattern}\s*(\|)',

@@ -1,5 +1,5 @@
 """Single source for the ticket binder status vocabulary + coupled-field
-transition policy (tkt-189 / spc-187 A2).
+transition policy (tkt-189 / spc-186 A2).
 
 Owns the FSM status enum, the side-state set (external signals that must not
 be silently overwritten by a pr-open stamp), and the direct-jump policy

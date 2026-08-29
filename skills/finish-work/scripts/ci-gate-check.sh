@@ -236,45 +236,57 @@ else:
 # --- Stamp binder journal when waiver applies ---
 if result["waiver_stamped"] and binder and not dry_run:
     try:
+        import fcntl
         from pathlib import Path as P
         bp = P(binder)
         if bp.is_file():
-            text = bp.read_text(encoding="utf-8", errors="replace")
-            trace = result["waiver_trace"]
-            # Append to ## Decision journal (same pattern as stamp-pr-open)
-            m_hdr = re.search(r'^## Decision journal[ \t]*\n', text, re.MULTILINE)
-            if m_hdr:
-                body_start = m_hdr.end()
-                tail = text[body_start:]
-                bnd = re.search(r'\n## ', tail)
-                body = tail[:bnd.start()] if bnd else tail
-                trailing = tail[bnd.start():] if bnd else ""
-                stripped = body.strip("\n")
-                new_body = (stripped + "\n" + trace + "\n") if stripped else (trace + "\n")
-                text = text[:body_start] + "\n" + new_body + trailing
-            else:
-                anchor = re.search(r'\n(## (?:Notes|References|Lineage|Finish|Pending decisions|Attempts)\b)', text)
-                block = f"\n## Decision journal\n\n{trace}\n"
-                if anchor:
-                    text = text[:anchor.start()] + block + text[anchor.start():]
-                else:
-                    text = text.rstrip("\n") + "\n" + block
-            import tempfile, os as _os, stat
-            d = str(bp.parent)
-            fmode = bp.stat().st_mode
-            fd, tmp = tempfile.mkstemp(dir=d, prefix=".ci-gate.", suffix=".tmp")
+            lock_dir = str(bp.parent) or "."
+            lock_fd = os.open(lock_dir, os.O_RDONLY)
             try:
-                with _os.fdopen(fd, "w", encoding="utf-8") as fh:
-                    fh.write(text)
-                    fh.flush()
-                    _os.fsync(fh.fileno())
-                _os.chmod(tmp, stat.S_IMODE(fmode))
-                _os.replace(tmp, str(bp))
-            except BaseException:
-                if _os.path.exists(tmp):
-                    _os.unlink(tmp)
-                raise
-            result["binder_stamped"] = str(bp)
+                fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            except OSError as exc:
+                os.close(lock_fd)
+                raise RuntimeError(f"ci-gate-check: cannot lock binder directory: {exc}")
+            try:
+                text = bp.read_text(encoding="utf-8", errors="replace")
+                trace = result["waiver_trace"]
+                # Append to ## Decision journal (same pattern as stamp-pr-open)
+                m_hdr = re.search(r'^## Decision journal[ \t]*\n', text, re.MULTILINE)
+                if m_hdr:
+                    body_start = m_hdr.end()
+                    tail = text[body_start:]
+                    bnd = re.search(r'\n## ', tail)
+                    body = tail[:bnd.start()] if bnd else tail
+                    trailing = tail[bnd.start():] if bnd else ""
+                    stripped = body.strip("\n")
+                    new_body = (stripped + "\n" + trace + "\n") if stripped else (trace + "\n")
+                    text = text[:body_start] + "\n" + new_body + trailing
+                else:
+                    anchor = re.search(r'\n(## (?:Notes|References|Lineage|Finish|Pending decisions|Attempts)\b)', text)
+                    block = f"\n## Decision journal\n\n{trace}\n"
+                    if anchor:
+                        text = text[:anchor.start()] + block + text[anchor.start():]
+                    else:
+                        text = text.rstrip("\n") + "\n" + block
+                import tempfile, stat
+                d = str(bp.parent)
+                fmode = bp.stat().st_mode
+                fd2, tmp = tempfile.mkstemp(dir=d, prefix=".ci-gate.", suffix=".tmp")
+                try:
+                    with os.fdopen(fd2, "w", encoding="utf-8") as fh:
+                        fh.write(text)
+                        fh.flush()
+                        os.fsync(fh.fileno())
+                    os.chmod(tmp, stat.S_IMODE(fmode))
+                    os.replace(tmp, str(bp))
+                except BaseException:
+                    if os.path.exists(tmp):
+                        os.unlink(tmp)
+                    raise
+                result["binder_stamped"] = str(bp)
+            finally:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                os.close(lock_fd)
     except Exception as e:
         result["binder_stamp_error"] = str(e)
 

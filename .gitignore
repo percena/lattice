@@ -39,6 +39,9 @@ evals/artifacts/
 # Runtime id-claim markers (next-artifact-id.sh --claim); ids are recoverable
 # from committed artifact files, so claims stay local.
 .lattice/.ids/
+# Batch-work gate marker (runtime sentinel — never tracked)
+.lattice/.batch-work-active
+.lattice/.batch-merge-authorized
 # atomic_write temp files
 .lattice/**/.*.tmp
 # Derived lineage graph/board is not committed; do not create.

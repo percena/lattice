@@ -259,6 +259,8 @@ EOF
   ln -sf "$(command -v git)" "$NOGH_BIN/git"
   ln -sf "$(command -v python3)" "$NOGH_BIN/python3"
   ln -sf "$(command -v bash)" "$NOGH_BIN/bash"
+  ln -sf "$(command -v dirname)" "$NOGH_BIN/dirname"
+  ln -sf "$(command -v uname)" "$NOGH_BIN/uname"
   : >"$GH_LOG"
   run env PATH="$NOGH_BIN" bash "$RS" --binder "$BINDER"
   [ "$status" -eq 2 ]

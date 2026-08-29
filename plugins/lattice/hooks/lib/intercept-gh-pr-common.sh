@@ -105,7 +105,7 @@ intercept_gh_pr_main() {
         exit 0
     fi
 
-    # Batch-work merge gate (spc-187 A1, ADR-007 five-piece contract): a bare
+    # Batch-work merge gate (spc-186 A1, ADR-007 five-piece contract): a bare
     # `gh pr merge` while the .batch-work-active marker is present at the repo
     # MAIN clone .lattice/ is blocked fail-closed. Runs only for the merge verb;
     # create is unaffected. Fails OPEN when the lattice home cannot be resolved
