@@ -9,7 +9,7 @@
 | kind | bug |
 | priority | P2 |
 | labels | bug, P2 |
-| github | https://github.com/percena/lattice/issues/196 |
+| github | https://github.com/percena/lattice/issues/200 |
 | status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |

@@ -11,7 +11,7 @@
 | status | queued |
 | adopted | false |
 | summary | Give fix_cycles a scripted owner and define the cap-exit: third rework return forces deep-review |
-| spec | spc-187 |
+| spec | spc-186 |
 | covers | A6, A8 |
 | blocked_by | (none) |
 | parallel_group | g1 |
@@ -43,7 +43,7 @@ Today fix_cycles is template-declared but written by no core-loop script (verifi
 
 ## Decision journal
 
-- 2026-08-29 — Created from spc-187 POST_SPLIT; approach pre-resolved at split time (spc-42 A5). Source: rev-20260829-160834Z F2/F5 + C6.
+- 2026-08-29 — Created from spc-186 POST_SPLIT; approach pre-resolved at split time (spc-42 A5). Source: rev-20260829-160834Z F2/F5 + C6.
 
 ## Pending decisions
 
@@ -59,11 +59,11 @@ Today fix_cycles is template-declared but written by no core-loop script (verifi
 
 ## References
 
-- Spec: .lattice/specs/spc-187-hard-limit-closure.md (A6)
+- Spec: .lattice/specs/spc-186-hard-limit-closure.md (A6)
 - Law: docs/adr/007-hard-limit-scope-law.md
 - Review: .lattice/reviews/rev-20260829-160834Z-workflow-fsm-hardlimit-review.md
 
 ## Lineage
 
-- Parent spec: spc-187
+- Parent spec: spc-186
 - Covers: A6, A8

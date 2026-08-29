@@ -1,6 +1,6 @@
 # tkt-194 — CI merge gate with compiled infra-class waiver + stamped trace
 
-> **Status:** queued · kind feat · priority P1 · covers spc-187 A6, A8
+> **Status:** queued · kind feat · priority P1 · covers spc-186 A6, A8
 
 ## Field table
 
@@ -13,7 +13,7 @@
 | status | queued | |
 | adopted | false | |
 | summary | CI merge gate is prose-only (alignment-check never runs `gh pr checks`); "never merge blind on mergeable" has no teeth. Compile infra-class failure detection + waiver stamp; real failures block. | |
-| spec | spc-187 | |
+| spec | spc-186 | |
 | covers | A6, A8 | |
 | blocked_by | tkt-188 | shares finish-work flow.md §3.4 hot file |
 | parallel_group | g3 | layer 3 |
@@ -46,7 +46,7 @@ finish-preflight.sh (or a new ci-gate helper) calls `gh pr checks <N> --json nam
 
 ## Decision journal
 
-- 2026-08-29: created from spc-187 POST_SPLIT (P1-7). Layer 3 behind tkt-188 (shared finish-work flow.md §3.4).
+- 2026-08-29: created from spc-186 POST_SPLIT (P1-7). Layer 3 behind tkt-188 (shared finish-work flow.md §3.4).
 
 ## Pending decisions
 
@@ -59,14 +59,14 @@ finish-preflight.sh (or a new ci-gate helper) calls `gh pr checks <N> --json nam
 
 ## References
 
-- Spec: spc-187
+- Spec: spc-186
 - Law: ADR-007 (§5a compiled corner cases)
 - Review: rev-20260829-160834Z
 - GH issue: #194
 
 ## Lineage
 
-- Parent spec: spc-187
+- Parent spec: spc-186
 - Primary ticket: tkt-194
 - Related: tkt-188 (blocker)
 - Covers: A6, A8

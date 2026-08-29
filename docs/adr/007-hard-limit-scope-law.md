@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-08-29
 - **Deciders:** operator, Claude
-- **Related:** spc-187, rev-20260829-160834Z
+- **Related:** spc-186, rev-20260829-160834Z
 
 ## Context
 
@@ -98,7 +98,7 @@ cost.
 ## Consequences
 
 - Positive: the enforcement asymmetry becomes a defined closure program
-  (spc-187); every new hard rule has a done-definition; night autonomy is
+  (spc-186); every new hard rule has a done-definition; night autonomy is
   bounded without deadlock — no silent red-line crossings, no wedged corner
   cases; escape data gives an empirical loop for boundary calibration.
 - Negative: each hard rule costs more to ship (five pieces), so the 2×2 gate
@@ -116,6 +116,6 @@ cost.
 
 - The inventory of prose-only rules this law must absorb (merge gate, CI gate,
   FSM transition legality, fallback/fix caps, capture/observation duty, …) is
-  tabulated in `rev-20260829-160834Z` F3; the delivery split is spc-187.
+  tabulated in `rev-20260829-160834Z` F3; the delivery split is spc-186.
 
 > ADR is out-of-band (not a Lattice lineage node): cite as `ADR-NNN` / path, not as lineage edges.

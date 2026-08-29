@@ -1,6 +1,6 @@
 # tkt-191 — Ticket binder created/updated timestamps
 
-> **Status:** queued · kind feat · priority P1 · covers spc-187 A4
+> **Status:** queued · kind feat · priority P1 · covers spc-186 A4
 
 ## Field table
 
@@ -13,7 +13,7 @@
 | status | queued | |
 | adopted | false | |
 | summary | Ticket binders carry no created/updated timestamps (Specs/Reviews have them) — time-in-state uncomputable for in-flight tickets. Blocks A5. | |
-| spec | spc-187 | |
+| spec | spc-186 | |
 | covers | A4 | |
 | blocked_by | tkt-189 | vocabulary single-source lands first (shared validator/template files) |
 | parallel_group | g2 | layer 2 |
@@ -44,7 +44,7 @@ Add `created`/`updated` rows to the ticket-binder template field table (placemen
 
 ## Decision journal
 
-- 2026-08-29: created from spc-187 POST_SPLIT (P1-4). Layer 2 behind tkt-189 (shared validator + template hot files).
+- 2026-08-29: created from spc-186 POST_SPLIT (P1-4). Layer 2 behind tkt-189 (shared validator + template hot files).
 
 ## Pending decisions
 
@@ -57,14 +57,14 @@ Add `created`/`updated` rows to the ticket-binder template field table (placemen
 
 ## References
 
-- Spec: spc-187 (`.lattice/specs/spc-187-hard-limit-closure.md`)
+- Spec: spc-186 (`.lattice/specs/spc-186-hard-limit-closure.md`)
 - Law: ADR-007 (`docs/adr/007-hard-limit-scope-law.md`)
 - Review: rev-20260829-160834Z
 - GH issue: #191
 
 ## Lineage
 
-- Parent spec: spc-187
+- Parent spec: spc-186
 - Primary ticket: tkt-191
 - Related: tkt-189 (blocker), tkt-192 (blocked by this)
 - Covers: A4

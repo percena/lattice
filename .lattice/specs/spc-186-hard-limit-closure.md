@@ -1,5 +1,5 @@
 ---
-id: spc-187
+id: spc-186
 slug: hard-limit-closure
 title: Hard-limit enforcement closure — machine-checked transitions, human-adjudicated escapes
 kind: feat
@@ -9,14 +9,14 @@ priority: P1
 summary: Close the enforcement asymmetry found in rev-20260829-160834Z — make the documented safety laws (batch merge gate, FSM transitions, CI gate, caps) machine-checked per the ADR-007 boundary law, with human-adjudicated exception channels.
 created: 2026-08-29
 updated: 2026-08-29
-tickets: [tkt-188, tkt-189, tkt-190, tkt-191, tkt-192, tkt-193, tkt-194, tkt-195, tkt-196]
+tickets: [tkt-188, tkt-189, tkt-190, tkt-191, tkt-192, tkt-193, tkt-194, tkt-195]
 prs: []
 reviews: [rev-20260829-160834Z]
 supersedes: []
 superseded_by: null
 ---
 
-# spc-187: Hard-limit enforcement closure
+# spc-186: Hard-limit enforcement closure
 
 > **Status:** locked (2026-08-29) — scope confirmed in the review dialogue; macro sign-off given by operator.
 
