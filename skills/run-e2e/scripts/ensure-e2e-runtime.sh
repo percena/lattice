@@ -68,12 +68,12 @@ have_ego_browser() {
 }
 
 have_camoufox_js() {
-  if command -v camoufox-js >/dev/null 2>&1; then
-    return 0
-  fi
-  if command -v npx >/dev/null 2>&1; then
-    npx --no-install camoufox-js --version >/dev/null 2>&1 && return 0
-  fi
+  # Documented install path: `npm i -g camoufox-js` puts the bin on PATH.
+  command -v camoufox-js >/dev/null 2>&1 && return 0
+  # Non-global installs: detect the package without invoking the bin (camoufox-js
+  # only documents `fetch`; do not depend on a `--version` flag it may not have).
+  npm ls -g camoufox-js --depth=0 2>/dev/null | grep -q 'camoufox-js@' && return 0
+  npm ls camoufox-js --depth=0 2>/dev/null | grep -q 'camoufox-js@' && return 0
   return 1
 }
 
@@ -87,12 +87,11 @@ have_camoufox_browser() {
 }
 
 have_playwright_cli() {
-  if command -v playwright-cli >/dev/null 2>&1; then
-    return 0
-  fi
-  if command -v npx >/dev/null 2>&1; then
-    npx --no-install playwright-cli --version >/dev/null 2>&1 && return 0
-  fi
+  # Documented install path: `npm i -g @playwright/cli` installs the `playwright-cli` bin.
+  command -v playwright-cli >/dev/null 2>&1 && return 0
+  # Non-global installs: detect the package by name (robust to flag differences).
+  npm ls -g @playwright/cli --depth=0 2>/dev/null | grep -q '@playwright/cli@' && return 0
+  npm ls @playwright/cli --depth=0 2>/dev/null | grep -q '@playwright/cli@' && return 0
   return 1
 }
 
