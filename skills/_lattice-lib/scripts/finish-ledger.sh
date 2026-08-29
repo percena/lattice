@@ -381,6 +381,7 @@ import sys, re, os, stat, fcntl
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
+import status_vocab
 
 binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state, cancel, reason, issue_base = sys.argv[1:12]
 # Take an exclusive lock for the whole read-modify-write. Two finish sessions
@@ -491,10 +492,12 @@ else:
 #    omitted, codified by the parked-preservation regression it replaces).
 #    Closed-without-merge never claims mergedAt; merged outcomes keep firm
 #    timestamps. The flip fires on: cancel (terminal evidence already
-#    verified), issue closed, or a merged PR with no linked issue.
+#    verified), issue closed, or a merged PR with no linked issue. The
+#    nonterminal alternation is single-sourced in lib/status_vocab.py (tkt-189
+#    / spc-187 A2) so it cannot drift from the validator's vocabulary.
 if cancel or issue_closed == "true" or (not issue_m and merged):
     s = re.sub(
-        r'(\| status \|)\s*(?:open|queued|in-progress|parked|stuck|pr-open|rework|deferred)\s*(\|)',
+        rf'(\| status \|)\s*{status_vocab.NONTERMINAL_RE.pattern}\s*(\|)',
         r'\1 closed \2',
         s,
     )
