@@ -12,7 +12,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/219 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-219-spawn-ticket-process-helper |
 | worktree | sibling `…/lattice.worktrees/tkt-219-spawn-ticket-process-helper/` |
-| prs | (none) · pr-225 — https://github.com/percena/lattice/pull/225 |
+| prs | pr-225 — https://github.com/percena/lattice/pull/225 |
 
 ## Acceptance (this slice)
 

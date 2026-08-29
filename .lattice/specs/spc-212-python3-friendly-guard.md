@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Make python3 dependency explicit and user-friendly across Lattice skills
 
 > **TL;DR:** Keep Python (stdlib-only, not removable); add a guard helper so missing `python3` prints a platform-specific install command and exits cleanly, add a fail-open advisory to plugin hooks, and document the prerequisite — instead of today's cryptic mid-script `command not found`.
-> **Kind:** chore · **Status:** locked · **Mode:** M · **Priority:** P1
+> **Kind:** chore · **Status:** done · **Mode:** M · **Priority:** P1
 > **Path:** spc-212 → tkt-… → pr-…
 
 ## Why
@@ -52,11 +52,11 @@ Current behavior splits cleanly into two cases:
 
 ## Acceptance
 
-- [ ] **A1** — `ensure-python3.sh` exists under `_lattice-lib/scripts/`; `command -v python3` present → exit 0 silently; absent → print a platform-specific install command (macOS / Arch / Alpine / Debian·Ubuntu·Fedora) to stderr and exit nonzero.
-- [ ] **A2** — No previously-unguarded python3-using skill script remains that emits a bare "command not found": each either calls `ensure-python3.sh` (fail-closed) or degrades gracefully.
-- [ ] **A3** — Plugin PreToolUse hooks emit a one-time stderr advisory when python3 is absent ("Lattice guardrails degraded: strict-profile protections inactive. Install python3: …") and still allow the tool call (fail-open preserved).
-- [ ] **A4** — README + skill install docs state: "Requires bash + python3 (stdlib only, no pip)."
-- [ ] **A5** — No regression: already-graceful scripts unchanged; already-hard-guarding scripts still guard; hook fail-open semantics preserved.
+- [x] **A1** — `ensure-python3.sh` exists under `_lattice-lib/scripts/`; `command -v python3` present → exit 0 silently; absent → print a platform-specific install command (macOS / Arch / Alpine / Debian·Ubuntu·Fedora) to stderr and exit nonzero.
+- [x] **A2** — No previously-unguarded python3-using skill script remains that emits a bare "command not found": each either calls `ensure-python3.sh` (fail-closed) or degrades gracefully.
+- [x] **A3** — Plugin PreToolUse hooks emit a one-time stderr advisory when python3 is absent ("Lattice guardrails degraded: strict-profile protections inactive. Install python3: …") and still allow the tool call (fail-open preserved).
+- [x] **A4** — README + skill install docs state: "Requires bash + python3 (stdlib only, no pip)."
+- [x] **A5** — No regression: already-graceful scripts unchanged; already-hard-guarding scripts still guard; hook fail-open semantics preserved.
 
 ## Decisions (principal, user-confirmed)
 
