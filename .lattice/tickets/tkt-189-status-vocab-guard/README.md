@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/189 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -76,4 +76,6 @@ The working-status vocabulary (`queued | in-progress | parked | stuck | pr-open 
 ## Finish
 
 
-- (none yet)
+
+- pr-199 merged: 2026-08-29T11:39:13Z — https://github.com/percena/lattice/pull/199 (base merge)
+- issue #189 closed: 2026-08-29T11:39:24Z — https://github.com/percena/lattice/issues/189
