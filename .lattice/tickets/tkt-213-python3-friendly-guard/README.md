@@ -29,11 +29,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `ensure-python3.sh` exists under `_lattice-lib/scripts/`; `command -v python3` present → exit 0 silently; absent → platform-specific install command (macOS / Arch / Alpine / Debian·Ubuntu·Fedora) to stderr + nonzero exit.
-- [ ] **A2** No previously-unguarded python3-using skill script emits a bare "command not found"; each guards (fail-closed) or degrades gracefully.
-- [ ] **A3** Plugin PreToolUse hooks emit a one-time fail-open advisory when python3 absent ("Lattice guardrails degraded: strict-profile protections inactive. Install: …"); tool call still allowed.
-- [ ] **A4** README + install docs state "Requires bash + python3 (stdlib only, no pip)."
-- [ ] **A5** No regression: already-graceful (`check-duplicate-work.sh`) and already-hard-guarding (`ensure-workspace.sh`, `alignment-check.sh`, `ci-gate-check.sh`) scripts unchanged; hook fail-open semantics preserved.
+- [x] **A1** `ensure-python3.sh` exists under `_lattice-lib/scripts/`; `command -v python3` present → exit 0 silently; absent → platform-specific install command (macOS / Arch / Alpine / Debian·Ubuntu·Fedora) to stderr + nonzero exit.
+- [x] **A2** No previously-unguarded python3-using skill script emits a bare "command not found"; each guards (fail-closed) or degrades gracefully.
+- [x] **A3** Plugin PreToolUse hooks emit a one-time fail-open advisory when python3 absent ("Lattice guardrails degraded: strict-profile protections inactive. Install: …"); tool call still allowed.
+- [x] **A4** README + install docs state "Requires bash + python3 (stdlib only, no pip)."
+- [x] **A5** No regression: already-graceful (`check-duplicate-work.sh`) and already-hard-guarding (`ensure-workspace.sh`, `alignment-check.sh`, `ci-gate-check.sh`) scripts unchanged; hook fail-open semantics preserved.
 
 ## Notes
 
