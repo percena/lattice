@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/227 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | Platform-split run-e2e preflight + two-backend SKILL.md + Linux story-template |
 | spec | spc-226 — run-e2e platform dispatcher + confirm-first preflight (path: ../../specs/spc-226-run-e2e-platform-dispatcher.md) |
@@ -68,4 +68,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-229 merged: 2026-08-29T16:48:13Z — https://github.com/percena/lattice/pull/229 (base merge)
+- issue #227 closed: 2026-08-29T16:48:35Z — https://github.com/percena/lattice/issues/227
