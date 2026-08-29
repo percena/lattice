@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/200 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | adopted | false |
@@ -60,3 +60,5 @@
 ## Finish
 
 - (pending merge — human merges per tkt-200 STOP POINT; finish-work not called)
+- pr-195 merged: 2026-08-29T11:40:19Z — https://github.com/percena/lattice/pull/195 (base merge)
+- issue #200 closed: 2026-08-29T11:40:31Z — https://github.com/percena/lattice/issues/200
