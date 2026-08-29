@@ -1,6 +1,6 @@
 # tkt-189 — Single-source status vocabulary + stamp-pr-open side-state guard
 
-> **Status:** queued · kind feat · priority P0 · covers spc-187 A2,A8
+> **Status:** queued · kind feat · priority P0 · covers spc-186 A2,A8
 
 ## Field table
 
@@ -13,7 +13,7 @@
 | status | queued |
 | adopted | false |
 | summary | Eliminate the 4-copy status vocabulary drift; stop stamp-pr-open from silently overwriting parked/stuck/rework |
-| spec | spc-187 |
+| spec | spc-186 |
 | covers | A2, A8 |
 | blocked_by | (none) |
 | parallel_group | g1 |
@@ -46,7 +46,7 @@ Follow the binder_rows.py precedent: canonical Python module under `skills/_latt
 
 ## Decision journal
 
-- 2026-08-29 — Created from spc-187 POST_SPLIT; approach pre-resolved at split time (spc-42 A5). Resolution source: rev-20260829-160834Z + ADR-007.
+- 2026-08-29 — Created from spc-186 POST_SPLIT; approach pre-resolved at split time (spc-42 A5). Resolution source: rev-20260829-160834Z + ADR-007.
 
 ## Pending decisions
 
@@ -60,13 +60,13 @@ Follow the binder_rows.py precedent: canonical Python module under `skills/_latt
 
 ## References
 
-- Spec: `.lattice/specs/spc-187-hard-limit-closure.md` (A2, A8)
+- Spec: `.lattice/specs/spc-186-hard-limit-closure.md` (A2, A8)
 - Review: `.lattice/reviews/rev-20260829-160834Z-workflow-fsm-hardlimit-review.md` (F1/F7 findings)
 - Law: `docs/adr/007-hard-limit-scope-law.md`
 - Guard site: `skills/_lattice-lib/scripts/stamp-pr-open.sh:346-348`
 
 ## Lineage
 
-- Parent spec: spc-187 — https://github.com/percena/lattice/issues/187
+- Parent spec: spc-186 — https://github.com/percena/lattice/issues/187
 - Origin review: rev-20260829-160834Z
 - GitHub issue: #189

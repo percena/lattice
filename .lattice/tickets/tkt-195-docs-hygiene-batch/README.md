@@ -1,6 +1,6 @@
 # tkt-195 — Docs + small-script hygiene batch
 
-> **Status:** queued · kind chore · priority P2 · covers spc-187 A7
+> **Status:** queued · kind chore · priority P2 · covers spc-186 A7
 
 ## Field table
 
@@ -9,11 +9,11 @@
 | kind | chore | |
 | priority | P2 | |
 | labels | chore, docs, P2 | |
-| github | https://github.com/percena/lattice/issues/195 | |
+| github | https://github.com/percena/lattice/issues/201 | |
 | status | queued | |
 | adopted | false | |
 | summary | Batch the low-risk doc/script hygiene findings from rev-20260829-160834Z: stale comments, portability citation fixes, FSM entry edges, amendment sediment, small script exit-code quirks. | |
-| spec | spc-187 | |
+| spec | spc-186 | |
 | covers | A7 | |
 | blocked_by | tkt-188, tkt-193 | shares workflow-fsm.md + finish-work SKILL.md hot files |
 | parallel_group | g4 | layer 4 |
@@ -46,7 +46,7 @@ Drive-by hygiene batch touching only docs + two small scripts. Each item is low-
 
 ## Decision journal
 
-- 2026-08-29: created from spc-187 POST_SPLIT (P2-8). Layer 4 behind tkt-188 + tkt-193 (shared workflow-fsm.md + finish-work SKILL.md).
+- 2026-08-29: created from spc-186 POST_SPLIT (P2-8). Layer 4 behind tkt-188 + tkt-193 (shared workflow-fsm.md + finish-work SKILL.md).
 
 ## Pending decisions
 
@@ -59,14 +59,14 @@ Drive-by hygiene batch touching only docs + two small scripts. Each item is low-
 
 ## References
 
-- Spec: spc-187
+- Spec: spc-186
 - Law: ADR-007
 - Review: rev-20260829-160834Z (Findings F4, F5, F6; C4, C5)
 - GH issue: #195
 
 ## Lineage
 
-- Parent spec: spc-187
+- Parent spec: spc-186
 - Primary ticket: tkt-195
 - Related: tkt-188, tkt-193 (blockers)
 - Covers: A7

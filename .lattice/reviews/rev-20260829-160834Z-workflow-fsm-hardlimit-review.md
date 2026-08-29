@@ -5,10 +5,10 @@ title: "Workflow/FSM review — enforcement asymmetry, FSM gaps, and the hard-li
 kind: audit
 status: concluded
 outcome: spawn_spec
-summary: "Whole-workflow audit of the Lattice delivery loop and its three coupled state machines. Core finding: enforcement is asymmetric — worktree discipline is machine-enforced (ADR-006) while the FSM core and the night-merge safety invariant remain prose. Boundary question (what deserves hard limits) resolved as a design law: constrain transitions, liberate deliberation; decidability is the prerequisite for enforcement; red-line exceptions are always human-adjudicated (double-confirm); compilable corner cases are compiled into rules, not escaped. Law promoted to ADR-007; closure program spawned as spc-187."
+summary: "Whole-workflow audit of the Lattice delivery loop and its three coupled state machines. Core finding: enforcement is asymmetric — worktree discipline is machine-enforced (ADR-006) while the FSM core and the night-merge safety invariant remain prose. Boundary question (what deserves hard limits) resolved as a design law: constrain transitions, liberate deliberation; decidability is the prerequisite for enforcement; red-line exceptions are always human-adjudicated (double-confirm); compilable corner cases are compiled into rules, not escaped. Law promoted to ADR-007; closure program spawned as spc-186."
 created: 2026-08-29
 updated: 2026-08-29
-related_specs: [spc-187, spc-42, spc-145]
+related_specs: [spc-186, spc-42, spc-145]
 related_tickets: [tkt-90, tkt-132, tkt-136, tkt-137, tkt-179]
 related_prs: []
 ---
@@ -59,7 +59,7 @@ Attention-contract whitelist (six human-owned transitions, closed list) — corr
 
 ## Decision
 
-Adopt Option C and promote it to **ADR-007** (the durable law). Spawn **spc-187** to close the enforcement gap set: machine-enforce the batch merge gate (F1); single-source the status vocabulary and guard `stamp-pr-open` side-state overwrites (F2/F4d); trip-time Spec-supersede sweep (F5); binder timestamps + staleness surfacing (F4a/F5); `fix_cycles` ownership + cap-exit + CI gate with compiled infra-class waiver (F3/F4b); docs repair batch (F6). Defer the full FSM-transition-table-as-data validator to a follow-up spec — it is large enough to deserve its own acceptance criteria.
+Adopt Option C and promote it to **ADR-007** (the durable law). Spawn **spc-186** to close the enforcement gap set: machine-enforce the batch merge gate (F1); single-source the status vocabulary and guard `stamp-pr-open` side-state overwrites (F2/F4d); trip-time Spec-supersede sweep (F5); binder timestamps + staleness surfacing (F4a/F5); `fix_cycles` ownership + cap-exit + CI gate with compiled infra-class waiver (F3/F4b); docs repair batch (F6). Defer the full FSM-transition-table-as-data validator to a follow-up spec — it is large enough to deserve its own acceptance criteria.
 
 ## Risks
 
@@ -68,7 +68,7 @@ Over-scripting adds friction per rule — mitigated by the five-piece contract (
 ## Follow-ups
 
 - ADR-007 — hard-limit scope law (this review's Option C, promoted).
-- spc-187 — hard-limit enforcement closure (delivery contract, tickets split from it).
+- spc-186 — hard-limit enforcement closure (delivery contract, tickets split from it).
 - Follow-up spec candidate — FSM transition table as data (single machine-readable source consumed by docs, validator, and a transition guard).
 - Follow-up ticket candidate — installed-skill refresh/version-check for dogfood environments (F7).
 
@@ -78,4 +78,4 @@ Directly verified this session (grep/sed against this checkout): `plugins/lattic
 
 ## Log
 
-- 2026-08-29 — opened (whole-workflow audit request) → concluded (outcome: spawn_spec → spc-187; law promoted to ADR-007). Evidence verified first-hand against this checkout; operator confirmed the boundary law with one amendment — red-line exception adjudication is always human (double-confirm), pending acceptable, no agent self-adjudication of red lines.
+- 2026-08-29 — opened (whole-workflow audit request) → concluded (outcome: spawn_spec → spc-186; law promoted to ADR-007). Evidence verified first-hand against this checkout; operator confirmed the boundary law with one amendment — red-line exception adjudication is always human (double-confirm), pending acceptable, no agent self-adjudication of red lines.

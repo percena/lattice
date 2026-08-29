@@ -1,6 +1,6 @@
 # tkt-192 — Surface pr-open aging + side-state water levels (digest + start-work)
 
-> **Status:** queued · kind feat · priority P1 · covers spc-187 A5
+> **Status:** queued · kind feat · priority P1 · covers spc-186 A5
 
 ## Field table
 
@@ -13,7 +13,7 @@
 | status | queued | |
 | adopted | false | |
 | summary | No staleness/aging surfacing — pr-open piles up silently if triage skipped; deferred/stuck/parked have no water-level. Eliminates silent degradation. | |
-| spec | spc-187 | |
+| spec | spc-186 | |
 | covers | A5 | |
 | blocked_by | tkt-191 | needs binder timestamps to compute age |
 | parallel_group | g4 | layer 4 |
@@ -44,7 +44,7 @@ review-delivery digest gains a "Queue health" section computed from binder `crea
 
 ## Decision journal
 
-- 2026-08-29: created from spc-187 POST_SPLIT (P1-5). Layer 4 behind tkt-191 (timestamps are the age-compute dependency).
+- 2026-08-29: created from spc-186 POST_SPLIT (P1-5). Layer 4 behind tkt-191 (timestamps are the age-compute dependency).
 
 ## Pending decisions
 
@@ -57,14 +57,14 @@ review-delivery digest gains a "Queue health" section computed from binder `crea
 
 ## References
 
-- Spec: spc-187
+- Spec: spc-186
 - Law: ADR-007
 - Review: rev-20260829-160834Z
 - GH issue: #192
 
 ## Lineage
 
-- Parent spec: spc-187
+- Parent spec: spc-186
 - Primary ticket: tkt-192
 - Related: tkt-191 (blocker)
 - Covers: A5

@@ -1,6 +1,6 @@
 # tkt-190 — Spec supersede trip-time sweep stamps child binders deferred
 
-> **Status:** queued · kind feat · priority P0 · covers spc-187 A3
+> **Status:** queued · kind feat · priority P0 · covers spc-186 A3
 
 ## Field table
 
@@ -13,7 +13,7 @@
 | status | queued |
 | adopted | false |
 | summary | Superseding a Spec stamps its still-active child binders deferred + spec-superseded at supersede time |
-| spec | spc-187 |
+| spec | spc-186 |
 | covers | A3 |
 | blocked_by | tkt-189 |
 | parallel_group | g2 |
@@ -45,7 +45,7 @@ New script (e.g. `_lattice-lib/scripts/spec-supersede.sh`) invoked from create-s
 
 ## Decision journal
 
-- 2026-08-29 — Created from spc-187 POST_SPLIT; approach pre-resolved at split time. Resolution source: rev-20260829-160834Z + ADR-007.
+- 2026-08-29 — Created from spc-186 POST_SPLIT; approach pre-resolved at split time. Resolution source: rev-20260829-160834Z + ADR-007.
 
 ## Pending decisions
 
@@ -59,12 +59,12 @@ New script (e.g. `_lattice-lib/scripts/spec-supersede.sh`) invoked from create-s
 
 ## References
 
-- Spec: `.lattice/specs/spc-187-hard-limit-closure.md` (A3)
+- Spec: `.lattice/specs/spc-186-hard-limit-closure.md` (A3)
 - Review: `.lattice/reviews/rev-20260829-160834Z-workflow-fsm-hardlimit-review.md` (F8)
 - Law: `docs/adr/007-hard-limit-scope-law.md`; principle origin: ADR-004 amd tkt-136 Option B
 
 ## Lineage
 
-- Parent spec: spc-187 — https://github.com/percena/lattice/issues/187
+- Parent spec: spc-186 — https://github.com/percena/lattice/issues/187
 - Origin review: rev-20260829-160834Z
 - GitHub issue: #190
