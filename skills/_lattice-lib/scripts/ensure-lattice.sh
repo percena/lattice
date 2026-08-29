@@ -103,6 +103,14 @@ if $CHECK_ONLY; then
   fi
   ACTIVE_PROFILE=$(_read_profile || true)
   if $AS_JSON; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      # Degrade: emit minimal JSON without the interpreter (spc-212 A2).
+      printf '{"ok":%s,"ready":%s,"root":"%s","lattice":"%s","action":"check","profile":"%s"}\n' \
+        "$([[ "$READY" == true ]] && echo true || echo false)" \
+        "$([[ "$READY" == true ]] && echo true || echo false)" \
+        "$ROOT" "$LATTICE" "${ACTIVE_PROFILE:-}"
+      if $READY; then exit 0; else exit 1; fi
+    fi
     python3 - "$ROOT" "$LATTICE" "$READY" "${ACTIVE_PROFILE:-}" <<'PY'
 import json, sys
 root, lattice, ready, prof = sys.argv[1:5]
@@ -249,6 +257,13 @@ ACTIVE_PROFILE=$(_read_profile || true)
 [[ -z "${ACTIVE_PROFILE:-}" ]] && ACTIVE_PROFILE="${PROFILE:-strict}"
 
 if $AS_JSON; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    # Degrade: emit minimal JSON without the interpreter (spc-212 A2).
+    printf '{"ok":true,"ready":true,"action":"%s","root":"%s","lattice":"%s","profile":"%s","created_preferences":%s}\n' \
+      "$ACTION" "$ROOT" "$LATTICE" "$ACTIVE_PROFILE" \
+      "$([[ "$PREFS_CREATED" == true ]] && echo true || echo false)"
+    exit 0
+  fi
   if printf '%s' "$INIT_OUT" | python3 -c 'import json,sys; json.load(sys.stdin)' >/dev/null 2>&1; then
     printf '%s' "$INIT_OUT" | python3 -c '
 import json, sys

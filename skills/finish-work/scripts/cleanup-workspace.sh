@@ -35,6 +35,11 @@
 # stdout: JSON summary (last line); exit 0 on success, 1 on preserved/residual work
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+# Cleanup is destructive; identity verification needs python3, so refuse rather
+# than blind-delete on a python3-less system.
+bash "$(dirname "${BASH_SOURCE[0]}")/../../_lattice-lib/scripts/ensure-python3.sh" || exit 1
+
 BRANCH=""
 WT_PATH=""
 WT_PATH_EXPLICIT=false

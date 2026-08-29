@@ -73,6 +73,19 @@ intercept_gh_pr_main() {
         exit 0
     fi
 
+    # python3 absent: the strip / classifier / skill-active checks below all
+    # fail-open, so the gh-pr guardrail is inert. Emit a ONE-TIME stdout JSON
+    # advisory (stderr is discarded on exit 0, so stdout is the only path that
+    # reaches the model). Never block — fail-open even in strict mode
+    # (spc-212 A3/D3).
+    if ! command -v python3 >/dev/null 2>&1; then
+        jq -cn --arg ctx "Lattice gh-pr guardrail is INERT: python3 is not installed, so the create-pr/finish-work skill-marker check is skipped (fail-open). Strict-mode protections are inactive until python3 is installed (see ensure-python3.sh)." \
+            --arg msg "lattice: gh-pr guardrail degraded (python3 missing); protections inactive" \
+            '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$ctx},systemMessage:$msg}' \
+            2>/dev/null || true
+        exit 0
+    fi
+
     # Strip helper unavailable/failed -> fail OPEN (contract). Matching the raw
     # command instead would false-block quoted mentions in strict mode.
     if ! cleaned_command=$(printf '%s' "$command" | python3 "$INTERCEPT_STRIP_HELPER" 2>/dev/null); then

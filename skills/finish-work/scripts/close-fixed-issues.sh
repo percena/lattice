@@ -18,6 +18,9 @@
 #
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+bash "$(dirname "${BASH_SOURCE[0]}")/../../_lattice-lib/scripts/ensure-python3.sh" || exit 1
+
 PR=""
 BODY_FILE=""
 BODY_STDIN=false
