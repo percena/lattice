@@ -707,11 +707,18 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     ),
                 }
             )
-        # Bounded-loop invariant (ADR-004 §5 / tkt-123): the binder field-table
-        # `fix_cycles` row records review-fix rounds; cap is ≤2. An explicit
-        # value >2 exceeds the bound — warning (lazy-migration posture: missing
-        # row = 0, never fails; the cap is agent-discipline, the validator
-        # surfaces drift, not blocks).
+        # Bounded-loop invariant (ADR-004 §5 / tkt-123 / spc-186 A6): the
+        # binder field-table `fix_cycles` row records review-fix rounds; cap is
+        # ≤2. An explicit value >2 exceeds the bound — WARNING, not error.
+        # Why warn (not error): the cap-exit is a CLASS-FORCING transition, not
+        # a hard stop. `bump-fix-cycle.sh` owns the counter + cap-exit: on the
+        # third rework it holds fix_cycles at 2 and journals a CAP-HIT trace
+        # that forces the `deep-review` triage class (human) before any further
+        # fix cycle — no auto-retry (ADR-007 §4 five-piece). A value >2 means a
+        # human authorized the --extend-budget escape (operator-adjudicated,
+        # journaled in ## Decision journal); the warning surfaces that the cap
+        # was exceeded so morning triage can read the escape trace, not block
+        # the run. Lazy-migration posture: missing row = 0, never fails.
         fc_m = FIX_CYCLES_RE.search(first_table_block(text))
         if fc_m:
             fc_val = int(fc_m.group(1))

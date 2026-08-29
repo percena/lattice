@@ -1,0 +1,379 @@
+#!/usr/bin/env bash
+# Scripted owner of the `fix_cycles` counter + the pr-open → rework transition.
+#
+# The review-fix loop is bounded (ADR-004 §5 cap ≤2). Before this script the
+# counter was template-declared but written by NO core-loop script — a pure
+# six-skill loop left it 0 forever, and the cap had no defined cap-exit
+# (rev-20260829-160834Z F4b/F5). This script is the procedural stamp point:
+# finish-work's mini-review Hold path and the review-delivery --with-review fix
+# loop both call it when findings are returned, so the counter is owned by one
+# script, not agent prose.
+#
+# One call performs the pr-open → rework transition AND the fix_cycles bump,
+# atomically (locked + atomic replace, finish-ledger/stamp-pr-open conventions):
+#   - status pr-open → rework (the FSM edge; findings become the new brief,
+#     recorded by the caller as a binder note + PR review threads)
+#   - fix_cycles +1 (missing row = 0, lazy migration; the row is created if absent)
+#
+# Cap-exit (ADR-007 five-piece hard rule — spc-186 A6/A8):
+#   - check    : this script counts fix_cycles and refuses a bump beyond ≤2
+#   - message  : on cap-hit, the binder stays rework, fix_cycles holds at 2,
+#                and a CAP-HIT trace forces the `deep-review` triage class
+#                (human) before any further fix cycle — no auto-retry
+#   - escape   : --extend-budget --reason "<operator-adjudicated rationale>"
+#                authorizes exactly one more cycle (human, double-confirm;
+#                no agent self-adjudication — ADR-007 §5b/5c)
+#   - trace    : binder ## Decision journal (cap-hit entry or escape entry:
+#                rule id, reason, authorizer, timestamp)
+#   - metric   : the fix_cycles row itself (surfaced in the morning digest)
+#
+# Idempotent on the cap-hit binder: re-running without --extend-budget reprints
+# the CAP-HIT message and mutates nothing.
+#
+# Usage:
+#   bump-fix-cycle.sh --binder <path> [--note "<return brief>"]
+#                     [--extend-budget --reason "<operator rationale>"] [--dry-run]
+#   Exits 0 on stamp / cap-hit (routing decision, not failure); 1 on guard
+#   refusal or IO failure; 2 on usage.
+set -euo pipefail
+
+BINDER=""
+NOTE=""
+EXTEND_BUDGET=false
+EXTEND_REASON=""
+DRY_RUN=false
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: bump-fix-cycle.sh --binder <path> [--note "<return brief>"]
+                         [--extend-budget --reason "<operator rationale>"] [--dry-run]
+
+Scripted owner of fix_cycles + the pr-open → rework transition (spc-186 A6/A8).
+Called by finish-work mini-review Hold and review-delivery --with-review fix
+loop when findings are returned. Stamps status → rework AND bumps fix_cycles in
+one atomic write. Cap ≤2 (ADR-004 §5); exceeding it forces deep-review.
+
+  --binder        path to binder README.md (required).
+  --note          optional return-brief line appended to the journal trace
+                  (the findings being returned; the caller records the full
+                  brief as a binder note + PR review threads).
+  --extend-budget operator-adjudicated escape: authorize ONE more fix cycle
+                  past the ≤2 cap. Requires --reason; journals a structured
+                  trace (ADR-007 §5b; no agent self-adjudication).
+  --reason        rationale for --extend-budget (required with that flag).
+  --dry-run       report what would change; mutate nothing.
+EOF
+  exit 2
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --binder) BINDER="${2:-}"; shift 2 ;;
+    --note) NOTE="${2:-}"; shift 2 ;;
+    --extend-budget) EXTEND_BUDGET=true; shift ;;
+    --reason) EXTEND_REASON="${2:-}"; shift 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    -h|--help) usage ;;
+    *) echo "Unknown: $1" >&2; usage ;;
+  esac
+done
+
+[[ -z "$BINDER" ]] && { echo "Error: --binder is required" >&2; usage; }
+if [[ "$EXTEND_BUDGET" == true && -z "$EXTEND_REASON" ]]; then
+  echo "Error: --extend-budget requires --reason \"<operator-adjudicated rationale>\"" >&2
+  usage
+fi
+
+if [[ ! -f "$BINDER" ]]; then
+  echo "bump-fix-cycle: no binder at $BINDER — skip (ticket-only flow)" >&2
+  exit 0
+fi
+
+# --- Binder path containment (same law as stamp-pr-open.sh) -------------------
+# Resolve, refuse symlinked components, require a regular file under the
+# repo's .lattice/ tree (agent-derived path; a cloned repo can ship a symlink).
+BINDER_REPO_ROOT=$(git -C "$(dirname "$BINDER")" rev-parse --show-toplevel 2>/dev/null || true)
+if [[ -z "$BINDER_REPO_ROOT" ]]; then
+  echo "Error: --binder is not inside a git worktree: $BINDER" >&2
+  exit 1
+fi
+if ! BINDER=$(LEDGER_BINDER="$BINDER" LEDGER_ROOT="$BINDER_REPO_ROOT" python3 - <<'LEDGERPATH'
+import os, stat, sys
+
+binder = os.path.abspath(os.environ["LEDGER_BINDER"])
+root = os.path.realpath(os.environ["LEDGER_ROOT"])
+home = os.path.join(root, ".lattice")
+
+# lstat every component below the repo root so no ancestor can redirect.
+anchor, candidate = None, binder
+while True:
+    if os.path.realpath(candidate) == root:
+        anchor = candidate
+        break
+    parent = os.path.dirname(candidate)
+    if parent == candidate:
+        break
+    candidate = parent
+
+components = [binder]
+if anchor is not None:
+    components, current = [], anchor
+    for part in os.path.relpath(binder, anchor).split(os.path.sep):
+        current = os.path.join(current, part)
+        components.append(current)
+
+for component in components:
+    try:
+        mode = os.lstat(component).st_mode
+    except FileNotFoundError:
+        print(f"Error: binder not found: {binder}", file=sys.stderr)
+        raise SystemExit(1)
+    if stat.S_ISLNK(mode):
+        print(f"Error: refusing symlinked binder path component: {component}", file=sys.stderr)
+        raise SystemExit(1)
+
+resolved = os.path.realpath(binder)
+if os.path.commonpath([home, resolved]) != home:
+    print(f"Error: binder must live under {home}, got: {resolved}", file=sys.stderr)
+    raise SystemExit(1)
+if not stat.S_ISREG(os.stat(resolved).st_mode):
+    print(f"Error: binder is not a regular file: {resolved}", file=sys.stderr)
+    raise SystemExit(1)
+print(resolved)
+LEDGERPATH
+); then
+  exit 1
+fi
+
+STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
+EXTEND_MODE=$($EXTEND_BUDGET && echo "extend" || echo "no-extend")
+BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$STAMP_MODE" "$EXTEND_MODE" "$EXTEND_REASON" "$NOTE" <<'PY'
+import datetime, sys, re, os, stat, fcntl
+
+sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
+import status_vocab
+
+binder, mode, extend_mode, extend_reason, note = sys.argv[1:6]
+dry_run = mode == "dry-run"
+extend_budget = extend_mode == "extend"
+
+# Exclusive lock on the containing directory for the whole read-modify-write
+# (stable inode across atomic replaces; no untracked lock artifact).
+lock_dir = os.path.dirname(os.path.abspath(binder)) or "."
+lock_fd = os.open(lock_dir, os.O_RDONLY)
+try:
+    fcntl.flock(lock_fd, fcntl.LOCK_EX)
+except OSError as exc:
+    os.close(lock_fd)
+    raise SystemExit(f"bump-fix-cycle: cannot lock binder directory: {exc}")
+
+s = open(binder, encoding="utf-8").read()
+orig = s
+
+CAP = 2  # ADR-004 §5 review-fix cap
+
+def append_journal_trace(text, entry):
+    """Append a dated bullet to ## Decision journal, creating the section if
+    absent (mirrors ratify.sh / stamp-pr-open.sh). Returns the new text."""
+    m_hdr = re.search(r'^## Decision journal[ \t]*\n', text, re.MULTILINE)
+    if m_hdr:
+        body_start = m_hdr.end()
+        tail = text[body_start:]
+        bnd = re.search(r'\n## ', tail)
+        body = tail[:bnd.start()] if bnd else tail
+        trailing = tail[bnd.start():] if bnd else ""
+        stripped = body.strip("\n")
+        new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
+        return text[:body_start] + "\n" + new_body + trailing
+    anchor = re.search(r'\n(## (?:Notes|References|Lineage|Finish|Pending decisions|Attempts)\b)', text)
+    block = f"\n## Decision journal\n\n{entry}\n"
+    if anchor:
+        return text[:anchor.start()] + block + text[anchor.start():]
+    return text.rstrip("\n") + "\n" + block
+
+# --- read current status + fix_cycles ----------------------------------------
+status_row = re.compile(r'(\| status \|)\s*(.*?)\s*(\|)')
+m_status = status_row.search(s)
+if not m_status:
+    print("bump-fix-cycle: REFUSED — binder has no `| status |` row; cannot stamp rework", file=sys.stderr)
+    sys.exit(1)
+prior = m_status.group(2).strip()
+
+fc_row = re.compile(r'(\| fix_cycles \|)\s*(.*?)\s*(\|)')
+m_fc = fc_row.search(s)
+has_fc_row = bool(m_fc)
+fc_val = 0
+if m_fc:
+    digits = re.match(r'\s*([0-9]+)', m_fc.group(2))
+    if digits:
+        fc_val = int(digits.group(1))
+
+if status_vocab.is_terminal(prior):
+    print(f"bump-fix-cycle: REFUSED — binder status is `{prior}` (terminal); rework does not apply", file=sys.stderr)
+    sys.exit(1)
+
+stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+note_suffix = f" — brief: {note}" if note else ""
+
+# --- cap-hit: third rework requested (fix_cycles at CAP, prior == pr-open) ---
+# The binder transitions to rework (the findings are real), but fix_cycles
+# holds at CAP and a CAP-HIT trace forces deep-review before any further fix
+# cycle. No auto-retry (spc-186 A6 cap-exit).
+def write_cap_hit():
+    global s
+    entry = (
+        f"- {stamp} — CAP-HIT: fix_cycles at cap ({CAP}); third rework requested "
+        f"from `{prior}` → rework. Binder holds at fix_cycles {CAP} and the "
+        f"triage class is FORCED to `deep-review` (human) before any further "
+        f"fix cycle (ADR-004 §5 cap; ADR-007 §4 five-piece; spc-186 A6). "
+        f"To authorize one more cycle: --extend-budget --reason "
+        f"\"<operator-adjudicated rationale>\"{note_suffix}"
+    )
+    s = append_journal_trace(s, entry)
+    if prior != "rework":
+        s = status_row.sub(r'\1 rework \3', s, count=1)
+
+# --- escape: operator authorizes one more cycle (human, double-confirm) ------
+def write_escape():
+    global s, fc_val
+    fc_val = fc_val + 1
+    entry = (
+        f"- {stamp} — ESCAPE: fix_cycles bumped to {fc_val} (past cap {CAP}) "
+        f"under operator-adjudicated --extend-budget on a `{prior}` → rework "
+        f"transition (reason: {extend_reason}) "
+        f"[operator-adjudicated — ADR-007 §5b; no agent self-adjudication]{note_suffix}"
+    )
+    s = append_journal_trace(s, entry)
+    if not has_fc_row:
+        # lazy migration: insert the fix_cycles row right after the status row
+        s = status_row.sub(
+            lambda mm: mm.group(0) + f"\n| fix_cycles | {fc_val} |", s, count=1)
+    else:
+        s = fc_row.sub(rf'\1 {fc_val} \3', s, count=1)
+    if prior != "rework":
+        s = status_row.sub(r'\1 rework \3', s, count=1)
+
+# --- normal bump: within cap -----------------------------------------------
+def write_normal():
+    global s, fc_val
+    fc_val = fc_val + 1
+    entry = (
+        f"- {stamp} — fix cycle {fc_val}: `{prior}` → rework "
+        f"(fix_cycles {fc_val}; cap ≤{CAP}; ADR-004 §5){note_suffix}"
+    )
+    s = append_journal_trace(s, entry)
+    if not has_fc_row:
+        s = status_row.sub(
+            lambda mm: mm.group(0) + f"\n| fix_cycles | {fc_val} |", s, count=1)
+    else:
+        s = fc_row.sub(rf'\1 {fc_val} \3', s, count=1)
+    s = status_row.sub(r'\1 rework \3', s, count=1)
+
+# --- dispatch -------------------------------------------------------------
+# Legal sources for the pr-open → rework transition: `pr-open` (the default),
+# and `rework` ONLY under the --extend-budget escape (re-stamping a cap-hit
+# binder that already transitioned to rework). Any other status is refused.
+if prior == "pr-open":
+    if fc_val + 1 > CAP and not extend_budget:
+        write_cap_hit()
+        outcome = "cap-hit"
+    elif extend_budget:
+        write_escape()
+        outcome = "escape"
+    else:
+        write_normal()
+        outcome = "normal"
+elif prior == "rework":
+    # A rework binder is one of:
+    #  - a cap-hit binder already at the cap-exit state (fix_cycles >= CAP):
+    #    idempotent — re-running without --extend-budget reprints the CAP-HIT
+    #    message and mutates nothing (the deep-review forcing is re-surfaced,
+    #    not re-stamped). The escape channel re-runs here too.
+    #  - an in-progress rework below the cap: an illegal double-rework without
+    #    a pr-open in between. Refused so the cycle must go
+    #    rework → in-progress → pr-open → rework.
+    if fc_val >= CAP and not extend_budget:
+        outcome = "cap-hit-idempotent"
+    elif not extend_budget:
+        print(
+            f"bump-fix-cycle: REFUSED — binder status is already `rework` "
+            f"(fix_cycles {fc_val} < cap {CAP}). A new fix cycle requires "
+            f"returning to pr-open first (rework → in-progress → pr-open → "
+            f"rework), or an operator-adjudicated --extend-budget --reason "
+            f"\"<rationale>\" escape (ADR-007 §5b).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    else:
+        write_escape()
+        outcome = "escape"
+else:
+    print(
+        f"bump-fix-cycle: REFUSED — binder status is `{prior}`; the pr-open → "
+        f"rework transition requires status `pr-open` (or `rework` under "
+        f"--extend-budget). Did you mean to stamp `pr-open` first?",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+# --- atomic write ---------------------------------------------------------
+if s != orig and not dry_run:
+    import tempfile
+    d = os.path.dirname(os.path.abspath(binder)) or "."
+    fmode = os.stat(binder).st_mode
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=".bump-fix-cycle.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(s)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.chmod(tmp, stat.S_IMODE(fmode))
+        os.replace(tmp, binder)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+try:
+    fcntl.flock(lock_fd, fcntl.LOCK_UN)
+finally:
+    os.close(lock_fd)
+
+# --- report ---------------------------------------------------------------
+if outcome == "cap-hit":
+    msg = (
+        f"bump-fix-cycle: CAP-HIT — fix_cycles holds at {CAP} (third rework "
+        f"requested from `{prior}` → rework); triage class FORCED to "
+        f"`deep-review` (human). To authorize one more cycle: "
+        f"--extend-budget --reason \"<operator-adjudicated rationale>\""
+    )
+elif outcome == "cap-hit-idempotent":
+    msg = (
+        f"bump-fix-cycle: CAP-HIT — fix_cycles holds at {fc_val} (binder "
+        f"already rework at cap); triage class FORCED to `deep-review` "
+        f"(human). To authorize one more cycle: --extend-budget --reason "
+        f"\"<operator-adjudicated rationale>\""
+    )
+elif outcome == "escape":
+    msg = (
+        f"bump-fix-cycle: ESCAPE — fix_cycles bumped to {fc_val} (past cap {CAP}) "
+        f"under operator-adjudicated --extend-budget ({prior} → rework)"
+    )
+else:
+    msg = (
+        f"bump-fix-cycle: stamped rework + fix_cycles {fc_val} (cap ≤{CAP}; "
+        f"{prior} → rework)"
+    )
+
+if outcome == "cap-hit-idempotent":
+    print(msg)
+elif s == orig:
+    print("bump-fix-cycle: no change (idempotent)")
+elif dry_run:
+    print(f"bump-fix-cycle: DRY-RUN — would {msg}")
+else:
+    print(msg)
+PY
+
+exit 0

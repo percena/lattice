@@ -187,7 +187,13 @@ A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratif
 - No material findings → one-line `mini-review: no material findings`; proceed to §3 merge.
 - Material findings → print the table, then `AskUserQuestion`:
   - `Merge anyway` — operator accepts the risk
-  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (`docs/workflow-fsm.md`); `start-work` resume loads them as the brief and fixes on the same PR (fix cycle ≤2). The stamp records the operator's decision on a durable artifact — bookkeeping, not a gate.
+  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` + bump `fix_cycles` via the scripted owner (the procedural stamp point), and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (`docs/workflow-fsm.md`). Scripted stamp:
+    ```bash
+    SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+    bash "$SKILL_ROOT/../_lattice-lib/scripts/bump-fix-cycle.sh" \
+      --binder .lattice/tickets/tkt-N-slug/README.md --note "<one-line return brief>"
+    ```
+    The script stamps `status → rework` AND bumps `fix_cycles` atomically (cap ≤2; on the third rework it holds at 2 and FORCES `deep-review` — no auto-retry; `--extend-budget --reason` is the operator-adjudicated escape, spc-186 A6/A8). `start-work` resume loads the findings as the brief and fixes on the same PR (fix cycle ≤2). The stamp records the operator's decision on a durable artifact — bookkeeping, not a gate.
   - `Invoke full /review-code` — deeper pass before deciding
 - Any **high** finding (including credential/secret leak) → default recommended option `Hold`; only med/low → default `Merge anyway`.
 - **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), default to `Hold` regardless of other axes. If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.

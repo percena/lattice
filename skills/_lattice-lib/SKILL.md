@@ -41,6 +41,7 @@ This package is an **install unit** for shared scripts + portable policy so part
 | `check-duplicate-work.sh` | Check open issues / worktrees / open PRs for duplicate work before ticket-create or start |
 | `resolve-integration-branch.sh` | Resolve the integration branch a feature worktree should PR into |
 | `ratify.sh` | Single-commit ratification of a parked binder decision (journal entry + `parked → queued` in one commit) |
+| `bump-fix-cycle.sh` | Scripted owner of `fix_cycles` + the `pr-open → rework` transition (cap ≤2; third rework forces `deep-review`; `--extend-budget` escape) — spc-186 A6/A8 |
 
 **Consumer bootstrap:** skills call `ensure-lattice.sh` at entry. Users never run init scripts.  
 **L0 pollution guard (DEFAULT):** before shippable Spec / ticket binder / product code / new ADR writes, agents run `assert-shippable-cwd.sh` (or only write after `ensure-workspace` + `cd` into worktree). A clean base checkout may pass only through `--allow-base-write --reason` after explicit user authorization. **`create-review` Review-only is exempt**; same-pass co-create defaults to one shippable worktree.

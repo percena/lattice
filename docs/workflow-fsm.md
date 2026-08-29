@@ -48,6 +48,7 @@ stateDiagram-v2
     stuck --> queued: unblock
     pr --> rework: findings returned (new brief)
     rework --> ip: fix cycle (fix_cycles ≤2; then ip→pr on push)
+    rework --> deep-review: third rework return (cap-exit, human — no auto-retry)
     stuck --> [*]: re-scope → M1 (Spec/ticket revision)
     pr --> closed: human merge (day)
     stuck --> closed: cancel
@@ -58,7 +59,7 @@ Cancel edge: any working state → `closed` (without merge) is a valid cancel ed
 
 Fuse edge: a batch fuse halt now stamps affected tickets `deferred` + a reason (`fuse-halt`) at trip time (ADR-004 Amendment tkt-136, Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). Blocked-by-failure dependents likewise stamp `deferred` + reason `blocked-by-failure`. A watchdog-timeout/crash of an already-spawned ticket stamps `stuck` + `wait_reason: unblock` (FSM-2b, tkt-132) — the SoT reflects "needs human investigation," not "active work."
 
-Review path from `pr-open`: chain review (`review-delivery`, artifact-only) → bounded fix cycle (≤2) for material findings → verdict `auto-pass | ratify-then-pass | deep-review` → **human merge**. A materially changed rebase voids the verdict (clean rebase carries it). `stuck` also exits sideways to M1 (re-scope → Spec/ticket revision) — a scope escape is a planning defect, not an execution problem.
+Review path from `pr-open`: chain review (`review-delivery`, artifact-only) → bounded fix cycle (≤2) for material findings → verdict `auto-pass | ratify-then-pass | deep-review` → **human merge**. The fix cycle is owned by `bump-fix-cycle.sh` (`_lattice-lib/scripts/`), called at the procedural stamp point (finish-work mini-review Hold, review-delivery `--with-review`): it stamps `pr-open → rework` and bumps `fix_cycles` atomically. On the third rework return the cap-exit fires — `fix_cycles` holds at 2 and the CAP-HIT trace forces the `deep-review` triage class (human) before any further fix cycle; no auto-retry (ADR-007 §4 five-piece; spc-186 A6). A materially changed rebase voids the verdict (clean rebase carries it). `stuck` also exits sideways to M1 (re-scope → Spec/ticket revision) — a scope escape is a planning defect, not an execution problem.
 
 ### M3 — knowledge
 
@@ -107,8 +108,9 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | parked → queued | **decision ratification** via `ratify.sh` (single-commit: journal entry + status flip in one git commit; crash window narrowed, not eliminated — ADR-004 amd tkt-136 Option A) | human |
 | stuck → queued | unblock (answer / env fix) — `wait_reason: unblock` | human |
 | stuck → M1 | re-scope: **Spec revision** / ticket revision — `wait_reason: re-scope` | human |
-| pr-open → rework | PR returned with findings (findings become the new brief) | system |
+| pr-open → rework | PR returned with findings (findings become the new brief); `bump-fix-cycle.sh` is the procedural stamp point — stamps `status: rework` + bumps `fix_cycles` atomically (spc-186 A6). Called by finish-work mini-review Hold and review-delivery `--with-review` fix loop | system |
 | rework → in-progress | re-enters the queue, address-review shape; `fix_cycles` row stamps the round (ADR-004 §5 cap ≤2). The path is `rework → in-progress → (implement fix) → pr-open` — there is no direct `rework → pr-open`; on push, `in-progress → pr-open` fires (the existing transition), and `fix_cycles` increments | system |
+| rework → deep-review (cap-exit) | **third rework return** — `fix_cycles` would exceed the ≤2 cap. `bump-fix-cycle.sh` holds `fix_cycles` at 2, stamps `rework`, and journals a CAP-HIT trace that FORCES the `deep-review` triage class (human) before any further fix cycle — **no auto-retry** (ADR-007 §4 five-piece hard rule; spc-186 A6). Escape: `--extend-budget --reason "<operator-adjudicated rationale>"` authorizes one more cycle (human, double-confirm; no agent self-adjudication) | human |
 | pr-open → pr-open (verdict voided) | materially changed rebase → re-review; clean rebase carries the verdict | system |
 | pr-open → closed (merged) | **merge** — day only; `finish-ledger.sh` stamps `mergedAt` | human |
 | any → closed (without merge) | **cancel** | human |
@@ -147,7 +149,7 @@ Morning triage recipe: [morning-triage.md](./morning-triage.md).
 | Night states never reach merged | the `.lattice/.batch-work-active` marker gates merge; merge authority is human, day-side |
 | Transitions fire only on durable artifacts | binder / Spec / PR / ledger writes — never on chat or transcript state |
 | Every decision transition is journaled | each self-decision cites its resolution source in `## Decision journal` |
-| Every autonomous loop declares an upper bound | existing bounds: PCA ≤5 rounds · bug-repro ≤2 cycles · review-fix ≤2 cycles · retry ≤2/path and ≤3 paths/ticket |
+| Every autonomous loop declares an upper bound | existing bounds: PCA ≤5 rounds · bug-repro ≤2 cycles · review-fix ≤2 cycles (cap-exit → `deep-review`, human — `bump-fix-cycle.sh`; no auto-retry) · retry ≤2/path and ≤3 paths/ticket |
 
 ---
 

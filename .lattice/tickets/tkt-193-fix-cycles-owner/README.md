@@ -25,10 +25,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] A script owns fix_cycles increment (finish-work Hold path + review-delivery fix loop call it)
-- [ ] fix_cycles > 2 forces deep-review class; cap-exit written into workflow-fsm.md M2 table
-- [ ] Validator escalates cap-breach beyond silent warn (or documents why warn is right)
-- [ ] bats tests: increment; cap-exit triggers
+- [x] A script owns fix_cycles increment (finish-work Hold path + review-delivery fix loop call it)
+- [x] fix_cycles > 2 forces deep-review class; cap-exit written into workflow-fsm.md M2 table
+- [x] Validator escalates cap-breach beyond silent warn (or documents why warn is right)
+- [x] bats tests: increment; cap-exit triggers
 
 ## Approach
 
@@ -44,6 +44,10 @@ Today fix_cycles is template-declared but written by no core-loop script (verifi
 ## Decision journal
 
 - 2026-08-29 — Created from spc-186 POST_SPLIT; approach pre-resolved at split time (spc-42 A5). Source: rev-20260829-160834Z F2/F5 + C6.
+- 2026-08-29 — Owner-script placement: chose a dedicated `bump-fix-cycle.sh` in `_lattice-lib/scripts/` rather than extending `stamp-pr-open.sh` with a `--rework` mode (source: agent-judgment; binder Approach pre-resolved owner-script placement as agent-decides). Rationale: the bump fires at the `pr-open → rework` edge (the START of a fix cycle), while `stamp-pr-open.sh` owns the return edge `rework → pr-open` (`--force-side-state`). A dedicated script keeps each transition edge with a single scripted owner and gives the cap logic its own file; the two edges are complementary, never overlapping.
+- 2026-08-29 — Cap-hit stamps `rework` (binder "stays rework"): the findings are real, so rework is the honest state, but `fix_cycles` holds at 2 and a CAP-HIT journal trace FORCES the `deep-review` triage class — no auto-retry (source: spc-186 A6 + ADR-007 §4 five-piece). The cap-exit is class-forcing, not a hard stop; pending/deep-review is an accepted production cost (ADR-007 §5b).
+- 2026-08-29 — Validator stays WARNING (not error) at fix_cycles >2 (source: binder anticipated decision, pre-resolved). Documented why in the validator comment: a value >2 means a human authorized the `--extend-budget` escape (operator-adjudicated, journaled in ## Decision journal); the warning surfaces the exceeded cap for morning triage to read the escape trace, it does not block the run. The cap-exit is owned by the script + class-forcing, not the validator.
+- 2026-08-29 — Idempotent cap-hit re-run: re-running `bump-fix-cycle.sh` on a `rework` binder already at cap (fix_cycles ≥2) without `--extend-budget` reprints the CAP-HIT message and mutates nothing (the deep-review forcing is re-surfaced, not re-stamped); a `rework` binder below the cap is REFUSED so the cycle must return to pr-open first (source: agent-judgment; consistency with "no auto-retry").
 
 ## Pending decisions
 
