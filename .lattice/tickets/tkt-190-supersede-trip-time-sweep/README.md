@@ -1,6 +1,6 @@
 # tkt-190 — Spec supersede trip-time sweep stamps child binders deferred
 
-> **Status:** queued · kind feat · priority P0 · covers spc-186 A3
+> **Status:** pr-open · kind feat · priority P0 · covers spc-186 A3
 
 ## Field table
 
