@@ -9,7 +9,7 @@ priority: P1
 summary: Close the enforcement asymmetry found in rev-20260829-160834Z — make the documented safety laws (batch merge gate, FSM transitions, CI gate, caps) machine-checked per the ADR-007 boundary law, with human-adjudicated exception channels.
 created: 2026-08-29
 updated: 2026-08-29
-tickets: []
+tickets: [tkt-188, tkt-189, tkt-190, tkt-191, tkt-192, tkt-193, tkt-194, tkt-195, tkt-196]
 prs: []
 reviews: [rev-20260829-160834Z]
 supersedes: []
