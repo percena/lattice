@@ -8,7 +8,7 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/193 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Give fix_cycles a scripted owner and define the cap-exit: third rework return forces deep-review |
 | spec | spc-186 |
@@ -72,3 +72,8 @@ Today fix_cycles is template-declared but written by no core-loop script (verifi
 
 - Parent spec: spc-186
 - Covers: A6, A8
+
+## Finish
+
+- pr-205 merged: 2026-08-29T12:32:31Z — https://github.com/percena/lattice/pull/205 (base merge)
+- issue #193 closed: 2026-08-29T12:32:43Z — https://github.com/percena/lattice/issues/193
