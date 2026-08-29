@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-219-spawn-ticket-process-helper |
 | worktree | sibling `…/lattice.worktrees/tkt-219-spawn-ticket-process-helper/` |
-| prs | (none) |
+| prs | (none) · pr-225 — https://github.com/percena/lattice/pull/225 |
 
 ## Acceptance (this slice)
 
@@ -78,3 +78,8 @@
 - Parent spec: **spc-213**
 - Parent issue (GH sub-issue of Spec primary): **#218**
 - Primary ticket: **tkt-219**
+
+## Finish
+
+- pr-225 merged: 2026-08-29T16:34:17Z — https://github.com/percena/lattice/pull/225 (base merge)
+- issue #219 closed: 2026-08-29T16:34:41Z — https://github.com/percena/lattice/issues/219
