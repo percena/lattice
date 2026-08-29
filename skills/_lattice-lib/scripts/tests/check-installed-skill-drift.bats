@@ -84,7 +84,7 @@ run_check() {
   printf 'bytecode\n' >"$INST_SKILLS/create-pr/__pycache__/x.pyc"
   run_check
   [ "$status" -eq 0 ]                                # bytecode is not source
-  ! printf '%s\n' "$output" | grep -qF '__pycache__/x.pyc'
+  run grep -qF '__pycache__/x.pyc' <<<"$output"; [ "$status" -ne 0 ]
 }
 
 @test "actionable refresh hint points at docs/getting-started" {
@@ -109,7 +109,7 @@ run_check() {
   mkdir -p "$INST_SKILLS/bailian-cli"; printf 'x\n' >"$INST_SKILLS/bailian-cli/SKILL.md"
   run_check
   [ "$status" -eq 0 ]   # install-side extra skills are not Lattice skills -> ignored
-  ! printf '%s\n' "$output" | grep -qF 'bailian-cli'
+  run grep -qF 'bailian-cli' <<<"$output"; [ "$status" -ne 0 ]
 }
 
 @test "--json drift payload is valid and lists categories" {
