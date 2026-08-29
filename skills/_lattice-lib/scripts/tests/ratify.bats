@@ -76,6 +76,25 @@ MD
   [ "$(grep -c '^## Pending decisions$' "$BINDER")" -eq 1 ]
 }
 
+@test "A4: updated row is bumped atomically with the parked → queued flip (tkt-191)" {
+  write_parked_binder
+  # add created/updated rows (template convention)
+  sed -i.bak 's/| status | parked |/| status | parked |\n| created | 2026-01-01T00:00:00Z |\n| updated | 2026-01-01T00:00:00Z |/' "$BINDER"
+  rm -f "$BINDER.bak"
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm init
+  run bash "$RF" --binder "$BINDER" \
+    --decision "use retry-lib not backoff-lib (source: preference retry-at-most-once)" \
+    --pending "retry-lib vs backoff-lib"
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| queued \|' "$BINDER"
+  # updated bumped to a real ISO-8601 UTC seconds-precision stamp
+  grep -qE '\| updated \| 20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z \|' "$BINDER"
+  # old value gone (bumped, not duplicated)
+  if grep -q '| updated | 2026-01-01T00:00:00Z |' "$BINDER"; then false; fi
+  # created is never bumped
+  grep -q '| created | 2026-01-01T00:00:00Z |' "$BINDER"
+}
+
 @test "A1: one commit containing only the binder" {
   write_parked_binder
   git -C "$REPO" add -A && git -C "$REPO" commit -qm init

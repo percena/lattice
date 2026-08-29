@@ -580,6 +580,51 @@ EOF
   grep -qE '\| status \| closed \|' "$BINDER"
 }
 
+# spc-186 A4 / tkt-191: `updated` bumped atomically with the status flip.
+# `created` is never touched. Bump is gated on a real mutation (idempotent
+# re-run does not touch `updated`). Lazy migration: a binder with no `updated`
+# row stamps cleanly (bump is a no-op when absent).
+
+write_ts_binder() {
+  write_fresh_binder
+  sed -i.bak 's/| status | open |/| status | open |\n| created | 2026-01-01T00:00:00Z |\n| updated | 2026-01-01T00:00:00Z |/' "$BINDER"
+  rm -f "$BINDER.bak"
+}
+
+@test "updated row is bumped atomically with the status→closed stamp (created untouched)" {
+  write_ts_binder
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  grep -qE '\| updated \| 20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z \|' "$BINDER"
+  # old value gone (bumped, not duplicated)
+  if grep -q '| updated | 2026-01-01T00:00:00Z |' "$BINDER"; then false; fi
+  # created is never bumped
+  grep -q '| created | 2026-01-01T00:00:00Z |' "$BINDER"
+}
+
+@test "idempotent re-run does not bump updated again (no change)" {
+  write_ts_binder
+  bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+  cp "$BINDER" "$TEST_DIR/after-first.md"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "no change (idempotent)"
+  cmp -s "$BINDER" "$TEST_DIR/after-first.md"
+}
+
+@test "updated bump is a no-op when the row is absent (lazy migration, no insert)" {
+  write_fresh_binder
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  if grep -qE '^\| updated \|' "$BINDER"; then false; fi
+}
+
 # tkt-91: the prs grammar is single-sourced in lib/binder_rows.py — writers
 # emit the tkt-74 canon (comma joiner, URL required), and the emitted row must
 # satisfy the validator's canonical regex.
@@ -610,6 +655,25 @@ val = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(val)
 assert binder_rows.PRS_PLACEHOLDER_RE.pattern == val.PRS_PLACEHOLDER_RE.pattern
 assert binder_rows.PRS_ROW_CANON_RE.pattern == val.PRS_ROW_CANON_RE.pattern
+PY
+}
+
+@test "stamp_updated bumps a present updated row and is a no-op when absent (tkt-191)" {
+  python3 - "$(dirname "$FL")/lib" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import binder_rows
+
+# present row → bumped in place; created untouched
+text = "| status | queued |\n| created | 2026-01-01T00:00:00Z |\n| updated | 2026-01-01T00:00:00Z |"
+out = binder_rows.stamp_updated(text, "2026-08-29T12:00:00Z")
+assert "| updated | 2026-08-29T12:00:00Z |" in out, out
+assert "| updated | 2026-01-01T00:00:00Z |" not in out, out
+assert "| created | 2026-01-01T00:00:00Z |" in out, out
+
+# absent row → no-op (lazy migration; never inserts)
+bare = "| status | queued |\n"
+assert binder_rows.stamp_updated(bare, "2026-08-29T12:00:00Z") == bare, "must not insert"
 PY
 }
 

@@ -10,6 +10,8 @@
 | kind | bug |
 | github | https://github.com/percena/lattice/issues/202 |
 | status | queued |
+| created | 2026-01-01T00:00:00Z |
+| updated | 2026-01-01T00:00:00Z |
 | covers | A1 |
 | spec | spc-202 — heading A-ids |
 

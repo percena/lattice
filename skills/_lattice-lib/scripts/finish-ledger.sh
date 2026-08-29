@@ -377,13 +377,17 @@ fi
 # --- Stamp the binder (idempotent) --------------------------------------------
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" <<'PY'
-import sys, re, os, stat, fcntl
+import sys, re, os, stat, fcntl, datetime
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
 import status_vocab
 
 binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state, cancel, reason, issue_base = sys.argv[1:12]
+# `updated` field-table stamp (spc-186 A4 / tkt-191): bumped atomically with
+# the status flip below, in this same locked transaction. Seconds-precision
+# ISO-8601 UTC, matching the mergedAt/closedAt format the ledger records.
+updated_stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 # Take an exclusive lock for the whole read-modify-write. Two finish sessions
 # stamping the same binder for sibling PRs would otherwise both read the old
 # content and the second rename would drop the first PR's line entirely.
@@ -518,6 +522,14 @@ if m_prs:
         merged_row = binder_rows.merge_row(m_prs.group(2), pr_n, pr_url)
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {merged_row} {mm.group(3)}", s, count=1)
 
+# Bump `updated` atomically with the status stamp (spc-186 A4 / tkt-191).
+# Gated on a real mutation so an idempotent re-run (s == orig) does not touch
+# `updated` — the no-change/idempotency contract holds. stamp_updated is a
+# no-op when the row is absent (lazy migration; the validator warns, never
+# fails).
+mutated = (s != orig)
+if mutated:
+    s = binder_rows.stamp_updated(s, updated_stamp)
 if s != orig:
     # Write via temp + atomic rename: a crash (or a second finish session
     # stamping the same binder for a sibling PR) must never leave a truncated

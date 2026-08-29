@@ -427,6 +427,13 @@ elif prior in status_vocab.DIRECT_JUMP_SOURCES:
 else:
     s = status_row.sub(r'\1 pr-open \3', s, count=1)
 
+# Bump `updated` atomically with the status stamp (spc-186 A4 / tkt-191).
+# Gated on a real mutation so an idempotent re-run (s == orig) does not touch
+# `updated` — the no-change contract holds. stamp_updated is a no-op when the
+# row is absent (lazy migration; the validator warns, never fails).
+mutated = (s != orig)
+if mutated:
+    s = binder_rows.stamp_updated(s, stamp)
 if s != orig and not dry_run:
     import tempfile
     d = os.path.dirname(os.path.abspath(binder)) or "."

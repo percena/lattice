@@ -8,6 +8,8 @@
 | kind | bug |
 | github | https://github.com/percena/lattice/issues/203 |
 | status | rework |
+| created | 2026-01-01T00:00:00Z |
+| updated | 2026-01-01T00:00:00Z |
 | fix_cycles | 3 |
 | covers | (none) |
 
