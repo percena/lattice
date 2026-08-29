@@ -3,7 +3,7 @@ id: spc-226
 slug: run-e2e-platform-dispatcher
 title: run-e2e platform dispatcher + confirm-first preflight
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Platform-split run-e2e: macOS→ego-lite, Linux→camoufox-js via playwright-cli, with a confirm-first install gate"
