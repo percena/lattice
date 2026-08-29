@@ -77,8 +77,10 @@ intercept_gh_pr_main() {
     # fail-open, so the gh-pr guardrail is inert. Emit a ONE-TIME stdout JSON
     # advisory (stderr is discarded on exit 0, so stdout is the only path that
     # reaches the model). Never block — fail-open even in strict mode
-    # (spc-212 A3/D3).
-    if ! command -v python3 >/dev/null 2>&1; then
+    # (spc-212 A3/D3). Gate on the command containing "gh" so the advisory
+    # does not fire on unrelated Bash calls (strict mode skips the *gh*
+    # pre-filter at line 47).
+    if ! command -v python3 >/dev/null 2>&1 && [[ "$command" == *gh* ]]; then
         jq -cn --arg ctx "Lattice gh-pr guardrail is INERT: python3 is not installed, so the create-pr/finish-work skill-marker check is skipped (fail-open). Strict-mode protections are inactive until python3 is installed (see ensure-python3.sh)." \
             --arg msg "lattice: gh-pr guardrail degraded (python3 missing); protections inactive" \
             '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$ctx},systemMessage:$msg}' \

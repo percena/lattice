@@ -60,7 +60,7 @@ done
 # "command not found" mid-sensor.
 if ! command -v python3 >/dev/null 2>&1; then
   case "$MODE" in
-    banner) ;;                                  # silent empty banner
+    banner) echo "Queue health: unavailable (python3 missing — install per ensure-python3.sh)." ;;
     section) echo "Queue health: unavailable (python3 missing — install per ensure-python3.sh)." ;;
     json)   echo '{}' ;;
   esac
