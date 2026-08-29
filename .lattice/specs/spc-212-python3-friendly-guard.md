@@ -11,7 +11,7 @@ summary: "Add ensure-python3.sh guard + hook advisory so missing python3 fails w
 created: 2026-08-29
 updated: 2026-08-29
 tickets: [tkt-213]
-prs: []
+prs: [pr-214]
 reviews: []
 supersedes: []
 superseded_by: null
