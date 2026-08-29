@@ -10,9 +10,9 @@
 | priority | P1 | |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/191 | |
-| status | pr-open | |
+| status | closed | |
 | created | 2026-08-29T11:09:34Z | |
-| updated | 2026-08-29T12:22:20Z | |
+| updated | 2026-08-29T12:37:48Z | |
 | adopted | false | |
 | summary | Ticket binders carry no created/updated timestamps (Specs/Reviews have them) — time-in-state uncomputable for in-flight tickets. Blocks A5. | |
 | spec | spc-186 | |
@@ -77,3 +77,8 @@ Add `created`/`updated` rows to the ticket-binder template field table (placemen
 - Covers: A4
 - Blocked by: tkt-189
 - Parallel group: g2
+
+## Finish
+
+- pr-206 merged: 2026-08-29T12:37:30Z — https://github.com/percena/lattice/pull/206 (base merge)
+- issue #191 closed: 2026-08-29T12:37:43Z — https://github.com/percena/lattice/issues/191
