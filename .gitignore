@@ -52,3 +52,7 @@ evals/artifacts/
 .env
 .env.*
 !.env.example
+
+# Lattice worktree scratch dirs (never track)
+.lattice-worktrees/
+lattice.worktrees/
