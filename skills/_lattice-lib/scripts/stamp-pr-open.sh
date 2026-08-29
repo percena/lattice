@@ -32,11 +32,13 @@ BINDER=""
 REPO=""
 DRY_RUN=false
 CHECK_ALL=false
+FORCE_SIDE_STATE=false
+SIDE_STATE_REASON=""
 
 usage() {
   cat >&2 <<'EOF'
 Usage: stamp-pr-open.sh --pr <N> [--issue <M>] [--binder <path>] [--repo <owner/repo>]
-                        [--check-all] [--dry-run]
+                        [--check-all] [--force-side-state --reason "<text>"] [--dry-run]
 
 Order matters: check binder acceptance boxes, then stamp — the issue sync
 mirrors only checked boxes (unchecked binder boxes sync nothing).
@@ -50,6 +52,13 @@ mirrors only checked boxes (unchecked binder boxes sync nothing).
               REFUSED when the Acceptance section carries a deferral note
               (a line containing "defer") — deferred items force explicit
               per-box checking.
+  --force-side-state  override the side-state guard. A binder parked/stuck/
+              rework holds an external signal that a pr-open stamp would
+              silently lose; the guard REFUSES the flip without this flag.
+              The override requires --reason and writes a structured trace to
+              the binder ## Decision journal (operator-adjudicated per
+              ADR-007 sec.5b; no default break-glass).
+  --reason    rationale for --force-side-state (required with that flag).
   --dry-run   report what would change; mutate nothing (binder or GitHub).
 EOF
   exit 2
@@ -62,6 +71,8 @@ while [[ $# -gt 0 ]]; do
     --binder) BINDER="${2:-}"; shift 2 ;;
     --repo) REPO="${2:-}"; shift 2 ;;
     --check-all) CHECK_ALL=true; shift ;;
+    --force-side-state) FORCE_SIDE_STATE=true; shift ;;
+    --reason) SIDE_STATE_REASON="${2:-}"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     -h|--help) usage ;;
     *) echo "Unknown: $1" >&2; usage ;;
@@ -69,6 +80,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -z "$PR_N" ]] && { echo "Error: --pr is required" >&2; usage; }
+if [[ "$FORCE_SIDE_STATE" == true && -z "$SIDE_STATE_REASON" ]]; then
+  echo "Error: --force-side-state requires --reason \"<operator-adjudicated rationale>\"" >&2
+  usage
+fi
 
 # Same identifier hygiene as finish-ledger.sh: `gh pr view` accepts URLs and
 # branch names, and gh's parser accepts `--repo=owner/name` positionally, so a
@@ -288,16 +303,19 @@ fi
 # --- Stamp the binder (locked + atomic, finish-ledger conventions) ------------
 STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 CHECK_ALL_MODE=$($CHECK_ALL && echo "check-all" || echo "keep-boxes")
+FORCE_MODE=$($FORCE_SIDE_STATE && echo "force" || echo "guard")
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
-BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" <<'PY'
-import sys, re, os, stat, fcntl
+BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" "$FORCE_MODE" "$SIDE_STATE_REASON" <<'PY'
+import datetime, sys, re, os, stat, fcntl
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
+import status_vocab
 
-binder, pr_n, pr_url, mode, box_mode = sys.argv[1:6]
+binder, pr_n, pr_url, mode, box_mode, force_mode, side_reason = sys.argv[1:8]
 dry_run = mode == "dry-run"
 check_all = box_mode == "check-all"
+force_side_state = force_mode == "force"
 
 # Exclusive lock on the containing directory for the whole read-modify-write
 # (stable inode across atomic replaces; no untracked lock artifact).
@@ -341,12 +359,73 @@ if check_all:
     else:
         print("stamp-pr-open: --check-all — binder has no Acceptance section; nothing to check", file=sys.stderr)
 
-# status row → pr-open. Never regress a closed ticket (finish-ledger owns that).
-m_status = re.search(r'\| status \|\s*(.*?)\s*\|', s)
-if m_status and m_status.group(1) == "closed":
+# --- status row → pr-open with the side-state guard (tkt-189 / spc-187 A2) --
+# Vocabulary + policy single-sourced in lib/status_vocab.py. Never regress a
+# closed ticket (finish-ledger owns the terminal stamp). Side states
+# (parked/stuck/rework) hold an external signal a pr-open stamp would
+# silently lose: REFUSE without --force-side-state --reason, which journals a
+# structured operator-adjudicated trace (ADR-007 sec.5b; no default
+# break-glass). queued → pr-open is a direct jump: allowed but WARN-
+# journaled so the "started" signal is logged, not silently lost (in-progress
+# → pr-open stays the default, ungated, no trace).
+def append_journal_trace(text, entry):
+    """Append a dated bullet to ## Decision journal, creating the section if
+    absent (mirrors ratify.sh). Returns the new text."""
+    m_hdr = re.search(r'^## Decision journal[ \t]*\n', text, re.MULTILINE)
+    if m_hdr:
+        body_start = m_hdr.end()
+        tail = text[body_start:]
+        bnd = re.search(r'\n## ', tail)
+        body = tail[:bnd.start()] if bnd else tail
+        trailing = tail[bnd.start():] if bnd else ""
+        stripped = body.strip("\n")
+        new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
+        return text[:body_start] + "\n" + new_body + trailing
+    # No journal section: insert one before the first of the standard tail
+    # sections, else at EOF. Keeps the binder well-formed.
+    anchor = re.search(r'\n(## (?:Notes|References|Lineage|Finish|Pending decisions|Attempts)\b)', text)
+    block = f"\n## Decision journal\n\n{entry}\n"
+    if anchor:
+        return text[:anchor.start()] + block + text[anchor.start():]
+    return text.rstrip("\n") + "\n" + block
+
+stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+status_row = re.compile(r'(\| status \|)\s*(.*?)\s*(\|)')
+m_status = status_row.search(s)
+prior = m_status.group(2).strip() if m_status else ""
+status_trace = ""  # journal entry to persist alongside the flip, if any
+if prior == "closed":
     print("stamp-pr-open: binder status is closed — left untouched")
+elif status_vocab.is_side_state(prior):
+    if not force_side_state:
+        print(
+            f"stamp-pr-open: REFUSED — binder status is `{prior}` (side state). "
+            f"A pr-open stamp would silently lose the {prior} signal "
+            f"(parked=decision pending / stuck=needs investigation / "
+            f"rework=PR returned). To override: --force-side-state "
+            f"--reason \"<operator-adjudicated rationale>\"",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    status_trace = (
+        f"- {stamp} — side-state override: {prior} → pr-open "
+        f"(reason: {side_reason}; PR #{pr_n}) "
+        f"[operator-adjudicated — ADR-007 sec.5b]"
+    )
+    s = append_journal_trace(s, status_trace)
+    s = status_row.sub(r'\1 pr-open \3', s, count=1)
+    print(f"stamp-pr-open: side-state override traced ({prior} → pr-open)")
+elif prior in status_vocab.DIRECT_JUMP_SOURCES:
+    status_trace = (
+        f"- {stamp} — direct jump: {prior} → pr-open "
+        f"(in-progress stamp skipped; PR #{pr_n}) "
+        f"[WARN — signal logged, not silently lost]"
+    )
+    s = append_journal_trace(s, status_trace)
+    s = status_row.sub(r'\1 pr-open \3', s, count=1)
+    print(f"stamp-pr-open: WARN — direct jump {prior} → pr-open journaled", file=sys.stderr)
 else:
-    s = re.sub(r'(\| status \|)\s*.*?\s*(\|)', r'\1 pr-open \2', s, count=1)
+    s = status_row.sub(r'\1 pr-open \3', s, count=1)
 
 if s != orig and not dry_run:
     import tempfile
@@ -366,13 +445,14 @@ if s != orig and not dry_run:
         raise
 
 box_note = f" + {boxes_checked} acceptance box(es) checked" if boxes_checked else ""
+trace_note = " + side-state override traced" if status_trace and status_trace.startswith("- ") and "override" in status_trace else (" + direct-jump WARN journaled" if status_trace else "")
 stamp_label = binder_rows.format_entry(pr_n, pr_url) if pr_url else f"pr-{pr_n} (URL unresolved)"
 if s == orig:
     print("stamp-pr-open: binder no change (idempotent)")
 elif dry_run:
-    print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{stamp_label}` + status pr-open{box_note}")
+    print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{stamp_label}` + status pr-open{box_note}{trace_note}")
 else:
-    print(f"stamp-pr-open: binder stamped ({stamp_label}, status pr-open{box_note})")
+    print(f"stamp-pr-open: binder stamped ({stamp_label}, status pr-open{box_note}{trace_note})")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)

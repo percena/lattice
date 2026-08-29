@@ -349,3 +349,87 @@ EOF
   printf '%s\n' "$output" | grep -qF 'comments JSON unparseable'
   if grep -q -- 'issue comment' "$GH_LOG"; then false; fi
 }
+
+# ---------------------------------------------------------------------------
+# tkt-189 / spc-187 A2: side-state guard + direct-jump policy
+# ---------------------------------------------------------------------------
+
+write_side_state_binder() {
+  write_fresh_binder
+  sed -i.bak "s/| status | in-progress |/| status | $1 |/" "$BINDER"
+  rm -f "$BINDER.bak"
+}
+
+@test "side-state guard: REFUSES to overwrite parked → pr-open (binder untouched, exit 1)" {
+  write_side_state_binder parked
+  write_issue_body
+  cp "$BINDER" "$TEST_DIR/binder-before.md"
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "REFUSED"
+  printf '%s\n' "$output" | grep -qF "parked"
+  printf '%s\n' "$output" | grep -qF -- "--force-side-state"
+  # nothing mutated: binder byte-identical, no gh issue traffic
+  cmp -s "$BINDER" "$TEST_DIR/binder-before.md"
+  if grep -q -- 'issue edit' "$GH_LOG"; then false; fi
+}
+
+@test "side-state guard: refuses stuck and rework too" {
+  for st in stuck rework; do
+    write_side_state_binder "$st"
+    write_issue_body
+    run_spo --pr 12 --binder "$BINDER"
+    [ "$status" -eq 1 ]
+    printf '%s\n' "$output" | grep -qF "REFUSED"
+    printf '%s\n' "$output" | grep -qF "$st"
+    grep -q "| status | $st |" "$BINDER"
+  done
+}
+
+@test "side-state override: --force-side-state --reason flips + journals a structured trace" {
+  write_side_state_binder parked
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER" --force-side-state --reason "operator re-triaged parked decision as resolved"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "side-state override traced"
+  grep -q '| status | pr-open |' "$BINDER"
+  # prs row still stamped canonically
+  grep -q '| prs | pr-12 — https://github.com/acme/repo/pull/12 |' "$BINDER"
+  # structured trace appended to the Decision journal
+  grep -q '## Decision journal' "$BINDER"
+  grep -qF 'side-state override: parked → pr-open' "$BINDER"
+  grep -qF 'operator re-triaged parked decision as resolved' "$BINDER"
+  grep -qF 'operator-adjudicated — ADR-007 sec.5b' "$BINDER"
+}
+
+@test "side-state override: --force-side-state without --reason is a usage error" {
+  write_side_state_binder parked
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER" --force-side-state
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF -- "--force-side-state requires --reason"
+  # binder untouched
+  grep -q '| status | parked |' "$BINDER"
+}
+
+@test "direct jump: queued → pr-open is allowed + WARN-journaled" {
+  write_side_state_binder queued
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "direct jump queued → pr-open journaled"
+  grep -q '| status | pr-open |' "$BINDER"
+  grep -q '## Decision journal' "$BINDER"
+  grep -qF 'direct jump: queued → pr-open' "$BINDER"
+  grep -qF 'WARN — signal logged, not silently lost' "$BINDER"
+}
+
+@test "in-progress → pr-open is the ungated default (no journal trace)" {
+  write_fresh_binder
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  grep -q '| status | pr-open |' "$BINDER"
+  # no Decision journal entry for the default path
+  if grep -q '## Decision journal' "$BINDER"; then false; fi
+}

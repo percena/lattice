@@ -613,6 +613,34 @@ assert binder_rows.PRS_ROW_CANON_RE.pattern == val.PRS_ROW_CANON_RE.pattern
 PY
 }
 
+@test "status vocabulary in lib/status_vocab.py matches the validator's copy (tkt-189)" {
+  python3 - "$(dirname "$FL")/lib" "$(cd "$(dirname "$FL")/../../.." && pwd)/tools/validate-lattice-artifacts.py" <<'PY'
+import importlib.util, sys
+sys.path.insert(0, sys.argv[1])
+import status_vocab
+spec = importlib.util.spec_from_file_location("val", sys.argv[2])
+val = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(val)
+# Constants parity
+assert status_vocab.STATUS_WORKING_ORDER == val.STATUS_WORKING_ORDER
+assert status_vocab.STATUS_WORKING == val.STATUS_WORKING
+assert status_vocab.STATUS_TERMINAL == val.STATUS_TERMINAL
+assert status_vocab.STATUS_LEGACY == val.STATUS_LEGACY
+assert status_vocab.STATUS_OK == val.STATUS_OK
+assert status_vocab.SIDE_STATES == val.SIDE_STATES
+assert status_vocab.DIRECT_JUMP_SOURCES == val.DIRECT_JUMP_SOURCES
+# Compiled regex pattern byte-equality (the load-bearing single-source check)
+assert status_vocab.NONTERMINAL_RE.pattern == val.NONTERMINAL_RE.pattern
+assert status_vocab.NONTERMINAL_ALT == val.NONTERMINAL_ALT
+# Helpers agree
+for s in ("queued", "in-progress", "parked", "stuck", "pr-open", "rework",
+          "deferred", "open", "closed", "bogus"):
+    assert status_vocab.is_terminal(s) == val.is_terminal(s), s
+    assert status_vocab.is_nonterminal(s) == val.is_nonterminal(s), s
+    assert status_vocab.is_side_state(s) == val.is_side_state(s), s
+PY
+}
+
 @test "no URL resolvable: prs row left untouched with a warning (bare pr-N never emitted)" {
   write_fresh_binder
   run bash "$FL" --pr 12 --binder "$BINDER" \

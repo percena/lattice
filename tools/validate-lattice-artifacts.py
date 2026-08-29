@@ -48,14 +48,45 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Binder status FSM (ADR-004 §6 / spc-42 A4). `open` is legacy-coarse: accepted
-# with a warning (lazy migration). `closed` is finish-ledger's terminal stamp;
-# merged vs closed-without-merge is read from the ## Finish ledger's mergedAt.
-STATUS_WORKING_ORDER = ("queued", "in-progress", "parked", "stuck", "pr-open", "rework", "deferred")
-STATUS_WORKING = set(STATUS_WORKING_ORDER)
-STATUS_TERMINAL = {"closed"}
-STATUS_LEGACY = {"open"}
+# Binder status FSM vocabulary + coupled-field transition policy (ADR-004 sec.6
+# / spc-42 A4, extended by ADR-007 sec.4 for the side-state guard). Vendored
+# copy of skills/_lattice-lib/scripts/lib/status_vocab.py (tkt-189 / spc-187
+# A2): this file stays dependency-free so consumer repos can vendor the
+# validator alone. A bats test asserts the two stay parity-equal (constants +
+# compiled regex pattern); the lib is the canonical source -- edit there,
+# then mirror here. `open` is legacy-coarse: accepted with a warning (lazy
+# migration). `closed` is finish-ledger's terminal stamp; merged vs
+# closed-without-merge is read from the ## Finish ledger's mergedAt.
+STATUS_WORKING_ORDER = (
+    "queued", "in-progress", "parked", "stuck", "pr-open", "rework", "deferred",
+)
+STATUS_WORKING = frozenset(STATUS_WORKING_ORDER)
+STATUS_TERMINAL = frozenset({"closed"})
+STATUS_LEGACY = frozenset({"open"})
 STATUS_OK = STATUS_WORKING | STATUS_TERMINAL | STATUS_LEGACY
+# Side states hold an external signal a pr-open stamp must not silently
+# overwrite (parked/stuck/rework); stamp-pr-open refuses the flip without an
+# explicit --force-side-state --reason override (ADR-007 sec.5b).
+SIDE_STATES = frozenset({"parked", "stuck", "rework"})
+# queued -> pr-open is allowed but WARN-journaled (in-progress is the default).
+DIRECT_JUMP_SOURCES = frozenset({"queued"})
+_NONTERMINAL_VALUES = sorted(
+    STATUS_WORKING | STATUS_LEGACY, key=lambda s: (-len(s), s)
+)
+NONTERMINAL_ALT = "|".join(_NONTERMINAL_VALUES)
+NONTERMINAL_RE = re.compile(rf"(?:{NONTERMINAL_ALT})")
+
+
+def is_terminal(status: str) -> bool:
+    return status in STATUS_TERMINAL
+
+
+def is_nonterminal(status: str) -> bool:
+    return status in STATUS_WORKING or status in STATUS_LEGACY
+
+
+def is_side_state(status: str) -> bool:
+    return status in SIDE_STATES
 SPEC_ID_RE = re.compile(r"^spc-([1-9][0-9]*)$")
 TKT_ID_RE = re.compile(r"^tkt-([1-9][0-9]*)$")
 # tkt-pending-<slug> dirs are a valid transient state before gh issue create

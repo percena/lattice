@@ -83,11 +83,21 @@ export RS_REPO="$REPO"
 export RS_JSON="$AS_JSON"
 export RS_BINDER_ORIGIN="$BINDER_ORIGIN"
 export RS_BINDER_ROOT="$BINDER_REPO_ROOT"
+# Resolve the sibling lib/ dir using only bash builtins (cd + pwd are
+# builtins): the gh-not-installed test runs with a stripped PATH where the
+# `dirname` coreutil is absent, and ${BASH_SOURCE[0]%/*} strips the trailing
+# filename so the cd lands on the script's own directory. Declared before
+# export to avoid masking the substitution's exit code (shellcheck SC2155).
+RS_LIB="$(cd "${BASH_SOURCE[0]%/*}" && pwd)/lib"
+export RS_LIB
 
 python3 - <<'PY'
 import json, os, re, shutil, subprocess, sys
 from pathlib import Path
 from urllib.parse import urlsplit
+
+sys.path.insert(0, os.environ["RS_LIB"])
+import status_vocab
 
 binder_path = os.environ["RS_BINDER"]
 repo_arg = os.environ.get("RS_REPO", "")
@@ -298,12 +308,13 @@ def finish_ledger_merged(text):
 
 
 # ---------------------------------------------------------------------------
-# Terminal rules (tkt-150 / tkt-151)
+# Terminal rules (tkt-150 / tkt-151). Vocabulary single-sourced in
+# lib/status_vocab.py (tkt-189 / spc-187 A2): working = queued|in-progress|
+# parked|stuck|pr-open|rework|deferred, legacy = open, terminal = closed.
 # ---------------------------------------------------------------------------
-STATUS_WORKING = {"queued", "in-progress", "parked", "stuck",
-                  "pr-open", "rework", "deferred"}
-STATUS_TERMINAL = {"closed"}
-STATUS_LEGACY = {"open"}
+STATUS_WORKING = status_vocab.STATUS_WORKING
+STATUS_TERMINAL = status_vocab.STATUS_TERMINAL
+STATUS_LEGACY = status_vocab.STATUS_LEGACY
 
 
 def is_terminal(s):
