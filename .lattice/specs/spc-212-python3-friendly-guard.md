@@ -4,7 +4,7 @@ id: spc-212
 slug: python3-friendly-guard
 title: Make python3 dependency explicit and user-friendly across Lattice skills
 kind: chore
-status: locked
+status: done
 mode: M
 priority: P1
 summary: "Add ensure-python3.sh guard + hook advisory so missing python3 fails with a friendly install hint instead of a cryptic mid-script error"
