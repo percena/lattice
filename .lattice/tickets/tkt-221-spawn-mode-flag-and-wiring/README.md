@@ -12,7 +12,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/221 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
@@ -29,7 +29,7 @@
 | **related_tickets** | tkt-219 |
 | **worktree_bind** | tkt-221-spawn-mode-flag-and-wiring |
 | worktree | sibling `…/lattice.worktrees/tkt-221-spawn-mode-flag-and-wiring/` |
-| prs | (none) |
+| prs | pr-228 — https://github.com/percena/lattice/pull/228 |
 
 ## Acceptance (this slice)
 
@@ -83,3 +83,8 @@
 - Parent spec: **spc-213**
 - Parent issue (GH sub-issue of Spec primary): **#218**
 - Primary ticket: **tkt-221**
+
+## Finish
+
+- pr-228 merged: 2026-08-29T16:55:56Z — https://github.com/percena/lattice/pull/228 (base merge)
+- issue #221 closed: 2026-08-29T16:56:09Z — https://github.com/percena/lattice/issues/221

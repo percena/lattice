@@ -4,14 +4,14 @@ id: spc-213
 slug: batch-work-process-spawn
 title: Batch-work process-isolation spawn mode (--spawn-mode process)
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Add --spawn-mode {agent,process} to batch-work; process mode spawns independent claude --bg per worktree + PID/agents polling, freeing host context and isolating host-crash blast radius"
 created: 2026-08-30
 updated: 2026-08-30
 tickets: [tkt-219, tkt-221]
-prs: []
+prs: [pr-225, pr-228]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Batch-work process-isolation spawn mode (`--spawn-mode process`)
 
 > **TL;DR:** Add a `--spawn-mode {agent,process}` flag to `batch-work`. `process` mode spawns each ticket as an independent `claude --bg` detached process in its own worktree and detects completion via `claude agents --json` + PID liveness polling — freeing the host LLM context from N completion reports and eliminating host-crash blast radius. `agent` mode (current in-session Task subagent) stays the backward-compatible default. All orchestration invariants (independence gate, worktree-per-tkt, batch marker, fuse, spawn-brief contract, stacked bases, binder SoT) hold in both modes.
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P1
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P1
 > **Path:** spc-213 → tkt-… → pr-…
 
 ## Why
@@ -57,14 +57,14 @@ ERP's `batch-implement.mjs` (the reference) takes the inverse shape: a **statele
 
 ## Acceptance
 
-- [ ] **A1** — `--spawn-mode {agent,process}` flag parsed in INTAKE; default `agent`; unknown value fails closed with usage. `--dry-run` prints `spawn-mode: <mode>` in the report.
-- [ ] **A2** — `skills/batch-work/scripts/spawn-ticket-process.sh` exists; `--cwd <worktree> --brief-file <path> [--base <ref>]` spawns `claude --bg` detached with `BATCH_IMPLEMENT=1`-equivalent env, records `pid`, `worktree`, `started` (UTC ISO) to a given state file, exits 0 on spawn. Missing `--cwd` or `--brief-file` → fail closed.
-- [ ] **A3** — In `process` mode, SPAWN LAYER calls the helper per ticket (capped by `--concurrency` per wave, RAM-gated before each wave), bound to the ticket's sibling worktree via `ensure-workspace --mode worktree --bind tkt` (worktree isolation preserved); the host records the PID + spawn timestamp.
-- [ ] **A4** — In `process` mode, LAYER/WAVE BARRIER polls `claude agents --json` + `process.kill(pid, 0)` to classify each ticket `ok`/`failed`/`timeout` (watchdog timebox still enforced on the recorded spawn timestamp), instead of the in-session background-completion channel. `agent` mode keeps the in-session channel unchanged.
-- [ ] **A5** — All orchestration invariants hold identically in both modes: independence gate, worktree-per-tkt, `.batch-work-active` merge marker (written before first spawn in both modes), fuse + graceful drain, spawn-brief contract (all six items ride the `process`-mode `-p` prompt), stacked dependency bases, binder SoT stamping.
-- [ ] **A6** — `--self-test` exercises the spawn helper's PID tracking + liveness probe against a dummy (e.g. `claude --bg -p "echo ready"` or a `sleep` surrogate) without launching real implementation; asserts PID recorded + liveness detected + liveness-false after kill.
-- [ ] **A7** — SKILL.md + `references/flow.md` document `--spawn-mode`, the `process`-mode SPAWN LAYER recipe, the polling status-detection recipe, the cross-mode invariant clause, and the verification checklist item ("spawn-mode selection honored at SPAWN LAYER").
-- [ ] **A8** — No regression: `agent` mode behavior unchanged end-to-end; `--dry-run --ids ...` output identical except for the added `spawn-mode:` line; existing batch-work callers that omit the flag get `agent` mode.
+- [x] **A1** — `--spawn-mode {agent,process}` flag parsed in INTAKE; default `agent`; unknown value fails closed with usage. `--dry-run` prints `spawn-mode: <mode>` in the report.
+- [x] **A2** — `skills/batch-work/scripts/spawn-ticket-process.sh` exists; `--cwd <worktree> --brief-file <path> [--base <ref>]` spawns `claude --bg` detached with `BATCH_IMPLEMENT=1`-equivalent env, records `pid`, `worktree`, `started` (UTC ISO) to a given state file, exits 0 on spawn. Missing `--cwd` or `--brief-file` → fail closed.
+- [x] **A3** — In `process` mode, SPAWN LAYER calls the helper per ticket (capped by `--concurrency` per wave, RAM-gated before each wave), bound to the ticket's sibling worktree via `ensure-workspace --mode worktree --bind tkt` (worktree isolation preserved); the host records the PID + spawn timestamp.
+- [x] **A4** — In `process` mode, LAYER/WAVE BARRIER polls `claude agents --json` + `process.kill(pid, 0)` to classify each ticket `ok`/`failed`/`timeout` (watchdog timebox still enforced on the recorded spawn timestamp), instead of the in-session background-completion channel. `agent` mode keeps the in-session channel unchanged.
+- [x] **A5** — All orchestration invariants hold identically in both modes: independence gate, worktree-per-tkt, `.batch-work-active` merge marker (written before first spawn in both modes), fuse + graceful drain, spawn-brief contract (all six items ride the `process`-mode `-p` prompt), stacked dependency bases, binder SoT stamping.
+- [x] **A6** — `--self-test` exercises the spawn helper's PID tracking + liveness probe against a dummy (e.g. `claude --bg -p "echo ready"` or a `sleep` surrogate) without launching real implementation; asserts PID recorded + liveness detected + liveness-false after kill.
+- [x] **A7** — SKILL.md + `references/flow.md` document `--spawn-mode`, the `process`-mode SPAWN LAYER recipe, the polling status-detection recipe, the cross-mode invariant clause, and the verification checklist item ("spawn-mode selection honored at SPAWN LAYER").
+- [x] **A8** — No regression: `agent` mode behavior unchanged end-to-end; `--dry-run --ids ...` output identical except for the added `spawn-mode:` line; existing batch-work callers that omit the flag get `agent` mode.
 
 ## Decisions (principal, user-confirmed)
 
