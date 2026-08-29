@@ -31,7 +31,7 @@ metadata:
 | A Spec's ticket set is delivered (PRs open) and you want fidelity + coherence + merge order | Production-readiness checklist on one PR → `review-production` |
 | Ranked ratification queue for overnight self-decisions + parked questions | Durable decision-support report / design compare → `create-review` |
 | Preference-promotion proposals from twice-ratified journal entries | Merge-time base alignment + merge → `finish-work` (its mini-review is a bounded projection, not this skill) |
-| | Implement fixes for findings → `start-work` / rework loop (this skill never edits product code) |
+| | Implement fixes for findings → `start-work` / rework loop (this skill never edits product code); the rework stamp + `fix_cycles` bump is owned by `bump-fix-cycle.sh` (`_lattice-lib/scripts/`), called by the `--with-review` fix loop |
 
 ## Invariants (must hold)
 
@@ -42,7 +42,7 @@ metadata:
 | Per-axis attestation | Every axis in the digest states **what was checked + verdict**. A bare LGTM / “looks fine” is forbidden — an axis without an attestation block is an unfinished review |
 | Rebase voids verdict | A materially changed rebase (conflict resolution or non-trivial diff change after base update) **voids** this digest's verdict for that PR; clean rebases carry it. Note this in the digest footer |
 | Read-only on product code | May run builds/tests on throwaway branches; never commits fixes, never edits binders except not-at-all — findings go in the digest, rework is dispatched separately |
-| Bounded | One pass per invocation; no autonomous re-review loops (batch-work `--with-review` owns the bounded fix cycle, spc-42 A7) |
+| Bounded | One pass per invocation; no autonomous re-review loops (batch-work `--with-review` owns the bounded fix cycle, spc-42 A7); `bump-fix-cycle.sh` owns the `fix_cycles` counter + cap-exit (≤2; third rework forces `deep-review`, human — no auto-retry; spc-186 A6) |
 
 ## Inputs
 
