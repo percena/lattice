@@ -99,6 +99,26 @@ case "$mode" in
     echo "boom" >&2
     exit 1
     ;;
+  numeric_id_gql_skip_rest_ok)
+    # gh issue view returns a numeric id (database id, not node id) —
+    # the guard must skip GraphQL and fall through to REST.
+    if [[ "$*" == issue\ edit\ * ]]; then echo no >&2; exit 1; fi
+    if [[ "$*" == *graphql* ]]; then echo "should not reach GraphQL" >&2; exit 1; fi
+    if [[ "$*" == issue\ view* ]]; then
+      echo '{"id":"187","number":10}'
+      exit 0
+    fi
+    if [[ "$*" == repo\ view* ]]; then
+      echo 'acme/r'; exit 0
+    fi
+    if [[ "$1" == "api" && "$*" != *graphql* && "$*" != *sub_issues* ]]; then
+      echo '3000028010'; exit 0
+    fi
+    if [[ "$1" == "api" && "$*" == *sub_issues* ]]; then
+      echo '{"id":1}'; exit 0
+    fi
+    exit 1
+    ;;
 esac
 exit 0
 EOF
@@ -169,6 +189,19 @@ teardown() {
   [ "$status" -eq 0 ]
   grep -F -e "-F sub_issue_id=3000028010" "$GH_LOG"
   if grep -F -e "-f sub_issue_id=" "$GH_LOG"; then false; fi
+}
+
+@test "numeric id field skips GraphQL, falls through to REST" {
+  # gh issue view returns a numeric id (database id) in the id field —
+  # the guard must skip GraphQL (which would fail with "Could not resolve
+  # to a node with the global id of '187'") and use REST instead.
+  export GH_MODE=numeric_id_gql_skip_rest_ok
+  run bash "$ADD" --parent 10 --child 11
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "numeric"
+  printf '%s\n' "$output" | grep -qF "REST"
+  # GraphQL must NOT have been called
+  if grep -F graphql "$GH_LOG"; then false; fi
 }
 
 @test "URL forms parse numbers" {

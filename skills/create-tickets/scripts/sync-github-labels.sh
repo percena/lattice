@@ -16,7 +16,7 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 # name|color|description
-# Canon = live label set (docs/github-surface.md §1, ratified default tkt-65):
+# Canon = live label set (docs/github-surface.md §1, monorepo when present; ratified default tkt-65):
 # kinds map feat→enhancement, docs→documentation; refactor/perf/test/spike
 # file under chore. No P0 — urgent work is P1 with the urgency in the body.
 LABELS=$(cat <<'EOF'

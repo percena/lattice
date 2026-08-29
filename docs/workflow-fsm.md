@@ -17,8 +17,10 @@ They couple at the edges: M1 emits tickets into M2's queue; M2 emits decisions i
 
 ### M1 — planning
 
+Entry edges (not all tickets pass through every stage):
+
 ```text
-business requirement (PM)
+business requirement (PM)                         ← primary entry
    → architecture dialogue (evidence-first rounds)
    → solution-proposal rev (2–3 options + recommendation)
    → human macro sign-off (multiple choice)
@@ -26,6 +28,12 @@ business requirement (PM)
    → ADR when cross-feature (create-adr)
    → tickets (create-tickets: anticipated-decisions scan + ## Approach)
    → Spec done (finish-work stamps when workstream complete; all child tickets closed)
+
+review spawn_spec      → Spec locked              ← review-driven entry (create-review)
+review spawn_tickets   → tickets (M2 queue)       ← review short-circuits to execution
+review spawn_fix       → fix ticket (M2 queue)    ← targeted fix from review findings
+verify-features        → bug ticket (M2 queue)    ← runtime verification files bugs w/ repro
+S-class fast path      → direct ticket (M2 queue) ← small/trivial: Spec implicit, minimal dialogue
 ```
 
 Spec revision = supersede with a new `spc-N` (never silent rewrite of id, per `create-spec`); the old Spec's still-active child binders are stamped `deferred` + `spec-superseded` **at supersede time** by `spec-supersede.sh` (spc-186 A3 / tkt-190 — trip-time honesty, generalizing tkt-136/137) — finish-work's land-time Spec drift stays as a backstop. Spec status enum: `draft | locked | done | superseded`.
@@ -91,6 +99,10 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | State → State | Trigger | Owner |
 | --- | --- | --- |
 | — → requirement | PM brings a business requirement | human |
+| review → Spec locked | `create-review` outcome `spawn_spec` — review spawns a new Spec directly | agent |
+| review → tickets (M2) | `create-review` outcome `spawn_tickets` / `spawn_fix` — review short-circuits to execution | agent |
+| verify-features → bug ticket (M2) | runtime verification files bugs as tickets with repro steps (enters M2 directly) | agent |
+| S-class → ticket (M2) | small/trivial change: Spec implicit, minimal dialogue, direct ticket (start-work `mode: S`) | human / agent |
 | requirement → proposal rev | evidence pass + 2–3 candidate architectures + recommendation | agent |
 | proposal rev → Spec locked | **macro sign-off** (multiple choice) → `create-spec` | human |
 | Spec locked → ADR | cross-feature law promoted via `create-adr` | agent |
@@ -157,6 +169,6 @@ Morning triage recipe: [morning-triage.md](./morning-triage.md).
 
 ## 5. Where M2 state lives
 
-The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6): working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` — merged vs closed-without-merge is read from the `## Finish` ledger's `mergedAt`, not from a separate status value. The vocabulary + coupled-field transition policy (side-state guard, direct-jump rules) are machine-readable and single-sourced in `skills/_lattice-lib/scripts/lib/status_vocab.py`, consumed by `reconcile-state.sh`, `finish-ledger.sh`, and `stamp-pr-open.sh`; `validate-lattice-artifacts.py` vendors a parity-checked copy so consumer repos can vendor the validator alone (tkt-189 / spc-187 A2). `stamp-pr-open.sh` refuses to overwrite a side state (`parked` / `stuck` / `rework`) with `pr-open` without an explicit `--force-side-state --reason` override that journals a structured operator-adjudicated trace (ADR-007 §5b); a direct `queued → pr-open` jump is allowed but WARN-journaled so the "started" signal is not silently lost. Legacy `open` is accepted as a coarse value during lazy migration (validator warns). State is never inferred from PR, marker, or worktree existence alone. `validate-lattice-artifacts.py` enforces this statically per snapshot — unknown status values (`invalid_ticket_status`), terminal status without a Finish ledger (`closed_without_finish`), a merged Finish ledger without terminal status (`finish_without_terminal_status`), and duplicate ticket ids (`duplicate_ticket_id`); it does not replay transition history, so edge legality between two valid snapshots is owned by the skills that perform the transitions (amended 2026-08-27, tkt-90 — the earlier "rejects illegal transitions" claim overstated the check).
+The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6): working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` — merged vs closed-without-merge is read from the `## Finish` ledger's `mergedAt`, not from a separate status value. The vocabulary + coupled-field transition policy (side-state guard, direct-jump rules) are machine-readable and single-sourced in `skills/_lattice-lib/scripts/lib/status_vocab.py`, consumed by `reconcile-state.sh`, `finish-ledger.sh`, and `stamp-pr-open.sh`; `validate-lattice-artifacts.py` vendors a parity-checked copy so consumer repos can vendor the validator alone (tkt-189 / spc-187 A2). `stamp-pr-open.sh` refuses to overwrite a side state (`parked` / `stuck` / `rework`) with `pr-open` without an explicit `--force-side-state --reason` override that journals a structured operator-adjudicated trace (ADR-007 §5b); a direct `queued → pr-open` jump is allowed but WARN-journaled so the "started" signal is not silently lost. Legacy `open` is accepted as a coarse value during lazy migration (validator warns). State is never inferred from PR, marker, or worktree existence alone. `validate-lattice-artifacts.py` enforces this statically per snapshot — unknown status values (`invalid_ticket_status`), terminal status without a Finish ledger (`closed_without_finish`), a merged Finish ledger without terminal status (`finish_without_terminal_status`), and duplicate ticket ids (`duplicate_ticket_id`); it does not replay transition history, so edge legality between two valid snapshots is owned by the skills that perform the transitions (amendment history in ADR-004).
 
-**Trip-time stamping (amended 2026-08-27, tkt-132/137, ADR-004 amd tkt-136):** fuse-halt and blocked-by-failure now stamp `deferred`+reason at trip time (not "stay `queued`"); watchdog-timeout/abandonment stamps `stuck`+`wait_reason: unblock` (FSM-2b). The binder SoT is honest about schedulability across runs — the ephemeral batch report no longer carries the only failure signal. `parked → queued` ratification is now performed by `ratify.sh` (`_lattice-lib/scripts/`) — single git commit for journal entry + status flip (ADR-004 amd tkt-136 Option A); the earlier "atomically...one write — never" claim is replaced by "single-commit, crash window narrowed, not eliminated."
+**Trip-time stamping:** fuse-halt and blocked-by-failure stamp `deferred`+reason at trip time; watchdog-timeout/abandonment stamps `stuck`+`wait_reason: unblock` (FSM-2b). The binder SoT is honest about schedulability across runs. `parked → queued` ratification is performed by `ratify.sh` (`_lattice-lib/scripts/`) — single git commit for journal entry + status flip (crash window narrowed, not eliminated). Amendment history in ADR-004.

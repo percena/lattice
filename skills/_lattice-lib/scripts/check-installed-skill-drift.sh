@@ -12,6 +12,7 @@
 # The check is bidirectional and NEVER auto-clobbers. It reports three
 # categories so the operator decides the refresh action (the install may hold
 # local/newer content a blind overwrite would destroy — see docs/getting-started.md
+# (monorepo, when present) § Refresh install.
 # § Refresh install):
 #   - repo-only      file present in repo, absent from install  (install is stale)
 #   - install-only   file present in install, absent from repo  (local edit OR
@@ -46,7 +47,7 @@
 #   1  drift detected (loud, actionable) — NEVER use 2 for drift
 #   2  misuse (bad arguments / missing dirs)
 #
-# See: tkt-196, docs/getting-started.md § Refresh install.
+# See: tkt-196, docs/getting-started.md (monorepo, when present) § Refresh install.
 
 set -euo pipefail
 
@@ -205,7 +206,7 @@ else
       for f in "${differs[@]}"; do printf '  - %s\n' "$f"; done
       echo
     fi
-    echo "Refresh: see docs/getting-started.md § Refresh install."
+    echo "Refresh: see docs/getting-started.md (monorepo, when present) § Refresh install."
     echo "  full pack : npx skills add percena/lattice -a claude-code -a codex -g -y"
     echo "  local tip : npx skills add /path/to/lattice --skill _lattice-lib --skill start-work \\"
     echo "              --skill create-spec --skill create-review --skill create-tickets \\"

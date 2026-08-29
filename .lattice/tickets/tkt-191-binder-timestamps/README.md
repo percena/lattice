@@ -1,6 +1,6 @@
 # tkt-191 — Ticket binder created/updated timestamps
 
-> **Status:** pr-open · kind feat · priority P1 · covers spc-186 A4
+> **Status:** closed · kind feat · priority P1 · covers spc-186 A4
 
 ## Field table
 
@@ -21,7 +21,7 @@
 | parallel_group | g2 | layer 2 |
 | paths | skills/create-tickets/references/templates/ticket-binder.md, tools/validate-lattice-artifacts.py, skills/_lattice-lib/scripts/stamp-pr-open.sh, skills/_lattice-lib/scripts/finish-ledger.sh, skills/_lattice-lib/scripts/ratify.sh, skills/_lattice-lib/scripts/lib/binder_rows.py | |
 | solo_merge | true | one PR |
-| primary_ticket | tkt-191 | |
+| primary_ticket | true | |
 | related_tickets | tkt-189, tkt-192 | 192 (staleness) depends on this |
 | worktree_bind | tkt-191-binder-timestamps | |
 | worktree | sibling `…/lattice.worktrees/tkt-191-binder-timestamps/` | |
@@ -72,7 +72,7 @@ Add `created`/`updated` rows to the ticket-binder template field table (placemen
 ## Lineage
 
 - Parent spec: spc-186
-- Primary ticket: tkt-191
+- Primary ticket: true
 - Related: tkt-189 (blocker), tkt-192 (blocked by this)
 - Covers: A4
 - Blocked by: tkt-189

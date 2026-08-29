@@ -597,9 +597,9 @@ if status == "pr-open" and not prs_entries:
     })
 
 # 6. MERGED PR + terminal binder but no Finish ledger with merged: entry
-#    (tkt-179 A8): has_finish_ledger and finish_ledger_merged are computed
-#    for JSON output but never used in drift detection. A binder with
-#    status: closed, a MERGED PR, and no Finish ledger passes as ok:true.
+#    (tkt-179 A8): has_finish_ledger and finish_ledger_merged are used here
+#    in drift detection — a binder with status: closed, a MERGED PR, and no
+#    Finish ledger with a merged: entry is flagged as drift.
 if is_terminal(status) and any(
         pr_r.get("data") and pr_r["data"].get("state") == "MERGED"
         for pr_r in pr_results
@@ -676,7 +676,7 @@ else:
               "merge PR) to match binder intent.")
         print("- Re-run: reconcile-state.sh --binder <path>  "
               "(then finish-work when reconciled)")
-        print("- See docs/morning-triage.md for the manual recovery route.")
+        print("- See docs/morning-triage.md (monorepo, when present) for the manual recovery route.")
         print()
         print(f"## summary: ok=false drifts={len(drifts)}")
         print("reconcile: drift detected — manual recovery needed")

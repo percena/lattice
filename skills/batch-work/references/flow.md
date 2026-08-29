@@ -209,7 +209,7 @@ The gap this closes: a `blocked_by` layer needs the earlier layers' output, but 
 After the last layer's barrier (or after a fuse trip's drain, over whatever PRs were delivered):
 
 1. Run `review-delivery` with the batch report path as input (`../review-delivery/SKILL.md`) — artifact-only chain review: fidelity, cross-PR coherence + throwaway integration build, decision-ratification queue, per-PR findings.
-2. **Material findings** (review-code material bar) dispatch a bounded fix loop: re-brief the ticket's implementer agent **in its existing worktree** with the findings as the new brief (address-review shape; binder `pr-open → rework → in-progress → pr-open` per `docs/workflow-fsm.md`). **≤ 2 cycles per ticket** — the fallback-policy / review-fix bound; still-material findings after cycle 2 stay in the digest as `deep-review`.
+2. **Material findings** (review-code material bar) dispatch a bounded fix loop: re-brief the ticket's implementer agent **in its existing worktree** with the findings as the new brief (address-review shape; binder `pr-open → rework → in-progress → pr-open` per `_lattice-lib/references/workflow-fsm-reference.md` or monorepo `docs/workflow-fsm.md`). **≤ 2 cycles per ticket** — the fallback-policy / review-fix bound; still-material findings after cycle 2 stay in the digest as `deep-review`.
 3. Finalize the digest only after the fix loop settles; the digest (persisted under `.lattice/reviews/`, `kind: digest`) is the **batch's final report artifact** — the REPORT table is referenced from it.
 4. Advice only: no `gh pr merge`, no marker removal. Merge authority is unchanged — batch marker + human `finish-work` (which removes the marker BEFORE merge, after human ack).
 
