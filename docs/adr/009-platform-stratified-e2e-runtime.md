@@ -1,6 +1,6 @@
 # ADR 009: Platform-stratified e2e runtime + confirm-first preflight
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-30
 - **Deciders:** maintainers
 - **Related:** `spc-145` (worktree discipline gate), `ADR-006`
@@ -128,6 +128,7 @@ We will **platform-split the e2e runtime** and make the repo-tracked
 ## Status history
 
 - 2026-08-30 — Proposed (initial draft).
+- 2026-08-30 — Accepted (implemented via pr-229 / spc-226; tkt-227 merged to dev).
 
 <!-- ADR is out-of-band Lattice sugar: not a lineage node, no `adr-n` edge.
      Cite as `ADR-009` or `docs/adr/009-platform-stratified-e2e-runtime.md`. -->
