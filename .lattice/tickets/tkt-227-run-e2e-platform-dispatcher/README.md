@@ -29,11 +29,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** macOS with `ego-browser` installed → `ensure-e2e-runtime.sh` exit 0, `E2E_BACKEND=ego`; missing → non-zero + install guidance, no auto-install.
-- [ ] **A2** Linux with camoufox-js + playwright-cli → exit 0, `E2E_BACKEND=camoufox`; missing either → non-zero + install guidance, no auto-install.
-- [ ] **A3** `run-e2e/SKILL.md` first step invokes the preflight; missing runtime surfaced to user for confirmation before install.
-- [ ] **A4** `run-e2e/SKILL.md` cites ADR-009 and documents both backends + primitives mapping.
-- [ ] **A5** `story-template-linux.md` exists and mirrors `story-template.md` structure.
+- [x] **A1** macOS with `ego-browser` installed → `ensure-e2e-runtime.sh` exit 0, `E2E_BACKEND=ego`; missing → non-zero + install guidance, no auto-install.
+- [x] **A2** Linux with camoufox-js + playwright-cli → exit 0, `E2E_BACKEND=camoufox`; missing either → non-zero + install guidance, no auto-install.
+- [x] **A3** `run-e2e/SKILL.md` first step invokes the preflight; missing runtime surfaced to user for confirmation before install.
+- [x] **A4** `run-e2e/SKILL.md` cites ADR-009 and documents both backends + primitives mapping.
+- [x] **A5** `story-template-linux.md` exists and mirrors `story-template.md` structure.
 
 ## Notes
 
