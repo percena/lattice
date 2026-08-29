@@ -8,11 +8,11 @@
 | --- | --- | --- |
 | kind | chore | |
 | created | 2026-08-29T17:00:00Z | |
-| updated | 2026-08-29T13:41:41Z | |
+| updated | 2026-08-29T13:46:34Z | |
 | priority | P2 | |
 | labels | chore, docs, P2 | |
 | github | https://github.com/percena/lattice/issues/201 | |
-| status | pr-open | |
+| status | closed | |
 | adopted | false | |
 | summary | Batch the low-risk doc/script hygiene findings from rev-20260829-160834Z: stale comments, portability citation fixes, FSM entry edges, amendment sediment, small script exit-code quirks. | |
 | spec | spc-186 | |
@@ -80,3 +80,8 @@ Drive-by hygiene batch touching only docs + two small scripts. Each item is low-
 - Covers: A7
 - Blocked by: tkt-188, tkt-193
 - Parallel group: g4
+
+## Finish
+
+- pr-210 merged: 2026-08-29T13:46:20Z — https://github.com/percena/lattice/pull/210 (base merge)
+- issue #201 closed: 2026-08-29T13:46:30Z — https://github.com/percena/lattice/issues/201
