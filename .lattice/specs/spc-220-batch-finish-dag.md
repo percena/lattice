@@ -3,7 +3,7 @@ id: spc-220
 slug: batch-finish-dag
 title: finish-work multi-PR DAG-aware merge (batch finish)
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Add DAG-aware multi-PR merge to finish-work: merge-order layers from merge_blocked_by, halt-on-failure, marker-once."

@@ -15,11 +15,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/224 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
-| updated | 2026-08-29T16:50:56Z |
+| updated | 2026-08-29T17:00:44Z |
 | adopted | false |
 | summary | finish-work multi-PR DAG-aware merge: merge_blocked_by DAG, layer order, halt-on-failure |
 | spec | spc-220 — finish-work multi-PR DAG-aware merge (path: ../../specs/spc-220-batch-finish-dag.md) |
@@ -120,4 +120,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-230 merged: 2026-08-29T16:59:26Z — https://github.com/percena/lattice/pull/230 (base merge)
+- issue #224 closed: 2026-08-29T17:00:07Z — https://github.com/percena/lattice/issues/224
