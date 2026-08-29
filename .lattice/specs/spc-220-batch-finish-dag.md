@@ -9,7 +9,7 @@ priority: P2
 summary: "Add DAG-aware multi-PR merge to finish-work: merge-order layers from merge_blocked_by, halt-on-failure, marker-once."
 created: 2026-08-30
 updated: 2026-08-30
-tickets: []
+tickets: [tkt-223, tkt-224]
 prs: []
 reviews: []
 supersedes: []
