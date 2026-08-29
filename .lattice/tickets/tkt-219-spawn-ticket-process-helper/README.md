@@ -12,11 +12,11 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/219 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
-| updated | 2026-08-30T00:00:00Z |
+| updated | 2026-08-30T16:50:00Z |
 | adopted | false |
 | summary | spawn-ticket-process.sh helper: claude --bg detached per-worktree + PID state + self-test |
 | spec | spc-213 — batch-work process-isolation spawn mode (path: ../../specs/spc-213-batch-work-process-spawn.md) |
@@ -33,8 +33,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2** — `skills/batch-work/scripts/spawn-ticket-process.sh` exists; `--cwd <worktree> --brief-file <path> [--state-file <path>] [--base <ref>] [--permission-mode acceptEdits]` spawns `claude --bg` detached with `BATCH_*` env, records `pid`, `worktree`, `started` (UTC ISO) to the state file, exits 0 on spawn. Missing `--cwd` or `--brief-file` → fail closed (nonzero, usage to stderr).
-- [ ] **A6** — `--self-test` exercises PID tracking + liveness probe against a dummy (e.g. `claude --bg -p "echo ready"` or a `sleep` surrogate) without launching real implementation; asserts PID recorded + liveness detected + liveness-false after kill. Prints PASS/FAIL lines (reference: a cross-repo batch tool's self-test pattern).
+- [x] **A2** — `skills/batch-work/scripts/spawn-ticket-process.sh` exists; `--cwd <worktree> --brief-file <path> [--state-file <path>] [--base <ref>] [--permission-mode acceptEdits]` spawns `claude --bg` detached with `BATCH_*` env, records `pid`, `worktree`, `started` (UTC ISO) to the state file, exits 0 on spawn. Missing `--cwd` or `--brief-file` → fail closed (nonzero, usage to stderr).
+- [x] **A6** — `--self-test` exercises PID tracking + liveness probe against a dummy (e.g. `claude --bg -p "echo ready"` or a `sleep` surrogate) without launching real implementation; asserts PID recorded + liveness detected + liveness-false after kill. Prints PASS/FAIL lines (reference: a cross-repo batch tool's self-test pattern).
 
 ## Approach
 
