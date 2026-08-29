@@ -15,11 +15,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/224 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
-| updated | 2026-08-30T00:00:00Z |
+| updated | 2026-08-29T16:50:56Z |
 | adopted | false |
 | summary | finish-work multi-PR DAG-aware merge: merge_blocked_by DAG, layer order, halt-on-failure |
 | spec | spc-220 — finish-work multi-PR DAG-aware merge (path: ../../specs/spc-220-batch-finish-dag.md) |
@@ -33,7 +33,7 @@
 | **related_tickets** | tkt-223 (same one-PR ship: merge_blocked_by binder field) |
 | **worktree_bind** | `spc-220-batch-finish-dag` |
 | worktree | sibling `…/lattice.worktrees/spc-220-batch-finish-dag/` |
-| prs | (none) |
+| prs | pr-230 — https://github.com/percena/lattice/pull/230 |
 
 ## Acceptance (this slice)
 
@@ -78,6 +78,7 @@ Edit `skills/finish-work/SKILL.md` (frontmatter arg-hint, Arguments table, Load-
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-08-29T16:50:56Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #230) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 

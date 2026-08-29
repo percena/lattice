@@ -15,11 +15,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/223 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-30T00:00:00Z |
-| updated | 2026-08-30T00:00:00Z |
+| updated | 2026-08-29T16:50:58Z |
 | adopted | false |
 | summary | Add merge_blocked_by binder field + create-tickets policy (merge-order DAG, fallback blocked_by) |
 | spec | spc-220 — finish-work multi-PR DAG-aware merge (path: ../../specs/spc-220-batch-finish-dag.md) |
@@ -33,7 +33,7 @@
 | **related_tickets** | tkt-224 (same one-PR ship: finish-work multi-PR mode consumes this field) |
 | **worktree_bind** | `spc-220-batch-finish-dag` |
 | worktree | sibling `…/lattice.worktrees/spc-220-batch-finish-dag/` |
-| prs | (none) |
+| prs | pr-230 — https://github.com/percena/lattice/pull/230 |
 
 ## Acceptance (this slice)
 
@@ -53,6 +53,7 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-08-29T16:50:58Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #230) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 

@@ -10,7 +10,7 @@ summary: "Add DAG-aware multi-PR merge to finish-work: merge-order layers from m
 created: 2026-08-30
 updated: 2026-08-30
 tickets: [tkt-223, tkt-224]
-prs: []
+prs: [pr-230]
 reviews: []
 supersedes: []
 superseded_by: null
