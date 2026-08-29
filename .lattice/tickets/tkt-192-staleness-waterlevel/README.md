@@ -10,7 +10,7 @@
 | priority | P1 | |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/192 | |
-| status | pr-open | |
+| status | closed | |
 | adopted | false | |
 | summary | No staleness/aging surfacing — pr-open piles up silently if triage skipped; deferred/stuck/parked have no water-level. Eliminates silent degradation. | |
 | spec | spc-186 | |
@@ -76,3 +76,8 @@ review-delivery digest gains a "Queue health" section computed from binder `crea
 - Covers: A5
 - Blocked by: tkt-191
 - Parallel group: g4
+
+## Finish
+
+- pr-209 merged: 2026-08-29T13:22:05Z — https://github.com/percena/lattice/pull/209 (base merge)
+- issue #192 closed: 2026-08-29T13:22:15Z — https://github.com/percena/lattice/issues/192
