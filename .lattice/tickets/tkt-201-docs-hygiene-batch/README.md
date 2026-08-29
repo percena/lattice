@@ -8,11 +8,11 @@
 | --- | --- | --- |
 | kind | chore | |
 | created | 2026-08-29T17:00:00Z | |
-| updated | 2026-08-29T18:00:00Z | |
+| updated | 2026-08-29T13:41:41Z | |
 | priority | P2 | |
 | labels | chore, docs, P2 | |
 | github | https://github.com/percena/lattice/issues/201 | |
-| status | queued | |
+| status | pr-open | |
 | adopted | false | |
 | summary | Batch the low-risk doc/script hygiene findings from rev-20260829-160834Z: stale comments, portability citation fixes, FSM entry edges, amendment sediment, small script exit-code quirks. | |
 | spec | spc-186 | |
@@ -25,7 +25,7 @@
 | related_tickets | tkt-188, tkt-193 | blockers (shared docs) |
 | worktree_bind | `tkt-201-docs-hygiene-batch` | |
 | worktree | sibling `…/lattice.worktrees/tkt-201-docs-hygiene-batch/` | |
-| prs | (none) | |
+| prs | pr-210 — https://github.com/percena/lattice/pull/210 | |
 
 ## Acceptance (this slice)
 
@@ -54,6 +54,7 @@ Drive-by hygiene batch touching only docs + two small scripts. Each item is low-
 - 2026-08-29: **github-issue-parent-add.sh node-id bug** — fixed in this ticket (trivial). Added a defensive guard: if the `id` field extracted from `gh issue view --json id,number` is purely numeric (a database id, not a GraphQL node id like `I_kwD...`), skip the GraphQL addSubIssue path and fall through to REST. The bug manifested when `gh issue view` returned a numeric `id` field; passing it to the GraphQL mutation caused "Could not resolve to a node with the global id of '<number>'". Source: binder NOTICED line + code analysis; resolution: agent-judgment (one-liner guard + test).
 - 2026-08-29: **append-adr-index-row.sh exit code** — verified already correct. The existing code exits 0 on idempotent re-run when the row already exists (lines 133-137). Existing test "idempotent: second run for same num is a no-op" confirms `[ "$status" -eq 0 ]`. No fix needed.
 - 2026-08-29: **Schema drift (primary_ticket + parallel_group)** — standardized `primary_ticket` to `true` across all 8 spc-186 child binders (per tkt-188/189 convention). Aligned `parallel_group` labels with the executed DAG: tkt-194 g3→g2 (blocked_by tkt-188, layer 1 → layer 2), tkt-192 g4→g3 (blocked_by tkt-191, layer 2 → layer 3), tkt-189 missing→g1 (no blockers, layer 1). Source: dependency DAG + actual PR merge order (PR #197→#209).
+- 2026-08-29T13:41:41Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #210) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
