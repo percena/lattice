@@ -127,7 +127,7 @@ run_wave() {
   if [[ "$dry" -eq 1 ]]; then
     echo "dry-run: wave plan ($count tickets, concurrency=$concurrency, ram-threshold=$ram_thr, poll=${poll_interval}s, helper=$spawn_helper)"
     for i in $(seq 0 $((count-1))); do
-      printf '  %s\twt=%s\tbrief=%s\ttimebox=%smin\n' "${M_TICKET[$i]}" "${M_WT[$i]}" "${M_BRIEF[$i]}" "${M_TIMEBOX[$i]}"
+      printf '  %s\twt=%s\tbrief=%s\ttimebox=%smin\n' "${M_TICKET[i]}" "${M_WT[i]}" "${M_BRIEF[i]}" "${M_TIMEBOX[i]}"
     done
     exit 0
   fi
@@ -144,7 +144,7 @@ run_wave() {
   # Spawn in concurrency-capped batches. PIDs + start epochs tracked per ticket.
   local -a PIDS=() STARTS=() STATUS=() ENDS=()
   local i
-  for i in $(seq 0 $((count-1))); do PIDS[$i]=""; STARTS[$i]=0; STATUS[$i]="pending"; ENDS[$i]=0; done
+  for i in $(seq 0 $((count-1))); do PIDS[i]=""; STARTS[i]=0; STATUS[i]="pending"; ENDS[i]=0; done
 
   local spawned_so_far=0
   while [[ "$spawned_so_far" -lt "$count" ]]; do
@@ -160,19 +160,19 @@ run_wave() {
     [[ "$batch_end" -gt "$count" ]] && batch_end=$count
     local j
     for (( j=spawned_so_far; j<batch_end; j++ )); do
-      if [[ ! -d "${M_WT[$j]}" ]]; then
-        echo "error: worktree missing for ${M_TICKET[$j]}: ${M_WT[$j]} (host must ensure-workspace first)" >&2
-        STATUS[$j]="workspace-failed"; continue
+      if [[ ! -d "${M_WT[j]}" ]]; then
+        echo "error: worktree missing for ${M_TICKET[j]}: ${M_WT[j]} (host must ensure-workspace first)" >&2
+        STATUS[j]="workspace-failed"; continue
       fi
       local out
-      if out=$(bash "$spawn_helper" --cwd "${M_WT[$j]}" --brief-file "${M_BRIEF[$j]}" --state-file "$state_file" 2>&1); then
+      if out=$(bash "$spawn_helper" --cwd "${M_WT[j]}" --brief-file "${M_BRIEF[j]}" --state-file "$state_file" 2>&1); then
         local pid
         pid=$(printf '%s\n' "$out" | sed -n 's/^spawned: pid=\([0-9]*\) .*/\1/p')
-        [[ "$pid" =~ ^[0-9]+$ ]] || { STATUS[$j]="workspace-failed"; echo "warn: spawn produced no pid for ${M_TICKET[$j]}: $out" >&2; continue; }
-        PIDS[$j]="$pid"; STARTS[$j]=$(now_epoch); STATUS[$j]="running"
-        echo "spawned: ${M_TICKET[$j]} pid=$pid" >&2
+        [[ "$pid" =~ ^[0-9]+$ ]] || { STATUS[j]="workspace-failed"; echo "warn: spawn produced no pid for ${M_TICKET[j]}: $out" >&2; continue; }
+        PIDS[j]="$pid"; STARTS[j]=$(now_epoch); STATUS[j]="running"
+        echo "spawned: ${M_TICKET[j]} pid=$pid" >&2
       else
-        STATUS[$j]="workspace-failed"; echo "warn: spawn failed for ${M_TICKET[$j]}: $out" >&2
+        STATUS[j]="workspace-failed"; echo "warn: spawn failed for ${M_TICKET[j]}: $out" >&2
       fi
     done
     spawned_so_far=$batch_end
@@ -195,21 +195,21 @@ barrier_poll() {
   while true; do
     local any_running=0
     for i in $(seq 0 $((count-1))); do
-      [[ "${STATUS[$i]}" == "running" ]] || continue
+      [[ "${STATUS[i]}" == "running" ]] || continue
       any_running=1
-      local pid="${PIDS[$i]}"
+      local pid="${PIDS[i]}"
       if bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
         # still alive — check timebox
-        local elapsed=$(( $(now_epoch) - ${STARTS[$i]} ))
-        local limit=$(( ${M_TIMEBOX[$i]} * 60 ))
+        local elapsed=$(( $(now_epoch) - STARTS[i] ))
+        local limit=$(( M_TIMEBOX[i] * 60 ))
         if [[ "$elapsed" -gt "$limit" ]]; then
           kill "$pid" 2>/dev/null || true
-          STATUS[$i]="timeout"; ENDS[$i]=$(now_epoch)
-          echo "timeout: ${M_TICKET[$i]} pid=$pid (elapsed ${elapsed}s > timebox ${limit}s)" >&2
+          STATUS[i]="timeout"; ENDS[i]=$(now_epoch)
+          echo "timeout: ${M_TICKET[i]} pid=$pid (elapsed ${elapsed}s > timebox ${limit}s)" >&2
         fi
       else
-        STATUS[$i]="completed"; ENDS[$i]=$(now_epoch)
-        echo "completed: ${M_TICKET[$i]} pid=$pid" >&2
+        STATUS[i]="completed"; ENDS[i]=$(now_epoch)
+        echo "completed: ${M_TICKET[i]} pid=$pid" >&2
       fi
     done
     [[ "$any_running" -eq 0 ]] && break
@@ -229,9 +229,9 @@ emit_report() {
   local completed=0 timeout=0 failed=0
   for i in $(seq 0 $((count-1))); do
     local dur=0
-    [[ "${ENDS[$i]}" -gt 0 ]] && dur=$(( ${ENDS[$i]} - ${STARTS[$i]} ))
-    lines+=("| ${M_TICKET[$i]} | ${PIDS[$i]:-—} | ${M_WT[$i]} | ${STATUS[$i]} | ${M_TIMEBOX[$i]} | $dur |")
-    case "${STATUS[$i]}" in
+    [[ "${ENDS[i]}" -gt 0 ]] && dur=$(( ENDS[i] - STARTS[i] ))
+    lines+=("| ${M_TICKET[i]} | ${PIDS[i]:-—} | ${M_WT[i]} | ${STATUS[i]} | ${M_TIMEBOX[i]} | $dur |")
+    case "${STATUS[i]}" in
       completed) completed=$((completed+1)) ;;
       timeout) timeout=$((timeout+1)) ;;
       *) failed=$((failed+1)) ;;
@@ -356,7 +356,7 @@ EOF
   #      trip. Instead set timebox to 0 min → trips immediately.)
   t5() {
     # Build a slow fake helper (sleep 30)
-    local slow slow_helper m wt b rep out
+    local slow_helper m wt b rep out
     slow_helper=$(mktemp -t bw-slowhelper.XXXXXX)
     cat > "$slow_helper" <<'EOF'
 #!/usr/bin/env bash
