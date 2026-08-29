@@ -1,6 +1,6 @@
 # tkt-194 — CI merge gate with compiled infra-class waiver + stamped trace
 
-> **Status:** queued · kind feat · priority P1 · covers spc-186 A6, A8
+> **Status:** closed · kind feat · priority P1 · covers spc-186 A6, A8
 
 ## Field table
 
@@ -16,10 +16,10 @@
 | spec | spc-186 | |
 | covers | A6, A8 | |
 | blocked_by | tkt-188 | shares finish-work flow.md §3.4 hot file |
-| parallel_group | g3 | layer 3 |
+| parallel_group | g2 | layer 2 |
 | paths | skills/finish-work/scripts/ci-gate-check.sh, skills/finish-work/scripts/lib/ci_failure_classify.py, skills/finish-work/scripts/tests/ci-gate-check.bats, skills/finish-work/references/flow.md, .lattice/config.yaml | |
 | solo_merge | true | one PR |
-| primary_ticket | tkt-194 | |
+| primary_ticket | true | |
 | related_tickets | tkt-188 | blocker (shared flow.md) |
 | worktree_bind | (pending start-work) | |
 | worktree | (pending start-work) | |
@@ -73,11 +73,11 @@ finish-preflight.sh (or a new ci-gate helper) calls `gh pr checks <N> --json nam
 ## Lineage
 
 - Parent spec: spc-186
-- Primary ticket: tkt-194
+- Primary ticket: true
 - Related: tkt-188 (blocker)
 - Covers: A6, A8
 - Blocked by: tkt-188
-- Parallel group: g3
+- Parallel group: g2
 
 ## Finish
 

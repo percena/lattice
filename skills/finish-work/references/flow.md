@@ -198,7 +198,7 @@ A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratif
 - No material findings → one-line `mini-review: no material findings`; proceed to §3 merge.
 - Material findings → print the table, then `AskUserQuestion`:
   - `Merge anyway` — operator accepts the risk
-  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` + bump `fix_cycles` via the scripted owner (the procedural stamp point), and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (`docs/workflow-fsm.md`). Scripted stamp:
+  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` + bump `fix_cycles` via the scripted owner (the procedural stamp point), and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (see `_lattice-lib/references/workflow-fsm-reference.md` or monorepo `docs/workflow-fsm.md`). Scripted stamp:
     ```bash
     SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
     bash "$SKILL_ROOT/../_lattice-lib/scripts/bump-fix-cycle.sh" \
@@ -237,7 +237,7 @@ bash "$SKILL_ROOT/../_lattice-lib/scripts/reconcile-state.sh" \
 
 The check is **read-only**: it performs no `gh issue edit/close/create`, no `gh pr edit/close/merge`, and no binder mutation. It is not a merge gate — the HARD gate stays `alignment-check.sh` (§2.5). Use it when an interrupted workflow may have left cross-system state inconsistent.
 
-See `docs/morning-triage.md` Step 5.5 for the full manual recovery route.
+See `docs/morning-triage.md` (monorepo, when present) Step 5.5 for the full manual recovery route.
 
 ## 3. Merge or close
 

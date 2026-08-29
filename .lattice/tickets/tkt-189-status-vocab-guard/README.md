@@ -18,10 +18,10 @@
 | spec | spc-186 |
 | covers | A2, A8 |
 | blocked_by | (none) |
-| parallel_group | (none) |
+| parallel_group | g1 (layer 1) |
 | paths | skills/_lattice-lib/scripts/lib/status_vocab.py; tools/validate-lattice-artifacts.py; skills/_lattice-lib/scripts/reconcile-state.sh; skills/_lattice-lib/scripts/finish-ledger.sh; skills/_lattice-lib/scripts/stamp-pr-open.sh; docs/workflow-fsm.md |
 | solo_merge | (none) |
-| **primary_ticket** | tkt-189 |
+| **primary_ticket** | true |
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-189-status-vocab-guard` |
 | worktree | sibling `…/lattice.worktrees/tkt-189-status-vocab-guard/` |
@@ -71,7 +71,7 @@ The working-status vocabulary (`queued | in-progress | parked | stuck | pr-open 
 ## Lineage
 
 - Parent spec: spc-186
-- Primary ticket: tkt-189
+- Primary ticket: true
 
 ## Finish
 

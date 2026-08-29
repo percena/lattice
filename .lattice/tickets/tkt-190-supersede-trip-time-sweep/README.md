@@ -1,6 +1,6 @@
 # tkt-190 — Spec supersede trip-time sweep stamps child binders deferred
 
-> **Status:** pr-open · kind feat · priority P0 · covers spc-186 A3
+> **Status:** closed · kind feat · priority P0 · covers spc-186 A3
 
 ## Field table
 
@@ -16,7 +16,7 @@
 | spec | spc-186 |
 | covers | A3 |
 | blocked_by | tkt-189 |
-| parallel_group | g2 |
+| parallel_group | g2 (layer 2) |
 | paths | skills/create-spec/**, skills/_lattice-lib/scripts/, tools/validate-lattice-artifacts.py, docs/morning-triage.md |
 | solo_merge | true |
 | primary_ticket | true |

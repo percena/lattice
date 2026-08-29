@@ -257,6 +257,21 @@ if [[ -n "$parent_json" && -n "$child_json" ]]; then
   child_gql=$(printf '%s' "$child_json" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
 fi
 
+# Guard (tkt-201): if the extracted id is purely numeric, the `id` field
+# returned a database id (integer) instead of a GraphQL node id (base64
+# string like "I_kwD..."). Passing a bare number to the addSubIssue
+# mutation fails with "Could not resolve to a node with the global id of
+# '<number>'". Skip GraphQL and fall through to the REST path (which uses
+# the database id correctly via -F sub_issue_id).
+if [[ -n "$parent_gql" && "$parent_gql" =~ ^[0-9]+$ ]]; then
+  log "parent id field is numeric ($parent_gql), not a GraphQL node id — skipping GraphQL"
+  parent_gql=""
+fi
+if [[ -n "$child_gql" && "$child_gql" =~ ^[0-9]+$ ]]; then
+  log "child id field is numeric ($child_gql), not a GraphQL node id — skipping GraphQL"
+  child_gql=""
+fi
+
 if [[ -n "$parent_gql" && -n "$child_gql" ]]; then
   gql_out=""
   gql_status=0

@@ -1,6 +1,6 @@
 # tkt-188 — Machine-enforce the batch merge gate (marker lifecycle + human-adjudicated escape)
 
-> **Status:** pr-open · kind feat · priority P0 · covers spc-186 A1,A8
+> **Status:** closed · kind feat · priority P0 · covers spc-186 A1,A8
 
 ## Field table
 
@@ -16,7 +16,7 @@
 | spec | spc-186 |
 | covers | A1, A8 |
 | blocked_by | (none) |
-| parallel_group | g1 |
+| parallel_group | g1 (layer 1) |
 | paths | plugins/lattice/hooks/**, skills/finish-work/**, skills/batch-work/** |
 | solo_merge | true |
 | primary_ticket | true |

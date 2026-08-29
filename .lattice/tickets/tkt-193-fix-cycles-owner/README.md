@@ -14,10 +14,10 @@
 | spec | spc-186 |
 | covers | A6, A8 |
 | blocked_by | (none) |
-| parallel_group | g1 |
+| parallel_group | g1 (layer 1) |
 | paths | skills/finish-work/**, skills/review-delivery/**, docs/workflow-fsm.md |
 | solo_merge | true |
-| primary_ticket | (none) |
+| primary_ticket | true |
 | related_tickets | (none) |
 | worktree_bind | (pending start-work) |
 | worktree | (pending start-work) |

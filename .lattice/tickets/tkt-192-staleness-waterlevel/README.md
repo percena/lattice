@@ -1,6 +1,6 @@
 # tkt-192 — Surface pr-open aging + side-state water levels (digest + start-work)
 
-> **Status:** queued · kind feat · priority P1 · covers spc-186 A5
+> **Status:** closed · kind feat · priority P1 · covers spc-186 A5
 
 ## Field table
 
@@ -16,10 +16,10 @@
 | spec | spc-186 | |
 | covers | A5 | |
 | blocked_by | tkt-191 | needs binder timestamps to compute age |
-| parallel_group | g4 | layer 4 |
+| parallel_group | g3 | layer 3 |
 | paths | skills/review-delivery/SKILL.md, skills/review-delivery/references/, skills/start-work/SKILL.md, docs/morning-triage.md, .lattice/config.yaml | |
 | solo_merge | true | one PR |
-| primary_ticket | tkt-191 | |
+| primary_ticket | true | |
 | related_tickets | tkt-191 | blocker |
 | worktree_bind | (pending start-work) | |
 | worktree | (pending start-work) | |
@@ -71,11 +71,11 @@ review-delivery digest gains a "Queue health" section computed from binder `crea
 ## Lineage
 
 - Parent spec: spc-186
-- Primary ticket: tkt-192
+- Primary ticket: true
 - Related: tkt-191 (blocker)
 - Covers: A5
 - Blocked by: tkt-191
-- Parallel group: g4
+- Parallel group: g3
 
 ## Finish
 
