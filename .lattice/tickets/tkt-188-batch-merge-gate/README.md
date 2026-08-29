@@ -10,7 +10,7 @@
 | priority | P0 |
 | labels | feat, P0 |
 | github | https://github.com/percena/lattice/issues/188 |
-| status | in-progress |
+| status | pr-open |
 | adopted | false |
 | summary | Make the "night states never reach merged" invariant machine-checked: a merge hook blocks bare `gh pr merge` while the batch-work marker is present, with a human-adjudicated escape (ADR-007) |
 | spec | spc-187 |
@@ -22,7 +22,7 @@
 | primary_ticket | true |
 | related_tickets | tkt-189, tkt-190, tkt-193 |
 | worktree_bind | (worktree) tkt-188-batch-merge-gate |
-| prs | (none) |
+| prs | pr-197 — https://github.com/percena/lattice/pull/197 |
 
 ## Acceptance (this slice)
 
