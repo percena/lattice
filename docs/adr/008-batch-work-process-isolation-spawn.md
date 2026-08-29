@@ -1,6 +1,6 @@
 # ADR 008: Batch-work process-isolation spawn mode
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-30
 - **Deciders:** maintainers
 - **Related:** `spc-213`, ERP `tools/batch-implement.mjs` (reference), `skills/batch-work`
@@ -60,6 +60,7 @@ Everything else — DAG build, independence gate, layer/wave barrier, watchdog t
 ## Status history
 
 - 2026-08-30: Proposed
+- 2026-08-30: Proposed → Accepted (implemented via spc-213: tkt-219 PR#225 + tkt-221 PR#228)
 
 ## Notes
 
