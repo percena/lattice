@@ -10,7 +10,7 @@
 | priority | P0 |
 | labels | feat, P0 |
 | github | https://github.com/percena/lattice/issues/190 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Superseding a Spec stamps its still-active child binders deferred + spec-superseded at supersede time |
 | spec | spc-186 |
@@ -22,7 +22,7 @@
 | primary_ticket | true |
 | related_tickets | tkt-189 |
 | worktree_bind | (pending start-work) |
-| prs | (none) |
+| prs | pr-208 — https://github.com/percena/lattice/pull/208 |
 
 ## Acceptance (this slice)
 
@@ -49,6 +49,7 @@ New script (e.g. `_lattice-lib/scripts/spec-supersede.sh`) invoked from create-s
 - 2026-08-29 — **Which states get stamped** (anticipated `agent-decides`): stamp `queued` + `in-progress` + `deferred` (per the launching agent's task instruction, overriding the binder's softer recommendation to flag in-progress for triage). Reasoning: the trip-time honesty principle (ADR-004 amd tkt-136/137) wins over the "agent may be mid-flight" caution — stamping `deferred` is non-destructive (it marks the binder, never kills a running process); an in-progress agent learns the work is obsolete on its next binder read. Side states (`parked`/`stuck`/`rework`) are skipped (ADR-007 sec.5b side-state guard — an external signal must not be silently overwritten); `pr-open` is skipped (a live PR is a human decision: close? re-point? — auto-deferring would orphan the PR); `closed` (terminal) and `open` (legacy) skipped. Resolution source: task instruction chain → Spec A3 → ADR-007 sec.5b.
 - 2026-08-29 — **Single-commit per binder** (interpretation of "single-commit per binder, ratify.sh pattern"): one git commit per stamped binder (the ratify.sh transactional model — each binder's status flip + wait_reason set + journal entry + updated bump is one atomic commit; a crash between binders never corrupts a half-written one). Resolution source: binder Approach → ratify.sh precedent.
 - 2026-08-29 — **wait_reason enum single-sourcing**: moved `STUCK_REASONS` + `DEFERRED_REASONS` into `lib/status_vocab.py` (the tkt-189 single source) and vendored the copy in the validator, extending the bats parity test to assert equality (the binder noted "extend it there; the validator vendors a parity-checked copy"). `spec-superseded` added to `DEFERRED_REASONS`. Resolution source: binder Approach → tkt-189 single-source pattern.
+- 2026-08-29T12:53:13Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #208) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
