@@ -49,14 +49,14 @@ setup() {
   run "$GATE_SCRIPT" --remove
   [ "$status" -eq 2 ]
   # marker still present
-  [[ -f "$LATTICE_BATCH_GATE_HOME/.batch-work-active" ]]
+  [ -f "$LATTICE_BATCH_GATE_HOME/.batch-work-active" ]
 }
 
 @test "remove: deletes marker and emits a structured trace line" {
   touch "$LATTICE_BATCH_GATE_HOME/.batch-work-active"
   run "$GATE_SCRIPT" --remove --reason "user-authorized: merge #7 after review"
   [ "$status" -eq 0 ]
-  ! [[ -f "$LATTICE_BATCH_GATE_HOME/.batch-work-active" ]]
+  [ ! -f "$LATTICE_BATCH_GATE_HOME/.batch-work-active" ]
   printf '%s\n' "$output" | grep -qF "Decision journal entry"
   printf '%s\n' "$output" | grep -qF "rule_id=batch-merge-gate"
   printf '%s\n' "$output" | grep -qF "user-authorized: merge #7 after review"
@@ -75,5 +75,5 @@ setup() {
     >"$LATTICE_BATCH_GATE_HOME/.batch-merge-authorized"
   run "$GATE_SCRIPT" --remove --reason "user-authorized: merge #7"
   [ "$status" -eq 0 ]
-  ! [[ -f "$LATTICE_BATCH_GATE_HOME/.batch-merge-authorized" ]]
+  [ ! -f "$LATTICE_BATCH_GATE_HOME/.batch-merge-authorized" ]
 }
