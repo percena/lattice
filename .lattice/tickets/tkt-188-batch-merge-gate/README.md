@@ -1,6 +1,6 @@
 # tkt-188 — Machine-enforce the batch merge gate (marker lifecycle + human-adjudicated escape)
 
-> **Status:** in-progress · kind feat · priority P0 · covers spc-186 A1,A8
+> **Status:** pr-open · kind feat · priority P0 · covers spc-186 A1,A8
 
 ## Field table
 
