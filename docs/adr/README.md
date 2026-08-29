@@ -11,3 +11,4 @@
 | [005](./005-version-bump-at-release-boundary.md) | Version bump enforced at dev→main release boundary, not per-PR on dev | Accepted | — |
 | [006](./006-worktree-discipline-hard-enforcement.md) | Worktree discipline via PreToolUse hard enforcement (location gate + interactive-confirmation escape) | Accepted | — |
 | [007](./007-hard-limit-scope-law.md) | Hard-limit scope law — constrain transitions, free deliberation; compiled corner cases and human-adjudicated exceptions | Accepted | — |
+| [008](./008-batch-work-process-isolation-spawn.md) | Batch-work process-isolation spawn mode | Proposed | — |
