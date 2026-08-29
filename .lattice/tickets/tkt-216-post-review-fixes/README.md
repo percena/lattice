@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/216 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-29T16:30:00Z |
-| updated | 2026-08-29T17:00:00Z |
+| updated | 2026-08-29T17:12:19Z |
 | adopted | false |
 | summary | Post-review fix batch: ensure-python3 test regressions, tracked batch marker, queue_health banner bug, ci-gate flock, stale spc-187 refs, JSON escaping |
 | covers | A1, A2, A3, A4, A5, A6, A7, A8 |
@@ -73,3 +73,8 @@ Touch-set: ~15 files across scripts, tests, skills docs.
 - ADR-007: hard-limit scope law
 - spc-186: hard-limit-closure (parent workstream)
 - spc-212: python3-friendly-guard
+
+## Finish
+
+- pr-217 merged: 2026-08-29T17:11:14Z — https://github.com/percena/lattice/pull/217 (base merge)
+- issue #216 closed: 2026-08-29T17:11:37Z — https://github.com/percena/lattice/issues/216
