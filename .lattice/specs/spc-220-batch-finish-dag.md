@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: finish-work multi-PR DAG-aware merge (batch finish)
 
 > **TL;DR:** Add a multi-PR mode to `finish-work` that builds a merge-order DAG from a new `merge_blocked_by` binder field (fallback `blocked_by`), then runs the existing per-PR finish flow in layer order with halt-on-failure + a layer barrier — so stacked/dependent PRs land base-first.
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** spc-220 → tkt-… → pr-…
 
 ## Why
