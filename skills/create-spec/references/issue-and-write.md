@@ -58,7 +58,13 @@ N=$(bash "$LIB/next-artifact-id.sh" --kind spc --claim)
 | Decisions (principal) | yes when user confirmed axes |
 | References (Review, ADR by **id**) | when known |
 
-`status`: start `draft` unless principals already locked → then `locked` (do not multi-ticket off silent draft). Set `done` when delivery is complete.
+`status`: start `draft` unless principals already locked → then `locked` (do not multi-ticket off silent draft). Set `done` when delivery is complete. To **supersede** an existing Spec: write the new `spc-N`, then flip the old Spec's front matter (`status: superseded` + `superseded_by: spc-N` + `supersedes: [old]` on the new), and run the trip-time sweep so still-active child binders learn they are obsolete at supersede time, not land-time:
+
+```bash
+bash "$LIB/spec-supersede.sh" --spec "$PH/specs/spc-<old>-<slug>.md"
+```
+
+The sweep stamps queued / in-progress / deferred children to `deferred` + `wait_reason: spec-superseded` (one commit per binder); terminal (`closed`), side-state (`parked` / `stuck` / `rework`), `pr-open`, and legacy (`open`) children are skipped and surfaced in morning triage (spc-186 A3 / tkt-190). The Spec flip must precede the sweep — the script refuses a non-`superseded` Spec.
 
 ## Bloodline (L0 only)
 

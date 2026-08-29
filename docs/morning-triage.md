@@ -55,15 +55,16 @@ Never silently retry a `stuck` ticket — the Attempts ledger and caps carry acr
 
 Skill: `start-work` (`skills/start-work/SKILL.md:87-90` — stuck resume enumeration).
 
-### Step 4 — review deferred tickets (fuse-halted / abandoned)
+### Step 4 — review deferred tickets (fuse-halted / abandoned / spec-superseded)
 
-Since tkt-137 (ADR-004 Amendment, Option B), batch-work stamps `deferred` + a reason (`fuse-halt` / `blocked-by-failure`) **at trip time** — the SoT already says "not schedulable" (`workflow-fsm.md` §1 fuse edge). The morning step is therefore a *review* of the deferred set, not a stamping pass:
+Since tkt-137 (ADR-004 Amendment, Option B), batch-work stamps `deferred` + a reason (`fuse-halt` / `blocked-by-failure`) **at trip time** — the SoT already says "not schedulable" (`workflow-fsm.md` §1 fuse edge). Since tkt-190 (spc-186 A3), spec-supersede stamps a superseded Spec's still-active child binders `deferred` + `spec-superseded` **at supersede time** (generalizing the trip-time principle — the work is obsolete the moment the Spec is superseded, not at land-time drift). The morning step is therefore a *review* of the deferred set, not a stamping pass:
 
 - **Re-schedule** → flip `deferred → queued` (human transition, `workflow-fsm.md` §2 M2 table).
 - **Transient fuse** (broken base, env failure) → fix the root cause, flip `deferred → queued`, re-run the batch.
 - **Abandoned** → cancel via `finish-ledger.sh --cancel` (Step 3 table).
+- **Spec-superseded** → re-plan under the superseding `spc-N` (re-point `spec:` / `covers:`, flip `deferred → queued`) or cancel via `finish-ledger.sh --cancel`. Side-state children (parked / stuck / rework) and `pr-open` children are NOT auto-stamped (they hold an external signal or an open PR) — disposition them under the superseding Spec manually.
 
-Skill: `batch-work` (`skills/batch-work/SKILL.md` — binder `status` invariant: fuse-halted and blocked-by-failure tickets stamp `deferred` at trip time).
+Skill: `batch-work` (`skills/batch-work/SKILL.md` — binder `status` invariant: fuse-halted and blocked-by-failure tickets stamp `deferred` at trip time). `spec-supersede.sh` (`_lattice-lib/scripts/` — stamps child binders at supersede time; invoked from `create-spec`'s supersede path).
 
 ### Step 5 — consume PR verdicts
 

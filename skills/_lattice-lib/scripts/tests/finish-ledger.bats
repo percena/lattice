@@ -693,6 +693,10 @@ assert status_vocab.STATUS_LEGACY == val.STATUS_LEGACY
 assert status_vocab.STATUS_OK == val.STATUS_OK
 assert status_vocab.SIDE_STATES == val.SIDE_STATES
 assert status_vocab.DIRECT_JUMP_SOURCES == val.DIRECT_JUMP_SOURCES
+# Coupled-field wait_reason vocabulary parity (tkt-190 / spc-186 A3)
+assert status_vocab.STUCK_REASONS == val.STUCK_REASONS
+assert status_vocab.DEFERRED_REASONS == val.DEFERRED_REASONS
+assert "spec-superseded" in status_vocab.DEFERRED_REASONS
 # Compiled regex pattern byte-equality (the load-bearing single-source check)
 assert status_vocab.NONTERMINAL_RE.pattern == val.NONTERMINAL_RE.pattern
 assert status_vocab.NONTERMINAL_ALT == val.NONTERMINAL_ALT

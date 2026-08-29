@@ -28,7 +28,7 @@ business requirement (PM)
    → Spec done (finish-work stamps when workstream complete; all child tickets closed)
 ```
 
-Spec revision = supersede with a new `spc-N` (never silent rewrite of id, per `create-spec`); the old Spec's ticket/binders become obsolete — finish-work's land-time Spec drift catches deviations. Spec status enum: `draft | locked | done | superseded`.
+Spec revision = supersede with a new `spc-N` (never silent rewrite of id, per `create-spec`); the old Spec's still-active child binders are stamped `deferred` + `spec-superseded` **at supersede time** by `spec-supersede.sh` (spc-186 A3 / tkt-190 — trip-time honesty, generalizing tkt-136/137) — finish-work's land-time Spec drift stays as a backstop. Spec status enum: `draft | locked | done | superseded`.
 
 ### M2 — execution (per ticket)
 
@@ -39,6 +39,8 @@ stateDiagram-v2
     [*] --> queued
     queued --> ip: spawn / bind
     queued --> deferred: fuse-halt stamps at trip time (ADR-004 amd tkt-136)
+    queued --> deferred: spec-superseded stamps at supersede time (spc-186 A3)
+    ip --> deferred: spec-superseded stamps at supersede time (spc-186 A3)
     deferred --> queued: re-schedule
     ip --> pr: PR opened
     ip --> parked: park & pivot (unresolvable decision)
