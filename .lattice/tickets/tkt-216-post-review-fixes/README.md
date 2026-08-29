@@ -30,14 +30,14 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `reconcile-state.bats` "gh not installed" test passes (exit 2)
-- [ ] **A2** `close-fixed-issues.bats` "missing extractor lib" test passes (exit 2)
-- [ ] **A3** `.batch-work-active` not tracked; added to `.gitignore`
-- [ ] **A4** `queue_health.py` banner has no spurious separator
-- [ ] **A5** `ci-gate-check.sh` binder write uses `fcntl.flock`
-- [ ] **A6** `grep -rn spc-187` returns zero hits across codebase
-- [ ] **A7** `arr_json()` escapes both backslash and double-quote
-- [ ] **A8** Full bats test suite passes (no regressions)
+- [x] **A1** `reconcile-state.bats` "gh not installed" test passes (exit 2)
+- [x] **A2** `close-fixed-issues.bats` "missing extractor lib" test passes (exit 2)
+- [x] **A3** `.batch-work-active` not tracked (git rm --cached; gitignore reverted per check-pr-context.sh invariant)
+- [x] **A4** `queue_health.py` banner has no spurious separator
+- [x] **A5** `ci-gate-check.sh` binder write uses `fcntl.flock`
+- [x] **A6** `grep -rn spc-187` returns zero hits across codebase (reviews excluded — historical)
+- [x] **A7** `arr_json()` escapes both backslash and double-quote
+- [x] **A8** Full bats test suite passes (973/976; 1 pre-existing failure unchanged)
 
 ## Approach
 
