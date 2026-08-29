@@ -49,3 +49,30 @@ def merge_row(current: str, pr_n: int | str, pr_url: str) -> str:
     if not cur or is_placeholder(cur):
         return entry
     return f"{cur}{PRS_JOINER}{entry}"
+
+
+# Binder `updated` field-table row (spc-186 A4 / tkt-191). Bumped by each
+# status-stamping script (stamp-pr-open, finish-ledger, ratify) atomically
+# with the status flip, in the same locked read-modify-write transaction.
+# The stamp is ISO-8601 UTC at seconds precision (YYYY-MM-DDTHH:MM:SSZ),
+# matching the `datetime.now(utc).strftime(...)` the writers already emit.
+# Lazy migration: a binder predating the row has no `| updated |` row; this
+# helper is a no-op then (the validator warns — never fails). The row is
+# only ever bumped, never inserted, so the writer cannot corrupt a binder
+# that lacks the row; new binders carry it from the template.
+UPDATED_ROW_RE = re.compile(r"(\| updated \|)\s*(.*?)\s*(\|)")
+
+
+def stamp_updated(text: str, ts: str) -> str:
+    """Bump the binder `| updated | <ts> |` field-table row in-place.
+
+    Returns ``text`` unchanged when the row is absent (lazy migration) so a
+    stamping script never corrupts a binder that predates the row. The caller
+    gates the bump on ``s != orig`` (a real status mutation) so an idempotent
+    re-run does not touch ``updated`` — preserving the no-change contract.
+    """
+    if not UPDATED_ROW_RE.search(text):
+        return text
+    return UPDATED_ROW_RE.sub(
+        lambda m: f"{m.group(1)} {ts} {m.group(3)}", text, count=1
+    )

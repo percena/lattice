@@ -433,3 +433,64 @@ write_side_state_binder() {
   # no Decision journal entry for the default path
   if grep -q '## Decision journal' "$BINDER"; then false; fi
 }
+
+# ---------------------------------------------------------------------------
+# spc-186 A4 / tkt-191: `updated` field-table row bumped atomically with the
+# status stamp. `created` is never touched. Bump is gated on a real mutation
+# (idempotent re-run does not touch `updated`). Lazy migration: a binder with
+# no `updated` row stamps cleanly (bump is a no-op when absent).
+# ---------------------------------------------------------------------------
+
+# Add created/updated rows to the fresh binder (template convention).
+write_timestamped_binder() {
+  write_fresh_binder
+  sed -i.bak 's/| status | in-progress |/| status | in-progress |\n| created | 2026-01-01T00:00:00Z |\n| updated | 2026-01-01T00:00:00Z |/' "$BINDER"
+  rm -f "$BINDER.bak"
+}
+
+@test "updated row is bumped atomically with the status stamp (created untouched)" {
+  write_timestamped_binder
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  grep -q '| status | pr-open |' "$BINDER"
+  # updated bumped to a real ISO-8601 UTC seconds-precision stamp
+  grep -qE '\| updated \| 20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z \|' "$BINDER"
+  # the old value is gone (bumped, not duplicated)
+  if grep -q '| updated | 2026-01-01T00:00:00Z |' "$BINDER"; then false; fi
+  # created is never bumped — still the original value
+  grep -q '| created | 2026-01-01T00:00:00Z |' "$BINDER"
+}
+
+@test "idempotent re-run does not bump updated again (no mutation)" {
+  write_timestamped_binder
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  cp "$BINDER" "$TEST_DIR/after-first.md"
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "no change (idempotent)"
+  # binder byte-identical — updated was not touched on the no-op re-run
+  cmp -s "$BINDER" "$TEST_DIR/after-first.md"
+}
+
+@test "binder without updated row stamps cleanly (lazy migration, no insert)" {
+  write_fresh_binder
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  grep -q '| status | pr-open |' "$BINDER"
+  # no updated row was inserted — the bump is a no-op when the row is absent
+  if grep -qE '^\| updated \|' "$BINDER"; then false; fi
+}
+
+@test "dry-run does not write the updated bump (binder unchanged)" {
+  write_timestamped_binder
+  write_issue_body
+  cp "$BINDER" "$TEST_DIR/before.md"
+  run_spo --pr 12 --binder "$BINDER" --dry-run
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "DRY-RUN"
+  cmp -s "$BINDER" "$TEST_DIR/before.md"
+}

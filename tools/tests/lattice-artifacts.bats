@@ -217,6 +217,36 @@ setup_file() {
 
 # tkt-155: binder-dir-N vs github-field-N desync — phantom binders and mismatches.
 
+# spc-186 A4 / tkt-191: binder created/updated timestamps — missing warns
+# (lazy migration), malformed errors, well-formed is clean.
+
+@test "binder created/updated well-formed rows are clean (zero warnings)" {
+  run python3 "$VAL" --home "$FIX/timestamps-clean" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"warning_count": 0'
+  [ -z "$(printf '%s\n' "$output" | grep -F missing_binder_timestamp)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F malformed_binder_timestamp)" ]
+}
+
+@test "binder missing created/updated warns (lazy migration, exit 0)" {
+  run python3 "$VAL" --home "$FIX/timestamps-missing" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF missing_binder_timestamp
+  printf '%s\n' "$output" | grep -qF 'created, updated'
+  [ -z "$(printf '%s\n' "$output" | grep -F malformed_binder_timestamp)" ]
+}
+
+@test "binder malformed created/updated errors (not a warning)" {
+  run python3 "$VAL" --home "$FIX/timestamps-malformed" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF malformed_binder_timestamp
+  printf '%s\n' "$output" | grep -qF "created"
+  printf '%s\n' "$output" | grep -qF "updated"
+}
+
 @test "matching github URL and dir N pass clean" {
   # tkt-205-match: github issue #205, dir tkt-205 → no finding.
   run python3 "$VAL" --home "$FIX/github-field-clean" --json

@@ -154,9 +154,13 @@ done < <(git -C "$BINDER_REPO_ROOT" diff --cached --name-only || true)
 echo "ratify: $BINDER_NAME — ratifying parked binder (status: parked → queued)"
 
 # --- Contained read-modify-write (lock + atomic replace) -------------------
+RATIFY_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 RATIFY_BINDER="$BINDER" RATIFY_DECISION="$DECISION" RATIFY_PENDING="$PENDING" \
-  python3 - <<'PY'
+  RATIFY_LIB="$RATIFY_LIB" python3 - <<'PY'
 import datetime, fcntl, os, re, stat, sys, tempfile
+
+sys.path.insert(0, os.environ["RATIFY_LIB"])
+import binder_rows
 
 binder   = os.environ["RATIFY_BINDER"]
 decision = os.environ["RATIFY_DECISION"]
@@ -261,6 +265,11 @@ try:
     # [ \t] (not \s) so the regex cannot swallow the row's trailing newline
     # and merge the table into the following section.
     s = re.sub(r'^(\| status \|)[ \t]*parked[ \t]*(\|)[ \t]*$', r'\1 queued \2', s, count=1, flags=re.MULTILINE)
+
+    # --- 4. Bump `updated` atomically with the parked → queued flip (A4) ----
+    # stamp_updated is a no-op when the row is absent (lazy migration; the
+    # validator warns, never fails). `stamp` was computed above (ratified <ts>).
+    s = binder_rows.stamp_updated(s, stamp)
 
     if s == orig:
         # No mutation should happen on a valid parked binder; if it did, don't write.

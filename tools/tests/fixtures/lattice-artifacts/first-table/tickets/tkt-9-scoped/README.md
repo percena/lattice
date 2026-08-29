@@ -16,5 +16,7 @@ the binder card has no `status` row, so status must come from the TL;DR):
 | Field | Value |
 | --- | --- |
 | status | done-example |
+| created | 2026-01-01T00:00:00Z |
+| updated | 2026-01-01T00:00:00Z |
 | covers | A99 |
 | spec | spc-99 — example |

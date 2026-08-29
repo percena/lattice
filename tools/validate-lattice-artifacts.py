@@ -133,6 +133,24 @@ TICKETS_LIST_RE = re.compile(r"^tickets:\s*\[(.*?)\]\s*$", re.M)
 # cap and warns (mirror legacy_open_status posture).
 FIX_CYCLES_RE = re.compile(r"^\|\s*fix_cycles\s*\|\s*([0-9]+)\s*\|", re.I | re.M)
 
+# Binder created/updated timestamps (spc-186 A4 / tkt-191). Field-table rows,
+# ISO-8601 UTC at seconds precision (YYYY-MM-DDTHH:MM:SSZ) — the stamp format
+# the three status-stamping scripts emit (datetime.now(utc).strftime(
+# "%Y-%m-%dT%H:%M:%SZ")). `created` is stamped once at creation; `updated` is
+# bumped atomically with each status flip. Missing rows are a lazy-migration
+# warning (historical binders predate the rows; never fails); a present-but-
+# malformed value is an error. Validator-local grammar (writers emit, never
+# validate; mirrors FIX_CYCLES_RE's posture) — not vendored from lib/.
+BINDER_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+CREATED_TABLE_RE = re.compile(r"^\|\s*created\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+UPDATED_TABLE_RE = re.compile(r"^\|\s*updated\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+# A timestamp value that is a placeholder (not yet stamped): the template's
+# `<YYYY-MM-DDTHH:MM:SSZ>` fill-in hint, `(pending)`, `(none)`, empty. These
+# are treated as MISSING (warning), not malformed — an agent who has not yet
+# stamped gets a nudge, not a hard fail. Only a non-placeholder value that
+# fails the ISO-8601 canon is a malformed error.
+TS_PLACEHOLDER_RE = re.compile(r"^(?:\(none.*\)|\(pending.*\)|\(to be.*\)|pending|<[^|]*>|)$", re.I)
+
 # tkt-151: Spec status vocabulary (front-matter `status:` line, commented
 # template `# status: draft | locked | done | superseded`). `done` and
 # `superseded` are terminal — they carry terminal guards (A2). `draft`/`locked`
@@ -736,6 +754,47 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                         ),
                     }
                 )
+        # Binder created/updated timestamps (spc-186 A4 / tkt-191). Missing
+        # rows (or unfilled placeholders) warn — lazy migration; historical
+        # binders predate the rows and never fail. A present, non-placeholder
+        # value that is not ISO-8601 UTC seconds-precision is a malformed
+        # error. `created` is stamped once; `updated` is bumped by each
+        # status-stamping script; both gate A5 staleness (now − updated).
+        _tb = first_table_block(text)
+        missing_ts: list[str] = []
+        for _name, _re in (("created", CREATED_TABLE_RE), ("updated", UPDATED_TABLE_RE)):
+            _m = _re.search(_tb)
+            if not _m:
+                missing_ts.append(_name)
+                continue
+            _val = _m.group(1).strip()
+            if not _val or TS_PLACEHOLDER_RE.fullmatch(_val):
+                missing_ts.append(_name)
+            elif BINDER_TS_RE.fullmatch(_val) is None:
+                findings.append(
+                    {
+                        "code": "malformed_binder_timestamp",
+                        "path": str(path),
+                        "detail": (
+                            f"{_name} row {_val!r} is not ISO-8601 UTC "
+                            "seconds-precision (YYYY-MM-DDTHH:MM:SSZ)"
+                        ),
+                    }
+                )
+        if missing_ts:
+            findings.append(
+                {
+                    "code": "missing_binder_timestamp",
+                    "level": "warning",
+                    "path": str(path),
+                    "detail": (
+                        f"binder lacks created/updated timestamp row(s): "
+                        f"{', '.join(missing_ts)} (lazy migration — stamp "
+                        "created at creation, updated on each status flip; "
+                        "spc-186 A4)"
+                    ),
+                }
+            )
         # Header **Status:** copy vs field-table status. The template dropped
         # the header copy (field table is SoT); a stale survivor that
         # contradicts the table is dual-maintenance drift. Legacy-coarse

@@ -1,7 +1,7 @@
 # tkt-<id>-<semantic-slug>
 
 <!-- Binder is a thin recovery card (not a second issue tracker).
-     required: kind, priority, github, status, acceptance, primary_ticket / worktree_bind when shipping
+     required: kind, priority, github, status, created/updated, acceptance, primary_ticket / worktree_bind when shipping
      recommended: covers, spec, summary/TL;DR, Path
      optional (parallel / C): blocked_by, parallel_group, paths, solo_merge, related_tickets -->
 
@@ -18,6 +18,8 @@
 | status | queued | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it; merged vs closed-without-merge read from ## Finish mergedAt) · legacy: open (coarse — validator warns) |
 | fix_cycles | 0 | review-fix cycles on this PR (ADR-004 §5 cap ≤2; validator warns >2). Stamped by `bump-fix-cycle.sh` (`_lattice-lib/scripts/`) on each pr-open → rework → pr-open round — the scripted owner (spc-186 A6); do NOT hand-edit. Third rework holds at 2 and forces `deep-review` (human); `--extend-budget --reason` is the operator-adjudicated escape. Missing row = 0 (lazy migration — never fails) |
 | wait_reason | (none) | when status is stuck: unblock (needs an answer/env fix — human) \| re-scope (needs Spec/ticket revision → M1 — planning defect). when status is deferred: fuse-halt (batch fuse tripped; re-schedule later) \| blocked-by-failure (a blocked_by dependency failed). Routes morning triage: two dispositions per state. Missing/`(none)` = the stuck/deferred ticket is unspecified (validator fails — tkt-151 A3) |
+| created | <YYYY-MM-DDTHH:MM:SSZ> | ISO-8601 UTC, seconds precision (`YYYY-MM-DDTHH:MM:SSZ`). Stamped once at binder creation (create-tickets); never bumped. Missing row → validator warn (lazy migration — historical binders predate the row); a present-but-malformed value → error (spc-186 A4). Time-in-state baseline for A5 staleness |
+| updated | <YYYY-MM-DDTHH:MM:SSZ> | ISO-8601 UTC, seconds precision. Bumped by each status-stamping script (stamp-pr-open, finish-ledger, ratify) atomically with the status flip in the same locked write; equals `created` at creation. Missing row → validator warn (lazy migration); malformed → error (spc-186 A4). In-flight age = now − `updated` (A5 water-level) |
 | adopted | false | true — **true** when GH issue body is hand-created / append-only; land uses binder-first Acceptance |
 | summary | ≤120 chars |
 | spec | spc-N — <one-line> (path: ../../specs/spc-N-<slug>.md) |
