@@ -10,7 +10,7 @@
 | priority | P1 | |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/194 | |
-| status | queued | |
+| status | pr-open | |
 | adopted | false | |
 | summary | CI merge gate is prose-only (alignment-check never runs `gh pr checks`); "never merge blind on mergeable" has no teeth. Compile infra-class failure detection + waiver stamp; real failures block. | |
 | spec | spc-186 | |
@@ -23,7 +23,7 @@
 | related_tickets | tkt-188 | blocker (shared flow.md) |
 | worktree_bind | (pending start-work) | |
 | worktree | (pending start-work) | |
-| prs | (none) | |
+| prs | pr-207 — https://github.com/percena/lattice/pull/207 | |
 
 ## Acceptance (this slice)
 
@@ -52,6 +52,7 @@ finish-preflight.sh (or a new ci-gate helper) calls `gh pr checks <N> --json nam
 - 2026-08-29: unknown failures (CANCELLED without infra pattern) treated as real (fail-closed). The gate never passes on unclassified red — ADR-007 §5a: only machine-decidable infra-class compiles into the rule; ambiguous → red line.
 - 2026-08-29: config-tunable patterns ship as commented defaults in .lattice/config.yaml (ci_gate: section). The script reads from config.yaml but falls back to built-in DEFAULT_PATTERNS when absent — no dependency on PyYAML (minimal flat-key parser). Pattern set proposed for operator confirm: billing, rate_limit, timeout, runner_infra (categories); empty_step detected via metadata (no log output).
 - 2026-08-29: evidence requirement pre-resolved — --evidence flag carries local test output (bats/ci-local). Without it, infra-only red is a HARD block (fail-closed). The local evidence IS the human authorization (authorizer=human-at-merge-time).
+- 2026-08-29T12:48:26Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #207) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
