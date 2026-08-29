@@ -10,7 +10,7 @@
 | priority | P1 | |
 | labels | feat, P1 | |
 | github | https://github.com/percena/lattice/issues/192 | |
-| status | queued | |
+| status | pr-open | |
 | adopted | false | |
 | summary | No staleness/aging surfacing — pr-open piles up silently if triage skipped; deferred/stuck/parked have no water-level. Eliminates silent degradation. | |
 | spec | spc-186 | |
@@ -23,7 +23,7 @@
 | related_tickets | tkt-191 | blocker |
 | worktree_bind | (pending start-work) | |
 | worktree | (pending start-work) | |
-| prs | (none) | |
+| prs | pr-209 — https://github.com/percena/lattice/pull/209 | |
 
 ## Acceptance (this slice)
 
@@ -50,6 +50,7 @@ review-delivery digest gains a "Queue health" section computed from binder `crea
 - 2026-08-29: **pr-open age source = binder `updated` (primary) + gh pr createdAt (lazy-migration fallback).** Resolution: binder `updated` is bumped atomically on the pr-open stamp (tkt-191), so it = when stamped pr-open; gh createdAt is a faithful proxy (stamp-pr-open runs right after gh pr create). Side-state binders have no gh fallback (batch-work/spec-supersede stamped them, not gh) → age "unknown". Source: binder Approach (pre-resolved agent-decides).
 - 2026-08-29: **Banner is empty when clean (prints nothing).** Resolution: start-work should be silent when the queue is healthy; the one-liner only fires when a threshold is exceeded. Consistent with ADR-007 §8 sensor posture (advisory, never a block; exit 0 always). Source: binder Approach → ADR-007 §8.
 - 2026-08-29: **Queue health scans the whole tickets tree, not just the review set.** Resolution: pile-up is a queue-wide signal, not per-PR; the digest section surfaces the full water-level even when the reviewed set is small. Source: binder Approach → ADR-007 §8 (boundary sensor = queue health, not per-PR).
+- 2026-08-29T13:17:26Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #209) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
