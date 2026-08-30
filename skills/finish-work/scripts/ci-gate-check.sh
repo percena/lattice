@@ -128,25 +128,42 @@ lib_dir = Path(os.environ.get("CI_GATE_LIB", ""))
 sys.path.insert(0, str(lib_dir))
 import ci_failure_classify as clf
 
-def gh_json(args):
-    try:
-        out = subprocess.check_output(["gh", *args], text=True, stderr=subprocess.DEVNULL)
-        return json.loads(out)
-    except Exception:
-        return None
+def gh_run(args):
+    """Run gh; return (returncode, stdout). stderr suppressed."""
+    p = subprocess.run(["gh", *args], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return p.returncode, (p.stdout or "")
 
 # --- Fetch the checks rollup ---
-checks = gh_json(["pr", "checks", pr, "--json", "name,state,conclusion,link"])
-if checks is None:
-    msg = f"cannot load gh pr checks for PR #{pr} (gh auth? no checks? PR not found?)"
+# Distinguish three cases (M2 fix): (1) gh exits non-zero → cannot load →
+# exit 2; (2) empty/whitespace output or valid `[]` → no CI configured →
+# all-green PASS (no checks = green); (3) non-empty output that fails to
+# parse as JSON → malformed → exit 2. A valid `[]` on a no-CI repo is green;
+# only malformed JSON is an error.
+rc, raw = gh_run(["pr", "checks", pr, "--json", "name,state,conclusion,link"])
+if rc != 0:
+    msg = f"cannot load gh pr checks for PR #{pr} (gh auth? PR not found? gh exit {rc})"
     if as_json:
         print(json.dumps({"ok": False, "error": msg}, indent=2))
     else:
         print(f"Error: {msg}", file=sys.stderr)
     sys.exit(2)
 
-if not isinstance(checks, list):
+raw_stripped = raw.strip()
+if raw_stripped == "":
+    # No CI configured / no checks for this PR → treat as no checks (green).
     checks = []
+else:
+    try:
+        checks = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        msg = f"cannot parse gh pr checks output for PR #{pr} (malformed JSON: {exc.msg})"
+        if as_json:
+            print(json.dumps({"ok": False, "error": msg}, indent=2))
+        else:
+            print(f"Error: {msg}", file=sys.stderr)
+        sys.exit(2)
+    if not isinstance(checks, list):
+        checks = []
 
 # --- Load config patterns ---
 patterns = clf.load_config_patterns(str(home))
@@ -186,9 +203,12 @@ timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%
 
 # --- Decision ---
 # 1. Real or unknown failures → HARD block (exit 1)
-# 2. Infra-only red + evidence present → waiver (exit 0)
-# 3. Infra-only red WITHOUT evidence → HARD block (fail-closed, exit 1)
-# 4. Pending checks (no failures yet) → block (exit 1) — wait for CI
+# 2. Pending checks → block (exit 1) — wait for CI; checked BEFORE the
+#    infra-waiver so waivers apply only to *settled* failures (MH1 fix: a PR
+#    with one infra failure + evidence AND checks still PENDING must NOT be
+#    waived — CI may still turn red).
+# 3. Infra-only red + evidence present → waiver (exit 0)
+# 4. Infra-only red WITHOUT evidence → HARD block (fail-closed, exit 1)
 # 5. All green → pass (exit 0)
 
 result = {
@@ -212,6 +232,10 @@ if real or unknown:
     result["decision"] = "BLOCK — real/unknown failures present (HARD)"
     result["ok"] = False
     result["block_reason"] = "real_or_unknown_failures"
+elif has_blocking_pending:
+    result["decision"] = "BLOCK — CI still pending (wait for completion)"
+    result["ok"] = False
+    result["block_reason"] = "pending"
 elif infra:
     if not evidence:
         result["decision"] = "BLOCK — infra-only red but NO local evidence (fail-closed)"
@@ -225,10 +249,6 @@ elif infra:
         result["pr_comment"] = clf.pr_comment_body(
             pr, infra, real, unknown, evidence, timestamp
         )
-elif has_blocking_pending:
-    result["decision"] = "BLOCK — CI still pending (wait for completion)"
-    result["ok"] = False
-    result["block_reason"] = "pending"
 else:
     result["decision"] = "PASS — all green"
     result["ok"] = True

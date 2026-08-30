@@ -120,14 +120,23 @@ teardown() {
   printf '%s\n' "$output" | grep -qF "rate_limit"
 }
 
-@test "TIMED_OUT conclusion is always infra (waiver)" {
+@test "TIMED_OUT with timeout-pattern log is infra (waiver)" {
   setup_gh_stub \
     '[{"name":"slow-tests","state":"FAILURE","conclusion":"TIMED_OUT","link":"https://github.com/o/r/runs/5"}]' \
-    ''
+    'Error: the operation was canceled due to timeout'
   run bash "$GATE_SCRIPT" --pr 1 --evidence "ci-local green"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "timeout"
   printf '%s\n' "$output" | grep -qF "compiled waiver"
+}
+
+@test "TIMED_OUT with hanging-test log blocks (fail-closed, not waived)" {
+  setup_gh_stub \
+    '[{"name":"slow-tests","state":"FAILURE","conclusion":"TIMED_OUT","link":"https://github.com/o/r/runs/5b"}]' \
+    'test deadlock: infinite loop detected in suite'
+  run bash "$GATE_SCRIPT" --pr 1 --evidence "ci-local green"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "UNCLASSIFIED"
 }
 
 @test "empty-step flake (FAILURE + no log) is infra" {
@@ -137,6 +146,15 @@ teardown() {
   run bash "$GATE_SCRIPT" --pr 1 --evidence "local bats green"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "empty_step"
+}
+
+@test "CANCELLED with empty log blocks (fail-closed, not empty_step infra)" {
+  setup_gh_stub \
+    '[{"name":"ci","state":"FAILURE","conclusion":"CANCELLED","link":"https://github.com/o/r/runs/19"}]' \
+    ''
+  run bash "$GATE_SCRIPT" --pr 1 --evidence "local bats green"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "UNCLASSIFIED"
 }
 
 @test "STARTUP_FAILURE conclusion is infra (runner)" {
@@ -175,6 +193,16 @@ teardown() {
   setup_gh_stub \
     '[{"name":"lint","state":"PENDING","conclusion":"","link":"https://github.com/o/r/runs/10"}]'
   run bash "$GATE_SCRIPT" --pr 1 --evidence "ok"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "PENDING"
+  printf '%s\n' "$output" | grep -qF "BLOCKED"
+}
+
+@test "infra failure + evidence + pending blocks (not waived — MH1)" {
+  setup_gh_stub \
+    '[{"name":"lint-heavy","state":"FAILURE","conclusion":"FAILURE","link":"https://github.com/o/r/runs/20"},{"name":"tests","state":"PENDING","conclusion":"","link":"https://github.com/o/r/runs/21"}]' \
+    'billing quota exceeded'
+  run bash "$GATE_SCRIPT" --pr 1 --evidence "ci-local all-green"
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF "PENDING"
   printf '%s\n' "$output" | grep -qF "BLOCKED"
@@ -279,6 +307,37 @@ EOF
   [ "$status" -eq 2 ]
 }
 
+@test "empty gh pr checks output (no-CI repo) is green (exit 0)" {
+  setup_gh_stub '' ''
+  run bash "$GATE_SCRIPT" --pr 1
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "PASS"
+  printf '%s\n' "$output" | grep -qF "all green"
+}
+
+@test "valid empty-array gh pr checks (no checks) is green" {
+  setup_gh_stub '[]' ''
+  run bash "$GATE_SCRIPT" --pr 1
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "PASS"
+  printf '%s\n' "$output" | grep -qF "all green"
+}
+
+@test "malformed gh pr checks JSON exits 2" {
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+  printf '%s' 'not-valid-json{'
+  exit 0
+fi
+exit 1
+EOF
+  chmod +x "$STUB_BIN/gh"
+  export PATH="$STUB_BIN:$PATH"
+  run bash "$GATE_SCRIPT" --pr 1
+  [ "$status" -eq 2 ]
+}
+
 # --- classifier unit tests (direct Python) ---
 
 @test "classifier: billing pattern matches" {
@@ -319,16 +378,29 @@ print(json.dumps(r))
   echo "$result" | jq -e '.category == "empty_step"'
 }
 
-@test "classifier: TIMED_OUT is always infra" {
+@test "classifier: TIMED_OUT with timeout-pattern log is infra" {
   CLASSIFY_LIB="$SCRIPT_DIR/lib"
   result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
 import os, sys, json
 sys.path.insert(0, os.environ["CI_GATE_LIB"])
 import ci_failure_classify as clf
-r = clf.classify_failure("slow", "TIMED_OUT", "some log", None)
+r = clf.classify_failure("slow", "TIMED_OUT", "the operation was canceled", None)
 print(json.dumps(r))
 ')
   echo "$result" | jq -e '.class == "infra"'
+  echo "$result" | jq -e '.category == "timeout"'
+}
+
+@test "classifier: TIMED_OUT with non-infra log is unknown (fail-closed)" {
+  CLASSIFY_LIB="$SCRIPT_DIR/lib"
+  result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
+import os, sys, json
+sys.path.insert(0, os.environ["CI_GATE_LIB"])
+import ci_failure_classify as clf
+r = clf.classify_failure("slow", "TIMED_OUT", "test deadlock detected", None)
+print(json.dumps(r))
+')
+  echo "$result" | jq -e '.class == "unknown"'
   echo "$result" | jq -e '.category == "timeout"'
 }
 
@@ -339,6 +411,18 @@ import os, sys, json
 sys.path.insert(0, os.environ["CI_GATE_LIB"])
 import ci_failure_classify as clf
 r = clf.classify_failure("ci", "CANCELLED", "no relevant text", None)
+print(json.dumps(r))
+')
+  echo "$result" | jq -e '.class == "unknown"'
+}
+
+@test "classifier: CANCELLED with empty log is unknown (not empty_step infra)" {
+  CLASSIFY_LIB="$SCRIPT_DIR/lib"
+  result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
+import os, sys, json
+sys.path.insert(0, os.environ["CI_GATE_LIB"])
+import ci_failure_classify as clf
+r = clf.classify_failure("ci", "CANCELLED", "", None)
 print(json.dumps(r))
 ')
   echo "$result" | jq -e '.class == "unknown"'
