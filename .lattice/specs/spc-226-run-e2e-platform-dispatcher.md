@@ -9,7 +9,7 @@ priority: P2
 summary: "Platform-split run-e2e: macOS→ego-lite, Linux→camoufox-js via playwright-cli, with a confirm-first install gate"
 created: 2026-08-30
 updated: 2026-08-30
-tickets: [tkt-227]
+tickets: [tkt-227, tkt-232]
 prs: [pr-229]
 reviews: []
 supersedes: []

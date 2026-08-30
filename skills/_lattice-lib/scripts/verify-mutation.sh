@@ -166,11 +166,20 @@ verify_branch() {
   if ! command -v git >/dev/null 2>&1; then
     echo "FAILED: git not found" >&2; return 1
   fi
-  # fetch the remote ref (refs/heads/<branch>)
-  local remote_ref
-  remote_ref=$(git ls-remote origin "refs/heads/$BRANCH" 2>/dev/null | awk '{print $1}')
-  if [ -z "$remote_ref" ]; then
-    echo "FAILED: remote branch $BRANCH does not exist on origin" >&2; return 1
+  # Fetch the remote ref (refs/heads/<branch>). Distinguish a real ls-remote
+  # failure (network/auth/origin-unreachable → nonzero) from a simply-absent
+  # ref (ls-remote succeeds with empty output): both fail-closed (exit 1), but
+  # with different diagnostics so the operator chases the right cause. The `if`
+  # guards the command substitution so `set -e`/pipefail can't kill the script
+  # with the raw ls-remote exit (128) before this branch runs.
+  local ls_out remote_ref
+  if ls_out=$(git ls-remote origin "refs/heads/$BRANCH" 2>/dev/null); then
+    remote_ref=$(printf '%s\n' "$ls_out" | awk '{print $1}')
+    if [ -z "$remote_ref" ]; then
+      echo "FAILED: remote branch $BRANCH does not exist on origin" >&2; return 1
+    fi
+  else
+    echo "FAILED: cannot verify remote branch $BRANCH — git ls-remote origin errored (network/auth/unreachable)" >&2; return 1
   fi
   if [ -n "$EXPECTED_OID" ]; then
     if ! printf '%s' "$EXPECTED_OID" | grep -qE "$OID_RE"; then
