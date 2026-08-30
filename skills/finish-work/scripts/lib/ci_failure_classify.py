@@ -182,14 +182,29 @@ def classify_failure(
     name_lower = (check_name or "").lower()
     log_lower = (log_excerpt or "").lower()
 
-    # TIMED_OUT conclusion is always infra-class (timeout category) — the
-    # conclusion itself is the pattern, no log inspection needed. Checked
-    # before empty-step so a TIMED_OUT with no log is timeout, not empty_step.
+    # TIMED_OUT: only infra when the log/check-name matches a runner/timeout
+    # pattern. A genuinely hanging test suite (deadlock, perf regression,
+    # infinite loop) also concludes TIMED_OUT; without an infra signal we
+    # classify unknown (fail-closed) rather than waive. Checked before
+    # empty-step so a TIMED_OUT with no log is unknown, not empty_step.
     if conclusion_upper == "TIMED_OUT":
+        search_text = f"{name_lower}\n{log_lower}"
+        timeout_pats = patterns.get("timeout", []) + patterns.get("runner_infra", [])
+        matched_pat = None
+        for pat in timeout_pats:
+            if pat.lower() in search_text:
+                matched_pat = pat
+                break
+        if matched_pat:
+            return {
+                "class": "infra",
+                "category": "timeout",
+                "pattern": matched_pat,
+            }
         return {
-            "class": "infra",
+            "class": "unknown",
             "category": "timeout",
-            "pattern": "conclusion=TIMED_OUT",
+            "pattern": "conclusion=TIMED_OUT (no infra/timeout pattern matched)",
         }
 
     # STARTUP_FAILURE / ACTION_REQUIRED often indicate runner/billing infra.
@@ -213,8 +228,15 @@ def classify_failure(
     # Empty-step flake: FAILURE conclusion but no log output. This is the
     # flow.md §2 "CI empty-step ≤~5s" signal — a check that failed with
     # no failing-step log. Detected when the gate script passes an empty
-    # log_excerpt for a FAILURE conclusion.
-    if conclusion_upper in FAILURE_CONCLUSIONS and not log_lower.strip():
+    # log_excerpt for a FAILURE conclusion. CANCELLED is EXCLUDED: an
+    # operator-cancelled workflow with no failing-step log is not an
+    # empty-step flake — it falls through to the CANCELLED→unknown branch
+    # (fail-closed) unless an infra pattern matches its log/name.
+    if (
+        conclusion_upper in FAILURE_CONCLUSIONS
+        and conclusion_upper != "CANCELLED"
+        and not log_lower.strip()
+    ):
         return {
             "class": "infra",
             "category": "empty_step",
