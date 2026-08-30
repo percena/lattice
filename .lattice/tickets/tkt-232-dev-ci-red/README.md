@@ -12,7 +12,7 @@
 | priority | P2 |
 | labels | bug, chore, P2 |
 | github | https://github.com/percena/lattice/issues/232 |
-| status | open |
+| status | closed |
 | adopted | true |
 | summary | Harden verify-mutation #406 network flake (ls-remote failure → exit 1 with accurate diagnostic, not exit 128 crash) |
 | spec | spc-226 — run-e2e platform dispatcher + confirm-first preflight (hygiene link; path: ../../specs/spc-226-run-e2e-platform-dispatcher.md) |
@@ -70,3 +70,6 @@ Local files in `./assets/`.
 ## Finish
 
 
+
+- pr-233 merged: 2026-08-30T03:42:13Z — https://github.com/percena/lattice/pull/233 (base merge)
+- issue #232 closed: 2026-08-30T03:42:36Z — https://github.com/percena/lattice/issues/232
