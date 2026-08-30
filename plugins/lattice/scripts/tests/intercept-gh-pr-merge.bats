@@ -343,14 +343,14 @@ payload_for_command() {
   ! printf '%s\n' "$output" | grep -qF "batch-work merge gate"
 }
 
-@test "batch gate: fails open when lattice home unresolved (no git, no override)" {
-  # No LATTICE_BATCH_GATE_HOME and not inside a git work tree -> fail open.
-  # Run from a throwaway cwd with no .git so git rev-parse returns nothing.
+@test "batch gate: fails closed when lattice home unresolved + env unset (strict, tkt-239)" {
+  # No LATTICE_BATCH_GATE_HOME and not inside a git work tree -> home resolution
+  # fails. The gate FAILS CLOSED (strict) so a misresolvable home cannot
+  # silently bypass an active marker. Prints the unresolvable-home advisory.
   NOGIT="${BATS_TEST_TMPDIR:-$(mktemp -d)}/no-git-cwd"
   mkdir -p "$NOGIT"
   run bash -c "cd '$NOGIT' && unset LATTICE_BATCH_GATE_HOME && echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr merge 1\"}}' | LATTICE_HOOK_MODE=strict '$HOOK_SCRIPT' 2>&1"
-  # Failed open (allowed) — no batch gate trip; the skill-marker check decides next.
-  # Either exit 0 (no session marker dir found) or exit 2 (skill-marker block),
-  # but never a batch-gate block message.
-  ! printf '%s\n' "$output" | grep -qF "batch-work merge gate" || true
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "cannot resolve the lattice home"
+  printf '%s\n' "$output" | grep -qF "LATTICE_BATCH_GATE_HOME"
 }

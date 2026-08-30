@@ -234,3 +234,20 @@ MD
   printf '%s\n' "$output" | grep -qF -- "--extend-budget"
   printf '%s\n' "$output" | grep -qF "deep-review"
 }
+
+@test "symlinked entrypoint resolves back to trusted install, not a consumer fake (tkt-239)" {
+  # Place a fake ensure-python3.sh beside a symlink to bump-fix-cycle.sh. With
+  # resolve_script_dir, the entrypoint resolves through the symlink to the
+  # trusted repo scripts dir -> the REAL ensure-python3.sh runs and the
+  # consumer fake is NOT executed.
+  CONSUMER="$TEST_DIR/consumer/scripts"
+  SENTINEL="$TEST_DIR/fake-python3-ran"
+  mkdir -p "$CONSUMER"
+  ln -s "$BFC" "$CONSUMER/bump-fix-cycle.sh"
+  cat >"$CONSUMER/ensure-python3.sh" <<EOF
+#!/usr/bin/env bash
+printf 'fake\n' > "$SENTINEL"
+EOF
+  run bash "$CONSUMER/bump-fix-cycle.sh" 2>&1
+  [ ! -f "$SENTINEL" ]
+}

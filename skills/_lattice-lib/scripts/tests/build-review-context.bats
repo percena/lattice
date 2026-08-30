@@ -355,3 +355,25 @@ EOF
   if printf '%s\n' "$output" | grep -qF -- '- status: in-progress'; then false; fi
 
 }
+
+@test "symlinked entrypoint resolves back to trusted install, not a consumer fake (tkt-239)" {
+  # Place a fake ensure-python3.sh (exit 0) + fake _lattice-home.sh (sentinel
+  # on source) beside a symlink to build-review-context.sh. With resolve_script_dir,
+  # the entrypoint resolves through the symlink to the trusted repo scripts dir
+  # -> the REAL helpers run and the consumer fake _lattice-home.sh is NOT
+  # sourced (in-process RCE prevention).
+  CONSUMER="$TEST_DIR/consumer/scripts"
+  SENTINEL="$TEST_DIR/fake-home-sourced"
+  mkdir -p "$CONSUMER"
+  ln -s "$BRC" "$CONSUMER/build-review-context.sh"
+  cat >"$CONSUMER/ensure-python3.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+  cat >"$CONSUMER/_lattice-home.sh" <<EOF
+#!/usr/bin/env bash
+printf 'fake\n' > "$SENTINEL"
+EOF
+  run bash "$CONSUMER/build-review-context.sh" 2>&1
+  [ ! -f "$SENTINEL" ]
+}

@@ -36,6 +36,28 @@
 # stdout: single JSON object on success
 set -euo pipefail
 
+# Resolve the physical installed script directory, including when the
+# entrypoint itself was reached through a symlink (tkt-239 — same pattern as
+# ensure-lattice.sh / lattice-init.sh resolve_script_dir). The lexical
+# BASH_SOURCE directory would let a consumer checkout place a fake
+# resolve-integration-branch.sh / _lattice-home.sh beside a symlink to this
+# trusted script and source it in-process (RCE). Both _RIB and SCRIPT_DIR_ENSURE
+# below route through this resolver.
+resolve_script_dir() {
+  local source="$1"
+  local dir target
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    target="$(readlink "$source")"
+    if [[ "$target" == /* ]]; then
+      source="$target"
+    else
+      source="$dir/$target"
+    fi
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
+
 MODE=""
 BRANCH=""
 BASE=""
@@ -228,7 +250,7 @@ fi
 # when on one, or fork-point infer when on a temp branch — BEFORE the blind
 # gh-default fallback. Fixes the dev-vs-main merge-target bug.
 if [[ -z "$BASE" ]]; then
-  _RIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/resolve-integration-branch.sh"
+  _RIB="$(resolve_script_dir "${BASH_SOURCE[0]}")/resolve-integration-branch.sh"
   if [[ -f "$_RIB" ]]; then
     _UB=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || true)
     _RIB_JSON=$(bash "$_RIB" --repo-root "$REPO_ROOT" --user-branch "${_UB:-}" --head "${_UB:-}" --json 2>/dev/null || true)
@@ -581,7 +603,7 @@ export ENSURE_BOUND="$IS_BOUND"
 export ENSURE_ESCAPE_REASON="$ESCAPE_REASON"
 
 # Profile — informational; worktree remains the default.
-SCRIPT_DIR_ENSURE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR_ENSURE="$(resolve_script_dir "${BASH_SOURCE[0]}")"
 ENSURE_PROFILE="strict"
 if [[ -f "$SCRIPT_DIR_ENSURE/_lattice-home.sh" ]]; then
   # shellcheck source=/dev/null

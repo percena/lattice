@@ -77,3 +77,20 @@ setup() {
   [ "$status" -eq 0 ]
   [ ! -f "$LATTICE_BATCH_GATE_HOME/.batch-merge-authorized" ]
 }
+
+@test "check: unresolvable home + env unset -> exit 1 (fail closed, tkt-239)" {
+  # No LATTICE_BATCH_GATE_HOME and not inside a git work tree -> resolve_home
+  # fails. The gate must fail CLOSED (exit 1), not silently allow.
+  NOGIT="${BATS_TEST_TMPDIR:-$(mktemp -d)}/no-git-cwd"
+  mkdir -p "$NOGIT"
+  run bash -c "cd '$NOGIT' && unset LATTICE_BATCH_GATE_HOME && '$GATE_SCRIPT' --check"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "could not resolve lattice home"
+}
+
+@test "check: env override still allows merge when marker absent (tkt-239 regression guard)" {
+  # A resolvable home (env override) with no marker -> allowed. Guards against
+  # the fail-closed change accidentally firing when home IS resolvable.
+  run "$GATE_SCRIPT" --check
+  [ "$status" -eq 0 ]
+}

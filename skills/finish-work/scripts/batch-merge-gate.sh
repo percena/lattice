@@ -86,8 +86,11 @@ HOME_DIR=$(resolve_home 2>/dev/null || true)
 if [[ -z "$HOME_DIR" ]]; then
   echo "Error: could not resolve lattice home (MAIN .lattice/); set LATTICE_BATCH_GATE_HOME" >&2
   if [[ "$ACTION" == "check" ]]; then
-    # Fail OPEN: an unresolved home cannot block a legitimate merge.
-    exit 0
+    # tkt-239: fail CLOSED on --check so a misresolvable home (submodule /
+    # non-standard layout / no .lattice) does not silently bypass an active
+    # .batch-work-active marker. The operator sets LATTICE_BATCH_GATE_HOME or
+    # runs --remove --reason to escape (no silent allow).
+    exit 1
   fi
   exit 1
 fi

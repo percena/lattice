@@ -46,3 +46,49 @@ setup() {
   printf '%s\n' "$output" | grep -qE 'plugin-versions +(pass|skip)'
   if printf '%s\n' "$output" | grep -qF 'does not resolve to a commit'; then false; fi
 }
+
+# ===================== tkt-239: step_symlinks find-rc + plugin_validate note =====================
+
+@test "step_symlinks: find failure surfaces as FAIL, not false green (tkt-239)" {
+  # Extract the ACTUAL step_symlinks from ci-local.sh and exercise it.
+  eval "$(sed -n '/^step_symlinks()/,/^}$/p' "$CI_LOCAL")"
+  export -f step_symlinks
+  local tdir="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  mkdir -p "$tdir/locked"
+  chmod 000 "$tdir/locked" 2>/dev/null || { chmod 755 "$tdir/locked" 2>/dev/null || true; skip "cannot chmod 000 (running as root?)"; }
+  run bash -c "cd '$tdir' && step_symlinks"
+  chmod 755 "$tdir/locked" 2>/dev/null || true
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "find exited non-zero"
+}
+
+@test "step_symlinks: clean tree passes (rc capture does not regress the happy path)" {
+  eval "$(sed -n '/^step_symlinks()/,/^}$/p' "$CI_LOCAL")"
+  export -f step_symlinks
+  local tdir="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  run bash -c "cd '$tdir' && step_symlinks"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "step_plugin_validate: prints installed-version note (tkt-239)" {
+  eval "$(sed -n '/^step_plugin_validate()/,/^}$/p' "$CI_LOCAL")"
+  export -f step_plugin_validate
+  local tbin="${BATS_TEST_TMPDIR:-$(mktemp -d)}/bin"
+  mkdir -p "$tbin"
+  cat >"$tbin/claude" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  --version) echo "1.2.3" ;;
+  plugin) exit 0 ;;
+  *) exit 0 ;;
+esac
+EOF
+  chmod +x "$tbin/claude"
+  local saved_path="$PATH"
+  export PATH="$tbin:$PATH"
+  run bash -c "cd '$REPO_ROOT' && step_plugin_validate"
+  export PATH="$saved_path"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "note: installed claude (1.2.3) differs from CI pin @2.1.216"
+}

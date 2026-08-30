@@ -100,3 +100,55 @@ run_write() {  # <cwd> <file_path>
   [ "$status" -eq 2 ]
   printf '%s\n' "$output" | grep -qF non_base_on_main_clone
 }
+
+# ===================== fail-open advisory (tkt-239) =====================
+
+# Build a sanitized PATH that has the core tools + git + python3 but NOT jq,
+# so `command -v jq` fails while the rest of the hook can still run.
+make_path_without_jq() {
+  local bin="$1"
+  python3 - "$bin" <<'PY'
+import os, shutil, sys
+bin = sys.argv[1]
+os.makedirs(bin, exist_ok=True)
+for tool in ("cat","grep","sed","git","bash","dirname","basename","pwd",
+            "test","find","head","tr","env","printf","cut","sort","uniq","wc",
+            "rm","mkdir","touch","readlink","realpath","python3"):
+    p = shutil.which(tool)
+    if p:
+        try: os.symlink(p, os.path.join(bin, tool))
+        except FileExistsError: pass
+PY
+}
+
+@test "fail-open: missing jq prints once-per-session advisory, exits 0 (tkt-239)" {
+  local sid="dep-adv-$$-$RANDOM"
+  local tdir="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  local bin="$tdir/bin"
+  make_path_without_jq "$bin"
+  # Build the Write payload WITHOUT jq (jq is the dep we simulate as missing).
+  local pfile="$tdir/payload.json"
+  printf '{"tool_name":"Write","tool_input":{"file_path":"%s/.lattice/specs/x.md"},"cwd":"%s","session_id":"%s"}' \
+    "$MAIN_ROOT" "$MAIN_ROOT" "$sid" > "$pfile"
+  run bash -c "TMPDIR='$tdir' PATH='$bin' '$HOOK_SCRIPT' < '$pfile' 2>&1"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "enforcement hook inert"
+  printf '%s\n' "$output" | grep -qF "jq"
+}
+
+@test "fail-open: advisory is once-per-session (not repeated on second call)" {
+  local sid="dep-adv-once-$$-$RANDOM"
+  local tdir="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  local bin="$tdir/bin"
+  make_path_without_jq "$bin"
+  local pfile="$tdir/payload.json"
+  printf '{"tool_name":"Write","tool_input":{"file_path":"%s/.lattice/specs/y.md"},"cwd":"%s","session_id":"%s"}' \
+    "$MAIN_ROOT" "$MAIN_ROOT" "$sid" > "$pfile"
+  run bash -c "TMPDIR='$tdir' PATH='$bin' '$HOOK_SCRIPT' < '$pfile' 2>&1"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "enforcement hook inert"
+  # Second invocation with the SAME session_id -> sentinel exists -> silent.
+  run bash -c "TMPDIR='$tdir' PATH='$bin' '$HOOK_SCRIPT' < '$pfile' 2>&1"
+  [ "$status" -eq 0 ]
+  if printf '%s\n' "$output" | grep -qF "enforcement hook inert"; then false; fi
+}
