@@ -10,7 +10,8 @@
     "negative": [
       { "prompt": "Write an e2e browser story for the login flow with ego-browser", "owner": "run-e2e" },
       { "prompt": "Review PR 42 for material bugs and regressions", "owner": "review-code" },
-      { "prompt": "Chain-review last night's delivered ticket set into a morning digest", "owner": "review-delivery" }
+      { "prompt": "Chain-review last night's delivered ticket set into a morning digest", "owner": "review-delivery" },
+      { "prompt": "Verify the feature for bugs and review the diff", "owner": "review-code" }
     ]
   }
 }
