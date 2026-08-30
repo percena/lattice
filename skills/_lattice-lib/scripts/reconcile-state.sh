@@ -425,11 +425,19 @@ def gh_query(kind, number):
     """Return (data_dict_or_None, error_kind).
 
     error_kind: None (ok) | 'not_found' | 'unknown'
+
+    The JSON field set is parameterized by kind (tkt-238 H4): `mergedAt` is a
+    valid `gh pr view` field but NOT a valid `gh issue view` field — real gh
+    (2.92.0) rejects it with `Unknown JSON field: "mergedAt"`, exit 1. A single
+    shared `state,closedAt,mergedAt,url` set therefore made every issue query
+    fail as `unknown` → exit 2 before any drift detection ran. Issues use
+    `state,closedAt,url`; PRs add `mergedAt`.
     """
+    fields = "state,closedAt,url" if kind == "issue" else "state,closedAt,mergedAt,url"
     try:
         cmd = [gh_bin, kind, "view", str(number),
                "--repo", target_full,
-               "--json", "state,closedAt,mergedAt,url"]
+               "--json", fields]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if r.returncode == 0 and r.stdout.strip():
             return json.loads(r.stdout), None

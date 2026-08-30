@@ -83,6 +83,21 @@ case "$1" in
     ;;
   issue)
     num="$3"
+    # Mirror real gh (2.92.0): `mergedAt` is not a valid `gh issue view`
+    # field. Validate the --json fields so a regression that re-adds
+    # mergedAt to the issue query fails loudly instead of masking the bug
+    # (tkt-238 H4 — the old mock returned canned JSON regardless of fields).
+    _jf=""
+    _sa=("$@")
+    while [[ $# -gt 0 ]]; do
+      if [[ "$1" == "--json" ]]; then _jf="$2"; break; fi
+      shift
+    done
+    set -- "${_sa[@]}"
+    if [[ ",${_jf}," == *",mergedAt,"* ]]; then
+      echo 'Unknown JSON field: "mergedAt"' >&2
+      exit 1
+    fi
     case "$num" in
       7) printf '%s\n' '{"state":"OPEN","closedAt":null,"url":"https://github.com/percena/lattice/issues/7"}' ;;
       *) echo "error: not found" >&2; exit 1 ;;
@@ -495,4 +510,37 @@ EOF
   run_rs --repo attacker/otherrepo
   [ "$status" -eq 2 ]
   printf '%s\n' "$output" | grep -qF "different repository"
+}
+
+# ---------------------------------------------------------------------------
+# tkt-238 H4: gh_query must parameterize --json fields by kind.
+# `mergedAt` is invalid for `gh issue view` (real gh 2.92.0 rejects it); a
+# single shared field set made every issue query fail as `unknown` → exit 2
+# before drift detection ran. The fake gh now validates fields like real gh.
+# ---------------------------------------------------------------------------
+
+@test "tkt-238 H4: issue query omits mergedAt so drift detection runs (ok:true)" {
+  write_binder "queued" "(none yet)"
+  make_fake_gh
+  run_rs
+  # With the fix, the issue query uses state,closedAt,url (no mergedAt) → the
+  # field-validating fake gh returns the OPEN issue → reconciliation reaches
+  # ok:true. Pre-fix this exited 2 (unknown) because mergedAt was rejected.
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "ok=true"
+  # The logged issue command must use the no-mergedAt field set.
+  issue_line=$(grep -F 'issue view 7' "$GH_LOG")
+  printf '%s\n' "$issue_line" | grep -qF -- "--json state,closedAt,url"
+  # And must NOT carry mergedAt on the issue path.
+  [ -z "$(printf '%s' "$issue_line" | grep -F mergedAt)" ]
+}
+
+@test "tkt-238 H4: pr query still carries mergedAt (unaffected)" {
+  write_binder "pr-open" "pr-12 — https://github.com/percena/lattice/pull/12"
+  make_fake_gh
+  run_rs
+  # PR queries keep mergedAt (valid for `gh pr view`); the logged pr command
+  # carries the full field set.
+  pr_line=$(grep -F 'pr view 12' "$GH_LOG")
+  printf '%s\n' "$pr_line" | grep -qF -- "--json state,closedAt,mergedAt,url"
 }
