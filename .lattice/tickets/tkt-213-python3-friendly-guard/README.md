@@ -24,7 +24,7 @@
 | **primary_ticket** | tkt-213 (this issue) — owner of the ship (one PR) |
 | **related_tickets** | (none) |
 | **worktree_bind** | `spc-212-python3-friendly-guard` (open-time spc bind; reused for this single-ticket ship) |
-| worktree | sibling `/Users/mxue/GitRepos/MVP/lattice.worktrees/spc-212-python3-friendly-guard/` |
+| worktree | sibling `spc-212-python3-friendly-guard` |
 | prs | pr-214 — https://github.com/percena/lattice/pull/214 |
 
 ## Acceptance (this slice)

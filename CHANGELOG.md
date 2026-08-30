@@ -6,19 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Changed
-
-- **Release-train retirement (spc-116, ADR-005, #117–#120)** — the strict per-landing version-bump law ("bundled content changed without a version increment") now fires only at the dev→main **release boundary** (`--release-check` flag, base-ref = `origin/main`); dev landings enforce only the non-decrease hard bottom. This retires the entire train compensation mechanism: `train_cut_shared()`, `--no-train`, the linear-push guard, the batch-work orchestrator unified-cut step, and spawn-brief contract item 6 are all deleted. `finish-work` gains a dev→main pre-merge version-bump check step. `ci-local` defaults to lenient dev-mode; `--release-check` simulates the main-boundary strict pass. The train mechanism (tkt-60, tkt-114) existed solely to suppress false-positive reds on an integration branch with no cache consumers.
-
 ## [0.3.0] - 2026-08-27
 
-Runtime verification loop (spc-104, rev-20260827-042618Z; #105–#108): released as a shared train cut — #105 owns the bump and this entry; the round's other bundled PRs carry byte-identical version files. Stacked on the 0.2.4 round (#97–#103).
+Runtime verification loop (spc-104, rev-20260827-042618Z; #105–#108): released as a shared train cut — #105 owns the bump and this entry; the round's other bundled PRs carry byte-identical version files. Stacked on the 0.2.4 round (#97–#103). This is the first dev→main promotion (main was 0.1.9); the merge-time bullets below — including the release-train retirement — land with 0.3.0 on main.
 
 ### Added
 
 - **`verify-features` skill (tkt-105, #105)** — the 14th user-facing skill: full-feature runtime verification. Mines Spec `A*`/ticket lineage into a committed `.lattice/feature-map.md` (features + cited expected behavior + mutation class + verification stamps; single-writer), designs per-feature e2e stories with an oracle hierarchy (spec-derived > doc-derived > generic invariants) and a universal invariant bundle (page/console/http errors, dead ends, mutation round-trip), executes bounded waves on the `run-e2e`/ego-browser substrate, triages failures, and files real bugs as tickets with Reproduction Steps that feed start-work's Phase 0c repro loop. Mutation-safety INVARIANT: destructive surfaces are never exercised without per-feature written operator authorization; safe mutations only in the operator's e2e env allowlist.
 - **Feature-map template + validator checks (tkt-105, #105)** — `_lattice-lib/references/templates/feature-map.md`; `validate-lattice-artifacts.py` gains `feature_map_status` (error) and `feature_map_row_format` (warning) when `.lattice/feature-map.md` exists.
 
+
+### Changed
+
+- **Release-train retirement (spc-116, ADR-005, #117–#120)** — the strict per-landing version-bump law ("bundled content changed without a version increment") now fires only at the dev→main **release boundary** (`--release-check` flag, base-ref = `origin/main`); dev landings enforce only the non-decrease hard bottom. This retires the entire train compensation mechanism: `train_cut_shared()`, `--no-train`, the linear-push guard, the batch-work orchestrator unified-cut step, and spawn-brief contract item 6 are all deleted. `finish-work` gains a dev→main pre-merge version-bump check step. `ci-local` defaults to lenient dev-mode; `--release-check` simulates the main-boundary strict pass. The train mechanism (tkt-60, tkt-114) existed solely to suppress false-positive reds on an integration branch with no cache consumers.
 
 ### Also in 0.3.0 (merge-time bullets, train members)
 

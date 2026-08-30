@@ -22,7 +22,7 @@
 | primary_ticket | true | |
 | related_tickets | (none) | |
 | worktree_bind | tkt-211 | |
-| worktree | /Users/mxue/GitRepos/MVP/lattice.worktrees/tkt-211-verify-after-mutate | |
+| worktree | sibling tkt-211-verify-after-mutate | |
 | prs | pr-215 — https://github.com/percena/lattice/pull/215 | |
 | created | 2026-08-29T14:08:00Z | |
 | updated | 2026-08-29T14:53:18Z | |
