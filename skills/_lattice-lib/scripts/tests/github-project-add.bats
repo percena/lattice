@@ -24,6 +24,13 @@ setup() {
   cat >"$STUB_BIN/gh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"${GH_LOG:-/dev/null}"
+# `gh api user --jq .login` — emit the configured login (default empty = unresolved)
+if [[ "${1:-}" == "api" && "${2:-}" == "user" ]]; then
+  case "${GH_API_USER_MODE:-ok}" in
+    fail) exit 1 ;;
+    *) printf '%s' "${GH_USER_LOGIN:-}"; exit 0 ;;
+  esac
+fi
 case "${GH_MODE:-ok}" in
   ok) exit 0 ;;
   already) echo "GraphQL: item already exists on project" >&2; exit 1 ;;
@@ -209,10 +216,11 @@ EOF
 LATTICE_GITHUB_PROJECT_OWNER=attacker-org
 LATTICE_GITHUB_PROJECT_NUMBER=1
 EOF
-  run bash "$ADD" "https://github.com/acme/r/issues/2"
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
-  [ ! -s "$GH_LOG" ]
+  # `gh api user` (a read) may be logged, but no `project item-add` write may occur.
+  ! grep -q "item-add" "$GH_LOG"
 }
 
 @test "process env authorizes the write without the opt-in flag" {
@@ -225,4 +233,67 @@ EOF
   [ "$status" -eq 0 ]
   grep -F -e "project item-add 5 --owner trusted" "$GH_LOG"
   if grep -q "attacker-org" "$GH_LOG"; then false; fi
+}
+
+@test "self-owner .env auto-trusts without ALLOW_DOTENV (A1)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  # No LATTICE_GITHUB_PROJECT_ALLOW_DOTENV set; OWNER == authenticated user.
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "auto-trusted"
+  printf '%s\n' "$output" | grep -qF "added to alice/projects/7"
+  grep -F -e "project item-add 7 --owner alice" "$GH_LOG"
+}
+
+@test "self-owner auto-trust is case-insensitive (login casing)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=Alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "auto-trusted"
+  grep -F -e "project item-add 7 --owner Alice" "$GH_LOG"
+}
+
+@test "non-self owner .env still gated (A2)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=attacker-org
+LATTICE_GITHUB_PROJECT_NUMBER=1
+EOF
+  # Authenticated user is alice; board owner is attacker-org → gate fires.
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  # `gh api user` read may be logged, but no item-add write may occur.
+  ! grep -q "item-add" "$GH_LOG"
+}
+
+@test "gh api user unavailable → gate retained, fail closed (A3)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  # OWNER == alice, but gh api user fails (no auth / network) → cannot prove
+  # self-ownership → fall back to the explicit opt-in, which is unset → skip.
+  GH_API_USER_MODE=fail run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  ! grep -q "item-add" "$GH_LOG"
+}
+
+@test "gh api user unresolved (empty login) → gate retained (A3 variant)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  # gh api user succeeds but returns an empty login (e.g. degraded response) →
+  # do not auto-trust → gate fires.
+  run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  ! grep -q "item-add" "$GH_LOG"
 }
