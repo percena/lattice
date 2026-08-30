@@ -10,7 +10,9 @@
     "negative": [
       { "prompt": "Review PR 42 for material bugs and regressions", "owner": "review-code" },
       { "prompt": "Merge PR 42 and clean up the worktree", "owner": "finish-work" },
-      { "prompt": "Persist a durable architecture Review with spawn_spec outcome", "owner": "create-review" }
+      { "prompt": "Persist a durable architecture Review with spawn_spec outcome", "owner": "create-review" },
+      { "prompt": "Review the delivered PR diff for bugs and regressions before merge", "owner": "review-code" },
+      { "prompt": "Review the delivered batch for production readiness and rollback safety", "owner": "review-production" }
     ]
   }
 }

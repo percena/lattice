@@ -5,7 +5,9 @@
     "positive": [
       { "prompt": "Is PR 42 production ready across security performance tests and rollback", "top_k": 1 },
       { "prompt": "Run a production readiness review of this pull request", "top_k": 1 },
-      { "prompt": "检查这个 PR 是否可以上线，重点看安全、性能、测试和回滚", "top_k": 1 }
+      { "prompt": "检查这个 PR 是否可以上线，重点看安全、性能、测试和回滚", "top_k": 1 },
+      { "prompt": "Review the delivered batch for production readiness and rollback safety", "top_k": 1 },
+      { "prompt": "Review the delivered ticket set for production readiness and security", "top_k": 1 }
     ],
     "negative": [
       { "prompt": "Review this PR diff only for material correctness bugs", "owner": "review-code" },
