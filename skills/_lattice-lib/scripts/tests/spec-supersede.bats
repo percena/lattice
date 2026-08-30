@@ -281,3 +281,104 @@ MD
   printf '%s\n' "$output" | grep -qE "tkt-11.*no binder found"
   grep -qE '\| status \| deferred \|' "$REPO/.lattice/tickets/tkt-10-queued/README.md"
 }
+
+# ---------------------------------------------------------------------------
+# tkt-237 M1: read-before-lock TOCTOU. The dir lock must guard the WHOLE
+# read-modify-write (lock BEFORE read), so a concurrent stamp (queued ->
+# pr-open + prs entry) in the read->replace window is not lost on overwrite.
+# Deterministic: a locker holds LOCK_EX, the sweep blocks on the lock, the
+# locker stamps pr-open on disk while the sweep waits, then releases. The
+# sweep must re-read under the lock (see pr-open) and skip — NOT overwrite
+# the pr-open stamp with deferred computed from a stale queued read.
+# ---------------------------------------------------------------------------
+
+@test "M1 TOCTOU: concurrent stamp during sweep's lock-wait is not lost (re-read under lock)" {
+  write_spec "10"
+  write_binder 10 queued "queued" "| wait_reason | (none) |"
+  commit_all
+
+  BINDER_DIR10="$REPO/.lattice/tickets/tkt-10-queued"
+  # Barrier files coordinate the race deterministically (heredoc bodies are
+  # data; the flock calls below run in the background subshell, not as bats
+  # assertions, so check-bats-assertions stays clean).
+  (
+    BBD="$BINDER_DIR10" python3 - "$BINDER_DIR10/README.md" <<'PY'
+import fcntl, os, sys, time
+binder = sys.argv[1]
+d = os.path.dirname(binder) or "."
+fd = os.open(d, os.O_RDONLY)
+fcntl.flock(fd, fcntl.LOCK_EX)
+# signal: the lock is held; the sweep may now start and block on it.
+open(os.path.join(d, ".race-locked"), "w").close()
+# wait for the sweep to be blocked on the lock (race-go sentinel).
+for _ in range(200):
+    if os.path.exists(os.path.join(d, ".race-go")):
+        break
+    time.sleep(0.01)
+# concurrent stamp: flip queued -> pr-open on disk while the sweep waits.
+import re
+s = open(binder, encoding="utf-8").read()
+s = re.sub(r'^(\|\s*status\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
+           r'\1 pr-open \2', s, count=1, flags=re.MULTILINE)
+open(binder, "w", encoding="utf-8").write(s)
+fcntl.flock(fd, fcntl.LOCK_UN)
+os.close(fd)
+PY
+  ) &
+  LOCKER_PID=$!
+
+  # wait until the locker holds the lock (deterministic barrier)
+  for _ in $(seq 1 200); do
+    [ -f "$BINDER_DIR10/.race-locked" ] && break
+    sleep 0.01
+  done
+  # release the locker's sentinel so it stamps + releases the lock
+  : >"$BINDER_DIR10/.race-go"
+  run bash "$SS" --spec "$SPECS_DIR/spc-5-old.md"
+  wait $LOCKER_PID
+  rm -f "$BINDER_DIR10/.race-locked" "$BINDER_DIR10/.race-go"
+
+  [ "$status" -eq 0 ]
+  # the concurrent pr-open stamp was NOT overwritten by a stale deferred stamp
+  grep -qE '\| status \| pr-open \|' "$BINDER_DIR10/README.md"
+  if grep -qE '\| status \| deferred \|' "$BINDER_DIR10/README.md"; then false; fi
+  # the sweep read the fresh pr-open under the lock and skipped (not stampable)
+  printf '%s\n' "$output" | grep -qE "tkt-10.*skip"
+  printf '%s\n' "$output" | grep -qE "0 binder\(s\) stamped"
+}
+
+# ---------------------------------------------------------------------------
+# tkt-237 M2: mutate-all-then-commit. A prior sweep stamped a binder on disk
+# but its `git commit` failed mid-loop, leaving the stamp uncommitted. A
+# re-run's idempotent skip would strand it (bash commits nothing). The
+# recovery path detects the on-disk-stamped-but-uncommitted binder and emits
+# it for bash to commit.
+# ---------------------------------------------------------------------------
+
+@test "M2 recovery: on-disk-stamped-but-uncommitted binder is committed on re-run" {
+  write_spec "10"
+  write_binder 10 queued "queued" "| wait_reason | (none) |"
+  commit_all
+  # Simulate a prior sweep that stamped the binder on disk but never committed
+  # it (git commit failed mid-loop): flip the rows on disk, leave uncommitted.
+  sed -i.bak 's/| status | queued |/| status | deferred |/; s/| wait_reason | (none) |/| wait_reason | spec-superseded |/' \
+    "$REPO/.lattice/tickets/tkt-10-queued/README.md"
+  rm -f "$REPO/.lattice/tickets/tkt-10-queued/README.md.bak"
+  # the on-disk stamp IS uncommitted (differs from HEAD)
+  if git -C "$REPO" diff --quiet HEAD -- .lattice/tickets/tkt-10-queued/README.md; then false; fi
+
+  local before
+  before=$(git -C "$REPO" rev-list --count HEAD)
+  run bash "$SS" --spec "$SPECS_DIR/spc-5-old.md"
+  [ "$status" -eq 0 ]
+  local after
+  after=$(git -C "$REPO" rev-list --count HEAD)
+  # exactly one commit written (the recovered stamp), binder now committed
+  [ $((after - before)) -eq 1 ]
+  printf '%s\n' "$output" | grep -qE "re-committed"
+  # the binder matches HEAD now (no longer uncommitted)
+  git -C "$REPO" diff --quiet HEAD -- .lattice/tickets/tkt-10-queued/README.md
+  # and the stamp is intact
+  grep -qE '\| status \| deferred \|' "$REPO/.lattice/tickets/tkt-10-queued/README.md"
+  grep -qE '\| wait_reason \| spec-superseded \|' "$REPO/.lattice/tickets/tkt-10-queued/README.md"
+}

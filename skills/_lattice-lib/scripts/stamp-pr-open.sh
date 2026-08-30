@@ -56,11 +56,11 @@ mirrors only checked boxes (unchecked binder boxes sync nothing).
               (a line containing "defer") — deferred items force explicit
               per-box checking.
   --force-side-state  override the side-state guard. A binder parked/stuck/
-              rework holds an external signal that a pr-open stamp would
-              silently lose; the guard REFUSES the flip without this flag.
-              The override requires --reason and writes a structured trace to
-              the binder ## Decision journal (operator-adjudicated per
-              ADR-007 sec.5b; no default break-glass).
+              rework/deferred holds an external signal that a pr-open stamp
+              would silently lose; the guard REFUSES the flip without this
+              flag. The override requires --reason and writes a structured
+              trace to the binder ## Decision journal (operator-adjudicated
+              per ADR-007 sec.5b; no default break-glass).
   --reason    rationale for --force-side-state (required with that flag).
   --dry-run   report what would change; mutate nothing (binder or GitHub).
 EOF
@@ -365,12 +365,14 @@ if check_all:
 # --- status row → pr-open with the side-state guard (tkt-189 / spc-186 A2) --
 # Vocabulary + policy single-sourced in lib/status_vocab.py. Never regress a
 # closed ticket (finish-ledger owns the terminal stamp). Side states
-# (parked/stuck/rework) hold an external signal a pr-open stamp would
-# silently lose: REFUSE without --force-side-state --reason, which journals a
-# structured operator-adjudicated trace (ADR-007 sec.5b; no default
-# break-glass). queued → pr-open is a direct jump: allowed but WARN-
-# journaled so the "started" signal is logged, not silently lost (in-progress
-# → pr-open stays the default, ungated, no trace).
+# (parked/stuck/rework/deferred) hold an external signal a pr-open stamp
+# would silently lose: REFUSE without --force-side-state --reason, which
+# journals a structured operator-adjudicated trace (ADR-007 sec.5b; no
+# default break-glass). tkt-237 M3: deferred was missing from the guard
+# (hit the else branch → silent flip); now guarded like the rest. queued →
+# pr-open is a direct jump: allowed but WARN-journaled so the "started"
+# signal is logged, not silently lost (in-progress → pr-open stays the
+# default, ungated, no trace).
 def append_journal_trace(text, entry):
     """Append a dated bullet to ## Decision journal, creating the section if
     absent (mirrors ratify.sh). Returns the new text."""
@@ -405,7 +407,8 @@ elif status_vocab.is_side_state(prior):
             f"stamp-pr-open: REFUSED — binder status is `{prior}` (side state). "
             f"A pr-open stamp would silently lose the {prior} signal "
             f"(parked=decision pending / stuck=needs investigation / "
-            f"rework=PR returned). To override: --force-side-state "
+            f"rework=PR returned / deferred=spec-superseded|blocked-by-failure|"
+            f"fuse-halt). To override: --force-side-state "
             f"--reason \"<operator-adjudicated rationale>\"",
             file=sys.stderr,
         )

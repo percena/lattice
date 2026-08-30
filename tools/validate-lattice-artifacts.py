@@ -65,9 +65,11 @@ STATUS_TERMINAL = frozenset({"closed"})
 STATUS_LEGACY = frozenset({"open"})
 STATUS_OK = STATUS_WORKING | STATUS_TERMINAL | STATUS_LEGACY
 # Side states hold an external signal a pr-open stamp must not silently
-# overwrite (parked/stuck/rework); stamp-pr-open refuses the flip without an
-# explicit --force-side-state --reason override (ADR-007 sec.5b).
-SIDE_STATES = frozenset({"parked", "stuck", "rework"})
+# overwrite (parked/stuck/rework/deferred); stamp-pr-open refuses the flip
+# without an explicit --force-side-state --reason override (ADR-007 sec.5b).
+# tkt-237 M3: deferred added (was missing — silent flip to pr-open lost the
+# deferred signal). MUST stay parity-equal with lib/status_vocab.py.
+SIDE_STATES = frozenset({"parked", "stuck", "rework", "deferred"})
 # queued -> pr-open is allowed but WARN-journaled (in-progress is the default).
 DIRECT_JUMP_SOURCES = frozenset({"queued"})
 _NONTERMINAL_VALUES = sorted(

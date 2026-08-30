@@ -13,8 +13,8 @@ Canon (ADR-004 sec.6 / spc-42 A4, extended by ADR-007 sec.4 for the side-state
 guard): working = queued | in-progress | parked | stuck | pr-open | rework |
 deferred, legacy = open (lazy migration), terminal = closed. merged vs
 closed-without-merge is read from the ## Finish ledger's mergedAt, not a
-separate status value. Side states (parked/stuck/rework) hold an external
-signal; a pr-open stamp crossing them is a red-line (ADR-007 sec.5b):
+separate status value. Side states (parked/stuck/rework/deferred) hold an
+external signal; a pr-open stamp crossing them is a red-line (ADR-007 sec.5b):
 refused without an explicit operator-adjudicated override that journals a
 structured trace; no default break-glass.
 """
@@ -36,12 +36,17 @@ STATUS_OK = STATUS_WORKING | STATUS_TERMINAL | STATUS_LEGACY
 
 # Side states hold an external signal (parked = irreversible / cross-contract
 # decision pending; stuck = needs human investigation; rework = PR returned
-# with findings). A pr-open stamp from these is a red-line crossing
-# (ADR-007 sec.5b): the signal must not be silently lost. stamp-pr-open
-# refuses the flip without an explicit --force-side-state --reason override
-# that journals a structured trace; the override is operator-adjudicated
-# (double-confirm), no agent self-adjudication.
-SIDE_STATES = frozenset({"parked", "stuck", "rework"})
+# with findings; deferred = a deferral reason — spec-superseded /
+# blocked-by-failure / fuse-halt — that the morning digest must surface). A
+# pr-open stamp from these is a red-line crossing (ADR-007 sec.5b): the
+# signal must not be silently lost. stamp-pr-open refuses the flip without
+# an explicit --force-side-state --reason override that journals a
+# structured trace; the override is operator-adjudicated
+# (double-confirm), no agent self-adjudication. (tkt-237 M3: `deferred` was
+# missing from this set — a deferred binder hit stamp-pr-open's else branch
+# and silently flipped to pr-open with no journal trace, losing the
+# deferred signal. finish-ledger.sh:442 already lists deferred as anomalous.)
+SIDE_STATES = frozenset({"parked", "stuck", "rework", "deferred"})
 
 # Direct-jump policy: queued -> pr-open is allowed (an agent may open a PR
 # without an in-progress stamp when work is trivial), but the jump is

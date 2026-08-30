@@ -147,7 +147,7 @@ export SS_DRY_RUN="$DRY_RUN"
 # Python returns one mutated binder repo-relative path per line (after the
 # STATUS marker line). Bash commits each one atomically below.
 SWEEP_OUT=$(python3 - <<'PY'
-import datetime, fcntl, glob, os, re, stat, sys, tempfile
+import datetime, fcntl, glob, os, re, stat, subprocess, sys, tempfile
 
 sys.path.insert(0, os.environ["SS_LIB"])
 import status_vocab
@@ -234,83 +234,15 @@ for n in ticket_nums:
     binder = os.path.realpath(candidates[0])
     binder_dir = os.path.dirname(binder)
 
-    # Read binder + parse status / wait_reason from the first table block.
-    s = open(binder, encoding="utf-8").read()
-    table = first_table_block(s)
-    status = table_field(table, "status").strip().lower()
-    wait_reason = table_field(table, "wait_reason").strip()
-
-    # Idempotent: already deferred via spec-superseded.
-    if status == "deferred" and wait_reason == "spec-superseded":
-        report.append((n, status, "skip", "already stamped (idempotent)"))
-        continue
-
-    if status not in STAMPABLE:
-        report.append((n, status or "(none)", "skip",
-                        "terminal / side-state / pr-open / legacy" if status else "no status row"))
-        continue
-
-    if dry_run:
-        report.append((n, status, "would-stamp", "deferred + spec-superseded"))
-        continue
-
-    # --- Contained read-modify-write (lock + atomic replace) ---------------
-    orig = s
-    # 1. Flip status -> deferred (preserve the row shape: [ \t] not \s so the
-    #    regex cannot swallow the trailing newline / merge the table). Group 2
-    #    is the bare value-column-closing pipe (trailing [ \t]* eats whitespace
-    #    before it) so the replacement yields `| status | deferred |` cleanly.
-    s = re.sub(r'^(\|\s*status\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
-               r'\1 deferred \2', s, count=1, flags=re.MULTILINE)
-
-    # 2. Set wait_reason -> spec-superseded. Update the value column in place
-    #    when the row exists (preserving any description column); insert a new
-    #    row after the status row when absent.
-    wr_row = re.compile(r'^(\|\s*wait_reason\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
-                        re.MULTILINE)
-    if wr_row.search(s):
-        s = wr_row.sub(r'\1 spec-superseded \2', s, count=1)
-    else:
-        # Insert after the status row, mirroring its column count so the table
-        # stays well-formed. A 3-col status row (4 pipes) gets a 3-col insert;
-        # a 2-col row gets a 2-col insert.
-        status_row = re.search(r'^(\|\s*status\s*\|[ \t]*[^|]*?[ \t]*\|[ \t]*[^\n]*)\n',
-                               s, re.MULTILINE)
-        if status_row:
-            row = status_row.group(1)
-            pipe_count = row.count("|")
-            if pipe_count >= 4:
-                new_row = "| wait_reason | spec-superseded | (spec superseded) |"
-            else:
-                new_row = "| wait_reason | spec-superseded |"
-            s = s[:status_row.end()] + new_row + "\n" + s[status_row.end():]
-        # else: no status row — the status flip above already failed silently;
-        # the no-change guard below refuses the write.
-
-    # 3. Journal entry under ## Decision journal.
-    entry = (f"- spec {superseded_by} supersedes this ticket's Spec — "
-             f"stamp deferred + spec-superseded (supersede sweep {stamp})")
-    m_hdr = re.search(r'^## Decision journal[ \t]*\n', s, re.MULTILINE)
-    if m_hdr:
-        body_start = m_hdr.end()
-        tail = s[body_start:]
-        bnd = re.search(r'\n## ', tail)
-        if bnd:
-            body, trailing = tail[:bnd.start()], tail[bnd.start():]
-        else:
-            body, trailing = tail, ""
-        stripped = body.strip("\n")
-        new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
-        s = s[:body_start] + "\n" + new_body + trailing
-
-    # 4. Bump `updated` atomically with the status flip (spc-186 A4).
-    s = binder_rows.stamp_updated(s, stamp)
-
-    if s == orig:
-        report.append((n, status, "skip", "no mutation (status row missing?)"))
-        continue
-
-    # Atomic replace: temp + fsync + rename, under an exclusive dir lock.
+    # --- Locked read-modify-write (lock BEFORE read — tkt-237 M1) ----------
+    # The directory lock guards the WHOLE read-modify-write, not just the
+    # replace. The prior code read the binder at :238, parsed, mutated, then
+    # acquired flock only at the os.replace — a concurrent stamp
+    # (queued->pr-open + prs entry) in that window was lost on overwrite
+    # (read-before-lock TOCTOU). Acquire the exclusive lock BEFORE reading so
+    # the parsed status/wait_reason are the latest on-disk values, and re-check
+    # the idempotent/stampable predicates under the lock (compare
+    # ratify.sh:186 which re-reads inside the lock).
     lock_fd = os.open(binder_dir, os.O_RDONLY)
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
@@ -320,6 +252,100 @@ for n in ticket_nums:
               file=sys.stderr)
         sys.exit(1)
     try:
+        # Read binder + parse status / wait_reason from the first table block.
+        s = open(binder, encoding="utf-8").read()
+        table = first_table_block(s)
+        status = table_field(table, "status").strip().lower()
+        wait_reason = table_field(table, "wait_reason").strip()
+
+        # Idempotent: already deferred via spec-superseded.
+        if status == "deferred" and wait_reason == "spec-superseded":
+            # tkt-237 M2 recovery: a prior run stamped this binder on disk
+            # but its `git commit` failed mid-loop, leaving the stamp
+            # uncommitted. The idempotent skip would strand it forever (bash
+            # commits nothing on re-run). Detect the uncommitted mutation
+            # (differs from HEAD) and emit it for bash to commit, recovering
+            # the interrupted sweep without manual `git add -A && commit`.
+            rel = os.path.relpath(binder, repo_root)
+            diff_rc = subprocess.run(
+                ["git", "-C", repo_root, "diff", "--quiet", "HEAD", "--", rel],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            ).returncode
+            if diff_rc == 0:
+                report.append((n, status, "skip", "already stamped (idempotent)"))
+                continue
+            mutated.append(rel)
+            report.append((n, status, "stamped",
+                           "re-committed on-disk-stamped-but-uncommitted binder "
+                           "(prior sweep commit failed mid-loop — M2 recovery)"))
+            continue
+
+        if status not in STAMPABLE:
+            report.append((n, status or "(none)", "skip",
+                            "terminal / side-state / pr-open / legacy" if status else "no status row"))
+            continue
+
+        if dry_run:
+            report.append((n, status, "would-stamp", "deferred + spec-superseded"))
+            continue
+
+        # --- Contained read-modify-write mutations (under the lock) --------
+        orig = s
+        # 1. Flip status -> deferred (preserve the row shape: [ \t] not \s so the
+        #    regex cannot swallow the trailing newline / merge the table). Group 2
+        #    is the bare value-column-closing pipe (trailing [ \t]* eats whitespace
+        #    before it) so the replacement yields `| status | deferred |` cleanly.
+        s = re.sub(r'^(\|\s*status\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
+                   r'\1 deferred \2', s, count=1, flags=re.MULTILINE)
+
+        # 2. Set wait_reason -> spec-superseded. Update the value column in place
+        #    when the row exists (preserving any description column); insert a new
+        #    row after the status row when absent.
+        wr_row = re.compile(r'^(\|\s*wait_reason\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
+                            re.MULTILINE)
+        if wr_row.search(s):
+            s = wr_row.sub(r'\1 spec-superseded \2', s, count=1)
+        else:
+            # Insert after the status row, mirroring its column count so the table
+            # stays well-formed. A 3-col status row (4 pipes) gets a 3-col insert;
+            # a 2-col row gets a 2-col insert.
+            status_row = re.search(r'^(\|\s*status\s*\|[ \t]*[^|]*?[ \t]*\|[ \t]*[^\n]*)\n',
+                                   s, re.MULTILINE)
+            if status_row:
+                row = status_row.group(1)
+                pipe_count = row.count("|")
+                if pipe_count >= 4:
+                    new_row = "| wait_reason | spec-superseded | (spec superseded) |"
+                else:
+                    new_row = "| wait_reason | spec-superseded |"
+                s = s[:status_row.end()] + new_row + "\n" + s[status_row.end():]
+            # else: no status row — the status flip above already failed silently;
+            # the no-change guard below refuses the write.
+
+        # 3. Journal entry under ## Decision journal.
+        entry = (f"- spec {superseded_by} supersedes this ticket's Spec — "
+                 f"stamp deferred + spec-superseded (supersede sweep {stamp})")
+        m_hdr = re.search(r'^## Decision journal[ \t]*\n', s, re.MULTILINE)
+        if m_hdr:
+            body_start = m_hdr.end()
+            tail = s[body_start:]
+            bnd = re.search(r'\n## ', tail)
+            if bnd:
+                body, trailing = tail[:bnd.start()], tail[bnd.start():]
+            else:
+                body, trailing = tail, ""
+            stripped = body.strip("\n")
+            new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
+            s = s[:body_start] + "\n" + new_body + trailing
+
+        # 4. Bump `updated` atomically with the status flip (spc-186 A4).
+        s = binder_rows.stamp_updated(s, stamp)
+
+        if s == orig:
+            report.append((n, status, "skip", "no mutation (status row missing?)"))
+            continue
+
+        # Atomic replace: temp + fsync + rename (the dir lock is already held).
         mode = os.stat(binder).st_mode
         fd, tmp = tempfile.mkstemp(dir=binder_dir, prefix=".supersede.", suffix=".tmp")
         try:
@@ -333,15 +359,15 @@ for n in ticket_nums:
             if os.path.exists(tmp):
                 os.unlink(tmp)
             raise
+
+        rel = os.path.relpath(binder, repo_root)
+        mutated.append(rel)
+        report.append((n, "deferred", "stamped", "deferred + spec-superseded"))
     finally:
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_UN)
         finally:
             os.close(lock_fd)
-
-    rel = os.path.relpath(binder, repo_root)
-    mutated.append(rel)
-    report.append((n, "deferred", "stamped", "deferred + spec-superseded"))
 
 # --- Report + emit mutated paths for bash to commit ------------------------
 print("spec-supersede: sweep report", file=sys.stderr)
