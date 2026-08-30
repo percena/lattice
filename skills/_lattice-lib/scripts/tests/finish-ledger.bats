@@ -728,3 +728,50 @@ PY
   grep -q '(none yet)' "$BINDER"
   if grep -q '^- cancelled:' "$BINDER"; then false; fi
 }
+
+@test "cancel with null closedAt stamps a visible unavailable marker (tkt-242 L4)" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":null}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "dup of #9" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  # NOT a silent dateless cancel — a visible closedAt-unavailable marker
+  grep -q '^- cancelled: dup of #9 — closedAt: unavailable (issue #7 CLOSED but closedAt null)' "$BINDER"
+  # no fabricated ISO date on the cancel line
+  if grep -qE '^- cancelled: dup of #9 — 20[0-9]{2}-[0-9]{2}-[0-9]{2}T' "$BINDER"; then false; fi
+  # terminal evidence exists (issue closed) so status still flips to closed
+  grep -qE '\| status \| closed \|' "$BINDER"
+  # no fabricated PR evidence
+  if grep -qE '^- pr-' "$BINDER"; then false; fi
+}
+
+@test "cancel with null closedAt is idempotent (re-run updates the marker, not a duplicate line) (tkt-242 L4)" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":null}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "first" \
+    --issue 7 --binder "$BINDER" >/dev/null
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "second" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^- cancelled:' "$BINDER")" -eq 1 ]
+  grep -q '^- cancelled: second — closedAt: unavailable' "$BINDER"
+  if grep -q '^- cancelled: first' "$BINDER"; then false; fi
+}

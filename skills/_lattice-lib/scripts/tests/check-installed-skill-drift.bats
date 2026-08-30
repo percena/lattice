@@ -29,6 +29,8 @@ setup() {
 }
 
 teardown() {
+  # Restore perms on any chmod-000 test subdir so rm -rf can descend (tkt-242 L3).
+  chmod -R u+rwx "$TEST_DIR" 2>/dev/null || true
   rm -rf "$TEST_DIR"
 }
 
@@ -146,4 +148,28 @@ run_check() {
   run bash "$CHECK" --skill-root "$REPO_SKILLS" --installed-dir /no/such/dir
   [ "$status" -eq 2 ]
   printf '%s\n' "$output" | grep -qiE 'installed skill home not found'
+}
+
+@test "unreadable subdir does not abort the drift check and leaks no mktemp (tkt-242 L3)" {
+  # An unreadable subdir makes find exit nonzero; under pipefail+set -e that
+  # used to abort the rel_files pipeline and leak the repo_set/inst_set mktemp.
+  mkdir -p "$REPO_SKILLS/start-work/secret"
+  printf 'hidden\n' >"$REPO_SKILLS/start-work/secret/file.txt"
+  chmod 000 "$REPO_SKILLS/start-work/secret"
+  # Isolate mktemp (the script uses bare `mktemp`, which honors $TMPDIR) so a
+  # leak is observable as leftover files in a test-private dir.
+  ISOLATED_TMP="$TEST_DIR/tmp"
+  mkdir -p "$ISOLATED_TMP"
+  TMPDIR="$ISOLATED_TMP" \
+    LATTICE_SKILL_ROOT="$REPO_SKILLS" \
+    LATTICE_INSTALLED_SKILL_HOME="$INST_SKILLS" \
+    run bash "$CHECK"
+  # restore perms so teardown can clean up (the run already exited)
+  chmod 755 "$REPO_SKILLS/start-work/secret" 2>/dev/null || true
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qiE 'in sync'
+  # No mktemp leak: the trap (and the `|| true` fix) left nothing behind.
+  leftover=0
+  for f in "$ISOLATED_TMP"/*; do [ -e "$f" ] && leftover=$((leftover + 1)); done
+  [ "$leftover" -eq 0 ]
 }

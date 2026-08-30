@@ -122,7 +122,17 @@ run_wave() {
   count=$M_COUNT
   [[ "$count" -gt 0 ]] || { echo "manifest has 0 tickets" >&2; exit 1; }
 
-  [[ -n "$state_file" ]] || state_file=$(mktemp -t batch-wave-state.XXXXXX)
+  local _state_auto=0
+  [[ -n "$state_file" ]] || { state_file=$(mktemp -t batch-wave-state.XXXXXX); _state_auto=1; }
+  if [[ "$_state_auto" -eq 1 ]]; then
+    # The wave created this temp file; clean it on exit so long unattended
+    # runs don't leak across waves (tkt-242 L2). Single-quoted trap expands
+    # at signal time; _WAVE_STATE_FILE is a shell global (not the run_wave
+    # local) so it still holds the path when the trap fires at EXIT, after
+    # run_wave has returned and the local is gone.
+    _WAVE_STATE_FILE="$state_file"
+    trap 'rm -f -- "$_WAVE_STATE_FILE"' EXIT
+  fi
 
   if [[ "$dry" -eq 1 ]]; then
     echo "dry-run: wave plan ($count tickets, concurrency=$concurrency, ram-threshold=$ram_thr, poll=${poll_interval}s, helper=$spawn_helper)"
@@ -170,7 +180,18 @@ run_wave() {
         pid=$(printf '%s\n' "$out" | sed -n 's/^spawned: pid=\([0-9]*\) .*/\1/p')
         [[ "$pid" =~ ^[0-9]+$ ]] || { STATUS[j]="workspace-failed"; echo "warn: spawn produced no pid for ${M_TICKET[j]}: $out" >&2; continue; }
         PIDS[j]="$pid"; STARTS[j]=$(now_epoch); STATUS[j]="running"
-        echo "spawned: ${M_TICKET[j]} pid=$pid" >&2
+        # Grace-period re-check: an immediate-crash spawn (auth/OOM) would
+        # otherwise be reported `completed` by the barrier's first poll —
+        # indistinguishable from success mid-wave (tkt-242 L2). Probe again
+        # after a short grace; a dead PID here is `spawned-but-dead`, not a
+        # silent completed. Mirrors the spawn helper's own grace re-check.
+        sleep "${SPAWN_GRACE_SEC:-0.3}"
+        if bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
+          echo "spawned: ${M_TICKET[j]} pid=$pid" >&2
+        else
+          STATUS[j]="spawned-but-dead"; ENDS[j]=$(now_epoch)
+          echo "spawned-but-dead: ${M_TICKET[j]} pid=$pid (died within ${SPAWN_GRACE_SEC:-0.3}s grace)" >&2
+        fi
       else
         STATUS[j]="workspace-failed"; echo "warn: spawn failed for ${M_TICKET[j]}: $out" >&2
       fi
@@ -226,7 +247,7 @@ emit_report() {
   lines+=("")
   lines+=("| ticket | pid | worktree | status | timebox_min | duration_s |")
   lines+=("| --- | --- | --- | --- | --- | --- |")
-  local completed=0 timeout=0 failed=0
+  local completed=0 timeout=0 failed=0 spawned_dead=0
   for i in $(seq 0 $((count-1))); do
     local dur=0
     [[ "${ENDS[i]}" -gt 0 ]] && dur=$(( ENDS[i] - STARTS[i] ))
@@ -234,15 +255,17 @@ emit_report() {
     case "${STATUS[i]}" in
       completed) completed=$((completed+1)) ;;
       timeout) timeout=$((timeout+1)) ;;
+      spawned-but-dead) spawned_dead=$((spawned_dead+1)) ;;
       *) failed=$((failed+1)) ;;
     esac
   done
   lines+=("")
   lines+=("## Summary")
-  lines+=("- spawned: $((count - failed))")
+  lines+=("- spawned: $((count - failed - spawned_dead))")
   lines+=("- completed: $completed")
   lines+=("- timeout: $timeout")
   lines+=("- workspace-failed: $failed")
+  lines+=("- spawned-but-dead: $spawned_dead")
   lines+=("")
   lines+=("Host: probe each completed ticket's PR via verify-mutation.sh (spawn-brief item 6).")
   local report_text

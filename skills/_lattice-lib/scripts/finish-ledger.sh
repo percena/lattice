@@ -421,8 +421,16 @@ prior_status = prior_status_match.group(1) if prior_status_match else ""
 if cancel:
     # No-PR cancel: a dated cancel line, never a PR row or mergedAt claim.
     entry_line = f"- cancelled: {reason}"
-    if closed_at and not (issue_m and issue_closed == "true"):
-        entry_line += f" — {closed_at}"
+    if closed_at:
+        if not (issue_m and issue_closed == "true"):
+            entry_line += f" — {closed_at}"
+    elif issue_m and issue_closed == "true":
+        # The issue is confirmed CLOSED but gh returned no closedAt (null).
+        # Stamp a visible gap marker rather than a silent dateless cancel
+        # line that reads like a clean cancel (tkt-242 L4). The status still
+        # flips to closed — terminal evidence (issue closed) exists; only the
+        # timestamp is missing.
+        entry_line += f" — closedAt: unavailable (issue #{issue_m} CLOSED but closedAt null)"
     entry_pat = re.compile(r'^- cancelled: .*$', re.MULTILINE)
 else:
     if merged:

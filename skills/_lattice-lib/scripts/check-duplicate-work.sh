@@ -97,6 +97,14 @@ command -v python3 >/dev/null 2>&1 || HAVE_PYTHON3=false
 COVERAGE_GAPS=()
 add_gap() { COVERAGE_GAPS+=("$1"); }
 
+# gh `list` caps results but surfaces no has-more flag. A high limit keeps the
+# common case complete; when the returned count equals the limit the surface
+# may be silently truncated (a duplicate as the 201st match is never seen),
+# so a coverage gap is reported rather than a clean "OK" verdict that
+# contradicts the header contract ("a missing/failed query never silently
+# narrows the check"). tkt-242 L1.
+LIST_LIMIT="${CDW_LIST_LIMIT:-200}"
+
 # --- Resolve repository ---
 if [[ -z "$REPOSITORY" && "$HAVE_GH" == true ]]; then
   REPOSITORY=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "")
@@ -215,12 +223,18 @@ else
     SEARCH_QUERY="${SEARCH_QUERY}${token}"
   done
 
-  if ! ISSUES_JSON=$(gh issue list --repo "$REPOSITORY" --state open --search "$SEARCH_QUERY" --json number,title,url --limit 30 2>/dev/null); then
+  if ! ISSUES_JSON=$(gh issue list --repo "$REPOSITORY" --state open --search "$SEARCH_QUERY" --json number,title,url --limit "$LIST_LIMIT" 2>/dev/null); then
     add_gap "open-issues unavailable (gh issue list failed)"
   elif ! ISSUE_LINES=$(printf '%s' "$ISSUES_JSON" | jq -c '.[]?' 2>/dev/null); then
     add_gap "open-issues unavailable (unparseable gh issue list output)"
   else
     ISSUES_RAN=true
+    # gh surfaces no has-more flag; a result count equal to the limit means the
+    # surface may be truncated. Report a coverage gap so the verdict is not a
+    # silent "OK" that an unseen older duplicate contradicts (tkt-242 L1).
+    ISSUE_COUNT=$(printf '%s' "$ISSUES_JSON" | jq 'length' 2>/dev/null || echo 0)
+    [[ "$ISSUE_COUNT" -eq "$LIST_LIMIT" ]] && \
+      add_gap "open-issues truncated (returned $ISSUE_COUNT == limit; older matches may be hidden)"
     while IFS= read -r line; do
       [[ -z "$line" ]] && continue
       ISSUE_NUM=$(printf '%s' "$line" | jq -r '.number // empty' 2>/dev/null || echo "")
@@ -321,12 +335,16 @@ elif [[ "$HAVE_JQ" == false ]]; then
   add_gap "open-prs unavailable (jq missing)"
 elif [[ -z "$REPOSITORY" ]]; then
   add_gap "open-prs unavailable (repository unknown)"
-elif ! PRS_JSON=$(gh pr list --repo "$REPOSITORY" --state open --json number,title,url --limit 30 2>/dev/null); then
+elif ! PRS_JSON=$(gh pr list --repo "$REPOSITORY" --state open --json number,title,url --limit "$LIST_LIMIT" 2>/dev/null); then
   add_gap "open-prs unavailable (gh pr list failed)"
 elif ! PR_LINES=$(printf '%s' "$PRS_JSON" | jq -c '.[]?' 2>/dev/null); then
   add_gap "open-prs unavailable (unparseable gh pr list output)"
 else
   PRS_RAN=true
+  # Same truncation guard as the issues surface (tkt-242 L1).
+  PR_COUNT=$(printf '%s' "$PRS_JSON" | jq 'length' 2>/dev/null || echo 0)
+  [[ "$PR_COUNT" -eq "$LIST_LIMIT" ]] && \
+    add_gap "open-prs truncated (returned $PR_COUNT == limit; older matches may be hidden)"
   while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     PR_NUM=$(printf '%s' "$line" | jq -r '.number // empty' 2>/dev/null || echo "")
