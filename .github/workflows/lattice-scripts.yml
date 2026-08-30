@@ -28,8 +28,17 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install bats
-        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Install bats (1.13.0 — matches local + ci-local; #246)
+        # Pin bats-core to v1.13.0 so CI matches the local dev bats (homebrew
+        # 1.13.0) and tools/ci-local.sh. Ubuntu apt only ships bats 1.10.0,
+        # whose `[[ ]]`-masking + recursive test-name handling differs and
+        # makes tools/tests/bats-assertion-ergonomics.bats "semantics proof"
+        # meta-test fail on every PR (#246). install.sh from the v1.13.0 tag
+        # is deterministic (no apt/npm registry version drift).
+        run: |
+          git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+          bats --version
       - name: Run skill script tests (all suites discovered)
         run: |
           mapfile -t suites < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
