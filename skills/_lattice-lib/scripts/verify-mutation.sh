@@ -9,6 +9,16 @@
 # after every gh pr create / gh pr merge / git push, run this to confirm the
 # durable result. Absence or mismatch is HARD failure (exit 1), never silent.
 #
+# Mutation kinds + their scope (tkt-237 LM5):
+#   --pr     verifies the PR exists + state + headRefOid via gh (remote truth).
+#   --branch verifies the remote ref via `git ls-remote origin` — THIS is the
+#            post-push check (confirms the commit landed on the remote).
+#   --commit verifies ONLY the local object database (`git cat-file -e`).
+#            It succeeds the moment the commit exists locally, regardless of
+#            `git push` — it CANNOT confirm a push landed on the remote. Do
+#            NOT use --commit to verify a push; route push verification
+#            exclusively through --branch.
+#
 # ADR-007 §5a framing: this is a compiled check — part of the rule
 # "transitions fire only on durable artifacts" — not an escape. Silent
 # false-success is the failure mode this detects.
@@ -37,6 +47,11 @@ usage: verify-mutation.sh --pr N [--expected-oid OID] [--repo owner/name] [--all
 
 Confirm a gh/git mutation actually landed. Exit 0 = verified (stdout);
 1 = absent/mismatch (stderr); 2 = usage. Never silent.
+
+  --pr     PR exists + state + headRefOid via gh (remote truth).
+  --branch remote ref via \`git ls-remote origin\` — the post-push check.
+  --commit LOCAL object database only (\`git cat-file -e\`); cannot confirm a
+           push landed on the remote — use --branch for push verification.
 EOF
 }
 
@@ -73,6 +88,25 @@ fi
 
 OWNER_REPO_RE='^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'
 OID_RE='^[0-9a-f]{7,40}$'
+
+# Compare OIDs with short-SHA prefix tolerance (tkt-237 M4): a 7-40 char
+# expected OID matches a 40-char fetched head when it is a unique prefix
+# (git short-SHA semantics). The prior exact-equality
+# `[ "$head" != "$EXPECTED_OID" ]` never matched a 7-char --expected-oid
+# against a 40-char headRefOid → false FAILED → stuck+unblock stamp on a PR
+# that actually succeeded. Fetched heads are always full 40-char OIDs
+# (gh headRefOid / git ls-remote), so prefix-match when expected is shorter
+# than fetched, exact-match when lengths are equal.
+oid_matches() {
+  local fetched="$1" expected="$2"
+  if [ "${#expected}" -lt "${#fetched}" ]; then
+    case "$fetched" in
+      "$expected"*) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
+  [ "$fetched" = "$expected" ]
+}
 
 verify_pr() {
   # PR number shape: positive integer
@@ -142,7 +176,7 @@ verify_pr() {
     if ! printf '%s' "$EXPECTED_OID" | grep -qE "$OID_RE"; then
       echo "FAILED: --expected-oid must be a hex OID (7-40 chars), got: $EXPECTED_OID" >&2; return 1
     fi
-    if [ "$head" != "$EXPECTED_OID" ]; then
+    if ! oid_matches "$head" "$EXPECTED_OID"; then
       echo "FAILED: pr-$PR head $head != expected $EXPECTED_OID" >&2; return 1
     fi
   fi
@@ -155,10 +189,14 @@ verify_commit() {
   if ! printf '%s' "$COMMIT" | grep -qE "$OID_RE"; then
     echo "FAILED: --commit must be a hex OID (7-40 chars), got: $COMMIT" >&2; return 1
   fi
+  # tkt-237 LM5: `git cat-file -e` consults ONLY the local object database —
+  # it succeeds the instant the commit exists locally, regardless of whether
+  # `git push` delivered it to the remote. This verifies a local object, NOT a
+  # push landing; route push verification through --branch (git ls-remote).
   if ! git cat-file -e "$COMMIT" 2>/dev/null; then
-    echo "FAILED: commit object $COMMIT does not exist in the object database" >&2; return 1
+    echo "FAILED: commit object $COMMIT does not exist in the local object database" >&2; return 1
   fi
-  echo "verified: commit $COMMIT exists"
+  echo "verified: commit $COMMIT exists (local object database only — push not confirmed)"
   return 0
 }
 
@@ -185,7 +223,7 @@ verify_branch() {
     if ! printf '%s' "$EXPECTED_OID" | grep -qE "$OID_RE"; then
       echo "FAILED: --expected-oid must be a hex OID (7-40 chars), got: $EXPECTED_OID" >&2; return 1
     fi
-    if [ "$remote_ref" != "$EXPECTED_OID" ]; then
+    if ! oid_matches "$remote_ref" "$EXPECTED_OID"; then
       echo "FAILED: remote $BRANCH at $remote_ref != expected $EXPECTED_OID" >&2; return 1
     fi
   fi

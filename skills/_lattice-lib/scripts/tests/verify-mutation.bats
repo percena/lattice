@@ -101,7 +101,9 @@ teardown() {
 
 @test "commit: existing object verifies" {
   OID=$(git -C "$REPO_ROOT" rev-parse HEAD)
-  run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --commit "$OID"
+  # verify_commit runs `git cat-file` from cwd; run from the repo root so the
+  # object DB is found regardless of the bats invocation's cwd (shimmed or not).
+  run bash -c "cd '$REPO_ROOT' && bash '$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh' --commit '$OID'"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'verified: commit'
 }
@@ -121,4 +123,67 @@ teardown() {
   run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --branch nonexistent-branch-xyz
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF 'FAILED'
+}
+
+# ---------------------------------------------------------------------------
+# tkt-237 M4: short-SHA vs full-OID exact-equality never matched. A 7-char
+# --expected-oid (e.g. `git rev-parse --short HEAD`) vs a 40-char headRefOid
+# failed exact `[ "$head" != "$EXPECTED_OID" ]` → false FAILED → stuck+unblock
+# on a PR that succeeded. oid_matches() now prefix-matches when expected is
+# shorter than the fetched full OID (git short-SHA semantics).
+# ---------------------------------------------------------------------------
+
+@test "pr: short (7-char) expected-oid prefix-matches a 40-char head (tkt-237 M4)" {
+  FULL=$(git -C "$REPO_ROOT" rev-parse HEAD)
+  SHORT=${FULL:0:7}
+  setup_fake_gh "OPEN" "$FULL" "https://github.com/percena/lattice/pull/1"
+  run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --pr 1 --expected-oid "$SHORT"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "verified: pr-1 OPEN head=$FULL"
+}
+
+@test "pr: short expected-oid that is NOT a prefix still fails (tkt-237 M4)" {
+  FULL=$(git -C "$REPO_ROOT" rev-parse HEAD)
+  # a 7-char hex that is not the head's prefix
+  SHORT="0000000"
+  setup_fake_gh "OPEN" "$FULL" "https://github.com/percena/lattice/pull/1"
+  run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --pr 1 --expected-oid "$SHORT"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '!='
+}
+
+@test "branch: short (7-char) expected-oid prefix-matches a 40-char remote ref (tkt-237 M4)" {
+  FULL=$(git -C "$REPO_ROOT" rev-parse HEAD)
+  SHORT=${FULL:0:7}
+  FAKE_GIT_DIR="$BATS_TMPDIR/vm-fake-git-${BATS_TEST_NUMBER:-0}-$$"
+  mkdir -p "$FAKE_GIT_DIR/bin"
+  cat >"$FAKE_GIT_DIR/bin/git" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  ls-remote) printf '%s\trefs/heads/%s\n' "$FULL" "\$3" ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$FAKE_GIT_DIR/bin/git"
+  run env PATH="$FAKE_GIT_DIR/bin:$PATH" bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --branch main --expected-oid "$SHORT"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "verified: branch main head=$FULL"
+  rm -rf "$FAKE_GIT_DIR"
+}
+
+# ---------------------------------------------------------------------------
+# tkt-237 LM5: --commit verifies ONLY the local object database (git cat-file
+# -e succeeds right after `git commit`, regardless of `git push`). The
+# docstring advertised post-push verification → false-success on the tkt-211
+# safety net. Now documented local-only; push verification routes through
+# --branch (git ls-remote). This test locks in the documented semantics.
+# ---------------------------------------------------------------------------
+
+@test "commit: --commit documents LOCAL-only semantics (push not confirmed) (tkt-237 LM5)" {
+  OID=$(git -C "$REPO_ROOT" rev-parse HEAD)
+  run bash -c "cd '$REPO_ROOT' && bash '$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh' --commit '$OID'"
+  [ "$status" -eq 0 ]
+  # the verified message explicitly states local-only (push NOT confirmed)
+  printf '%s\n' "$output" | grep -qF 'local'
+  printf '%s\n' "$output" | grep -qF 'push not confirmed'
 }

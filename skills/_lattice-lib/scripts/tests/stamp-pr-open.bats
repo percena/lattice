@@ -435,6 +435,55 @@ write_side_state_binder() {
 }
 
 # ---------------------------------------------------------------------------
+# tkt-237 M3: `deferred` was missing from SIDE_STATES → a deferred binder
+# (spec-superseded / blocked-by-failure / fuse-halt) hit stamp-pr-open's else
+# branch and silently flipped to pr-open with NO journal trace, losing the
+# deferred signal. Now `deferred` is a guarded side state: REFUSED without
+# --force-side-state --reason (same law as parked/stuck/rework).
+# ---------------------------------------------------------------------------
+
+write_deferred_binder() {
+  write_fresh_binder
+  # status deferred + wait_reason spec-superseded (a spec-supersede sweep stamp)
+  sed -i.bak "s/| status | in-progress |/| status | deferred |/" "$BINDER"
+  sed -i.bak 's/| prs | (none) |/| prs | (none) |\n| wait_reason | spec-superseded |/' "$BINDER"
+  rm -f "$BINDER.bak"
+}
+
+@test "M3 deferred guard: REFUSES deferred → pr-open (not silently flipped, exit 1)" {
+  write_deferred_binder
+  write_issue_body
+  cp "$BINDER" "$TEST_DIR/binder-before.md"
+  run_spo --pr 12 --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "REFUSED"
+  printf '%s\n' "$output" | grep -qF "deferred"
+  printf '%s\n' "$output" | grep -qF -- "--force-side-state"
+  # nothing mutated: binder byte-identical, status still deferred, no pr-open
+  cmp -s "$BINDER" "$TEST_DIR/binder-before.md"
+  grep -q '| status | deferred |' "$BINDER"
+  if grep -q '| status | pr-open |' "$BINDER"; then false; fi
+  # no gh issue traffic (the stamp was refused before the issue sync)
+  if grep -q -- 'issue edit' "$GH_LOG"; then false; fi
+}
+
+@test "M3 deferred override: --force-side-state --reason flips + journals a trace" {
+  write_deferred_binder
+  write_issue_body
+  run_spo --pr 12 --binder "$BINDER" --force-side-state --reason "operator resumed the deferred ticket after the spec was re-scoped"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "side-state override traced"
+  grep -q '| status | pr-open |' "$BINDER"
+  # prs row still stamped canonically
+  grep -q '| prs | pr-12 — https://github.com/acme/repo/pull/12 |' "$BINDER"
+  # structured trace appended to the Decision journal
+  grep -q '## Decision journal' "$BINDER"
+  grep -qF 'side-state override: deferred → pr-open' "$BINDER"
+  grep -qF 'operator resumed the deferred ticket after the spec was re-scoped' "$BINDER"
+  grep -qF 'operator-adjudicated — ADR-007 sec.5b' "$BINDER"
+}
+
+# ---------------------------------------------------------------------------
 # spc-186 A4 / tkt-191: `updated` field-table row bumped atomically with the
 # status stamp. `created` is never touched. Bump is gated on a real mutation
 # (idempotent re-run does not touch `updated`). Lazy migration: a binder with
