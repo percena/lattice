@@ -417,3 +417,55 @@ setup_file() {
   run python3 "$VAL" --home "$FIX/tkt-179-fixes" --json
   [ -z "$(printf '%s' "$output" | tr -d '\n' | grep -E 'invalid_spec_status.*spc-14')" ]
 }
+
+# tkt-238: post-merge dev→main review — terminal-state/drift detection fixes.
+# H1: prose mentioning `merged:`/`closed:` must NOT fire finish_without_terminal_status;
+#     a real anchored stamp still does (covered by finish-status-mismatch/tkt-70).
+# M2: an indented `- cancelled:` bullet IS terminal evidence and must fire.
+# M3: `~~` wrapping unrelated prose does NOT defer an open A-id; a struck A-id does.
+
+@test "tkt-238 H1: Finish prose mentioning merged:/closed: does not fire finish_without_terminal_status" {
+  # tkt-238-prose-merged: status pr-open, ## Finish has a note line
+  # `- note: PR was merged: … but reverted` and a placeholder
+  # `- (none — not yet merged: waiting on CI)`. Neither is a canonical stamp,
+  # so finish_ledger_terminal returns False and no finding fires — the binder
+  # passes clean (a reverted-and-reopened PR is a real scenario the ledger
+  # grammar cannot express).
+  run python3 "$VAL" --home "$FIX/finish-prose-mention" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F finish_without_terminal_status)" ]
+}
+
+@test "tkt-238 M2: indented - cancelled: bullet fires finish_without_terminal_status" {
+  # tkt-238-indented-cancel: status pr-open, ## Finish has an indented
+  # `  - cancelled: wontfix` bullet. The anchored `^\s*-\s+cancelled:` regex
+  # detects indented cancels as terminal evidence, so the non-terminal status
+  # contradicts a cancel ledger and finish_without_terminal_status fires.
+  run python3 "$VAL" --home "$FIX/finish-indented-cancel" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF finish_without_terminal_status
+  printf '%s\n' "$output" | grep -qF tkt-238-indented-cancel
+}
+
+@test "tkt-238 M3: done spec with ~~ around prose (not the A-id) fires spec_done_open_acceptance" {
+  # spc-238-done-strikethrough-open: status done, acceptance has
+  # `- [ ] **A2** ~~deprecated sub-approach~~ — actually still open`. The `~~`
+  # wraps unrelated prose, not the A-id, so A2 is open and non-deferred →
+  # spec_done_open_acceptance fires (the old `"~~" in line` heuristic masked it).
+  run python3 "$VAL" --home "$FIX/spec-done-strikethrough-open" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF spec_done_open_acceptance
+  printf '%s\n' "$output" | grep -qF spc-238-done-strikethrough-open
+}
+
+@test "tkt-238 M3 inverse: a struck-through A-id (~~**A3**~~) is deferred, not open" {
+  # spc-24-done-struck-aid lives in the spec-state-pass home: status done,
+  # acceptance has `- [ ] ~~**A3**~~ deprecated sub-approach`. The A-id itself
+  # is struck, so it is deferred and must NOT trip spec_done_open_acceptance —
+  # the whole home stays clean.
+  run python3 "$VAL" --home "$FIX/spec-state-pass" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F spec_done_open_acceptance)" ]
+}

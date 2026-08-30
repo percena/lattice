@@ -186,9 +186,18 @@ DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "spec-supersede
 # `pr-P merged:`; a cancel ledger records `issue #N closed:` without a merge.
 # Both are provable-from-one-snapshot terminal evidence (A4): a non-terminal
 # binder status contradicting either stamp is drift.
-FINISH_MERGED_RE = re.compile(r"\bmerged:\s")
-FINISH_CLOSED_RE = re.compile(r"\bissue\s+#\d+\s+closed:\s", re.I)
-FINISH_CANCELLED_RE = re.compile(r"^- cancelled:", re.M)
+#
+# Anchored to the canonical emitted bullet form (finish-ledger.sh writes
+# `- pr-N merged:`, `- issue #N closed:`, `- cancelled:`) with re.MULTILINE so
+# body prose that merely *mentions* `merged:` / `closed:` (e.g. a note line
+# `- note: PR was merged: … but reverted` or a placeholder
+# `- (none — not yet merged: waiting on CI)`) cannot masquerade as a stamp
+# (tkt-238 H1). The cancel stamp permits leading indentation (`  - cancelled:`)
+# so an indented cancel is still detected (tkt-238 M2); the merged/closed
+# stamps share the same `^\s*-\s+` bullet anchor for consistency.
+FINISH_MERGED_RE = re.compile(r"^\s*-\s+pr-\d+\s+merged:\s", re.M)
+FINISH_CLOSED_RE = re.compile(r"^\s*-\s+issue\s+#\d+\s+closed:\s", re.M | re.I)
+FINISH_CANCELLED_RE = re.compile(r"^\s*-\s+cancelled:", re.M)
 
 
 def parse_front_matter(text: str) -> dict[str, Any]:
@@ -315,14 +324,28 @@ def finish_ledger_terminal(text: str) -> bool:
     one snapshot (tkt-151 A4): a non-terminal binder status contradicting
     either is drift. Whole-document prose is not consulted — only the
     ``## Finish`` section body.
+
+    Shares the content model of ``has_finish_ledger``: iterate lines, strip
+    HTML comments, and skip ``(none…)`` placeholder lines
+    (``PRS_PLACEHOLDER_RE``) so a placeholder body that merely *mentions*
+    ``merged:`` (e.g. ``(none — not yet merged: waiting on CI)``) cannot
+    masquerade as a terminal stamp (tkt-238 H1). The stamp regexes are
+    anchored to the canonical bullet form, so prose note lines like
+    `- note: PR was merged: … but reverted` are not matched either.
     """
     m = FINISH_SECTION_RE.search(text)
     if not m:
         return False
     body = HTML_COMMENT_RE.sub("", m.group(1))
-    return (FINISH_MERGED_RE.search(body) is not None or
-            FINISH_CLOSED_RE.search(body) is not None or
-            FINISH_CANCELLED_RE.search(body) is not None)
+    for line in body.splitlines():
+        content = line.strip().lstrip("-").strip()
+        if not content or PRS_PLACEHOLDER_RE.fullmatch(content) is not None:
+            continue
+        if (FINISH_MERGED_RE.search(line) is not None or
+                FINISH_CLOSED_RE.search(line) is not None or
+                FINISH_CANCELLED_RE.search(line) is not None):
+            return True
+    return False
 
 
 SPEC_FM_STATUS_RE = re.compile(r"^status:\s*([a-zA-Z0-9_-]+)\s*$", re.M)
@@ -332,6 +355,11 @@ SPEC_FM_SUPERSEDED_BY_RE = re.compile(
 SPEC_HEADER_BLOCKQUOTE_RE = re.compile(r"^\s*>", re.M)
 # Deferred marker on an acceptance line (per-A*, explicit, same-line).
 ACCEPT_DEFERRED_RE = re.compile(r"\(deferred\)", re.I)
+# Strikethrough wrapping a bold A-id (`~~**A2**~~`) — an explicit per-A*
+# deferred marker. Only the A-id itself being struck counts as deferred;
+# `~~` wrapping unrelated prose (e.g. `- [ ] **A2** ~~deprecated approach~~
+# — actually still open`) must NOT defer the open A-id (tkt-238 M3).
+STRIKE_AID_RE = re.compile(r"~~\*\*A\d+\*\*~~")
 
 
 def spec_status(text: str) -> str | None:
@@ -399,10 +427,14 @@ def spec_done_open_acceptance(text: str) -> list[str]:
 
 def _open_non_deferred_aids(line: str) -> list[str]:
     # A markdown checkbox line: `- [ ]` (open) vs `- [x]`/`- [X]` (closed).
-    # Strikethrough `~~…~~` is treated as deferred too (explicit per-A* marker).
+    # Deferred when the line carries an inline `(deferred)` marker OR the
+    # A-id itself is struck through (`~~**A2**~~`). Strikethrough wrapping
+    # *unrelated* prose (e.g. `**A2** ~~deprecated~~ — still open`) must NOT
+    # defer the open A-id (tkt-238 M3): previously any `~~` on the line was
+    # treated as deferred, masking a fictional-done Spec.
     if not re.match(r"^\s*-\s*\[\s\]", line):
         return []
-    if ACCEPT_DEFERRED_RE.search(line) or "~~" in line:
+    if ACCEPT_DEFERRED_RE.search(line) or STRIKE_AID_RE.search(line):
         return []
     return [f"A{n}" for n in A_HEADING_RE.findall(line)]
 
