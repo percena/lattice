@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/234 |
-| status | open |
+| status | closed |
 | adopted | true |
 | summary | Auto-trust .env board when OWNER == authenticated gh user; keep ALLOW_DOTENV gate for org/other |
 | spec | none (ticket-only) |
@@ -73,3 +73,8 @@ Soft-fail: `gh api user` failure → `AUTH_USER` empty → fall through to the e
 - Primary ticket: **tkt-234**
 - Spec: none (ticket-only, no parent)
 - Covers: github-project-add.sh trust gate + .env.example + tests
+
+## Finish
+
+- pr-235 merged: 2026-08-30T04:30:51Z — https://github.com/percena/lattice/pull/235 (base merge)
+- issue #234 closed: 2026-08-30T04:31:16Z — https://github.com/percena/lattice/issues/234
