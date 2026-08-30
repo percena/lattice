@@ -17,6 +17,10 @@
 # Optional:
 #   LATTICE_GITHUB_PROJECT_ADD_ISSUES  (default true)
 #   LATTICE_GITHUB_PROJECT_ADD_PRS     (default true)
+#   LATTICE_GITHUB_PROJECT_ALLOW_DOTENV (default false) — explicit opt-in to
+#       trust a repo .env that targets an org/other-owner board. A .env whose
+#       OWNER equals the authenticated `gh` user (your OWN board) is auto-
+#       trusted and needs no opt-in.
 #
 # File load: MAIN_ROOT/.env then MAIN_ROOT/.env.local (local overrides file).
 # Process env wins when the variable is set. MAIN_ROOT = primary checkout.
@@ -239,16 +243,31 @@ DOTENV_CHOSE_TARGET=false
 [[ -z "${LATTICE_GITHUB_PROJECT_OWNER+x}" && -n "$FILE_OWNER" && "$OWNER" == "$FILE_OWNER" ]] && DOTENV_CHOSE_TARGET=true
 [[ -z "${LATTICE_GITHUB_PROJECT_NUMBER+x}" && -n "$FILE_NUMBER" && "$NUMBER" == "$FILE_NUMBER" ]] && DOTENV_CHOSE_TARGET=true
 if $DOTENV_CHOSE_TARGET; then
-  ALLOW_DOTENV=false
-  case "$(printf '%s' "${LATTICE_GITHUB_PROJECT_ALLOW_DOTENV:-}" | tr '[:upper:]' '[:lower:]')" in
-    1|true|yes|on) ALLOW_DOTENV=true ;;
-  esac
-  if ! $ALLOW_DOTENV; then
-    log "skip: repository .env selects Project $OWNER/$NUMBER, but a repo file cannot authorize writing to an external board"
-    log "  export LATTICE_GITHUB_PROJECT_OWNER/_NUMBER in your environment, or set LATTICE_GITHUB_PROJECT_ALLOW_DOTENV=1 to trust this repo's .env"
-    exit 0
+  # Auto-trust: if the .env-selected board owner == the authenticated `gh` user,
+  # the write targets the operator's OWN board — inherently non-abusable (a
+  # third party cannot be the redirect target unless the owner IS the user), so
+  # no explicit LATTICE_GITHUB_PROJECT_ALLOW_DOTENV is required. This removes the
+  # common silent-no-op friction for single-user/self boards. Soft-fail: if
+  # `gh api user` cannot resolve (no auth / no network), do NOT auto-trust —
+  # fall through to the explicit opt-in below (fail closed when self-ownership
+  # is unprovable). GitHub logins are case-insensitive.
+  AUTH_USER="$(gh api user --jq .login 2>/dev/null || true)"
+  OWNER_LOWER="$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')"
+  AUTH_USER_LOWER="$(printf '%s' "$AUTH_USER" | tr '[:upper:]' '[:lower:]')"
+  if [[ -n "$AUTH_USER_LOWER" && "$OWNER_LOWER" == "$AUTH_USER_LOWER" ]]; then
+    log "board target $OWNER/$NUMBER owned by authenticated user ($AUTH_USER) — auto-trusted, no LATTICE_GITHUB_PROJECT_ALLOW_DOTENV needed"
+  else
+    ALLOW_DOTENV=false
+    case "$(printf '%s' "${LATTICE_GITHUB_PROJECT_ALLOW_DOTENV:-}" | tr '[:upper:]' '[:lower:]')" in
+      1|true|yes|on) ALLOW_DOTENV=true ;;
+    esac
+    if ! $ALLOW_DOTENV; then
+      log "skip: repository .env selects Project $OWNER/$NUMBER, but a repo file cannot authorize writing to an external board"
+      log "  export LATTICE_GITHUB_PROJECT_OWNER/_NUMBER in your environment, set LATTICE_GITHUB_PROJECT_ALLOW_DOTENV=1, or ensure OWNER ($OWNER) is your own gh login"
+      exit 0
+    fi
+    log "board target from repository .env, allowed by LATTICE_GITHUB_PROJECT_ALLOW_DOTENV: owner=$OWNER project=$NUMBER"
   fi
-  log "board target from repository .env, allowed by LATTICE_GITHUB_PROJECT_ALLOW_DOTENV: owner=$OWNER project=$NUMBER"
 fi
 
 kind=$(url_kind "$URL")
