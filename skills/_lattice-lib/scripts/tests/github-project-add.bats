@@ -220,7 +220,7 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
   # `gh api user` (a read) may be logged, but no `project item-add` write may occur.
-  ! grep -q "item-add" "$GH_LOG"
+  if grep -q "item-add" "$GH_LOG"; then false; fi
 }
 
 @test "process env authorizes the write without the opt-in flag" {
@@ -269,7 +269,7 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
   # `gh api user` read may be logged, but no item-add write may occur.
-  ! grep -q "item-add" "$GH_LOG"
+  if grep -q "item-add" "$GH_LOG"; then false; fi
 }
 
 @test "gh api user unavailable → gate retained, fail closed (A3)" {
@@ -282,7 +282,7 @@ EOF
   GH_API_USER_MODE=fail run bash "$ADD" "https://github.com/acme/r/issues/3"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
-  ! grep -q "item-add" "$GH_LOG"
+  if grep -q "item-add" "$GH_LOG"; then false; fi
 }
 
 @test "gh api user unresolved (empty login) → gate retained (A3 variant)" {
@@ -295,5 +295,5 @@ EOF
   run bash "$ADD" "https://github.com/acme/r/issues/3"
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
-  ! grep -q "item-add" "$GH_LOG"
+  if grep -q "item-add" "$GH_LOG"; then false; fi
 }
