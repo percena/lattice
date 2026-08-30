@@ -13,3 +13,4 @@
 | [007](./007-hard-limit-scope-law.md) | Hard-limit scope law — constrain transitions, free deliberation; compiled corner cases and human-adjudicated exceptions | Accepted | — |
 | [008](./008-batch-work-process-isolation-spawn.md) | Batch-work process-isolation spawn mode | Accepted | — |
 | [009](./009-platform-stratified-e2e-runtime.md) | Platform-stratified e2e runtime + confirm-first preflight | Accepted | — |
+| [010](./010-review-release-boundary-merge-review-mode.md) | review-code + review-production release-boundary merge-review mode | Accepted | — |

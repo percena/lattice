@@ -4,6 +4,18 @@
 
 **One PR change set** (+ minimal related). Not whole-repo security programs or monorepo threat models.
 
+### Sanctioned exception — release-boundary merge review
+
+A **dev→main release merge** (`origin/main...dev`, or `<last-release>...dev`) is an **allowed** larger-than-one-PR unit (not refused) when the operator explicitly opts in via **`--release-merge`** / **`--merge-review`**, or by resolving the change set as `base=<release>`. This mirrors `review-code`'s exception (ADR-010) and is **not** the same as unbounded default-branch "review everything," which **remains refused**. The one-PR default is unchanged.
+
+Release-boundary production checklist adds axes that a single-PR pass de-emphasizes:
+
+- **Version / changelog coherence** across the whole merge diff — does the version increment (ADR-005 gate) and CHANGELOG match the shipped changes?
+- **Secrets / privacy sweep across the whole merge diff** — not just one PR; many PRs accumulate surface area.
+- **`ci-local.sh --release-check`** as a first-class gate (the ADR-005 version-increment invariant).
+
+Verdict stays `go` | `go-with-risks` | `no-go`; in release mode, **release-blocking** security/correctness/ship findings drive `no-go`, while documented residuals map to `go-with-risks`.
+
 ## Verdict
 
 `go` / `go-with-risks` / `no-go` are **advice**. They do **not** HARD-block `finish-work` unless a future explicit profile Spec says so.
