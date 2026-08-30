@@ -108,14 +108,36 @@ intercept_gh_pr_main() {
     # Batch-work merge gate (spc-186 A1, ADR-007 five-piece contract): a bare
     # `gh pr merge` while the .batch-work-active marker is present at the repo
     # MAIN clone .lattice/ is blocked fail-closed. Runs only for the merge verb;
-    # create is unaffected. Fails OPEN when the lattice home cannot be resolved
-    # (hook contract) so a missing root never deadlocks a legitimate merge.
+    # create is unaffected. Fails CLOSED (tkt-239) when LATTICE_BATCH_GATE_HOME
+    # is unset and the lattice home cannot be resolved — a misresolvable home
+    # makes an active marker invisible, so the gate must not silently allow.
     if [[ "${INTERCEPT_GH_PR_VERB:-}" == "merge" ]]; then
         # shellcheck source=/dev/null
         source "${_INTERCEPT_LIB_DIR}/batch-merge-gate.sh" 2>/dev/null || exit 0
-        if ! batch_gate_allows_merge 2>/dev/null; then
+        local bg_rc=0
+        batch_gate_allows_merge 2>/dev/null || bg_rc=$?
+        if [ "$bg_rc" -ne 0 ]; then
             if [[ "$hook_mode" == "strict" ]]; then
-                batch_gate_advice_text >&2
+                if [[ "${BATCH_GATE_BLOCK_REASON:-}" == "unresolvable-home" ]]; then
+                    cat >&2 <<'EOF'
+lattice: batch-work merge gate cannot resolve the lattice home.
+
+  LATTICE_BATCH_GATE_HOME is unset and the repo MAIN .lattice/ could not be
+  resolved (non-standard layout / submodule / no .lattice). The gate FAILS
+  CLOSED (tkt-239): an active .batch-work-active marker under a misresolvable
+  home would otherwise be invisible and silently allow a merge.
+
+  To proceed, either:
+    1. Set LATTICE_BATCH_GATE_HOME=<MAIN>/.lattice and retry, OR
+    2. Run: batch-merge-gate.sh --remove --reason "user-authorized: <why>"
+       (records the escape in the binder ## Decision journal), OR
+    3. Use /finish-work which resolves the gate through the scripted path.
+
+  Failing closed is intentional — set the env var or clear the marker.
+EOF
+                else
+                    batch_gate_advice_text >&2
+                fi
                 exit 2
             fi
             # Advisory: JSON on stdout (exit 0) so the model sees the context.

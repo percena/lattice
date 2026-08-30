@@ -147,3 +147,36 @@ run_hook() {  # <cwd> <command>
   run run_hook "$MAIN_ROOT" 'ls -la'
   [ "$status" -eq 0 ]
 }
+
+# ===================== fail-open advisory (tkt-239) =====================
+
+make_path_without_jq() {
+  local bin="$1"
+  python3 - "$bin" <<'PY'
+import os, shutil, sys
+bin = sys.argv[1]
+os.makedirs(bin, exist_ok=True)
+for tool in ("cat","grep","sed","git","bash","dirname","basename","pwd",
+            "test","find","head","tr","env","printf","cut","sort","uniq","wc",
+            "rm","mkdir","touch","readlink","realpath","python3"):
+    p = shutil.which(tool)
+    if p:
+        try: os.symlink(p, os.path.join(bin, tool))
+        except FileExistsError: pass
+PY
+}
+
+@test "fail-open: missing jq prints once-per-session advisory, exits 0 (tkt-239)" {
+  local sid="dep-adv-$$-$RANDOM"
+  local tdir="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  local bin="$tdir/bin"
+  make_path_without_jq "$bin"
+  # Payload mentions git so it passes the *git* pre-filter; jq is the missing dep.
+  local pfile="$tdir/payload.json"
+  printf '{"tool_name":"Bash","tool_input":{"command":"git checkout -b tmp"},"cwd":"%s","session_id":"%s"}' \
+    "$MAIN_ROOT" "$sid" > "$pfile"
+  run bash -c "TMPDIR='$tdir' PATH='$bin' '$HOOK_SCRIPT' < '$pfile' 2>&1"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "enforcement hook inert"
+  printf '%s\n' "$output" | grep -qF "jq"
+}

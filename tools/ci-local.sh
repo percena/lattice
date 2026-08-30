@@ -44,6 +44,13 @@ Usage: bash tools/ci-local.sh [--base-ref REF] [--release-check] [--fast]
                    dev-mode (lenient: only non-decrease enforced). [ADR-005]
   --fast           skip the bats suites (the slow step); default runs full
 
+Note (tkt-239): changed_paths counts UNTRACKED files (git ls-files --others)
+  in addition to the committed diff. CI's clean checkout only sees the
+  committed set, so locally ci-local is a conservative superset of CI —
+  scratch/untracked files under plugins/ skills/ can report bundle_changed
+  (and under --release-check demand a bump) where CI would not. This fails
+  closed locally (safe direction); commit or clean untracked files to match CI.
+
 Steps never abort the run: each records pass/FAIL/skip, a summary table
 prints at the end, and the exit code is nonzero if any step failed.
 EOF
@@ -126,8 +133,17 @@ step_shellcheck() {
 
 # lint.yml symlink-integrity job.
 step_symlinks() {
-  local broken
-  broken="$(find . -type l ! -exec test -e {} \; -print)"
+  local broken rc
+  # tkt-239: capture find's exit status explicitly. With set -u -o pipefail
+  # (no -e) an empty-stdout find failure (perm/cycle error on a subdir) would
+  # leave broken="" and the [ -n "$broken" ] gate report PASS while find
+  # actually failed — a false green. A non-zero find rc now surfaces as FAIL.
+  broken="$(find . -type l ! -exec test -e {} \; -print 2>/dev/null)"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "find exited non-zero (rc=$rc) during broken-symlink scan — cannot verify integrity"
+    return 1
+  fi
   if [ -n "$broken" ]; then
     echo "Broken symlinks found:"
     echo "$broken"
@@ -150,6 +166,15 @@ step_behavioral_smoke() {
 
 # lint-heavy.yml plugin-validate job (CI pins @anthropic-ai/claude-code@2.1.216).
 step_plugin_validate() {
+  local installed expected="2.1.216"
+  installed=$(claude --version 2>/dev/null || true)
+  if [ -z "$installed" ]; then
+    echo "note: could not determine installed claude version (CI pins @${expected}); running validate with whatever is on PATH"
+  elif printf '%s' "$installed" | grep -qF "$expected"; then
+    echo "claude CLI: $installed (matches CI pin @${expected})"
+  else
+    echo "note: installed claude ($installed) differs from CI pin @${expected} — version drift is advisory; validate results may diverge from CI"
+  fi
   claude plugin validate . && claude plugin validate plugins/lattice
 }
 

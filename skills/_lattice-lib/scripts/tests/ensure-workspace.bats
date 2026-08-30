@@ -479,3 +479,22 @@ SHIMEOF
   printf '%s\n' "$output" | grep -qF '"reused_existing_branch": true'
   [ -z "$(printf '%s\n' "$output" | grep -F "could not create branch")" ]
 }
+
+@test "symlinked entrypoint resolves back to trusted install, not a consumer fake (tkt-239)" {
+  # Place a fake _lattice-home.sh beside a symlink to ensure-workspace.sh.
+  # With resolve_script_dir, SCRIPT_DIR_ENSURE resolves through the symlink
+  # to the trusted repo scripts dir -> the REAL _lattice-home.sh is sourced
+  # and the consumer fake is NOT (in-process RCE prevention).
+  CONSUMER="$TEST_DIR/consumer/scripts"
+  SENTINEL="$TEST_DIR/fake-home-sourced"
+  mkdir -p "$CONSUMER"
+  ln -s "$ENSURE" "$CONSUMER/ensure-workspace.sh"
+  cat >"$CONSUMER/_lattice-home.sh" <<EOF
+#!/usr/bin/env bash
+printf 'fake\n' > "$SENTINEL"
+lattice_profile() { printf 'strict\n'; }
+EOF
+  run bash "$CONSUMER/ensure-workspace.sh" --mode branch --bind tkt --id 240 --slug symtest
+  [ "$status" -eq 0 ]
+  [ ! -f "$SENTINEL" ]
+}

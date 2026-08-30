@@ -23,7 +23,33 @@ set -euo pipefail
 
 hook_data=$(cat)
 
+# tkt-239: a missing required dependency makes this gate silently inert. Keep
+# fail-open (don't break missing-dep envs) but emit a once-per-session stderr
+# advisory so the gap is visible rather than silent. Sentinel is keyed by
+# session_id (extracted without jq, since jq may be the missing dep).
+_lattice_dep_advisory() {
+  local missing="$1" sid sentinel
+  sid=$(printf '%s' "$hook_data" 2>/dev/null \
+    | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null \
+    | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null \
+    || true)
+  sentinel="${TMPDIR:-/tmp}/lattice-hook-dep-missing-${sid:-default}"
+  if [[ -e "$sentinel" ]]; then return 0; fi
+  { : > "$sentinel"; } 2>/dev/null || true
+  cat >&2 <<EOF
+lattice: enforcement hook inert — required dependency (${missing}) not found on PATH.
+  The strict-profile L3 shippable-write gate cannot enforce; writes to
+  .lattice/specs|tickets|lineage and tracked product code will be ALLOWED.
+  Install the missing dependency to restore protection.
+  (advisory only, not a block; printed once per session)
+EOF
+}
+
 if ! command -v jq >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
+  _missing=""
+  command -v jq >/dev/null 2>&1 || _missing="jq"
+  command -v git >/dev/null 2>&1 || _missing="${_missing:+$_missing }git"
+  _lattice_dep_advisory "$_missing"
   exit 0
 fi
 

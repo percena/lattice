@@ -49,10 +49,30 @@
 # Exit: 0 on success; 1 on usage/missing-artifact failure. Logs → stderr.
 set -euo pipefail
 
-# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
-bash "$(dirname "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
+# Resolve the physical installed script directory through symlink redirects
+# (tkt-239 — same resolve_script_dir pattern as ensure-lattice.sh): lexical
+# BASH_SOURCE dirname would let a consumer checkout place a fake
+# ensure-python3.sh / _lattice-home.sh beside a symlink to this trusted
+# script and execute/source it (RCE).
+resolve_script_dir() {
+  local source="$1"
+  local dir target
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    target="$(readlink "$source")"
+    if [[ "$target" == /* ]]; then
+      source="$target"
+    else
+      source="$dir/$target"
+    fi
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+bash "$(resolve_script_dir "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
+
+SCRIPT_DIR="$(resolve_script_dir "${BASH_SOURCE[0]}")"
 # shellcheck source=_lattice-home.sh
 source "$SCRIPT_DIR/_lattice-home.sh"
 

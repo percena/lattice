@@ -37,8 +37,27 @@
 #   refusal or IO failure; 2 on usage.
 set -euo pipefail
 
+# Resolve the physical installed script directory through symlink redirects
+# (tkt-239 — same resolve_script_dir pattern as ensure-lattice.sh): lexical
+# BASH_SOURCE dirname would let a consumer checkout place a fake
+# ensure-python3.sh beside a symlink to this trusted script and execute it.
+resolve_script_dir() {
+  local source="$1"
+  local dir target
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    target="$(readlink "$source")"
+    if [[ "$target" == /* ]]; then
+      source="$target"
+    else
+      source="$dir/$target"
+    fi
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
+
 # Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
-bash "$(dirname "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
+bash "$(resolve_script_dir "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
 
 BINDER=""
 NOTE=""
@@ -150,7 +169,7 @@ fi
 
 STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 EXTEND_MODE=$($EXTEND_BUDGET && echo "extend" || echo "no-extend")
-BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
+BINDER_ROWS_LIB="$(resolve_script_dir "${BASH_SOURCE[0]}")/lib"
 BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$STAMP_MODE" "$EXTEND_MODE" "$EXTEND_REASON" "$NOTE" <<'PY'
 import datetime, sys, re, os, stat, fcntl
 

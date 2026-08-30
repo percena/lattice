@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034  # BATCH_GATE_BLOCK_REASON is set here and consumed by
+#                            # the intercept-gh-pr-common.sh hook that sources this lib.
 # Batch-work merge gate — spc-186 A1, ADR-007 five-piece contract.
 #
 # Blocks a bare `gh pr merge` while the batch-work marker is present, fail-closed
@@ -21,6 +23,7 @@
 # Sourced by lib/intercept-gh-pr-common.sh for the merge verb ONLY. The create
 # verb is unaffected. Fails OPEN on ambiguity (missing root, broken git) per the
 # hook contract — a missing root never deadlocks a legitimate merge.
+# (tkt-239: the home-unresolvable case now fails CLOSED; see batch_gate_allows_merge.)
 
 BATCH_GATE_MARKER=".batch-work-active"
 BATCH_GATE_AUTH=".batch-merge-authorized"
@@ -54,11 +57,25 @@ batch_gate_resolve_home() {
 }
 
 # Returns 0 if the gate ALLOWS the merge (marker absent, or authorized-merge
-# escape present). Returns 1 if the gate BLOCKS (marker present, no escape).
-# Fails OPEN (returns 0) when the lattice home cannot be resolved.
+# escape present). Returns 1 if the gate BLOCKS:
+#   - marker present, no escape (reason="marker")
+#   - tkt-239: LATTICE_BATCH_GATE_HOME is unset and the lattice home cannot be
+#     resolved (reason="unresolvable-home") — an active .batch-work-active
+#     marker under a misresolvable home (submodule / non-standard layout) would
+#     otherwise be invisible and silently allow a merge, so the gate FAILS
+#     CLOSED. The operator sets LATTICE_BATCH_GATE_HOME or runs --remove --reason.
+# Sets BATCH_GATE_BLOCK_REASON to "marker" or "unresolvable-home" when blocking
+# (caller prints a tailored advisory).
 batch_gate_allows_merge() {
   local home marker auth reason
-  home=$(batch_gate_resolve_home 2>/dev/null) || return 0
+  BATCH_GATE_BLOCK_REASON=""
+  home=$(batch_gate_resolve_home 2>/dev/null) || {
+    if [[ -z "${LATTICE_BATCH_GATE_HOME:-}" ]]; then
+      BATCH_GATE_BLOCK_REASON="unresolvable-home"
+      return 1
+    fi
+    return 0
+  }
   marker="${home}/${BATCH_GATE_MARKER}"
   [[ -f "$marker" ]] || return 0   # no marker → allowed
   # Human-authorized escape: a flag file whose first non-blank line is the
@@ -68,6 +85,7 @@ batch_gate_allows_merge() {
     reason=$(grep -v '^[[:space:]]*$' "$auth" 2>/dev/null | head -1 || true)
     [[ -n "$reason" ]] && return 0
   fi
+  BATCH_GATE_BLOCK_REASON="marker"
   return 1   # marker present, no escape → blocked
 }
 
