@@ -108,9 +108,14 @@ fi
 # BSD/macOS find does not follow a symlinked start point without -L.
 rel_files() {
   local root="$1" skill="$2"
+  # `|| true` swallows a nonzero find exit (an unreadable subdir makes find
+  # exit nonzero even with stderr suppressed); under pipefail+set -e that
+  # nonzero would abort the pipeline and leak the caller's mktemp (tkt-242 L3).
+  # find still emits every readable file before exiting, so the output stays
+  # complete — only the spurious failure is suppressed.
   find -L "$root/$skill" \( -path '*/__pycache__/*' -o -name '*.pyc' \) -prune \
     -o -type f -print 2>/dev/null \
-    | sed "s|^$root/$skill/||" | LC_ALL=C sort
+    | sed "s|^$root/$skill/||" | LC_ALL=C sort || true
 }
 
 repo_only=()
@@ -127,6 +132,12 @@ for s_full in "${SKILLS[@]}"; do
     continue
   fi
   repo_set=$(mktemp); inst_set=$(mktemp)
+  # Defensive cleanup: even with the rel_files `|| true` fix, ensure these
+  # mktemp files are removed if any command below aborts under set -e (a
+  # future cause would otherwise leak both temp files across long runs).
+  # The variables hold the current iteration's paths at EXIT; on normal
+  # completion they were already rm'd, so the trap no-ops. tkt-242 L3.
+  trap 'rm -f "$repo_set" "$inst_set"' EXIT
   rel_files "$SKILL_ROOT" "$s" >"$repo_set"
   rel_files "$INSTALLED_HOME" "$s" >"$inst_set"
 

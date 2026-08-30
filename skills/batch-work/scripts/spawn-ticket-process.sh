@@ -145,6 +145,16 @@ do_spawn() {
     echo "FAILED: spawn did not produce a live process (pid=$pid); is 'claude' on PATH?" >&2
     exit 1
   fi
+  # Grace-period re-check: the fork→exec race window can pass `kill -0` once
+  # even when claude immediately dies (auth failure, missing config, OOM). A
+  # short non-blocking wait then re-probe so an immediate-crash spawn is
+  # reported as a failure, not recorded `running` for the orchestrator to
+  # misreport as `completed` on its first barrier poll (tkt-242 L2).
+  sleep "${SPAWN_GRACE_SEC:-0.3}"
+  if ! is_alive "$pid"; then
+    echo "FAILED: spawned process $pid died immediately (auth/config/OOM?); grace=${SPAWN_GRACE_SEC:-0.3}s" >&2
+    exit 1
+  fi
 
   record_state "$state_file" "$pid" "$cwd" "$started" "$base" "$repo"
   echo "spawned: pid=$pid worktree=$cwd"

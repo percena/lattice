@@ -161,3 +161,37 @@ run_cdw() {
   printf '%s\n' "$output" | grep -qF "WARNING"
   printf '%s\n' "$output" | grep -qF "worktree: fix-login-flow"
 }
+
+@test "result count == limit is a coverage gap (truncation guard), not a clean OK (tkt-242 L1)" {
+  # Override the limit low (CDW_LIST_LIMIT) so a fixture of exactly that count
+  # trips the guard without generating 200 entries. Titles share no >=2 tokens
+  # with the probe title, so no overlap — the only signal is the truncation gap.
+  python3 -c "
+import json
+print(json.dumps([{'number':100+i,'title':'zzz qqq unrelated pad','url':f'https://github.com/acme/repo/issues/{100+i}'} for i in range(2)]))
+" >"$ISSUES_FIXTURE"
+  printf '[]' >"$PRS_FIXTURE"
+  cd "$REPO"
+  run env PATH="$TEST_DIR/bin:$PATH" \
+    ISSUES_FIXTURE="$ISSUES_FIXTURE" PRS_FIXTURE="$PRS_FIXTURE" \
+    CDW_LIST_LIMIT=2 \
+    bash "$CDW" --title "fix login flow" --repository acme/repo
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "coverage gap: open-issues truncated (returned 2 == limit"
+  printf '%s\n' "$output" | grep -qF "INCONCLUSIVE"
+  [ -z "$(printf '%s\n' "$output" | grep -F 'OK no possible overlap')" ]
+}
+
+@test "result count below limit stays OK (no spurious truncation gap) (tkt-242 L1)" {
+  # 1 entry under the limit (CDW_LIST_LIMIT=2) — no truncation, no overlap.
+  printf '%s' '[{"number":51,"title":"docs overhaul sweep","url":"https://github.com/acme/repo/issues/51"}]' >"$ISSUES_FIXTURE"
+  printf '[]' >"$PRS_FIXTURE"
+  cd "$REPO"
+  run env PATH="$TEST_DIR/bin:$PATH" \
+    ISSUES_FIXTURE="$ISSUES_FIXTURE" PRS_FIXTURE="$PRS_FIXTURE" \
+    CDW_LIST_LIMIT=2 \
+    bash "$CDW" --title "fix login flow" --repository acme/repo --skip-remote
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "OK no possible overlap found"
+  [ -z "$(printf '%s\n' "$output" | grep -F 'truncated')" ]
+}
