@@ -52,11 +52,13 @@ Same law as `review-code`:
 | Security, perf, test, ship axes **on that change** | Unrelated refactors, dependency upgrades “while here” |
 | go / go-with-risks / no-go **advice** | Treating advice as an automatic merge blocker |
 
+**Sanctioned exception — release-boundary merge review** (mirrors `review-code`; ADR-010; see `references/policy.md`). A dev→main release merge (`origin/main...dev`, or `<last-release>...dev`) is an **allowed** larger-than-one-PR unit when the operator explicitly opts in (`--release-merge` / `--merge-review`, or `base=<release>`) — **not** refused as a "portfolio of unrelated PRs." Unbounded default-branch "review everything" with no change set / no opt-in **remains refused**. The one-PR default is unchanged.
+
 Explicit whole-repo / architecture requests → redirect to `create-review` / Spec / **`security-audit`**; **do not** silently widen.
 
 ## Inputs (before and after create-pr)
 
-1. Resolve `pr-N` or open PR for branch, else `base...HEAD` on the feature branch/worktree.
+1. Resolve `pr-N` or open PR for branch, else `base...HEAD` on the feature branch/worktree. **Release-boundary mode:** `origin/main...dev` (or `<last-release>...dev`) with explicit opt-in (`--release-merge` / `--merge-review`, or `base=<release>`) — see `references/policy.md`.
 2. Load PR body Acceptance/Verification if present; CI check rollup when available (`gh pr checks`).
 3. Do not invent CI green — use command/API output or mark **unknown**.
 
@@ -64,7 +66,7 @@ Explicit whole-repo / architecture requests → redirect to `create-review` / Sp
 
 ### 1. Orient
 
-Announce: `mode: review-production · unit: pr-N | branch-diff · axes: security, perf, tests, ship`
+Announce: `mode: review-production · unit: pr-N | branch-diff | release-merge · axes: security, perf, tests, ship`
 
 ### 2. Checklist (short — PR-scoped)
 
@@ -116,13 +118,20 @@ Mark: **pass** / **gap** / **n/a** (with one-line why).
 
 Mark: **pass** / **gap** / **n/a** (with one-line why).
 
+**Release-boundary merge review only** (see `references/policy.md`): add these axes across the whole merge diff, not just one PR:
+
+- [ ] **Version / changelog coherence** — version increment (ADR-005) and CHANGELOG match the shipped changes
+- [ ] **Secrets / privacy sweep across the whole merge diff** — many PRs accumulate surface area; scan for local paths, credentials, closed-source project names across the full `origin/main...dev` range
+- [ ] **`ci-local.sh --release-check`** run as a first-class gate (the ADR-005 version-increment invariant)
+- [ ] Findings classed **release-blocking** (drive `no-go`) vs documented residuals (drive `go-with-risks`)
+
 ### 3. Verdict (advice only)
 
 | Verdict | When |
 | --- | --- |
 | **go** | No **blockers**; residual/hardening acceptable for stated environment |
 | **go-with-risks** | Residuals (or med gaps on non-security axes) documented; user may still ship |
-| **no-go** | ≥1 **blocker** on security/correctness/ship for **this** PR — **recommend** not merging yet; still **not** a tool-enforced finish-work block |
+| **no-go** | ≥1 **blocker** on security/correctness/ship for **this** PR — **recommend** not merging yet; still **not** a tool-enforced finish-work block. **Release-boundary mode:** a **release-blocking** finding across the merge diff drives `no-go` |
 
 ### 4. Output template
 
@@ -174,7 +183,7 @@ Mark: **pass** / **gap** / **n/a** (with one-line why).
 
 | Rationalization | Reality |
 | --- | --- |
-| “Production check means audit the whole monorepo” | PR unit only; whole-repo → `/security-audit` or Spec |
+| “Production check means audit the whole monorepo” | PR unit only; whole-repo → `/security-audit` or Spec — **unless** release-boundary opt-in (`--release-merge`), which allows `origin/main...dev` as the unit (ADR-010) |
 | “no-go means I must block finish-work” | Advice; lifecycle gates unchanged unless a future profile Spec says otherwise |
 | “Skip tests axis — CI is green” | Still record coverage expectations for **this** diff; CI unknown ≠ pass |
 | “Implement a full security rewrite while reviewing” | Default review-only; explicit fix stays PR-scoped |
@@ -203,4 +212,5 @@ Mark: **pass** / **gap** / **n/a** (with one-line why).
 - [ ] Verdict stated as advice only; no-go only with ≥1 blocker when security-driven
 - [ ] No finish-work / merge invoked
 - [ ] No large implementation unless user explicitly requested fixes
-- [ ] Whole-repo audit language redirected (not expanded)
+- [ ] Whole-repo audit language redirected (not expanded) — unless release-boundary opt-in (`--release-merge`), which is an allowed unit (ADR-010)
+- [ ] If release-boundary mode: version/changelog coherence, whole-diff secrets/privacy sweep, and `ci-local.sh --release-check` checked; findings classed release-blocking vs ship-as-is
