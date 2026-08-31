@@ -308,7 +308,7 @@ STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 CHECK_ALL_MODE=$($CHECK_ALL && echo "check-all" || echo "keep-boxes")
 FORCE_MODE=$($FORCE_SIDE_STATE && echo "force" || echo "guard")
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
-BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" "$FORCE_MODE" "$SIDE_STATE_REASON" <<'PY'
+STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" "$FORCE_MODE" "$SIDE_STATE_REASON" <<'PY'
 import datetime, sys, re, os, stat, fcntl
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
@@ -466,12 +466,38 @@ elif dry_run:
     print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{stamp_label}` + status pr-open{box_note}{trace_note}")
 else:
     print(f"stamp-pr-open: binder stamped ({stamp_label}, status pr-open{box_note}{trace_note})")
+    # Machine line: emit the prior status so bash can record the transition
+    # via the transition API (spc-254 A3). Idempotent re-runs (s == orig) and
+    # dry-runs do not emit. Guarded by the same `prior` capture above.
+    if prior and prior != "closed":
+        print(f"@@TRANSITION_FROM:{prior}@@")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
 finally:
     os.close(lock_fd)
 PY
+)
+
+# Preserve human output (idempotent/dry-run/stamped messages).
+printf '%s\n' "$STAMP_OUT"
+
+# --- Transition ledger (spc-254 A3): record the pr-open flip via the single
+# transition API so the validator can replay edge legality. The embedded
+# python emits `@@TRANSITION_FROM:<prior>@@` only on a real (non-idempotent,
+# non-dry-run) flip. A failed record is non-blocking (decision-policy: never
+# block the PR flow); the validator catches ledger/edge drift on the next run.
+PRIOR_STATUS=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
+if [[ -n "$PRIOR_STATUS" ]]; then
+  TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  RECORD_ARGS=(record "${TICKET_ID:-unknown}" "$PRIOR_STATUS" pr-open agent "create-pr opens the PR")
+  if [[ "$FORCE_SIDE_STATE" == true && -n "$SIDE_STATE_REASON" ]]; then
+    RECORD_ARGS+=(--force-side-state-reason "$SIDE_STATE_REASON")
+  fi
+  python3 "$SCRIPT_DIR/transition-api.py" "${RECORD_ARGS[@]}" \
+    || echo "stamp-pr-open: WARN — transition ledger record failed (non-blocking; validator will catch)" >&2
+fi
 
 # --- Mirror binder-checked acceptance into the GitHub issue -------------------
 if [[ -z "$ISSUE_M" ]]; then
