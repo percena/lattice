@@ -245,8 +245,10 @@ See `docs/morning-triage.md` (monorepo, when present) Step 5.5 for the full manu
 Prefer not forcing checkout of `main` when another worktree holds it.
 
 ```bash
+# Capture the base branch tip BEFORE the merge (spc-254 A2 base-OID probe).
+PRE_MERGE_BASE=$(git ls-remote origin "refs/heads/<base>" 2>/dev/null | awk '{print $1}')
 gh pr merge <N> --squash --delete-branch
-# if gh non-zero: gh pr view <N> --json state,mergedAt — MERGED → **still run §4 cleanup**
+# if gh non-zero: gh pr view <N> --json state,mergedAt — MERGED → **still run §3.1 + §4 cleanup**
 gh pr close <N> --comment "Closing without merge; cleaning workspace."
 ```
 
@@ -257,6 +259,31 @@ gh pr close <N> --comment "Closing without merge; cleaning workspace."
 | `gh --delete-branch` fails (branch in use by worktree) | **Expected** with sibling worktrees — §4 removes worktree then deletes remote |
 
 **INVARIANT:** `gh pr merge --delete-branch` is **not** the cleanup step. Many remotes have `delete_branch_on_merge: false`. Always continue to §4.
+
+### 3.1. Mutation-proof the merge (spc-254 A2/D5 — INVARIANT)
+
+After `gh pr merge`, prove the PR reached MERGED **and** the base branch tip
+on origin actually advanced past the pre-merge base OID captured above. A
+merge that "reported success" but left the base tip unchanged did not land —
+stamping `mergedAt` and running cleanup/ledger on it is the false-success the
+dogfood retrospective (`rev-20260829-140444Z` F1/F5) hit for real. Normal,
+batch, and delegated paths share ONE `verify-main-chain.sh --stage merge`
+contract.
+
+```bash
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
+LIB=$(bash "$RESOLVE")
+bash "$LIB/verify-main-chain.sh" --stage merge --pr <N> \
+  --expected-oid "$PRE_MERGE_BASE" --repo "<owner/name>"
+```
+
+A `FAILED:` proof HALTS §3.5 (`close-fixed-issues.sh`) and §4
+(`cleanup-workspace.sh`) and the `finish-ledger.sh` Finish stamp — the
+structured recovery JSON's `next_action` (`gh pr view <N>`; verify the merge
+landed; do NOT run ledger/cleanup) is the operator's recovery surface. Only
+after `verified: merge pr-<N> …` does the flow proceed to issue closure +
+cleanup + ledger.
 
 ## 3.4 Sequential merge queue (DEFAULT when landing a queue of PRs)
 

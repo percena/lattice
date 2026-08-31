@@ -76,6 +76,29 @@ If branch name is meaningless and `already_pushed` is false, suggest descriptive
 Commit if needed; `git push -u origin <branch>`.  
 **PUBLIC:** review `git log --oneline <base>..HEAD` for internal identifiers in commit messages before push.
 
+### 3.1. Mutation-proof the push (spc-254 A2/D5 — INVARIANT)
+
+Before `gh pr create`, capture local HEAD **before** the push, then prove the
+remote ref carries that exact OID. A push that "reported success" but left no
+durable remote artifact is the highest-cost silent failure
+(`rev-20260829-140444Z` F5). Normal, batch, and delegated paths share ONE
+`verify-main-chain.sh` contract — no path is exempt.
+
+```bash
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
+LIB=$(bash "$RESOLVE")
+LOCAL_HEAD=$(git rev-parse HEAD)   # capture BEFORE the push
+git push -u origin "<branch>"
+bash "$LIB/verify-main-chain.sh" --stage push --branch "<branch>" --expected-oid "$LOCAL_HEAD"
+```
+
+A `FAILED:` proof halts the PR flow **before** `gh pr create`. The structured
+recovery JSON on stderr (`stage`/`failed`/`expected`/`actual`/`next_action`)
+is the operator's recovery surface — re-push and re-verify, never proceed on
+assumed success. The local HEAD captured before the push is the expected OID
+carried into the PR stage (§4.1), so the chain is end-to-end proven.
+
 ## 3.5. Base branch
 
 Prefer `recommended_base` from `check-pr-context.sh` (integration-branch resolution) over the blind `default_branch`. The recommended base follows the user's working branch when long-lived, else fork-point inference from the current branch. Always pass `--base` to `gh pr create`.
@@ -101,12 +124,14 @@ Print PUBLIC warning and wait for explicit confirm before `gh pr create`.
 ## 4. Create or update
 
 ```bash
-PR_URL=$(gh pr create --base "<base>" --title "<title>" --body "$(cat <<'EOF'
+PR_URL=$(gh pr create --base "<base>" --head "<branch>" --title "<title>" --body "$(cat <<'EOF'
 …
 EOF
 )")
+# Capture the PR number + the body file used, then mutation-proof the create.
+PR_N=$(printf '%s' "$PR_URL" | grep -oE '[0-9]+$')
 # Optional GitHub Project after *new* PR only (soft-fail; no-op when unset)
-SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}"
 [[ "$SKILL_ROOT" = /* && -f "$SKILL_ROOT/SKILL.md" ]] || { echo "Error: resolve the active SKILL.md directory to absolute LATTICE_SKILL_ROOT" >&2; exit 1; }
 RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
 [[ -f "$RESOLVE" ]] || { echo "Error: _lattice-lib is not installed beside $SKILL_ROOT" >&2; exit 1; }
@@ -115,6 +140,31 @@ bash "$LIB/github-project-add.sh" "$PR_URL" || true
 # existing: gh pr edit --body …  (do not re-run project-add on description-only updates)
 # exists?: gh pr view --json number
 ```
+
+### 4.1. Mutation-proof the PR create (spc-254 A2/D5 — INVARIANT)
+
+After `gh pr create`, prove the PR exists OPEN at the pushed HEAD OID, belongs
+to the right repo, and (when supplied) carries the intended base/head/body. A
+phantom PR opened against the wrong repo/base, or with a drifted body, is a
+real incident class (`rev-20260829-140444Z` F5). The same
+`verify-main-chain.sh --stage pr` contract is used by normal, batch, and
+delegated paths.
+
+```bash
+# $LOCAL_HEAD is the OID captured before the push (§3.1); $PR_BODY_FILE is the
+# heredoc body written to a temp file. --expected-base/--expected-head confirm
+# the PR targets the intended base and head branch.
+bash "$LIB/verify-main-chain.sh" --stage pr --pr "$PR_N" \
+  --expected-oid "$LOCAL_HEAD" --repo "<owner/name>" \
+  --expected-base "<base>" --expected-head "<branch>" \
+  --expected-body-file "$PR_BODY_FILE"
+```
+
+A `FAILED:` proof halts the post-open binder stamp (`stamp-pr-open.sh`) and
+the Spec/binder `prs:`/`status` write — the recovery JSON's `next_action`
+points at the right repair (`gh pr edit --base`, re-create from the right
+branch, or `--body-file`). Only after `verified: pr-…` does the flow proceed
+to `stamp-pr-open.sh` + L0 update.
 
 **Body spirit** (see `templates/pr-body.md`): Summary · Why · Scope · How · Verification (commands run only if real) · Lineage · References · optional Notes.  
 Title: Conventional Commits (`feat:` / `fix:`).  

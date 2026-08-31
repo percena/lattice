@@ -67,6 +67,20 @@ teardown() {
   printf '%s\n' "$output" | grep -qF 'verified: pr-1 MERGED'
 }
 
+@test "pr: --require-merged rejects OPEN (spc-254 A2 merge-stage proof)" {
+  setup_fake_gh "OPEN" "abc1234abcd"
+  run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --pr 1 --require-merged
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF 'expected MERGED'
+}
+
+@test "pr: --require-merged accepts MERGED" {
+  setup_fake_gh "MERGED" "abc1234"
+  run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --pr 1 --require-merged
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF 'verified: pr-1 MERGED'
+}
+
 @test "pr: --expected-oid mismatch fails (exit 1)" {
   setup_fake_gh "OPEN" "abc1234abcd"
   run bash "$REPO_ROOT/skills/_lattice-lib/scripts/verify-mutation.sh" --pr 1 --expected-oid deadbeef

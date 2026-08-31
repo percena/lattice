@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2**
+- [x] **A2**
 - mirror spc-254 A* criteria for this slice; see Spec for full text.
 
 ## Notes
