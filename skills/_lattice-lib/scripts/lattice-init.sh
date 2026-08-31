@@ -236,16 +236,6 @@ elif $WRITE_GITIGNORE && [[ -d "$ADR_DIR" ]] && [[ -f "$ADR_DIR/.gitignore" ]] \
   CREATED_ADR_GITIGNORE=true
 fi
 
-# ADR-011 / spc-282 A5: onboarding contract — tell the operator .lattice/ is
-# Lattice's tracked project-knowledge footprint (specs/tickets/preferences/
-# lineage/ADR), meant to be committed. The first-time scaffold otherwise
-# surprises as untracked dirt (the "Preferences file in main branch" symptom).
-# Emitted to stderr so it never pollutes --json stdout purity.
-if $CREATED_CONFIG || $CREATED_README || $CREATED_DOTLATTICE_GITIGNORE || $CREATED_ADR_GITIGNORE; then
-  echo "lattice-init: .lattice/ is Lattice's tracked project-knowledge footprint — meant to be committed." >&2
-  echo "  Run once to track it:  git add .lattice/ docs/adr/  (then commit)" >&2
-fi
-
 CREATED_README=false
 if [[ ! -f "$LATTICE/README.md" ]]; then
   assert_managed_paths_safe
@@ -310,6 +300,16 @@ if [[ -f "$SCRIPT_DIR/_lattice-home.sh" ]]; then
   source "$SCRIPT_DIR/_lattice-home.sh"
   export LATTICE_HOME="$LATTICE"
   ACTIVE_PROFILE=$(lattice_profile 2>/dev/null || echo "$PROFILE")
+fi
+
+# ADR-011 / spc-282 A5: onboarding contract — tell the operator .lattice/ is
+# Lattice's tracked project-knowledge footprint (specs/tickets/preferences/
+# lineage/ADR), meant to be committed. The first-time scaffold otherwise
+# surprises as untracked dirt (the "Preferences file in main branch" symptom).
+# Emitted to stderr so it never pollutes --json stdout purity.
+if $CREATED_CONFIG || $CREATED_README || $CREATED_DOTLATTICE_GITIGNORE || $CREATED_ADR_GITIGNORE; then
+  echo "lattice-init: .lattice/ is Lattice's tracked project-knowledge footprint — meant to be committed." >&2
+  echo "  Run once to track it:  git add .lattice/ docs/adr/  (then commit)" >&2
 fi
 
 if $AS_JSON; then
