@@ -54,6 +54,12 @@ bash "$LIB/ensure-lattice.sh"
 # prints one line when side-state total or pr-open aging exceeds a threshold,
 # empty when clean. Thresholds in .lattice/config.yaml queue_health:.
 bash "$LIB/queue-health.sh" --banner 2>/dev/null || true
+# Stale runtime-state GC (ADR-011 / spc-282 A6): a crashed prior batch may have
+# left the gate marker in the out-of-repo state home, permanently opening the
+# merge gate (fail-open). GC removes stale entries (default 24h, env
+# LATTICE_STALE_MARKER_HOURS) so an orphaned batch does not leave a permanent
+# fail-open. GC only removes; never creates markers. Advisory, never a block.
+bash "$LIB/state-dir-gc.sh" 2>/dev/null || true
 # Before shippable L0 write on team base:
 bash "$LIB/assert-shippable-cwd.sh" || {
   bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id N --slug <slug>
