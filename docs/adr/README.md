@@ -14,3 +14,4 @@
 | [008](./008-batch-work-process-isolation-spawn.md) | Batch-work process-isolation spawn mode | Accepted | — |
 | [009](./009-platform-stratified-e2e-runtime.md) | Platform-stratified e2e runtime + confirm-first preflight | Accepted | — |
 | [010](./010-review-release-boundary-merge-review-mode.md) | review-code + review-production release-boundary merge-review mode | Accepted | — |
+| [011](./011-consumer-repo-footprint-hygiene.md) | Consumer-repo footprint hygiene — relocate runtime state, bootstrap tracked gitignore | Proposed | — |
