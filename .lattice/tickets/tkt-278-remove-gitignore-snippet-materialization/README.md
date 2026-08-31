@@ -55,3 +55,8 @@ Single cohesive fix (path-overlap → one-PR, one worktree):
 ## Ship plan
 
 one-PR, one worktree (already bound: `spc-277-gitignore-snippet-leak`).
+
+## Finish
+
+- pr-280 merged: 2026-08-31T10:30:02Z — https://github.com/percena/lattice/pull/280 (base merge)
+- issue #278 closed: 2026-08-31T10:30:14Z — https://github.com/percena/lattice/issues/278
