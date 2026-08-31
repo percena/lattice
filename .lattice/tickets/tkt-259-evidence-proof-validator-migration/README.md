@@ -1,7 +1,7 @@
 # tkt-259-evidence-proof-validator-migration
 
 > **TL;DR:** Story-header/result-JSON schema; pass proof; spc-186.prs backfill; baseline+ratchet; new warns fail CI
-> **Kind:** feat · **Status:** queued · **Priority:** P1
+> **Kind:** feat · **Status:** pr-open · **Priority:** P1
 > **Path:** spc-254 → tkt-259 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/259 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Story-header/result-JSON schema; pass proof; spc-186.prs backfill; baseline+ratchet; new warns fail CI |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -24,12 +24,12 @@
 | worktree_bind | tkt-259-evidence-proof-validator-migration |
 | prs | (none) |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T14:30:00Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A7**
-- [ ] **A8**
+- [x] **A7**
+- [x] **A8**
 - mirror spc-254 A* criteria for this slice; see Spec for full text.
 
 ## Notes

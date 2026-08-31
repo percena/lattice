@@ -10,7 +10,7 @@ summary: Close the enforcement asymmetry found in rev-20260829-160834Z — make 
 created: 2026-08-29
 updated: 2026-08-29
 tickets: [tkt-188, tkt-189, tkt-190, tkt-191, tkt-192, tkt-193, tkt-194, tkt-201]
-prs: []
+prs: [pr-197, pr-199, pr-205, pr-206, pr-207, pr-208, pr-209, pr-210]
 reviews: [rev-20260829-160834Z, rev-20260829-140444Z]
 supersedes: []
 superseded_by: null

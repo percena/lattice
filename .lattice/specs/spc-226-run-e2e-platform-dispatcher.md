@@ -10,7 +10,7 @@ summary: "Platform-split run-e2e: macOS→ego-lite, Linux→camoufox-js via play
 created: 2026-08-30
 updated: 2026-08-30
 tickets: [tkt-227, tkt-232]
-prs: [pr-229]
+prs: [pr-229, pr-233]
 reviews: []
 supersedes: []
 superseded_by: null

@@ -1,0 +1,7 @@
+{
+  "status": "pass",
+  "reason": "title-matched",
+  "assertions": [
+    { "name": "lands on /dash", "pass": true }
+  ]
+}
