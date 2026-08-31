@@ -51,6 +51,24 @@ teardown() {
   [ "$lines1" -eq "$lines2" ]
 }
 
+@test "write-gitignore bootstraps tracked docs/adr/.gitignore when docs/adr/ exists (spc-282 A4)" {
+  mkdir -p "$TEST_DIR/repo/docs/adr"
+  bash "$INIT" --root "$TEST_DIR/repo" --write-gitignore >/dev/null
+  [ -f "$TEST_DIR/repo/docs/adr/.gitignore" ]
+  grep -qF '# --- Lattice docs/adr/ temp subclass' "$TEST_DIR/repo/docs/adr/.gitignore"
+  grep -qF '.create-adr.lock/' "$TEST_DIR/repo/docs/adr/.gitignore"
+  grep -qF '.*.tmp*' "$TEST_DIR/repo/docs/adr/.gitignore"
+  # idempotent: re-run does not duplicate
+  lines1=$(wc -l <"$TEST_DIR/repo/docs/adr/.gitignore")
+  bash "$INIT" --root "$TEST_DIR/repo" --write-gitignore >/dev/null
+  lines2=$(wc -l <"$TEST_DIR/repo/docs/adr/.gitignore")
+  [ "$lines1" -eq "$lines2" ]
+  # when docs/adr/ is absent, no .gitignore is written there
+  rm -rf "$TEST_DIR/repo2"; mkdir -p "$TEST_DIR/repo2"
+  bash "$INIT" --root "$TEST_DIR/repo2" --write-gitignore >/dev/null
+  [ ! -e "$TEST_DIR/repo2/docs/adr/.gitignore" ]
+}
+
 @test "no --write-gitignore echoes both ignore blocks to stdout and creates no snippet file" {
   run bash "$INIT" --root "$TEST_DIR/repo"
   [ "$status" -eq 0 ]

@@ -1,0 +1,9 @@
+# --- Lattice docs/adr/ temp subclass (tracked; ADR-011 / spc-282 A4) ---
+# ADR atomic-write temps + mutex lock dirs. These must stay co-located with
+# their target (os.replace/mv atomicity requires same filesystem); the tracked
+# gitignore keeps them out of git status. EXIT traps in claim-adr-file.sh +
+# append-adr-index-row.sh unlink them on exit/signal; this is the crash-leak guard.
+.create-adr.lock/
+README.lock/
+.*.tmp*
+# --- end Lattice docs/adr/ temp subclass ---
