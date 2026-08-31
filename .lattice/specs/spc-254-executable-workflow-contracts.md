@@ -9,7 +9,7 @@ priority: P1
 summary: "Compile cross-stage orchestration, mutation proof, and evidence/lineage into a machine-checked, recoverable execution layer — constrain the path, not the model."
 created: 2026-08-31
 updated: 2026-08-31
-tickets: []
+tickets: [tkt-255, tkt-256, tkt-257, tkt-258, tkt-259, tkt-260, tkt-261]
 prs: []
 reviews: [rev-20260830-141357Z]
 supersedes: []
@@ -56,15 +56,15 @@ Continuing to stack Skill prose widens the implementation/statement drift surfac
 
 Acceptance is fault-injection centered — each criterion is demonstrated by injecting a failure and showing the system detects, classifies, and recovers correctly.
 
-- [ ] **A1 (F1 false-success closure)** — A `process`-mode worker that exits non-zero, or whose PID disappears without an opened PR, is classified `failed` or `unknown` (never `completed`). `unknown` fail-closes the binder to `stuck + wait_reason: unblock`. `ok` requires exit/result artifact + `claude agents --json` + `verify-mutation --expected-oid` agreement.
-- [ ] **A2 (F2 mutation proof in main chain)** — push mismatch (remote OID ≠ local), PR create with wrong repo/base/head/body/head, and a merge whose base OID drifts each halt cleanup/ledger and emit structured recovery info. Normal, batch, and delegated paths share one `verify-mutation` helper contract.
-- [ ] **A3 (F3 transition contract)** — a machine-readable schema (`from/to/owner/guard/reason/escape/trace/metric`) is the SoT; all status writers go through one transition API that appends a ledger entry; the validator replays the ledger and rejects an illegal edge between two legal snapshots.
-- [ ] **A4 (F3 schema↔docs parity)** — `docs/workflow-fsm.md`'s transition table is generated from, or passes a parity test against, the schema. Manually editing one without the other fails CI.
-- [ ] **A5 (F4 recoverable coordinator)** — a host restart mid-batch/finish resumes from the persisted DAG/layer/node-attempt/PID/PR/OID/marker-owner/failure-class/resume-cursor without re-deriving state from artifacts. The coordinator performs no model inference.
-- [ ] **A6 (F5 capability matrix)** — README + `docs/workflow-fsm.md` state guarantee strength per call path (scripted = hard gate; strict Claude hook = defense-in-depth; advisory/uninstalled = detection only). No text claims an unconditional global invariant.
-- [ ] **A7 (F6 evidence proof)** — a `pass` story row with no matching story header, inconsistent oracle/mutations, or missing `status=pass` result JSON fails the validator. A destructive story without an authorization trace fails. `spc-186.prs` is backfilled; a `done` Spec missing the child binder PR union fails.
-- [ ] **A8 (F6 validator migration)** — the 101 current warnings are snapshotted as a baseline; only-new warnings fail CI separately; the baseline is a one-way ratchet (only-decrease). New checks (done-Spec PR union, reciprocal edges) start as warning and migrate to error on a documented schedule.
-- [ ] **A9 (F7 environment parity)** — both CIs pin the same Bats version; `ci-local` reports degraded or fails on version mismatch; installed-skill drift check runs in Lattice dev mode without overwriting the installed tree.
+- [ ] **A1** (F1 false-success closure) — A `process`-mode worker that exits non-zero, or whose PID disappears without an opened PR, is classified `failed` or `unknown` (never `completed`). `unknown` fail-closes the binder to `stuck + wait_reason: unblock`. `ok` requires exit/result artifact + `claude agents --json` + `verify-mutation --expected-oid` agreement.
+- [ ] **A2** (F2 mutation proof in main chain) — push mismatch (remote OID ≠ local), PR create with wrong repo/base/head/body/head, and a merge whose base OID drifts each halt cleanup/ledger and emit structured recovery info. Normal, batch, and delegated paths share one `verify-mutation` helper contract.
+- [ ] **A3** (F3 transition contract) — a machine-readable schema (`from/to/owner/guard/reason/escape/trace/metric`) is the SoT; all status writers go through one transition API that appends a ledger entry; the validator replays the ledger and rejects an illegal edge between two legal snapshots.
+- [ ] **A4** (F3 schema↔docs parity) — `docs/workflow-fsm.md`'s transition table is generated from, or passes a parity test against, the schema. Manually editing one without the other fails CI.
+- [ ] **A5** (F4 recoverable coordinator) — a host restart mid-batch/finish resumes from the persisted DAG/layer/node-attempt/PID/PR/OID/marker-owner/failure-class/resume-cursor without re-deriving state from artifacts. The coordinator performs no model inference.
+- [ ] **A6** (F5 capability matrix) — README + `docs/workflow-fsm.md` state guarantee strength per call path (scripted = hard gate; strict Claude hook = defense-in-depth; advisory/uninstalled = detection only). No text claims an unconditional global invariant.
+- [ ] **A7** (F6 evidence proof) — a `pass` story row with no matching story header, inconsistent oracle/mutations, or missing `status=pass` result JSON fails the validator. A destructive story without an authorization trace fails. `spc-186.prs` is backfilled; a `done` Spec missing the child binder PR union fails.
+- [ ] **A8** (F6 validator migration) — the 101 current warnings are snapshotted as a baseline; only-new warnings fail CI separately; the baseline is a one-way ratchet (only-decrease). New checks (done-Spec PR union, reciprocal edges) start as warning and migrate to error on a documented schedule.
+- [ ] **A9** (F7 environment parity) — both CIs pin the same Bats version; `ci-local` reports degraded or fails on version mismatch; installed-skill drift check runs in Lattice dev mode without overwriting the installed tree.
 
 ## Non-goals
 
