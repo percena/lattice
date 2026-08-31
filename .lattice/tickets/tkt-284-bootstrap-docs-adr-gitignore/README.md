@@ -1,7 +1,7 @@
 # tkt-284-bootstrap-docs-adr-gitignore
 
 > **TL;DR:** Bootstrap tracked docs/adr/.gitignore for ADR atomic-write temps + mutex lock dirs; harden EXIT traps.
-> **Kind:** chore · **Status:** open · **Priority:** P2
+> **Kind:** chore · **Status:** queued · **Priority:** P2
 > **Path:** spc-282 → tkt-284 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/284 |
-| status | open |
+| status | queued |
 | adopted | false |
 | summary | Bootstrap tracked docs/adr/.gitignore covering ADR temps + lock dirs; harden EXIT-trap cleanup |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |

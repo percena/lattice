@@ -52,9 +52,12 @@ batch_gate_resolve_home() {
     printf '%s' "$override"
     return 0
   fi
-  # Try the canonical helper first (single source of truth).
+  # Try the canonical helper first (single source of truth). Path is relative
+  # to this hook lib (plugins/lattice/hooks/lib → 4 up to repo root → skills/).
+  # In a consumer repo the plugin is installed under ~/.claude/plugins (not
+  # repo-relative), so the helper is not found there → inline fallback below.
   local helper
-  helper="$(cd "${BASH_SOURCE[0]%/*}/../../../../../skills/_lattice-lib/scripts" 2>/dev/null && pwd)/lattice-state-home.sh"
+  helper="$(cd "${BASH_SOURCE[0]%/*}/../../../../skills/_lattice-lib/scripts" 2>/dev/null && pwd)/lattice-state-home.sh"
   if [[ -f "$helper" ]]; then
     local resolved
     if resolved=$(bash "$helper" 2>/dev/null); then

@@ -1,7 +1,7 @@
 # tkt-286-stale-marker-gc-in-start-work
 
 > **TL;DR:** start-work GCs stale state-dir marker entries by mtime so a crashed batch doesn't leave a permanent open merge gate.
-> **Kind:** chore · **Status:** open · **Priority:** P2
+> **Kind:** chore · **Status:** queued · **Priority:** P2
 > **Path:** spc-282 → tkt-286 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/286 |
-| status | open |
+| status | queued |
 | adopted | false |
 | summary | start-work scans state dir for stale markers (mtime > threshold) and removes them as orphan-batch residue |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |

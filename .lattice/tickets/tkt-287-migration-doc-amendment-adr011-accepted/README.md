@@ -1,7 +1,7 @@
 # tkt-287-migration-doc-amendment-adr011-accepted
 
 > **TL;DR:** One-shot migrate in-repo relocated files; amend ADR-008/spc-186 A1 location ref; fix stale flow.md prose; flip ADR-011 Accepted.
-> **Kind:** docs · **Status:** open · **Priority:** P3
+> **Kind:** docs · **Status:** queued · **Priority:** P3
 > **Path:** spc-282 → tkt-287 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | docs,P3 |
 | github | https://github.com/percena/lattice/issues/287 |
-| status | open |
+| status | queued |
 | adopted | false |
 | summary | Migrate relocated in-repo files; amend ADR-008/spc-186 A1 gate-location ref; fix flow.md stale prose; flip ADR-011 Accepted |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |

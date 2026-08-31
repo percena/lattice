@@ -1,7 +1,7 @@
 # tkt-285-onboarding-contract-lattice-commit
 
 > **TL;DR:** Tell the operator .lattice/ is meant to be committed; stop mis-flagging scaffolded bootstrap files as leak residue.
-> **Kind:** chore · **Status:** open · **Priority:** P2
+> **Kind:** chore · **Status:** queued · **Priority:** P2
 > **Path:** spc-282 → tkt-285 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/285 |
-| status | open |
+| status | queued |
 | adopted | false |
 | summary | One-time guidance on .lattice/ scaffold; check-base-residue treats bootstrap files as expected-dirt-once (advisory) |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |

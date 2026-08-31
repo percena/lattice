@@ -92,7 +92,11 @@ def resolve_state_home() -> str:
     override = os.environ.get("LATTICE_BATCH_GATE_HOME") or os.environ.get("LATTICE_STATE_HOME")
     if override:
         return override
-    helper = _LIB_DIR / "lattice-state-home.sh"
+    # _HERE = skills/batch-work/scripts/lib; the _lattice-lib sibling is at
+    # skills/_lattice-lib/scripts (3 up to skills/, NOT the pre-existing _LIB_DIR
+    # which mis-resolves to batch-work/_lattice-lib). Compute the correct path
+    # so the SoT helper is actually reached.
+    helper = _HERE.parent.parent.parent / "_lattice-lib" / "scripts" / "lattice-state-home.sh"
     if helper.is_file():
         try:
             out = subprocess.run(

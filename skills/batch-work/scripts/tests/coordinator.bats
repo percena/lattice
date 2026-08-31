@@ -30,6 +30,11 @@ setup() {
   LATTICE_HOME="$TEST_DIR/lhome"
   export LATTICE_HOME
   mkdir -p "$LATTICE_HOME"
+  # ADR-011 / spc-282 A2: coordinator state relocates to the out-of-repo state
+  # home (resolved via fingerprint, NOT --lattice-home). Pin the state home to
+  # the test temp so assertions on $LATTICE_HOME/.coordinator/ still hold.
+  LATTICE_STATE_HOME="$LATTICE_HOME"
+  export LATTICE_STATE_HOME
 }
 
 teardown() {
