@@ -22,7 +22,7 @@
 | primary_ticket | tkt-278 |
 | related_tickets | (none) |
 | worktree_bind | spc-277-gitignore-snippet-leak |
-| prs | (pending) |
+| prs | pr-280 — https://github.com/percena/lattice/pull/280 |
 | created | 2026-08-31T00:00:00Z |
 | updated | 2026-08-31T00:00:00Z |
 
