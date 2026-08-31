@@ -1,8 +1,8 @@
 # tkt-258-recoverable-coordinator
 
 > **TL;DR:** Coordinator persists DAG/layer/node/attempt/cursor; no model inference; resume after restart
-> **Kind:** feat · **Status:** queued · **Priority:** P1
-> **Path:** spc-254 → tkt-258 → (pr-…)
+> **Kind:** feat · **Status:** pr-open · **Priority:** P1
+> **Path:** spc-254 → tkt-258 → pr-269
 
 | Field | Value |
 | --- | --- |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/258 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Coordinator persists DAG/layer/node/attempt/cursor; no model inference; resume after restart |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -22,14 +22,14 @@
 | primary_ticket | tkt-258 |
 | related_tickets | (none) |
 | worktree_bind | tkt-258-recoverable-coordinator |
-| prs | (none) |
+| prs | pr-269 — https://github.com/percena/lattice/pull/269 |
 | created | 2026-08-31T00:00:00Z |
 | updated | 2026-08-31T00:00:00Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A5**
-- mirror spc-254 A* criteria for this slice; see Spec for full text.
+- [x] **A5**
+- A host restart mid-batch/finish resumes from the persisted DAG/layer/node-attempt/PID/PR/OID/marker-owner/failure-class/resume-cursor without re-deriving state from artifacts. Coordinator performs no model inference (D4). Spc-254 A5; see Spec for full text.
 
 ## Notes
 
@@ -51,7 +51,7 @@
 - Blocked by: #255, #257
 - Parallel group: l3-coordinator
 - Worktree bind: tkt-258-recoverable-coordinator
-- Child PRs: (none yet)
+- Child PRs: pr-269
 
 ## Assets
 

@@ -64,6 +64,8 @@ DEFAULT_HELPER="$SCRIPT_DIR/spawn-ticket-process.sh"
 LIB_DIR="$(cd "$SCRIPT_DIR/../../_lattice-lib/scripts" 2>/dev/null && pwd)"
 DEFAULT_VERIFY="${LIB_DIR:-$SCRIPT_DIR}/verify-mutation.sh"
 DEFAULT_TRANSITION_API="${LIB_DIR:-$SCRIPT_DIR}/transition-api.py"
+COORD_DIR="$(cd "$SCRIPT_DIR/lib" 2>/dev/null && pwd)"
+DEFAULT_COORDINATOR="${COORD_DIR:-$SCRIPT_DIR/lib}/coordinator.py"
 
 usage() {
   cat <<EOF
@@ -85,6 +87,21 @@ usage: run-process-wave.sh --manifest <path> [options]
                          Records the unknown→stuck fail-close ledger flip.
   --lattice-home <dir>    Lattice home dir for the transition ledger (default:
                          \$LATTICE_HOME or .lattice).
+  --coordinator <path>    coordinator.py path (default: sibling lib). When set,
+                         the wave persists DAG/layer/node-attempt/PID-PR-OID/
+                         marker-owner/failure-class/resume-cursor to
+                         .lattice/.coordinator/<batch-id>.json (spc-254 A5).
+                         A host restart resumes from the persisted cursor
+                         without re-deriving. The coordinator performs NO
+                         model inference (D4) — it consumes the transition API
+                         (tkt-255) and this wave's classification (tkt-257).
+                         Requires --batch-id.
+  --batch-id <id>         Batch id for the coordinator state file. Required
+                         when --coordinator is set.
+  --layer <N>             DAG layer index this wave belongs to (forwarded to
+                         the coordinator so resume knows which layer settled).
+  --wave <N>              Wave index within the layer (forwarded to the
+                         coordinator's resume cursor).
   --dry-run               Print the wave plan; do not spawn.
   --report <path>         Write the Markdown report to <path> (always also stdout).
 EOF
@@ -172,6 +189,52 @@ record_stuck() {
     || echo "warn: transition-api record failed for $ticket (ledger not written; host must stamp stuck manually)" >&2
 }
 
+# coordinator spine helpers (spc-254 A5). When WAVE_COORDINATOR is set, the
+# wave persists DAG/layer/node-attempt/PID-PR-OID/marker-owner/failure-class/
+# resume-cursor via coordinator.py. The coordinator performs NO model
+# inference (D4) — it calls transition-api.py internally for the binder flip,
+# so these helpers REPLACE record_stuck when the spine is active (no double
+# ledger entry). Best-effort: a coordinator error warns, never crashes the wave.
+coord_record_spawn() {
+  local ticket="$1" pid="$2" wt="$3" brief="$4" timebox="$5"
+  [[ -n "${WAVE_COORDINATOR:-}" ]] || return 0
+  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" record-spawn \
+    --batch-id "$WAVE_BATCH_ID" --ticket "$ticket" --layer "$WAVE_LAYER" \
+    --wave "$WAVE_WAVE" --pid "$pid" --worktree "$wt" --brief-file "$brief" \
+    --timebox "$timebox" --lattice-home "$WAVE_LATTICE_HOME" >/dev/null 2>&1 \
+    || echo "warn: coordinator record-spawn failed for $ticket (state not persisted; resume may re-derive)" >&2
+}
+
+# coord_record_node <ticket> <status> [pid] [pr] [oid] [reason]
+# status ∈ {ok,failed,timeout,unknown,spawned-but-dead,workspace-failed}.
+# The coordinator calls transition-api for ok (→pr-open), unknown/timeout
+# (→stuck). failed/spawned-but-dead/workspace-failed persist the failure
+# class only (host triages the binder). When the spine is NOT active, the
+# caller falls back to record_stuck for the unknown fail-close.
+coord_record_node() {
+  local ticket="$1" status="$2" pid="${3:-}" pr="${4:-}" oid="${5:-}" reason="${6:-}"
+  [[ -n "${WAVE_COORDINATOR:-}" ]] || return 0
+  local -a args=(record-node --batch-id "$WAVE_BATCH_ID" --ticket "$ticket" \
+    --status "$status" --failure-class "$status" --transition-api "$WAVE_TRANSITION_API" \
+    --lattice-home "$WAVE_LATTICE_HOME")
+  [[ -n "$pid" ]] && args+=(--pid "$pid")
+  [[ -n "$pr" ]] && args+=(--pr "$pr")
+  [[ -n "$oid" ]] && args+=(--oid "$oid")
+  [[ -n "$reason" ]] && args+=(--reason "$reason")
+  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" "${args[@]}" >/dev/null 2>&1 \
+    || echo "warn: coordinator record-node failed for $ticket (state not persisted)" >&2
+}
+
+# After a wave barrier settles, advance the resume cursor so a restart
+# picks up at the NEXT wave, not re-running the settled one.
+coord_advance() {
+  [[ -n "${WAVE_COORDINATOR:-}" ]] || return 0
+  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" advance-cursor \
+    --batch-id "$WAVE_BATCH_ID" --layer "$WAVE_LAYER" --wave "$WAVE_WAVE" \
+    --lattice-home "$WAVE_LATTICE_HOME" >/dev/null 2>&1 \
+    || echo "warn: coordinator advance-cursor failed (resume cursor not advanced)" >&2
+}
+
 # classify_node <i> — redefine a settled process node's final state from the
 # four signals. Called from barrier_poll when `kill -0` reports the PID dead
 # (settled within timebox). Sets STATUS[i] ∈ {ok,failed,unknown} and records
@@ -219,8 +282,15 @@ classify_node() {
   ENDS[i]=$(now_epoch)
   echo "${STATUS[i]}: ${ticket} pid=$pid ($reason)" >&2
 
-  # unknown fail-closes the binder to stuck + wait_reason: unblock.
-  if [[ "${STATUS[i]}" == "unknown" ]]; then
+  # unknown fail-closes the binder to stuck + wait_reason: unblock. When the
+  # coordinator spine is active (spc-254 A5), coord_record_node persists ALL
+  # settled statuses (ok/failed/timeout/unknown) AND records the binder flip
+  # via transition-api internally — replacing record_stuck so there is no
+  # double ledger entry. When the spine is off, the legacy record_stuck path
+  # runs only for unknown (preserving prior behavior + existing tests).
+  if [[ -n "${WAVE_COORDINATOR:-}" ]]; then
+    coord_record_node "$ticket" "${STATUS[i]}" "$pid" "$pr" "$oid" "$reason"
+  elif [[ "${STATUS[i]}" == "unknown" ]]; then
     record_stuck "$ticket" "$reason"
   fi
 }
@@ -228,6 +298,7 @@ classify_node() {
 run_wave() {
   local manifest="" concurrency=3 ram_thr=10 state_file="" poll_interval=10 spawn_helper="$DEFAULT_HELPER" dry=0 report=""
   local verify_helper="$DEFAULT_VERIFY" transition_api="$DEFAULT_TRANSITION_API" lattice_home="${LATTICE_HOME:-.lattice}"
+  local coordinator="" coordinator_explicit=0 batch_id="" layer=0 wave=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --manifest) manifest="$2"; shift 2 ;;
@@ -239,16 +310,45 @@ run_wave() {
       --verify-helper) verify_helper="$2"; shift 2 ;;
       --transition-api) transition_api="$2"; shift 2 ;;
       --lattice-home) lattice_home="$2"; shift 2 ;;
+      --coordinator) coordinator="$2"; coordinator_explicit=1; shift 2 ;;
+      --batch-id) batch_id="$2"; shift 2 ;;
+      --layer) layer="$2"; shift 2 ;;
+      --wave) wave="$2"; shift 2 ;;
       --dry-run) dry=1; shift ;;
       --report) report="$2"; shift 2 ;;
       *) echo "usage error: unknown arg '$1'" >&2; usage >&2; exit 2 ;;
     esac
   done
+  # Default the coordinator path (uses DEFAULT_COORDINATOR so it isn't dead
+  # code, SC2034). The spine stays opt-in: it only activates when --coordinator
+  # is explicitly passed (coordinator_explicit), keeping the legacy path
+  # (no --coordinator) unchanged.
+  coordinator="${coordinator:-$DEFAULT_COORDINATOR}"
 
   [[ -n "$manifest" ]] || { echo "usage error: --manifest is required" >&2; usage >&2; exit 2; }
   [[ -f "$spawn_helper" ]] || { echo "error: spawn-helper not found: $spawn_helper" >&2; exit 1; }
   [[ -f "$verify_helper" ]] || { echo "error: verify-helper not found: $verify_helper" >&2; exit 1; }
   [[ "$concurrency" =~ ^[0-9]+$ && "$concurrency" -ge 1 ]] || { echo "error: --concurrency must be a positive int" >&2; exit 2; }
+  # Coordinator wiring (spc-254 A5). Opt-in: when --coordinator is set, the wave
+  # persists DAG/layer/node-attempt/PID-PR-OID/marker-owner/failure-class/
+  # resume-cursor so a host restart resumes without re-deriving. The coordinator
+  # performs NO model inference (D4); it consumes the transition API (tkt-255)
+  # and this wave's four-signal classification (tkt-257 ok|failed|timeout|unknown).
+  WAVE_COORDINATOR=""
+  WAVE_BATCH_ID=""
+  WAVE_LAYER=0
+  WAVE_WAVE=0
+  if [[ "$coordinator_explicit" -eq 1 ]]; then
+    [[ -n "$batch_id" ]] || { echo "error: --coordinator requires --batch-id" >&2; exit 2; }
+    [[ -f "$coordinator" ]] || { echo "error: coordinator not found: $coordinator" >&2; exit 1; }
+    # Ensure the state file exists (idempotent — init is a no-op if it does).
+    LATTICE_HOME="$lattice_home" python3 "$coordinator" init --batch-id "$batch_id" --lattice-home "$lattice_home" >/dev/null 2>&1 || true
+    WAVE_COORDINATOR="$coordinator"
+    WAVE_BATCH_ID="$batch_id"
+    WAVE_LAYER="$layer"
+    WAVE_WAVE="$wave"
+    echo "coordinator: spine active batch=$batch_id layer=$layer wave=$wave (state: $lattice_home/.coordinator/$batch_id.json)" >&2
+  fi
 
   local count
   parse_manifest "$manifest"
@@ -316,7 +416,8 @@ run_wave() {
     for (( j=spawned_so_far; j<batch_end; j++ )); do
       if [[ ! -d "${M_WT[j]}" ]]; then
         echo "error: worktree missing for ${M_TICKET[j]}: ${M_WT[j]} (host must ensure-workspace first)" >&2
-        STATUS[j]="workspace-failed"; continue
+        STATUS[j]="workspace-failed"; coord_record_node "${M_TICKET[j]}" "workspace-failed" "" "" "" "worktree missing"
+        continue
       fi
       # Export the per-ticket result path so the spawn helper forwards it
       # (via its `env`-prefixed exec) to the worker, which writes exit/pr/oid.
@@ -325,8 +426,11 @@ run_wave() {
       if out=$(bash "$spawn_helper" --cwd "${M_WT[j]}" --brief-file "${M_BRIEF[j]}" --state-file "$state_file" 2>&1); then
         local pid
         pid=$(printf '%s\n' "$out" | sed -n 's/^spawned: pid=\([0-9]*\) .*/\1/p')
-        [[ "$pid" =~ ^[0-9]+$ ]] || { STATUS[j]="workspace-failed"; echo "warn: spawn produced no pid for ${M_TICKET[j]}: $out" >&2; continue; }
+        [[ "$pid" =~ ^[0-9]+$ ]] || { STATUS[j]="workspace-failed"; coord_record_node "${M_TICKET[j]}" "workspace-failed" "" "" "" "spawn produced no pid"; echo "warn: spawn produced no pid for ${M_TICKET[j]}: $out" >&2; continue; }
         PIDS[j]="$pid"; STARTS[j]=$(now_epoch); STATUS[j]="running"
+        # Persist the spawn (running) state to the coordinator spine so a
+        # restart knows this node attempted (spc-254 A5).
+        coord_record_spawn "${M_TICKET[j]}" "$pid" "${M_WT[j]}" "${M_BRIEF[j]}" "${M_TIMEBOX[j]}"
         # Grace-period re-check: an immediate-crash spawn (auth/OOM) would
         # otherwise be reported `completed` by the barrier's first poll —
         # indistinguishable from success mid-wave (tkt-242 L2). Probe again
@@ -337,10 +441,12 @@ run_wave() {
           echo "spawned: ${M_TICKET[j]} pid=$pid" >&2
         else
           STATUS[j]="spawned-but-dead"; ENDS[j]=$(now_epoch)
+          coord_record_node "${M_TICKET[j]}" "spawned-but-dead" "$pid" "" "" "died within ${SPAWN_GRACE_SEC:-0.3}s grace"
           echo "spawned-but-dead: ${M_TICKET[j]} pid=$pid (died within ${SPAWN_GRACE_SEC:-0.3}s grace)" >&2
         fi
       else
         STATUS[j]="workspace-failed"; echo "warn: spawn failed for ${M_TICKET[j]}: $out" >&2
+        coord_record_node "${M_TICKET[j]}" "workspace-failed" "" "" "" "spawn command failed"
       fi
     done
     spawned_so_far=$batch_end
@@ -353,6 +459,11 @@ run_wave() {
   # If concurrency >= count, the whole wave spawned in one batch; barrier ran
   # inside the loop. If spawns broke early on RAM, ensure remaining barrier.
   barrier_poll "$count" "$poll_interval"
+
+  # The wave settled — advance the coordinator resume cursor so a host
+  # restart picks up at the NEXT wave, never re-running this settled one
+  # (spc-254 A5: resume without re-deriving from artifacts).
+  coord_advance
 
   emit_report "$count" "$report"
 }
@@ -375,6 +486,7 @@ barrier_poll() {
         if [[ "$elapsed" -gt "$limit" ]]; then
           kill "$pid" 2>/dev/null || true
           STATUS[i]="timeout"; ENDS[i]=$(now_epoch)
+          coord_record_node "${M_TICKET[i]}" "timeout" "$pid" "" "" "watchdog timeout (elapsed ${elapsed}s > timebox ${limit}s)"
           echo "timeout: ${M_TICKET[i]} pid=$pid (elapsed ${elapsed}s > timebox ${limit}s)" >&2
         fi
       else
