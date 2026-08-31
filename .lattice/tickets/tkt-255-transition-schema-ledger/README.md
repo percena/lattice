@@ -1,7 +1,7 @@
 # tkt-255-transition-schema-ledger
 
 > **TL;DR:** Machine-readable transition schema is SoT; one transition API + ledger; docs parity-tested
-> **Kind:** feat · **Status:** pr-open · **Priority:** P1
+> **Kind:** feat · **Status:** closed · **Priority:** P1
 > **Path:** spc-254 → tkt-255 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/255 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Machine-readable transition schema is SoT; one transition API + ledger; docs parity-tested |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | tkt-255-transition-schema-ledger |
 | prs | pr-263 — https://github.com/percena/lattice/pull/263 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T03:10:00Z |
+| updated | 2026-08-31T03:35:00Z |
 
 ## Acceptance (this slice)
 
