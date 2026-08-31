@@ -298,7 +298,7 @@ classify_node() {
 run_wave() {
   local manifest="" concurrency=3 ram_thr=10 state_file="" poll_interval=10 spawn_helper="$DEFAULT_HELPER" dry=0 report=""
   local verify_helper="$DEFAULT_VERIFY" transition_api="$DEFAULT_TRANSITION_API" lattice_home="${LATTICE_HOME:-.lattice}"
-  local coordinator="" batch_id="" layer=0 wave=0
+  local coordinator="" coordinator_explicit=0 batch_id="" layer=0 wave=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --manifest) manifest="$2"; shift 2 ;;
@@ -310,7 +310,7 @@ run_wave() {
       --verify-helper) verify_helper="$2"; shift 2 ;;
       --transition-api) transition_api="$2"; shift 2 ;;
       --lattice-home) lattice_home="$2"; shift 2 ;;
-      --coordinator) coordinator="$2"; shift 2 ;;
+      --coordinator) coordinator="$2"; coordinator_explicit=1; shift 2 ;;
       --batch-id) batch_id="$2"; shift 2 ;;
       --layer) layer="$2"; shift 2 ;;
       --wave) wave="$2"; shift 2 ;;
@@ -319,6 +319,11 @@ run_wave() {
       *) echo "usage error: unknown arg '$1'" >&2; usage >&2; exit 2 ;;
     esac
   done
+  # Default the coordinator path (uses DEFAULT_COORDINATOR so it isn't dead
+  # code, SC2034). The spine stays opt-in: it only activates when --coordinator
+  # is explicitly passed (coordinator_explicit), keeping the legacy path
+  # (no --coordinator) unchanged.
+  coordinator="${coordinator:-$DEFAULT_COORDINATOR}"
 
   [[ -n "$manifest" ]] || { echo "usage error: --manifest is required" >&2; usage >&2; exit 2; }
   [[ -f "$spawn_helper" ]] || { echo "error: spawn-helper not found: $spawn_helper" >&2; exit 1; }
@@ -333,7 +338,7 @@ run_wave() {
   WAVE_BATCH_ID=""
   WAVE_LAYER=0
   WAVE_WAVE=0
-  if [[ -n "$coordinator" ]]; then
+  if [[ "$coordinator_explicit" -eq 1 ]]; then
     [[ -n "$batch_id" ]] || { echo "error: --coordinator requires --batch-id" >&2; exit 2; }
     [[ -f "$coordinator" ]] || { echo "error: coordinator not found: $coordinator" >&2; exit 1; }
     # Ensure the state file exists (idempotent — init is a no-op if it does).
