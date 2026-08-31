@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/285 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | One-time guidance on .lattice/ scaffold; check-base-residue treats bootstrap files as expected-dirt-once (advisory) |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
 | prs | pr-290 — https://github.com/percena/lattice/pull/290 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T15:13:22Z |
+| updated | 2026-08-31T15:26:16Z |
 
 ## Why
 
@@ -59,3 +59,8 @@
 ## blocked_by
 
 (none)
+
+## Finish
+
+- pr-290 merged: 2026-08-31T15:25:29Z — https://github.com/percena/lattice/pull/290 (base merge)
+- issue #285 closed: 2026-08-31T15:25:55Z — https://github.com/percena/lattice/issues/285
