@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | chore,P1 |
 | github | https://github.com/percena/lattice/issues/283 |
-| status | open |
+| status | pr-open |
 | adopted | false |
 | summary | Relocate runtime state (batch markers, coordinator, ledger .lock) to $XDG_STATE_HOME/lattice/<fingerprint>/; bootstrap tracked .lattice/.gitignore for residual co-located temps |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -22,9 +22,9 @@
 | primary_ticket | tkt-283 |
 | related_tickets | tkt-286 (GC needs state dir), tkt-287 (migration needs final layout) |
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
-| prs | (none yet) |
+| prs | pr-288 — https://github.com/percena/lattice/pull/288 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T14:45:29Z |
 
 ## Why
 
