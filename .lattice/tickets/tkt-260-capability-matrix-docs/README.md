@@ -22,7 +22,7 @@
 | primary_ticket | tkt-260 |
 | related_tickets | (none) |
 | worktree_bind | tkt-260-capability-matrix-docs |
-| prs | pr-264 (https://github.com/percena/lattice/pull/264) |
+| prs | pr-264 — https://github.com/percena/lattice/pull/264 |
 | created | 2026-08-31T00:00:00Z |
 | updated | 2026-08-31T12:00:00Z |
 

@@ -22,7 +22,7 @@
 | primary_ticket | tkt-259 |
 | related_tickets | (none) |
 | worktree_bind | tkt-259-evidence-proof-validator-migration |
-| prs | (none) · pr-267 — https://github.com/percena/lattice/pull/267 |
+| prs | pr-267 — https://github.com/percena/lattice/pull/267 |
 | created | 2026-08-31T00:00:00Z |
 | updated | 2026-08-31T14:30:00Z |
 

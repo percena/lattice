@@ -1,7 +1,7 @@
 # tkt-261-environment-parity
 
 > **TL;DR:** Both CIs pin same Bats; ci-local degraded/fail on mismatch; drift check runs in dev mode only
-> **Kind:** feat · **Status:** queued · **Priority:** P2
+> **Kind:** feat · **Status:** closed · **Priority:** P2
 > **Path:** spc-254 → tkt-261 → (pr-…)
 
 | Field | Value |
