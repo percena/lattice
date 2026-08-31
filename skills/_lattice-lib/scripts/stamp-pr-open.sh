@@ -308,7 +308,7 @@ STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 CHECK_ALL_MODE=$($CHECK_ALL && echo "check-all" || echo "keep-boxes")
 FORCE_MODE=$($FORCE_SIDE_STATE && echo "force" || echo "guard")
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
-BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" "$FORCE_MODE" "$SIDE_STATE_REASON" <<'PY'
+STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" "$FORCE_MODE" "$SIDE_STATE_REASON" <<'PY'
 import datetime, sys, re, os, stat, fcntl
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
@@ -399,6 +399,8 @@ status_row = re.compile(r'(\| status \|)\s*(.*?)\s*(\|)')
 m_status = status_row.search(s)
 prior = m_status.group(2).strip() if m_status else ""
 status_trace = ""  # journal entry to persist alongside the flip, if any
+transition_reason = "create-pr opens the PR"  # default; overridden per branch
+transition_owner = "agent"
 if prior == "closed":
     print("stamp-pr-open: binder status is closed — left untouched")
 elif status_vocab.is_side_state(prior):
@@ -420,6 +422,8 @@ elif status_vocab.is_side_state(prior):
     )
     s = append_journal_trace(s, status_trace)
     s = status_row.sub(r'\1 pr-open \3', s, count=1)
+    transition_reason = "force-side-state override (operator-adjudicated)"
+    transition_owner = "human"
     print(f"stamp-pr-open: side-state override traced ({prior} → pr-open)")
 elif prior in status_vocab.DIRECT_JUMP_SOURCES:
     status_trace = (
@@ -429,6 +433,8 @@ elif prior in status_vocab.DIRECT_JUMP_SOURCES:
     )
     s = append_journal_trace(s, status_trace)
     s = status_row.sub(r'\1 pr-open \3', s, count=1)
+    transition_reason = "direct jump (in-progress skipped)"
+    transition_owner = "agent"
     print(f"stamp-pr-open: WARN — direct jump {prior} → pr-open journaled", file=sys.stderr)
 else:
     s = status_row.sub(r'\1 pr-open \3', s, count=1)
@@ -466,12 +472,55 @@ elif dry_run:
     print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{stamp_label}` + status pr-open{box_note}{trace_note}")
 else:
     print(f"stamp-pr-open: binder stamped ({stamp_label}, status pr-open{box_note}{trace_note})")
+    # Machine line: emit the prior status + reason/owner so bash can record the
+    # transition via the API (spc-254 A3). Idempotent re-runs (s == orig) and
+    # dry-runs do not emit. F4: a re-stamp where the status row was already
+    # pr-open (multi-PR append) does NOT emit -- pr-open->pr-open is not a
+    # rebase-void; only a real status flip is recorded.
+    if prior and prior != "closed" and prior != "pr-open":
+        print(f"@@TRANSITION_FROM:{prior}|{transition_reason}|{transition_owner}@@")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
 finally:
     os.close(lock_fd)
 PY
+)
+
+# Preserve human output (idempotent/dry-run/stamped messages). The machine
+# @@TRANSITION_FROM:...@@ line is stripped so it never leaks to a terminal or
+# CI log (review F6) -- it is an internal IPC channel only.
+printf '%s\n' "$STAMP_OUT" | grep -v '^@@TRANSITION_FROM:'
+
+# --- Transition ledger (spc-254 A3): record the pr-open flip via the single
+# transition API so the validator can replay edge legality. The embedded
+# python emits `@@TRANSITION_FROM:<prior>|<reason>|<owner>@@` only on a real
+# (non-idempotent, non-dry-run, non-pr-open->pr-open) flip. A failed record
+# is non-blocking (decision-policy: never block the PR flow); the validator
+# catches ledger/edge drift on the next run. The per-ticket ledger file is
+# COMMITTED (review F2) so CI accumulates real history -- stage it here.
+TRANSITION_LINE=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
+if [[ -n "$TRANSITION_LINE" ]]; then
+  TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+  PRIOR_STATUS="${TRANSITION_LINE%%|*}"
+  REST="${TRANSITION_LINE#*|}"
+  TRANS_REASON="${REST%%|*}"
+  TRANS_OWNER="${REST##*|}"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  RECORD_ARGS=(record "${TICKET_ID:-unknown}" "$PRIOR_STATUS" pr-open "${TRANS_OWNER:-agent}" "${TRANS_REASON:-create-pr opens the PR}")
+  if [[ "$FORCE_SIDE_STATE" == true && -n "$SIDE_STATE_REASON" ]]; then
+    RECORD_ARGS+=(--force-side-state-reason "$SIDE_STATE_REASON")
+  fi
+  python3 "$SCRIPT_DIR/transition-api.py" "${RECORD_ARGS[@]}" \
+    || echo "stamp-pr-open: WARN — transition ledger record failed (non-blocking; validator will catch)" >&2
+  # Stage the per-ticket ledger for commit (F2: committed so CI replays it).
+  # Derive the lattice home from $BINDER (.../.lattice/tickets/<dir>/README.md)
+  # rather than relying on $LATTICE_HOME, which stamp-pr-open does not export
+  # itself (ensure-workspace does, but standalone invocation must still stage).
+  LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
+  LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
+  [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
+fi
 
 # --- Mirror binder-checked acceptance into the GitHub issue -------------------
 if [[ -z "$ISSUE_M" ]]; then
