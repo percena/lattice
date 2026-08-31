@@ -45,12 +45,12 @@ Single cohesive fix (path-overlap → one-PR, one worktree):
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `lattice-init.sh` never creates `.lattice/gitignore.snippet` on any code path.
-- [ ] **A2** `--write-gitignore` writes the block directly from inline content to `.gitignore`, idempotent.
-- [ ] **A3** No-flag run echoes the block to stdout; no untracked file produced.
-- [ ] **A4** Migration removes a pre-existing stray `.lattice/gitignore.snippet`.
-- [ ] **A5** `lattice-init.bats` updated and green.
-- [ ] **A6** This repo `.gitignore` dead rule removed.
+- [x] **A1** `lattice-init.sh` never creates `.lattice/gitignore.snippet` on any code path.
+- [x] **A2** `--write-gitignore` writes the block directly from inline content to `.gitignore`, idempotent.
+- [x] **A3** No-flag run echoes the block to stdout; no untracked file produced.
+- [x] **A4** Migration removes a pre-existing stray `.lattice/gitignore.snippet`.
+- [x] **A5** `lattice-init.bats` updated and green.
+- [x] **A6** This repo `.gitignore` dead rule removed.
 
 ## Ship plan
 
