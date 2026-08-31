@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | chore,P1 |
 | github | https://github.com/percena/lattice/issues/283 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Relocate runtime state (batch markers, coordinator, ledger .lock) to $XDG_STATE_HOME/lattice/<fingerprint>/; bootstrap tracked .lattice/.gitignore for residual co-located temps |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
 | prs | pr-288 — https://github.com/percena/lattice/pull/288 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T14:45:29Z |
+| updated | 2026-08-31T15:07:30Z |
 
 ## Why
 
@@ -65,3 +65,8 @@ Fresh customer repos have no pre-existing `.lattice/.gitignore`; runtime gate ma
 ## blocked_by
 
 (none — foundation ticket; introduces the state-dir + fingerprint helper that 286/287 consume)
+
+## Finish
+
+- pr-288 merged: 2026-08-31T15:06:05Z — https://github.com/percena/lattice/pull/288 (base merge)
+- issue #283 closed: 2026-08-31T15:06:40Z — https://github.com/percena/lattice/issues/283
