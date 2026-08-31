@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/285 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | One-time guidance on .lattice/ scaffold; check-base-residue treats bootstrap files as expected-dirt-once (advisory) |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -22,9 +22,9 @@
 | primary_ticket | tkt-285 |
 | related_tickets | (none) |
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
-| prs | (none yet) |
+| prs | pr-290 — https://github.com/percena/lattice/pull/290 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T15:13:22Z |
 
 ## Why
 
@@ -47,6 +47,10 @@
 - `pre-resolved` — advisory (not hard fail) per ADR-011; these are tracked-by-design, not leak.
 - `pre-resolved` — guidance is one-time (suppressed once `.lattice/` is committed).
 - `agent-decides` — guidance wording: reversible.
+
+## Decision journal
+
+- 2026-08-31T15:13:22Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #290) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
