@@ -213,6 +213,16 @@ if ! _skeleton_ok; then
   exit 1
 fi
 
+# ADR-011 / spc-282 A7: one-shot migration of in-repo runtime-state files
+# superseded by the state-home relocation (.batch-work-active,
+# .batch-merge-authorized, .coordinator/, transition-ledger .lock sidecars).
+# Idempotent rm — cheap, only touches files if a pre-upgrade clone carried them.
+# Does NOT touch the committed transition-ledger .jsonl.
+MIGRATE="$SCRIPT_DIR/migrate-relocated-runtime-state.sh"
+if [[ -f "$MIGRATE" ]]; then
+  bash "$MIGRATE" "$ROOT" 2>/dev/null || true
+fi
+
 # --- .lattice/preferences.md scaffold (spc-42 A3, ADR-004 §3) ---------------
 # Idempotent: NEVER overwrite an existing file — team edits are the point.
 # Source of truth is the skill-shipped template; when the references tree is
