@@ -1,7 +1,7 @@
 # tkt-260-capability-matrix-docs
 
 > **TL;DR:** README + workflow-fsm.md state guarantee strength per call path; no global-invariant overclaim
-> **Kind:** docs · **Status:** queued · **Priority:** P2
+> **Kind:** docs · **Status:** pr-open · **Priority:** P2
 > **Path:** spc-254 → tkt-260 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/260 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | README + workflow-fsm.md state guarantee strength per call path; no global-invariant overclaim |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -22,14 +22,14 @@
 | primary_ticket | tkt-260 |
 | related_tickets | (none) |
 | worktree_bind | tkt-260-capability-matrix-docs |
-| prs | (none) |
+| prs | pr-264 (https://github.com/percena/lattice/pull/264) |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T12:00:00Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A6**
-- mirror spc-254 A* criteria for this slice; see Spec for full text.
+- [x] **A6**
+- README + `docs/workflow-fsm.md` state guarantee strength per call path (scripted = hard gate; strict Claude PreToolUse hook = defense-in-depth; advisory/uninstalled = detection only; `python3` missing → strict fail-opens). No text claims an unconditional global invariant; the old "chain never skips a step" / "Night states never reach merged" phrasings are qualified. Cites ADR-007 §5b and `rev-20260830-141357Z` F5. `tools/tests/capability-matrix-parity.bats` guards against reversion.
 
 ## Notes
 

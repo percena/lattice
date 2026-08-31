@@ -160,10 +160,24 @@ Morning triage recipe: [morning-triage.md](./morning-triage.md).
 
 | Invariant | Detail |
 | --- | --- |
-| Night states never reach merged | the `.lattice/.batch-work-active` marker gates merge; merge authority is human, day-side |
+| Night states never reach merged on the scripted path | the `.lattice/.batch-work-active` marker gates merge through `finish-work` (fail-closed hard gate); merge authority is human, day-side. Strength per call path is tabulated below — this is **not** an unconditional global invariant |
 | Transitions fire only on durable artifacts | binder / Spec / PR / ledger writes — never on chat or transcript state |
 | Every decision transition is journaled | each self-decision cites its resolution source in `## Decision journal` |
 | Every autonomous loop declares an upper bound | existing bounds: PCA ≤5 rounds · bug-repro ≤2 cycles · review-fix ≤2 cycles (cap-exit → `deep-review`, human — `bump-fix-cycle.sh`; no auto-retry) · retry ≤2/path and ≤3 paths/ticket |
+
+### Guarantee strength per call path (capability matrix)
+
+The "night states never reach merged" invariant holds on the scripted path, but its strength depends on how the merge is reached (ADR-007 §5b; `rev-20260830-141357Z` F5). Lattice documents the guarantee at each strength rather than claiming a global invariant:
+
+| Call path | Guarantee strength | Mechanism |
+| --- | --- | --- |
+| Scripted `finish-work` | **Hard gate (fail-closed)** | `.lattice/.batch-work-active` marker blocks merge unless binder/lineage checks pass |
+| Strict Claude PreToolUse hook (`LATTICE_HOOK_MODE=strict`) | **Defense-in-depth** | re-checks the marker/skill contract on top of the scripted gate; does not replace it |
+| Advisory mode (`LATTICE_HOOK_MODE=advisory`, default) | **Detection only** | emits a nudge to the model; does not block |
+| Plugin uninstalled / bare `gh` / other agents | **Detection only** | no hook in the path; the scripted gate still applies if `finish-work` is used, but a raw `gh pr merge` bypasses it |
+| `python3` missing | **Strict fail-opens** | the hook degrades to an advisory nudge; strict protections are inactive until `python3` is installed (`ensure-python3.sh`) |
+
+If a future product decision requires global enforcement across every call path, that needs a portable wrapper/CLI — not renaming an optional hook as a hard guarantee. The transition schema (§2) and this matrix are kept consistent by the `capability-matrix-parity` bats suite.
 
 ---
 
