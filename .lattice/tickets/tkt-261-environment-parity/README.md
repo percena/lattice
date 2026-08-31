@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | feat,P2 |
 | github | https://github.com/percena/lattice/issues/261 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Both CIs pin same Bats; ci-local degraded/fail on mismatch; drift check runs in dev mode only |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -22,14 +22,18 @@
 | primary_ticket | tkt-261 |
 | related_tickets | (none) |
 | worktree_bind | tkt-261-environment-parity |
-| prs | (none) |
+| prs | pr-266 — https://github.com/percena/lattice/pull/266 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T04:18:44Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A9**
+- [x] **A9**
 - mirror spc-254 A* criteria for this slice; see Spec for full text.
+
+## Decision journal
+
+- 2026-08-31T04:18:44Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #266) [WARN — signal logged, not silently lost]
 
 ## Notes
 
