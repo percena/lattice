@@ -85,7 +85,7 @@ setup() {
   mkdir -p "$NOGIT"
   run bash -c "cd '$NOGIT' && unset LATTICE_BATCH_GATE_HOME && '$GATE_SCRIPT' --check"
   [ "$status" -eq 1 ]
-  printf '%s\n' "$output" | grep -qF "could not resolve lattice home"
+  printf '%s\n' "$output" | grep -qF "could not resolve Lattice state home"
 }
 
 @test "check: env override still allows merge when marker absent (tkt-239 regression guard)" {
@@ -93,4 +93,20 @@ setup() {
   # the fail-closed change accidentally firing when home IS resolvable.
   run "$GATE_SCRIPT" --check
   [ "$status" -eq 0 ]
+}
+
+@test "state dir: marker resolves OUT of repo to fingerprint state home (ADR-011 / spc-282 A1)" {
+  # With no override, the marker home resolves to $HOME/.local/state/lattice/<fp>
+  # (out-of-repo), NOT .lattice/. Verify the marker never lands under .lattice/.
+  TEST_REPO="${BATS_TEST_TMPDIR:-$(mktemp -d)}/repo"
+  mkdir -p "$TEST_REPO/.lattice"
+  git -C "$TEST_REPO" init -q
+  STUB_HOME="${BATS_TEST_TMPDIR:-$(mktemp -d)}/fake-home"
+  mkdir -p "$STUB_HOME"
+  unset LATTICE_BATCH_GATE_HOME
+  unset LATTICE_STATE_HOME
+  HOME="$STUB_HOME" run "$GATE_SCRIPT" --status
+  [ "$status" -eq 0 ]
+  # The resolved home must be under the fake-home state dir.
+  printf '%s\n' "$output" | grep -qF "$STUB_HOME/.local/state/lattice/"
 }

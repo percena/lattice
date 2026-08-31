@@ -78,7 +78,64 @@ def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def resolve_state_home() -> str:
+    """Resolve Lattice's out-of-repo runtime state dir (ADR-011 / spc-282 A2).
+
+    Coordinator state (.coordinator/<batch-id>.json + .lock + .state temps)
+    lives OUT OF THE REPO TREE so it never leaks as untracked dirt in a fresh
+    customer repo. Keyed by repo fingerprint (sha1(git-common-dir abspath)[:12])
+    so all sibling worktrees of one MAIN clone resolve one coordinator spine.
+
+    Priority: LATTICE_BATCH_GATE_HOME / LATTICE_STATE_HOME override →
+    lattice-state-home.sh helper → inline fallback.
+    """
+    override = os.environ.get("LATTICE_BATCH_GATE_HOME") or os.environ.get("LATTICE_STATE_HOME")
+    if override:
+        return override
+    # _HERE = skills/batch-work/scripts/lib; the _lattice-lib sibling is at
+    # skills/_lattice-lib/scripts (3 up to skills/, NOT the pre-existing _LIB_DIR
+    # which mis-resolves to batch-work/_lattice-lib). Compute the correct path
+    # so the SoT helper is actually reached.
+    helper = _HERE.parent.parent.parent / "_lattice-lib" / "scripts" / "lattice-state-home.sh"
+    if helper.is_file():
+        try:
+            out = subprocess.run(
+                ["bash", str(helper)], capture_output=True, text=True, timeout=5
+            )
+            if out.returncode == 0 and out.stdout.strip():
+                return out.stdout.strip()
+        except Exception:
+            pass
+    # Inline fallback (same algorithm as lattice-state-home.sh).
+    import hashlib
+    try:
+        git_common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+    except Exception:
+        git_common = ""
+    if not git_common:
+        return ""
+    fp = hashlib.sha1(git_common.encode()).hexdigest()[:12]
+    root = os.environ.get("XDG_STATE_HOME") or os.path.join(
+        os.environ.get("HOME", ""), ".local", "state"
+    )
+    home = os.path.join(root, "lattice", fp)
+    try:
+        os.makedirs(home, exist_ok=True)
+    except OSError:
+        pass
+    return home
+
+
 def state_dir(lattice_home: str) -> Path:
+    # ADR-011 / spc-282 A2: coordinator state relocates OUT of repo to the
+    # state home (keyed by repo fingerprint). lattice_home is a legacy fallback
+    # only when the state home cannot be resolved.
+    home = resolve_state_home()
+    if home:
+        return Path(home) / ".coordinator"
     return Path(lattice_home) / ".coordinator"
 
 

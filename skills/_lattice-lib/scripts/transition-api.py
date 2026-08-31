@@ -33,6 +33,7 @@ import os
 import sys
 import time
 import fcntl
+import subprocess
 from pathlib import Path
 
 # Resolve the lib sibling so this works whether invoked from a skill cwd or a
@@ -51,6 +52,62 @@ def ledger_path(ticket: str) -> Path:
     merge conflicts on parallel worktrees."""
     home = os.environ.get("LATTICE_HOME", ".lattice")
     return Path(home) / ".transition-ledger" / f"{ticket}.jsonl"
+
+
+def resolve_state_home() -> str:
+    """Resolve the out-of-repo runtime state dir (ADR-011 / spc-282 A2).
+
+    The .jsonl ledger STAYS committed in-repo, but its flock .lock sidecar
+    relocates OUT OF REPO so it never leaks as untracked dirt in a fresh
+    customer repo. Keyed by repo fingerprint so same-clone concurrent
+    recorders still serialize on one lock."""
+    import hashlib
+    override = os.environ.get("LATTICE_BATCH_GATE_HOME") or os.environ.get("LATTICE_STATE_HOME")
+    if override:
+        return override
+    helper = _HERE / "lattice-state-home.sh"
+    if helper.is_file():
+        try:
+            out = subprocess.run(
+                ["bash", str(helper)], capture_output=True, text=True, timeout=5
+            )
+            if out.returncode == 0 and out.stdout.strip():
+                return out.stdout.strip()
+        except Exception:
+            pass
+    try:
+        git_common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+    except Exception:
+        git_common = ""
+    if not git_common:
+        # Fallback: co-located lock (legacy behavior) so the API never deadlocks
+        # a legitimate transition when the state home is unresolvable.
+        return ""
+    fp = hashlib.sha1(git_common.encode()).hexdigest()[:12]
+    root = os.environ.get("XDG_STATE_HOME") or os.path.join(
+        os.environ.get("HOME", ""), ".local", "state"
+    )
+    home = os.path.join(root, "lattice", fp)
+    try:
+        os.makedirs(home, exist_ok=True)
+    except OSError:
+        pass
+    return home
+
+
+def lock_path(ticket: str) -> Path:
+    """Flock sidecar for the per-ticket ledger. Per ADR-011 / spc-282 A2 the
+    .lock lives OUT OF REPO (state home) so it does not leak; the .jsonl it
+    guards stays committed in-repo. Returns a state-home path when resolvable,
+    else the legacy co-located .jsonl.lock (never deadlocks a transition)."""
+    home = resolve_state_home()
+    if home:
+        return Path(home) / ".transition-ledger" / f"{ticket}.lock"
+    # Legacy fallback: co-located with the ledger (pre-ADR-011 behavior).
+    return ledger_path(ticket).with_suffix(".jsonl.lock")
 
 
 def cmd_legal(args: list) -> int:
@@ -117,7 +174,12 @@ def cmd_record(args: list) -> int:
     lp.parent.mkdir(parents=True, exist_ok=True)
     # Atomic append with a flock (review F7): batch-work spawns sibling
     # worktrees; concurrent recorders must not interleave partial JSON lines.
-    lock_fd = os.open(str(lp) + ".lock", os.O_CREAT | os.O_WRONLY, 0o644)
+    # ADR-011 / spc-282 A2: the .lock sidecar lives OUT OF REPO (state home)
+    # so it does not leak as untracked dirt; the .jsonl it guards stays
+    # committed in-repo. Same-clone recorders resolve one lock via fingerprint.
+    lockp = lock_path(ticket)
+    lockp.parent.mkdir(parents=True, exist_ok=True)
+    lock_fd = os.open(str(lockp), os.O_CREAT | os.O_WRONLY, 0o644)
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
         with lp.open("a", encoding="utf-8") as fh:

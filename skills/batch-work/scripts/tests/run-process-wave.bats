@@ -23,6 +23,11 @@ setup() {
   LATTICE_HOME="$TEST_DIR/lattice-home"
   export LATTICE_HOME
   mkdir -p "$LATTICE_HOME"
+  # ADR-011 / spc-282 A2: coordinator + ledger .lock relocate to the out-of-repo
+  # state home (fingerprint-resolved, not --lattice-home). Pin it to the test
+  # temp so the --coordinator wiring test finds state where it expects.
+  LATTICE_STATE_HOME="$LATTICE_HOME"
+  export LATTICE_STATE_HOME
 }
 
 teardown() {

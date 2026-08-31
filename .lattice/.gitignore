@@ -1,3 +1,12 @@
-
-# batch-work runtime gate (never track; spc-187 single gate point)
-.batch-work-active
+# --- Lattice .lattice/ temp subclass (tracked; ADR-011 / spc-282 A3) ---
+# Pure runtime state (batch markers, coordinator, ledger .lock) relocated
+# OUT of repo to $XDG_STATE_HOME/lattice/<repo-fingerprint>/ — these are the
+# residual co-located temps that must stay for atomic writes + derived indexes.
+**/.*.tmp
+.ids/
+.transition-ledger/*.lock
+tickets/**/assets/*
+!tickets/**/assets/.gitkeep
+lineage/
+BOARD.md
+# --- end Lattice .lattice/ temp subclass ---
