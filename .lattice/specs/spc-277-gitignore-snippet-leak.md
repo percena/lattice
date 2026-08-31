@@ -3,14 +3,14 @@ id: spc-277
 slug: gitignore-snippet-leak
 title: Eliminate .lattice/gitignore.snippet leak into consumer active branches
 kind: feat
-status: locked
+status: done
 mode: M
 priority: P1
 summary: "Stop persisting .lattice/gitignore.snippet; write block inline to .gitignore so it never surfaces as untracked in consumer repos"
 created: 2026-08-31
 updated: 2026-08-31
 tickets: [tkt-278]
-prs: []
+prs: [pr-280]
 reviews: []
 supersedes: []
 superseded_by: null
