@@ -10,7 +10,7 @@ priority: P1
 summary: "Stop Lattice temp files leaking into fresh customer repos: relocate runtime state out-of-tree, bootstrap tracked gitignore, fix onboarding."
 created: 2026-08-31
 updated: 2026-08-31
-tickets: []
+tickets: [283, 284, 285, 286, 287]
 prs: []
 reviews: []
 supersedes: []
@@ -106,6 +106,6 @@ The historical precedent is `spc-277` / `tkt-278` (commit `b91627b`): a persiste
 <!-- required lists in front matter; body is recovery -->
 ## Links / bloodline (L0)
 
-- Tickets: (to be split via `create-tickets` — tkt-283 …)
+- Tickets: tkt-283 (A1,A2,A3), tkt-284 (A4), tkt-285 (A5), tkt-286 (A6), tkt-287 (A7)
 - PRs: (none yet)
 - Reviews: (none yet)
