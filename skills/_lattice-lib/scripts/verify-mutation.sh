@@ -40,7 +40,7 @@ set -euo pipefail
 
 usage() {
   cat <<EOF
-usage: verify-mutation.sh --pr N [--expected-oid OID] [--repo owner/name] [--allow-merged]
+usage: verify-mutation.sh --pr N [--expected-oid OID] [--repo owner/name] [--allow-merged|--require-merged]
        verify-mutation.sh --commit OID
        verify-mutation.sh --branch NAME [--expected-oid OID]
        verify-mutation.sh --help
@@ -52,6 +52,9 @@ Confirm a gh/git mutation actually landed. Exit 0 = verified (stdout);
   --branch remote ref via \`git ls-remote origin\` — the post-push check.
   --commit LOCAL object database only (\`git cat-file -e\`); cannot confirm a
            push landed on the remote — use --branch for push verification.
+  --allow-merged   accept OPEN or MERGED (default rejects MERGED|CLOSED).
+  --require-merged strictly require state==MERGED (spc-254 A2 merge-stage proof:
+                   a PR still OPEN after a claimed merge did not land).
 EOF
 }
 
@@ -61,6 +64,7 @@ BRANCH=""
 EXPECTED_OID=""
 REPO=""
 ALLOW_MERGED=0
+REQUIRE_MERGED=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -70,6 +74,7 @@ while [ "$#" -gt 0 ]; do
     --expected-oid) EXPECTED_OID="${2:-}"; [ -n "$EXPECTED_OID" ] || { usage >&2; exit 2; }; shift 2;;
     --repo) REPO="${2:-}"; [ -n "$REPO" ] || { usage >&2; exit 2; }; shift 2;;
     --allow-merged) ALLOW_MERGED=1; shift;;
+    --require-merged) REQUIRE_MERGED=1; ALLOW_MERGED=1; shift;;
     --help|-h) usage; exit 0;;
     *) echo "Error: unknown argument: $1" >&2; usage >&2; exit 2;;
   esac
@@ -157,8 +162,17 @@ verify_pr() {
     fi
   fi
 
-  # state check
-  if [ "$ALLOW_MERGED" -eq 0 ]; then
+  # state check. --require-merged (spc-254 A2 merge-stage proof) strictly
+  # requires state==MERGED — a PR still OPEN after a claimed merge did not
+  # land. --allow-merged accepts OPEN|MERGED (idempotent finish-ledger use);
+  # default rejects MERGED|CLOSED (pr-open stamp use).
+  if [ "$REQUIRE_MERGED" -eq 1 ]; then
+    case "$state" in
+      MERGED) : ;;
+      OPEN|CLOSED) echo "FAILED: pr-$PR is $state (expected MERGED; --require-merged)" >&2; return 1;;
+      *) echo "FAILED: pr-$PR has unexpected state: $state" >&2; return 1;;
+    esac
+  elif [ "$ALLOW_MERGED" -eq 0 ]; then
     case "$state" in
       OPEN) : ;;
       MERGED|CLOSED) echo "FAILED: pr-$PR is $state (expected OPEN; pass --allow-merged to accept MERGED)" >&2; return 1;;

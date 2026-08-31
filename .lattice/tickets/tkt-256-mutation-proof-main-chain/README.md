@@ -1,7 +1,7 @@
 # tkt-256-mutation-proof-main-chain
 
 > **TL;DR:** Wire verify-mutation --expected-oid into create-pr/batch/delegated; proof failure halts cleanup
-> **Kind:** feat · **Status:** queued · **Priority:** P1
+> **Kind:** feat · **Status:** pr-open · **Priority:** P1
 > **Path:** spc-254 → tkt-256 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/256 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Wire verify-mutation --expected-oid into create-pr/batch/delegated; proof failure halts cleanup |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -22,14 +22,18 @@
 | primary_ticket | tkt-256 |
 | related_tickets | (none) |
 | worktree_bind | tkt-256-mutation-proof-main-chain |
-| prs | (none) |
+| prs | pr-265 — https://github.com/percena/lattice/pull/265 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T04:07:23Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A2**
+- [x] **A2**
 - mirror spc-254 A* criteria for this slice; see Spec for full text.
+
+## Decision journal
+
+- 2026-08-31T04:07:23Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #265) [WARN — signal logged, not silently lost]
 
 ## Notes
 

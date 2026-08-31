@@ -118,9 +118,13 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      Stop after create-pr. Report the PR URL.
 
      VERIFY-AFTER-MUTATE (Spawn-brief item 6): after gh pr create, run
-     `bash skills/_lattice-lib/scripts/verify-mutation.sh --pr <N>` and paste
-     the `verified:`/`FAILED:` line into your report. Absent output or nonzero
-     is HARD failure — do not treat it as "ambiguous, proceed"; stamp
+     `bash skills/_lattice-lib/scripts/verify-main-chain.sh --stage pr --pr <N>
+     --expected-oid <pushed HEAD> --repo <owner/name> --expected-base <base>
+     --expected-head <branch>` (spc-254 A2/D5 — the one shared main-chain
+     contract; push stage first: capture local HEAD before `git push`, then
+     `--stage push --branch <branch> --expected-oid <local HEAD>`). Paste the
+     `verified:`/`FAILED:` line into your report. Absent output or nonzero is
+     HARD failure — do not treat it as "ambiguous, proceed"; stamp
      `stuck` + `wait_reason: unblock` and stop. The host re-probes every
      claimed PR in the report step; an unverified claim is flagged.
 

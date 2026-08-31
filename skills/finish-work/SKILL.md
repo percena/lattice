@@ -12,7 +12,7 @@ metadata:
 
 Close the loop after SHIP: **resolve target → preflight (CI + base update + alignment) → merge|close → cleanup → binder Finish**.
 
-**Scripts:** `update-pr-base.sh`, `alignment-check.sh`, `cleanup-workspace.sh`, `close-fixed-issues.sh`, `finish-ledger.sh`, `batch-merge-gate.sh` (+ lattice-lib `check-base-residue.sh`, `resolve-integration-branch.sh`).
+**Scripts:** `update-pr-base.sh`, `alignment-check.sh`, `cleanup-workspace.sh`, `close-fixed-issues.sh`, `finish-ledger.sh`, `batch-merge-gate.sh` (+ lattice-lib `check-base-residue.sh`, `resolve-integration-branch.sh`, `verify-main-chain.sh`).
 
 **Runtime path:** before executing skill-owned files, set `LATTICE_SKILL_ROOT` to the absolute directory containing this loaded `SKILL.md` (Claude may already provide `CLAUDE_SKILL_DIR`). Never infer it from consumer cwd.
 
@@ -69,6 +69,7 @@ Finish **does not invent** which PR to merge.
 - [ ] **Sequential merge queue (multi-PR landing):** before **each** merge in the queue, `gh pr checks <N>` rollup — fail/pending surfaced to the operator (distinguish transient CI reds from real failures), never merge on `mergeable` alone; conflicts resolved **file-explicit only** (`git checkout --ours`/`--theirs` per named path — `git add -A` forbidden); post-merge `grep -rn '<<<<<<<'` over touched paths; in-flight head-branch runs waited-for or `gh run cancel`-ed before `--delete-branch` (flow.md §3.4)
 - [ ] **Multi-PR DAG-aware mode (`--ids`/`--groups`/multi-PR `spc N`):** resolve all open PRs, build merge-order DAG from `merge_blocked_by` (fallback `blocked_by`), remove marker once after human ack, merge in layer order with **halt-on-failure** + layer barrier (flow.md §7). Single target → single-PR path (unchanged)
 - [ ] merge|close
+- [ ] **Mutation-proof the merge (spc-254 A2/D5, machine-enforced):** after `gh pr merge`, run `verify-main-chain.sh --stage merge --pr <N> --expected-oid <pre-merge base tip> --repo <owner/name>`. Captures base tip before merge, verifies PR is MERGED + base tip advanced past it. A `FAILED:` proof HALTS close-fixed-issues / cleanup-workspace / finish-ledger and emits structured recovery JSON. Normal, batch, and delegated paths share this one helper contract (`../_lattice-lib/scripts/verify-main-chain.sh`)
 - [ ] After **merge**: `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` — fail if the PR closing set changed; otherwise actionable local delivery issues CLOSED
 - [ ] branch + worktree cleanup; remote head gone by default
 - [ ] binder `## Finish` ledger written on merge base with mergedAt (finish-ledger.sh); fails closed if a binder exists for a merged PR but lacks mergedAt
