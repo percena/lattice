@@ -52,7 +52,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_SKILL_ROOT="$(cd -P "$SCRIPT_DIR/../../.." && pwd)"
+# Repo skills/ dir = two levels up from scripts/ (_lattice-lib -> skills).
+# spc-254 A9: the default must resolve to skills/, not the repo root — an extra
+# `..` made the dev-mode drift check compare top-level dirs (.github, docs, …)
+# against the install and report them as skill-absent. cd -P follows symlinks,
+# so the installed copy (a symlinked _lattice-lib) also resolves correctly.
+DEFAULT_SKILL_ROOT="$(cd -P "$SCRIPT_DIR/../.." && pwd)"
 
 SKILL_ROOT="${LATTICE_SKILL_ROOT:-$DEFAULT_SKILL_ROOT}"
 INSTALLED_HOME="${LATTICE_INSTALLED_SKILL_HOME:-$HOME/.claude/skills}"
