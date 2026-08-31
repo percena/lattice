@@ -1,7 +1,7 @@
 # tkt-256-mutation-proof-main-chain
 
 > **TL;DR:** Wire verify-mutation --expected-oid into create-pr/batch/delegated; proof failure halts cleanup
-> **Kind:** feat · **Status:** queued · **Priority:** P1
+> **Kind:** feat · **Status:** pr-open · **Priority:** P1
 > **Path:** spc-254 → tkt-256 → (pr-…)
 
 | Field | Value |
