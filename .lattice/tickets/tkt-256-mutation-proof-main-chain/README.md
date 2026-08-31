@@ -1,7 +1,7 @@
 # tkt-256-mutation-proof-main-chain
 
 > **TL;DR:** Wire verify-mutation --expected-oid into create-pr/batch/delegated; proof failure halts cleanup
-> **Kind:** feat · **Status:** pr-open · **Priority:** P1
+> **Kind:** feat · **Status:** closed · **Priority:** P1
 > **Path:** spc-254 → tkt-256 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/256 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Wire verify-mutation --expected-oid into create-pr/batch/delegated; proof failure halts cleanup |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | tkt-256-mutation-proof-main-chain |
 | prs | pr-265 — https://github.com/percena/lattice/pull/265 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T04:07:23Z |
+| updated | 2026-08-31T04:10:00Z |
 
 ## Acceptance (this slice)
 
@@ -63,4 +63,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-265 merged: 2026-08-31T04:22:56Z — https://github.com/percena/lattice/pull/265 (base merge)
+- issue #256 closed: 2026-08-31T04:23:48Z — https://github.com/percena/lattice/issues/256
