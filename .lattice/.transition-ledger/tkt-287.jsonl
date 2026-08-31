@@ -1,0 +1,1 @@
+{"ts":"2026-08-31T15:29:54Z","ticket":"tkt-287","from":"queued","to":"pr-open","owner":"agent","reason":"direct jump (in-progress skipped)","guard":"queued only (DIRECT_JUMP_SOURCES); WARN-journaled","escape_used":false,"force_side_state_reason":null,"trace":"WARN journal entry","metric":"direct-jumps"}

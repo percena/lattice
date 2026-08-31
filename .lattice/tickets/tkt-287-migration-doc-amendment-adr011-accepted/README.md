@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | docs,P3 |
 | github | https://github.com/percena/lattice/issues/287 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Migrate relocated in-repo files; amend ADR-008/spc-186 A1 gate-location ref; fix flow.md stale prose; flip ADR-011 Accepted |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -22,9 +22,9 @@
 | primary_ticket | tkt-287 |
 | related_tickets | tkt-283 (relocation), tkt-284 (gitignore) |
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
-| prs | (none yet) |
+| prs | pr-292 — https://github.com/percena/lattice/pull/292 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T15:29:54Z |
 
 ## Why
 
@@ -51,6 +51,10 @@ Existing clones (Lattice monorepo + any consumer repos that ran batch-work befor
 - `pre-resolved` — ADR-011 Accepted flip lands here (last ticket in the set).
 - `pre-resolved` — ADR-008 spawn-mode law unchanged; only gate location amended.
 - `agent-decides` — migration trigger point (`ensure-lattice.sh` first-run vs explicit `lattice-migrate` subcommand): reversible.
+
+## Decision journal
+
+- 2026-08-31T15:29:54Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #292) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 

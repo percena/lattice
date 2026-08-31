@@ -1,6 +1,6 @@
 # ADR 011: Consumer-repo footprint hygiene — relocate runtime state, bootstrap tracked gitignore
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-31
 - **Deciders:** maintainers
 - **Related:** `spc-282`, `spc-277`, `spc-186`, `spc-254`, `ADR-008`, `ADR-007`
@@ -77,7 +77,8 @@ We adopt **Option A**. Three policies form one footprint contract:
 
 ## Status history
 
-- 2026-08-31: Proposed (drafted alongside `spc-278` scope lock).
+- 2026-08-31: Proposed (drafted alongside `spc-282` scope lock).
+- 2026-08-31: Proposed → Accepted — tkt-283..287 landed (A1-A7): runtime state relocated to `$XDG_STATE_HOME/lattice/<repo-fingerprint>/`, tracked `.lattice/.gitignore` + `docs/adr/.gitignore` bootstrapped, onboarding contract + stale-marker GC + migration shipped. Fresh-customer-repo zero-leak verified.
 
 ## Notes
 
