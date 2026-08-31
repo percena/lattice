@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/286 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | start-work scans state dir for stale markers (mtime > threshold) and removes them as orphan-batch residue |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -22,9 +22,9 @@
 | primary_ticket | tkt-286 |
 | related_tickets | tkt-283 (provides state-home helper) |
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
-| prs | (none yet) |
+| prs | pr-291 — https://github.com/percena/lattice/pull/291 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T15:15:11Z |
 
 ## Why
 
@@ -48,6 +48,10 @@ A crashed batch leaves the relocated gate marker in the state dir (`$XDG_STATE_H
 - `pre-resolved` — GC in `start-work` (batch-entry skill), mtime-based, default 24h per ADR-011.
 - `pre-resolved` — GC only removes, never creates; fail-closed-by-absence unchanged.
 - `agent-decides` — GC script name + threshold env var name: reversible.
+
+## Decision journal
+
+- 2026-08-31T15:15:11Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #291) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
