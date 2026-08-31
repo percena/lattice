@@ -226,7 +226,7 @@ Per wave, after every ticket in the wave has been `ensure-workspace`'d and its b
 3. The batch marker (`.lattice/.batch-work-active` at repo MAIN) is written before the first wave in **both** modes — process mode is not exempt.
 4. Concurrency cap + RAM gate are enforced inside the script (per-wave RAM re-check; below-threshold stops further spawns, in-flight continues). The host's `--concurrency` / `--ram-threshold` pass straight through.
 
-The host records the wave's report rows (compact: ticket/pid/status/timebox/duration) — NOT the per-agent transcript. The spawn-brief still carries the verify-after-mutate mandate (item 6); the host re-probes each `completed` ticket's PR via `verify-mutation.sh --pr <N>` in the report step.
+The host records the wave's report rows (compact: ticket/pid/status/timebox/duration — `status` is the in-wave classification `ok|failed|timeout|unknown`, see STATUS DETECTION below) — NOT the per-agent transcript. The spawn-brief still carries the verify-after-mutate mandate (item 6); the wave now runs `verify-mutation.sh --pr <N> --expected-oid <OID>` IN-WAVE against each claimed PR (spc-254 A1), so the host no longer re-probes `completed` tickets — a row is `ok` only after the in-wave probe agrees.
 
 ## PROCESS-MODE STATUS DETECTION (`--spawn-mode process`)
 
@@ -234,9 +234,14 @@ In `process` mode the in-session background-completion channel is unavailable (a
 
 - **Ground truth:** `kill -0 <pid>` liveness (portable across macOS/Linux). `claude agents --json` is enrichment, never the sole signal (schema-drift-tolerant; `spawn-ticket-process.sh --probe <pid>` wraps this).
 - **Watchdog:** each ticket's `spawn timestamp` (recorded in the batch state file) is compared to wall-clock at each poll; `elapsed > timebox` → kill the pid, mark `timeout`, stamp the binder `status: stuck` + `wait_reason: unblock` (FSM-2b, tkt-132). Same FSM as `agent` mode — the mode flag only selects the liveness source.
-- **Classification from PID alone:** `completed` (process exited within timebox) or `timeout` (killed past timebox). A `completed` ticket is **not** automatically `ok` — the host runs `verify-mutation.sh --pr <N>` to confirm the PR exists OPEN at the claimed head; an unverified claim is `unverified` (morning triage), exactly as in `agent` mode.
+- **Classification (spc-254 A1 — false-success closure):** when a PID dies within its timebox the barrier does NOT mark it `completed`; it classifies the node from FOUR signals and stamps a final state `ok | failed | timeout | unknown`. A PID that disappeared is NEVER success.
+  1. **exit/result artifact** — the worker writes `exit=<int>` (+ optional `pr=<N>` / `oid=<hex>` claim) to `$BATCH_RESULT_FILE`, a per-ticket path the wave exports before each spawn (the spawn helper forwards it as an inherited env var). An ABSENT artifact means the PID disappeared without leaving a result → `unknown` (fail-closed).
+  2. **claude agents --json** — enrichment, never the sole signal; unavailable does not veto `ok`, an explicit failure vetoes it.
+  3. **PID liveness** — `kill -0` (alive=running, dead=settled; settled within timebox → classify, past timebox → `timeout`).
+  4. **verify-mutation --expected-oid** — when the artifact claims a PR, the wave probes `verify-mutation.sh --pr <N> --expected-oid <OID>` IN-WAVE. A phantom PR → `failed`.
+  - `ok` requires exit==0 AND a PR claim AND verify verified AND agents not-failed (agreement across the available signals). `failed` = exit!=0 OR phantom PR OR agents explicit failure. `unknown` = no result artifact (PID disappeared) OR exit==0 but no verified PR claim (can't confirm success). `unknown` **fail-closes the binder to `stuck + wait_reason: unblock`** via `transition-api.py record` (tkt-255); the host triages the stuck node. This closes the F1 gap where a worker that ran long, then failed without opening a PR, was first marked `completed`.
 - **Failure isolation:** one pid's death is invisible to peers (true process isolation — ADR-008's other core win). A host-process crash no longer kills the batch; the detached `claude --bg` processes survive.
-- **Fuse:** the wave script's `completed`/`timeout` counts feed the layer's failed+stuck ratio; a trip halts subsequent waves/layers with graceful drain (in-flight pids finish their attempt; no mid-write kills).
+- **Fuse:** the wave script's `failed`+`unknown` counts feed the layer's failed+stuck ratio (`unknown` counts as stuck); a trip halts subsequent waves/layers with graceful drain (in-flight pids finish their attempt; no mid-write kills).
 
 
 ## NEXT-LAYER DEPENDENCY CHECK
