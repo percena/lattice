@@ -1,7 +1,7 @@
 # tkt-278-remove-gitignore-snippet-materialization
 
 > **TL;DR:** Stop persisting .lattice/gitignore.snippet in lattice-init.sh; write the ignore block inline to .gitignore (or echo to stdout); migrate-clean stray files
-> **Kind:** feat · **Status:** open · **Priority:** P1
+> **Kind:** feat · **Status:** pr-open · **Priority:** P1
 > **Path:** spc-277 → tkt-278 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/278 |
-| status | open |
+| status | pr-open |
 | adopted | false |
 | summary | Stop persisting .lattice/gitignore.snippet; write block inline to .gitignore; echo to stdout for manual merge; migrate-clean stray files |
 | spec | spc-277 — Eliminate .lattice/gitignore.snippet leak (path: ../../specs/spc-277-gitignore-snippet-leak.md) |
