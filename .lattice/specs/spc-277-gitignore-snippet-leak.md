@@ -9,7 +9,7 @@ priority: P1
 summary: "Stop persisting .lattice/gitignore.snippet; write block inline to .gitignore so it never surfaces as untracked in consumer repos"
 created: 2026-08-31
 updated: 2026-08-31
-tickets: []
+tickets: [tkt-278]
 prs: []
 reviews: []
 supersedes: []
