@@ -1,7 +1,7 @@
 # tkt-258-recoverable-coordinator
 
 > **TL;DR:** Coordinator persists DAG/layer/node/attempt/cursor; no model inference; resume after restart
-> **Kind:** feat · **Status:** pr-open · **Priority:** P1
+> **Kind:** feat · **Status:** closed · **Priority:** P1
 > **Path:** spc-254 → tkt-258 → pr-269
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/258 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Coordinator persists DAG/layer/node/attempt/cursor; no model inference; resume after restart |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -59,4 +59,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-269 merged: 2026-08-31T05:24:46Z — https://github.com/percena/lattice/pull/269 (base merge)
+- issue #258 closed: 2026-08-31T05:25:04Z — https://github.com/percena/lattice/issues/258
