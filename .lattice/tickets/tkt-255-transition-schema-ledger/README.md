@@ -1,7 +1,7 @@
 # tkt-255-transition-schema-ledger
 
 > **TL;DR:** Machine-readable transition schema is SoT; one transition API + ledger; docs parity-tested
-> **Kind:** feat · **Status:** queued · **Priority:** P1
+> **Kind:** feat · **Status:** pr-open · **Priority:** P1
 > **Path:** spc-254 → tkt-255 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/255 |
-| status | queued |
+| status | pr-open |
 | adopted | false |
 | summary | Machine-readable transition schema is SoT; one transition API + ledger; docs parity-tested |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -22,14 +22,14 @@
 | primary_ticket | tkt-255 |
 | related_tickets | (none) |
 | worktree_bind | tkt-255-transition-schema-ledger |
-| prs | (none) |
+| prs | pr-263 — https://github.com/percena/lattice/pull/263 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T03:10:00Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A3**
-- [ ] **A4**
+- [x] **A3** machine-readable schema (lib/transition_table.py) is SoT; transition-api.py is the single chokepoint writers call (stamp-pr-open wired); validate-lattice-artifacts.py replays per-ticket ledgers and rejects illegal edges between legal snapshots (illegal_transition_edge). Code-review F1-F8 fixed.
+- [x] **A4** docs/workflow-fsm.md §2 M2 edges parity-tested against the schema (transition-parity.bats); lib==validator set-equal; ESCAPE_REQUIRED set-equal.
 - mirror spc-254 A* criteria for this slice; see Spec for full text.
 
 ## Notes
