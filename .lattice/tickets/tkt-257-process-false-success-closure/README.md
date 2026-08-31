@@ -22,7 +22,7 @@
 | primary_ticket | tkt-257 |
 | related_tickets | (none) |
 | worktree_bind | tkt-257-process-false-success-closure |
-| prs | pr-268 |
+| prs | pr-268 — https://github.com/percena/lattice/pull/268 |
 | created | 2026-08-31T00:00:00Z |
 | updated | 2026-08-31T04:50:00Z |
 
