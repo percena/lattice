@@ -24,8 +24,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install bats
-        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Install bats (1.13.0 — matches lattice-scripts.yml + ci-local; spc-254 A9)
+        # Pin bats-core to v1.13.0 so this CI matches lattice-scripts.yml and
+        # tools/ci-local.sh. Ubuntu apt only ships bats 1.10.0, whose `[[ ]]`
+        # -masking + recursive test-name handling differs and makes hook suites
+        # diverge from the lattice-scripts suite semantics (#246, spc-254 F7).
+        # install.sh from the v1.13.0 tag is deterministic (no apt/npm drift).
+        run: |
+          git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+          bats --version
       - name: Run lattice hook tests
         working-directory: plugins/lattice
         run: bats scripts/tests/

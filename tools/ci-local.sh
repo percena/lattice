@@ -51,8 +51,15 @@ Note (tkt-239): changed_paths counts UNTRACKED files (git ls-files --others)
   (and under --release-check demand a bump) where CI would not. This fails
   closed locally (safe direction); commit or clean untracked files to match CI.
 
-Steps never abort the run: each records pass/FAIL/skip, a summary table
-prints at the end, and the exit code is nonzero if any step failed.
+Bats version parity (spc-254 A9): the bats suites run with whatever bats is
+  on PATH, but ci-local first checks it against BATS_PIN (the single version
+  both CIs pin). A mismatch is reported DEGRADED (non-fatal): suites still run,
+  but a local green may not predict GitHub CI. It is never silent. The
+  installed-skill drift check runs only in dev mode (default), not under
+  --release-check, and never overwrites the installed tree.
+
+Steps never abort the run: each records pass/FAIL/skip/degraded, a summary
+table prints at the end, and the exit code is nonzero if any step failed.
 EOF
 }
 
@@ -92,7 +99,7 @@ LOG_DIR="$(mktemp -d)"
 trap 'rm -rf "$LOG_DIR"' EXIT
 
 STEP_NAMES=()
-STEP_RESULTS=() # pass | FAIL | skip
+STEP_RESULTS=() # pass | FAIL | skip | degraded
 STEP_NOTES=()
 
 record() {
@@ -122,7 +129,33 @@ skip_step() {
   record "$1" skip "$2"
 }
 
+# degrade_step <name> <note> — non-fatal advisory (does not fail the run).
+# Used for environment-parity warnings (bats version mismatch, installed-skill
+# drift) that do not by themselves predict a CI failure. spc-254 A9.
+degrade_step() {
+  printf '==> %s\n    DEGRADED: %s\n' "$1" "$2"
+  record "$1" degraded "$2"
+}
+
 have() { command -v "$1" > /dev/null 2>&1; }
+
+# --- bats version parity (spc-254 A9 / F7) -----------------------------------
+# Single source of truth for the Bats version both CIs pin. ci-local refuses
+# to silently use any PATH bats: it checks `bats --version` against this pin
+# and reports DEGRADED on mismatch (suites still run, but local results may
+# not predict GitHub CI). Both .github/workflows/lattice-scripts.yml and
+# plugin-hooks.yml pin v1.13.0 — keep this in sync with them.
+BATS_PIN="1.13.0"
+
+# Echo the installed bats version string (e.g. "Bats 1.13.0") or empty.
+bats_installed_version() {
+  bats --version 2>/dev/null || true
+}
+
+# 0 if the installed bats matches the CI pin, 1 otherwise (or bats absent).
+bats_version_matches_pin() {
+  bats_installed_version | grep -qF "$BATS_PIN"
+}
 
 # --- step bodies -------------------------------------------------------------
 
@@ -285,38 +318,92 @@ fi
 
 run_step "symlink-integrity" step_symlinks
 
-if [ "$FAST" -eq 1 ]; then
-  skip_step "bats (all suites)" "--fast"
-elif ! have bats; then
+if ! have bats; then
+  record "bats-version-parity" FAIL "bats not installed"
+  echo "==> bats-version-parity"
+  echo "    FAIL: bats not installed (CI pins v$BATS_PIN; apt-get install bats)"
   record "bats (all suites)" FAIL "bats not installed"
   echo "==> bats"
   echo "    FAIL: bats not installed (CI installs it; apt-get install bats)"
 else
-  # lattice-scripts.yml discovery, verbatim. Portable read (no mapfile, which
-  # is bash 4+ — macOS default /bin/bash is 3.2 and lacks it).
-  suites=(); while IFS= read -r _s; do suites+=("$_s"); done < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
-  for suite in "${suites[@]}"; do
-    run_step "bats $suite" bats_shimmed "$suite" .
-  done
-  # plugin-hooks.yml runs from plugins/lattice as its working-directory.
-  run_step "bats plugins/lattice/scripts/tests" bats_shimmed "scripts/tests/" "plugins/lattice"
+  # spc-254 A9: refuse to silently use any PATH bats. Check the installed
+  # version against BATS_PIN (what both CIs pin) before running suites.
+  installed_bats_ver="$(bats_installed_version)"
+  if bats_version_matches_pin; then
+    record "bats-version-parity" pass "bats $installed_bats_ver == CI pin v$BATS_PIN"
+    echo "==> bats-version-parity"
+    echo "    pass: $installed_bats_ver matches CI pin v$BATS_PIN"
+  else
+    degrade_step "bats-version-parity" \
+      "local bats (${installed_bats_ver:-unknown}) != CI pin v$BATS_PIN — suites still run, but local results may not predict GitHub CI"
+  fi
+  if [ "$FAST" -eq 1 ]; then
+    skip_step "bats (all suites)" "--fast"
+  else
+    # lattice-scripts.yml discovery, verbatim. Portable read (no mapfile, which
+    # is bash 4+ — macOS default /bin/bash is 3.2 and lacks it).
+    suites=(); while IFS= read -r _s; do suites+=("$_s"); done < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
+    for suite in "${suites[@]}"; do
+      run_step "bats $suite" bats_shimmed "$suite" .
+    done
+    # plugin-hooks.yml runs from plugins/lattice as its working-directory.
+    run_step "bats plugins/lattice/scripts/tests" bats_shimmed "scripts/tests/" "plugins/lattice"
+  fi
+fi
+
+# --- installed-skill drift check (spc-254 A9 / F7) ---------------------------
+# Runs only in Lattice dev mode (default, non-release). Advisory — not a CI
+# check, so drift is DEGRADED (non-fatal) but surfaced. The underlying script
+# NEVER writes to the installed tree (it is check-only by design), satisfying
+# the "does not overwrite the installed tree" invariant.
+DRIFT_CHECK="$ROOT/skills/_lattice-lib/scripts/check-installed-skill-drift.sh"
+if [ "$RELEASE_CHECK" -eq 1 ]; then
+  skip_step "installed-skill-drift" "release-check mode (dev-mode only; spc-254 A9)"
+elif [ ! -d "$HOME/.claude/skills" ]; then
+  skip_step "installed-skill-drift" "no installed skill home ($HOME/.claude/skills)"
+else
+  drift_log="$LOG_DIR/drift.log"
+  if bash "$DRIFT_CHECK" --check-only > "$drift_log" 2>&1; then
+    record "installed-skill-drift" pass "in sync"
+    echo "==> installed-skill-drift"
+    echo "    pass: installed skills in sync with repo"
+  else
+    drift_rc=$?
+    if [ "$drift_rc" -eq 2 ]; then
+      # exit 2 = misuse (bad args / missing dirs) — a real failure, not drift.
+      record "installed-skill-drift" FAIL "misuse (exit $drift_rc)"
+      echo "==> installed-skill-drift"
+      echo "    FAIL: drift check exited $drift_rc (misuse); last output:"
+      tail -n 60 "$drift_log" | sed 's/^/    | /'
+    else
+      degrade_step "installed-skill-drift" \
+        "drift detected (exit $drift_rc) — refresh install; see docs/getting-started § Refresh install"
+      tail -n 60 "$drift_log" | sed 's/^/    | /'
+    fi
+  fi
 fi
 
 # --- summary -----------------------------------------------------------------
 
 failures=0
-printf '\n%-42s %-6s %s\n' "step" "result" "note"
-printf '%-42s %-6s %s\n' "----" "------" "----"
+degraded=0
+printf '\n%-42s %-9s %s\n' "step" "result" "note"
+printf '%-42s %-9s %s\n' "----" "---------" "----"
 for i in "${!STEP_NAMES[@]}"; do
-  printf '%-42s %-6s %s\n' "${STEP_NAMES[$i]}" "${STEP_RESULTS[$i]}" "${STEP_NOTES[$i]}"
-  if [ "${STEP_RESULTS[$i]}" = FAIL ]; then
-    failures=$((failures + 1))
-  fi
+  printf '%-42s %-9s %s\n' "${STEP_NAMES[$i]}" "${STEP_RESULTS[$i]}" "${STEP_NOTES[$i]}"
+  case "${STEP_RESULTS[$i]}" in
+    FAIL) failures=$((failures + 1)) ;;
+    degraded) degraded=$((degraded + 1)) ;;
+  esac
 done
 
 echo
 if [ "$failures" -gt 0 ]; then
-  echo "ci-local: $failures step(s) FAILED"
+  echo "ci-local: $failures step(s) FAILED${degraded:+, $degraded degraded}"
   exit 1
 fi
-echo "ci-local: all steps green (skips noted above)"
+if [ "$degraded" -gt 0 ]; then
+  echo "ci-local: all steps green, but $degraded degraded (parity warnings above — local may not predict CI)"
+else
+  echo "ci-local: all steps green (skips noted above)"
+fi

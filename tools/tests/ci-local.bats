@@ -92,3 +92,80 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "note: installed claude (1.2.3) differs from CI pin @2.1.216"
 }
+
+# ===================== tkt-261: bats version parity + workflow pin equality (spc-254 A9) =====================
+
+# Both CIs must pin the SAME bats version, and ci-local's BATS_PIN must match.
+# Editing one workflow (or ci-local) without the other breaks this parity test.
+@test "both workflows pin the same bats version and match ci-local BATS_PIN (spc-254 A9)" {
+  local scripts_pin hooks_pin ci_pin
+  scripts_pin="$(grep -oE 'v1\.[0-9]+\.[0-9]+' "$REPO_ROOT/.github/workflows/lattice-scripts.yml" | head -n1)"
+  hooks_pin="$(grep -oE 'v1\.[0-9]+\.[0-9]+' "$REPO_ROOT/.github/workflows/plugin-hooks.yml" | head -n1)"
+  ci_pin="$(sed -n 's/^BATS_PIN="\([0-9.]*\)"/\1/p' "$CI_LOCAL")"
+  [ -n "$scripts_pin" ]
+  [ -n "$hooks_pin" ]
+  [ -n "$ci_pin" ]
+  [ "$scripts_pin" = "$hooks_pin" ]
+  [ "$scripts_pin" = "v$ci_pin" ]
+}
+
+# ci-local must NOT silently use any PATH bats: a version mismatch reports
+# DEGRADED (non-fatal but visible), never a silent pass.
+@test "ci-local reports DEGRADED on bats version mismatch (never silent) (spc-254 A9)" {
+  local tbin="${BATS_TEST_TMPDIR:-$(mktemp -d)}/bin"
+  mkdir -p "$tbin"
+  # Fake bats that reports a version ci-local's pin does NOT match.
+  cat >"$tbin/bats" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  --version) echo "Bats 9.9.9-mock" ;;
+  *) echo "bats: no suites in --fast" >&2; exit 0 ;;
+esac
+EOF
+  chmod +x "$tbin/bats"
+  local saved_path="$PATH"
+  export PATH="$tbin:$PATH"
+  run bash "$CI_LOCAL" --fast --base-ref HEAD
+  export PATH="$saved_path"
+  # degraded is non-fatal: exit 0 unless some unrelated host step FAILED.
+  printf '%s\n' "$output" | grep -qF 'bats-version-parity'
+  printf '%s\n' "$output" | grep -qiE 'DEGRADED'
+  printf '%s\n' "$output" | grep -qF '9.9.9-mock'
+  printf '%s\n' "$output" | grep -qiE 'may not predict GitHub CI'
+}
+
+# A matching bats version must report pass (not degraded), so a regression that
+# flips the check the wrong way is caught.
+@test "ci-local reports pass when bats matches the CI pin (spc-254 A9)" {
+  local ci_pin real_bats_ver
+  ci_pin="$(sed -n 's/^BATS_PIN="\([0-9.]*\)"/\1/p' "$CI_LOCAL")"
+  real_bats_ver="$(bats --version 2>/dev/null || true)"
+  # This test only runs when the host bats actually matches the pin (the
+  # common dev case). Skip on hosts with a different bats (CI pins v1.13.0).
+  if ! printf '%s' "$real_bats_ver" | grep -qF "$ci_pin"; then
+    skip "host bats ($real_bats_ver) != pin v$ci_pin; parity-pass case not exercisable here"
+  fi
+  run bash "$CI_LOCAL" --fast --base-ref HEAD
+  printf '%s\n' "$output" | grep -qE 'bats-version-parity +pass'
+  if printf '%s\n' "$output" | grep -qiE 'DEGRADED.*bats'; then false; fi
+}
+
+# ===================== tkt-261: installed-skill drift check dev-mode wiring (spc-254 A9) =====================
+
+@test "installed-skill drift check runs in dev mode, skips under --release-check (spc-254 A9)" {
+  run bash "$CI_LOCAL" --fast --base-ref HEAD
+  printf '%s\n' "$output" | grep -qF 'installed-skill-drift'
+  # dev mode (default) runs or skips-with-reason, never silent absence
+  run bash "$CI_LOCAL" --fast --release-check --base-ref HEAD
+  printf '%s\n' "$output" | grep -qE 'installed-skill-drift +skip'
+  printf '%s\n' "$output" | grep -qiE 'dev-mode only'
+}
+
+@test "ci-local --help documents bats parity + drift dev-mode behavior (spc-254 A9)" {
+  run bash "$CI_LOCAL" --help
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qiE 'Bats version parity'
+  printf '%s\n' "$output" | grep -qiE 'BATS_PIN'
+  printf '%s\n' "$output" | grep -qiE 'installed-skill drift check runs only in dev mode'
+  printf '%s\n' "$output" | grep -qF 'pass/FAIL/skip/degraded'
+}
