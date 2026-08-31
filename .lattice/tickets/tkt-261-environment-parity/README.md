@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | feat,P2 |
 | github | https://github.com/percena/lattice/issues/261 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Both CIs pin same Bats; ci-local degraded/fail on mismatch; drift check runs in dev mode only |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -63,4 +63,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-266 merged: 2026-08-31T04:24:21Z — https://github.com/percena/lattice/pull/266 (base merge)
+- issue #261 closed: 2026-08-31T04:25:52Z — https://github.com/percena/lattice/issues/261

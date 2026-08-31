@@ -1,7 +1,7 @@
 # tkt-260-capability-matrix-docs
 
 > **TL;DR:** README + workflow-fsm.md state guarantee strength per call path; no global-invariant overclaim
-> **Kind:** docs · **Status:** pr-open · **Priority:** P2
+> **Kind:** docs · **Status:** closed · **Priority:** P2
 > **Path:** spc-254 → tkt-260 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/260 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | README + workflow-fsm.md state guarantee strength per call path; no global-invariant overclaim |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -59,4 +59,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-264 merged: 2026-08-31T04:24:16Z — https://github.com/percena/lattice/pull/264 (base merge)
+- issue #260 closed: 2026-08-31T04:25:44Z — https://github.com/percena/lattice/issues/260

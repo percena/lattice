@@ -1,7 +1,7 @@
 # tkt-259-evidence-proof-validator-migration
 
 > **TL;DR:** Story-header/result-JSON schema; pass proof; spc-186.prs backfill; baseline+ratchet; new warns fail CI
-> **Kind:** feat · **Status:** pr-open · **Priority:** P1
+> **Kind:** feat · **Status:** closed · **Priority:** P1
 > **Path:** spc-254 → tkt-259 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/259 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Story-header/result-JSON schema; pass proof; spc-186.prs backfill; baseline+ratchet; new warns fail CI |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -22,7 +22,7 @@
 | primary_ticket | tkt-259 |
 | related_tickets | (none) |
 | worktree_bind | tkt-259-evidence-proof-validator-migration |
-| prs | (none) |
+| prs | (none) · pr-267 — https://github.com/percena/lattice/pull/267 |
 | created | 2026-08-31T00:00:00Z |
 | updated | 2026-08-31T14:30:00Z |
 
@@ -60,4 +60,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-267 merged: 2026-08-31T04:24:26Z — https://github.com/percena/lattice/pull/267 (base merge)
+- issue #259 closed: 2026-08-31T04:25:59Z — https://github.com/percena/lattice/issues/259
