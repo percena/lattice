@@ -180,7 +180,8 @@ EOF
   assert_pending_ticket "$output" "tkt-B"
   printf '%s\n' "$output" | grep -qF '"layer": 1'
   # tkt-A does NOT appear in pending (would mean re-derivation / re-run)
-  ! assert_pending_ticket "$output" "tkt-A"
+  run assert_pending_ticket "$output" "tkt-A"
+  [ "$status" -ne 0 ]
 }
 
 @test "A5: resume cursor correctness — settled nodes never re-listed as pending" {
@@ -233,15 +234,17 @@ EOF
   src="$(cat "$COORD")"
   # A subprocess.run/call/Popen whose argv contains "claude" or "agents" would
   # violate D4. transition-api.py (file I/O only) is the sole subprocess.
-  ! printf '%s' "$src" | grep -qE 'subprocess\.\w+\([^)]*["'"'"']claude'
-  ! printf '%s' "$src" | grep -qE 'subprocess\.\w+\([^)]*["'"'"']agents'
+  # grep -c (with `|| true` to survive set -e on no-match) → count must be 0.
+  llm_subprocess=$(printf '%s' "$src" | grep -cE 'subprocess\.\w+\([^)]*["'"'"'](claude|agents)' || true)
+  [ "$llm_subprocess" -eq 0 ]
   # Runtime proof: a full record-node cycle spawns no claude/agents process.
   python3 "$COORD" init --batch-id "noinfer-1" --lattice-home "$LATTICE_HOME" >/dev/null
   python3 "$COORD" record-node --batch-id "noinfer-1" --ticket "tkt-N" --status unknown \
     --pid 1234 --failure-class unknown --reason "test" \
     --transition-api "$TAPI" --lattice-home "$LATTICE_HOME" >/dev/null 2>&1 || true
   # No claude/agents binary was invoked (the only subprocess was python3 tapi).
-  ! command -v claude >/dev/null 2>&1 || true
+  run command -v claude
+  [ "$status" -ne 0 ]
 }
 
 # ---------------------------------------------------------------------------
@@ -347,5 +350,6 @@ EOF
   # No pending nodes (layer 0 wave 0 fully settled) — the host would now
   # advance to the next layer/wave without re-deriving tkt-A's status from
   # its result artifact or the transition ledger.
-  ! assert_pending_ticket "$output" "tkt-A"
+  run assert_pending_ticket "$output" "tkt-A"
+  [ "$status" -ne 0 ]
 }
