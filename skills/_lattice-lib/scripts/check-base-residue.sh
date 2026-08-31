@@ -83,6 +83,25 @@ if git -C "$MAIN_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   fi
 fi
 
+# ADR-011 / spc-282 A5: .lattice/{preferences.md,config.yaml,README.md} are
+# tracked-by-design project-knowledge artifacts, not leak residue. Their
+# first-time scaffold (ensure-lattice / lattice-init) legitimately surfaces as
+# untracked dirt until the operator commits .lattice/ — treat as advisory, not
+# a hard residue fail, so the gate does not mis-flag the legitimate scaffold.
+BOOTSTRAP_RE="(^|/)\.lattice/(preferences\.md|config\.yaml|README\.md)$"
+ADVISORY_ITEMS=()
+RESIDUE_ITEMS=()
+for _item in "${ITEMS[@]+"${ITEMS[@]}"}"; do
+  # porcelain line: "<XY> <path>"; extract the path (col 4+, handles rename arrow separately).
+  _path="${_item#???}"
+  if [[ "$_path" =~ $BOOTSTRAP_RE ]]; then
+    ADVISORY_ITEMS+=("$_item")
+  else
+    RESIDUE_ITEMS+=("$_item")
+  fi
+done
+ITEMS=("${RESIDUE_ITEMS[@]+"${RESIDUE_ITEMS[@]}"}")
+
 # Summarize
 COUNT=${#ITEMS[@]}
 HAS_RESIDUE=false
@@ -92,21 +111,30 @@ HAS_RESIDUE=false
 MAIN_BRANCH=$(git -C "$MAIN_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 
 if $AS_JSON; then
-  python3 - "$MAIN_ROOT" "$HAS_RESIDUE" "$MAIN_BRANCH" "${ITEMS[@]+"${ITEMS[@]}"}" <<'PY'
+  ADV_COUNT=${#ADVISORY_ITEMS[@]}
+  python3 - "$MAIN_ROOT" "$HAS_RESIDUE" "$MAIN_BRANCH" "$ADV_COUNT" "${ITEMS[@]+"${ITEMS[@]}"}" "${ADVISORY_ITEMS[@]+"${ADVISORY_ITEMS[@]}"}" <<'PY'
 import json, sys
-main, has, branch = sys.argv[1], sys.argv[2] == "true", sys.argv[3]
-items = sys.argv[4:]
+main, has, branch, adv_count = sys.argv[1], sys.argv[2] == "true", sys.argv[3], int(sys.argv[4])
+rest = sys.argv[5:]
+residue = rest[:len(rest)-adv_count] if adv_count else rest
+advisory = rest[len(rest)-adv_count:] if adv_count else []
 print(json.dumps({
   "ok": not has,
   "has_residue": has,
   "main_root": main,
   "main_branch": branch or None,
-  "count": len(items),
-  "items": items,
+  "count": len(residue),
+  "items": residue,
+  "bootstrap_advisory_count": len(advisory),
+  "bootstrap_advisory_items": advisory,
   "hint": None if not has else (
     "MAIN checkout has uncommitted Lattice-related changes (.lattice and/or Lattice .gitignore). "
     "If you already ship from a worktree, discard or commit residue on base only after intentional base bookkeeping; "
     "do not leave pre-worktree binder/lineage/gitignore dirt that blocks git pull."
+  ),
+  "bootstrap_hint": None if not advisory else (
+    ".lattice/{preferences.md,config.yaml,README.md} are tracked-by-design (project knowledge), scaffolded once; "
+    "commit .lattice/ to clear: git add .lattice/ && git commit"
   ),
 }, indent=2))
 PY
@@ -123,6 +151,13 @@ else
   else
     echo "check-base-residue: clean"
     echo "  main: $MAIN_ROOT"
+  fi
+  if [[ ${#ADVISORY_ITEMS[@]} -gt 0 ]]; then
+    echo "check-base-residue: ${#ADVISORY_ITEMS[@]} scaffolded-once bootstrap file(s) untracked (advisory, not residue):" >&2
+    for it in "${ADVISORY_ITEMS[@]}"; do
+      echo "  - $it" >&2
+    done
+    echo "  hint: .lattice/{preferences.md,config.yaml,README.md} are tracked-by-design; commit .lattice/ once: git add .lattice/ && git commit" >&2
   fi
 fi
 
