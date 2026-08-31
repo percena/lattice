@@ -1,0 +1,1 @@
+{"ts":"2026-08-31T04:40:57Z","ticket":"tkt-257-process-false-success-closure","from":"in-progress","to":"pr-open","owner":"agent","reason":"create-pr opened pr-268 (verified OPEN at head 3904a12)","guard":"create-pr opens the PR","escape_used":false,"force_side_state_reason":null,"trace":"pr-open stamp pr-268","metric":"pr-open-count"}
