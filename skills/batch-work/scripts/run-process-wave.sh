@@ -8,14 +8,40 @@
 # the script returns a compact report row per ticket so the host's context is
 # not flooded by N completion reports (ADR-008's core win).
 #
-# Status from PID alone is "completed" (process exited within timebox) or
-# "timeout" (still alive past timebox → killed). Whether completed work
-# actually opened a PR is the host's job — it runs verify-mutation.sh per
-# ticket afterward (spawn-brief item 6). This script owns spawn + poll + report.
+# PROCESS-NODE FINAL STATE (spc-254 A1 — false-success closure). A PID that
+# disappeared is NEVER named success. When a process exits within its timebox
+# the barrier does NOT mark it `completed`; it classifies the node from FOUR
+# signals and only then stamps a final state:
+#
+#   1. exit/result artifact — the worker writes `exit=<int>` (+ optional
+#      `pr=<N>` / `oid=<hex>` claim) to $BATCH_RESULT_FILE (a per-ticket path
+#      this script exports before each spawn; the spawn helper forwards it as
+#      an inherited env var, so the worker — real `claude --bg` or a test
+#      surrogate — can write it). An ABSENT artifact means the PID disappeared
+#      without leaving a result → unknown (fail-closed), never success.
+#   2. claude agents --json — enrichment, never the sole signal (schema-drift
+#      tolerant; unavailable is not a blocker, an explicit failure is).
+#   3. PID liveness — `kill -0` ground truth across macOS/Linux (alive=running,
+#      dead=settled; settles within timebox → classify, past timebox → timeout).
+#   4. verify-mutation --expected-oid — when the artifact claims a PR, this
+#      script probes `verify-mutation.sh --pr <N> --expected-oid <OID>` IN-WAVE
+#      (the shared helper landed by tkt-256). A phantom PR → failed.
+#
+# Classification: ok | failed | timeout | unknown.
+#   ok      — exit==0 AND a PR claim AND verify-mutation verified AND agents
+#             not-failed (agreement across the available signals).
+#   failed  — exit!=0 (worker crashed) OR phantom PR (verify FAILED) OR
+#             agents --json explicit failure.
+#   timeout — killed past timebox (watchdog).
+#   unknown — PID disappeared with no result artifact, OR exit==0 but no
+#             verified PR claim (can't confirm success). unknown FAIL-CLOSES
+#             the binder to `stuck + wait_reason: unblock` via transition-api.py
+#             record (tkt-255). The host then triages the stuck node.
 #
 # Usage:
 #   run-process-wave.sh --manifest <path> [--concurrency N] [--ram-threshold GB]
 #       [--state-file <path>] [--poll-interval sec] [--spawn-helper <path>]
+#       [--verify-helper <path>] [--transition-api <path>] [--lattice-home <dir>]
 #       [--dry-run] [--report <path>]
 #   run-process-wave.sh --self-test
 #   run-process-wave.sh --help
@@ -25,7 +51,7 @@
 #   tkt-219<TAB>/path/wt<TAB>/path/brief<TAB>60
 #
 # Exit codes:
-#   0  wave settled (all tickets completed or timed out); report printed
+#   0  wave settled (all tickets classified ok|failed|timeout|unknown); report printed
 #   1  manifest missing/malformed / RAM below threshold before any spawn
 #   2  usage error
 #
@@ -35,6 +61,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_HELPER="$SCRIPT_DIR/spawn-ticket-process.sh"
+LIB_DIR="$(cd "$SCRIPT_DIR/../../_lattice-lib/scripts" 2>/dev/null && pwd)"
+DEFAULT_VERIFY="${LIB_DIR:-$SCRIPT_DIR}/verify-mutation.sh"
+DEFAULT_TRANSITION_API="${LIB_DIR:-$SCRIPT_DIR}/transition-api.py"
 
 usage() {
   cat <<EOF
@@ -50,6 +79,12 @@ usage: run-process-wave.sh --manifest <path> [options]
   --state-file <path>     Per-batch state file passed to the spawn helper.
   --poll-interval sec     Barrier poll interval (default 10).
   --spawn-helper <path>   spawn-ticket-process.sh path (default: sibling script).
+  --verify-helper <path>  verify-mutation.sh path (default: _lattice-lib sibling).
+                         Probes each claimed PR --expected-oid IN-WAVE (spc-254 A1).
+  --transition-api <path> transition-api.py path (default: _lattice-lib sibling).
+                         Records the unknown→stuck fail-close ledger flip.
+  --lattice-home <dir>    Lattice home dir for the transition ledger (default:
+                         \$LATTICE_HOME or .lattice).
   --dry-run               Print the wave plan; do not spawn.
   --report <path>         Write the Markdown report to <path> (always also stdout).
 EOF
@@ -97,8 +132,102 @@ parse_manifest() {
     M_COUNT=$n
 }
 
+# ---------------------------------------------------------------------------
+# process-node classification (spc-254 A1 — false-success closure)
+# ---------------------------------------------------------------------------
+# Globals populated by run_wave before barrier_poll runs:
+#   WAVE_RESULTS_DIR     per-ticket result-artifact dir
+#   WAVE_VERIFY_HELPER   verify-mutation.sh path
+#   WAVE_TRANSITION_API  transition-api.py path
+#   WAVE_LATTICE_HOME    LATTICE_HOME for the transition ledger
+
+# claude agents --json enrichment (best-effort; never the sole signal). Returns
+# "failed" only when claude is on PATH AND `agents --json` carries an explicit
+# failure marker; "" (empty = not a blocker) otherwise (unavailable/schema-drift).
+probe_agents_json() {
+  local pid="$1" ticket="$2"
+  local claude_bin="${CLAUDE_BIN:-claude}"
+  command -v "$claude_bin" >/dev/null 2>&1 || { echo ""; return 0; }
+  local json
+  json=$("$claude_bin" agents --json 2>/dev/null || true)
+  [[ -n "$json" ]] || { echo ""; return 0; }
+  # Coarse + schema-tolerant: any explicit failed/error/crashed status entry.
+  # PID↔session matching is deferred (the spec treats agents --json as
+  # enrichment, not ground truth); an explicit failure marker vetoes ok.
+  if printf '%s' "$json" | grep -qE '"(status|state)"[[:space:]]*:[[:space:]]*"(failed|error|crashed)"'; then
+    echo "failed"; return 0
+  fi
+  echo ""
+}
+
+# Record the unknown fail-close: binder in-progress → stuck with wait_reason:
+# unblock, via transition-api.py (tkt-255). Best-effort — a missing/errored
+# transition-api MUST NOT crash the wave (set -e guarded); it warns so the
+# host's morning triage still sees the unrecorded stuck node in the report.
+record_stuck() {
+  local ticket="$1" reason="$2"
+  [[ -f "$WAVE_TRANSITION_API" ]] || { echo "warn: transition-api.py not found; cannot record stuck flip for $ticket" >&2; return 0; }
+  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_TRANSITION_API" record "$ticket" in-progress stuck system "$reason" \
+    --trace "wait_reason: unblock" >/dev/null 2>&1 \
+    || echo "warn: transition-api record failed for $ticket (ledger not written; host must stamp stuck manually)" >&2
+}
+
+# classify_node <i> — redefine a settled process node's final state from the
+# four signals. Called from barrier_poll when `kill -0` reports the PID dead
+# (settled within timebox). Sets STATUS[i] ∈ {ok,failed,unknown} and records
+# the stuck ledger flip for unknown. (timeout is set by the caller before kill.)
+classify_node() {
+  local i="$1"
+  local ticket="${M_TICKET[i]}" pid="${PIDS[i]}"
+  local rfile="$WAVE_RESULTS_DIR/${ticket}.result"
+  local exit_code="" pr="" oid="" agents="" verify=""
+  local reason=""
+
+  # 1. exit/result artifact (written by the worker to $BATCH_RESULT_FILE).
+  if [[ -f "$rfile" ]]; then
+    exit_code=$(sed -n 's/^exit=//p' "$rfile" 2>/dev/null | head -1)
+    pr=$(sed -n 's/^pr=//p' "$rfile" 2>/dev/null | head -1)
+    oid=$(sed -n 's/^oid=//p' "$rfile" 2>/dev/null | head -1)
+  fi
+
+  # 2. claude agents --json enrichment.
+  agents=$(probe_agents_json "$pid" "$ticket")
+
+  # 3. verify-mutation --expected-oid (when a PR is claimed).
+  if [[ -n "$pr" && -n "$oid" ]]; then
+    if bash "$WAVE_VERIFY_HELPER" --pr "$pr" --expected-oid "$oid" >/dev/null 2>&1; then
+      verify="verified"
+    else
+      verify="failed"
+    fi
+  fi
+
+  # 4. classify — a PID that disappeared is NEVER success.
+  if [[ -z "$exit_code" ]]; then
+    STATUS[i]="unknown"; reason="no result artifact; PID $pid disappeared without exit/result (never success)"
+  elif [[ "$exit_code" != "0" ]]; then
+    STATUS[i]="failed"; reason="worker exit=$exit_code (non-zero)"
+  elif [[ "$verify" == "failed" ]]; then
+    STATUS[i]="failed"; reason="verify-mutation FAILED for claimed pr=$pr oid=$oid (phantom PR)"
+  elif [[ "$agents" == "failed" ]]; then
+    STATUS[i]="failed"; reason="claude agents --json reported failure"
+  elif [[ "$exit_code" == "0" && -n "$pr" && "$verify" == "verified" ]]; then
+    STATUS[i]="ok"; reason="exit=0 + verify verified + agents=${agents:-na}"
+  else
+    STATUS[i]="unknown"; reason="exit=0 but no verified PR claim (pr=${pr:-none} oid=${oid:-none} verify=${verify:-none})"
+  fi
+  ENDS[i]=$(now_epoch)
+  echo "${STATUS[i]}: ${ticket} pid=$pid ($reason)" >&2
+
+  # unknown fail-closes the binder to stuck + wait_reason: unblock.
+  if [[ "${STATUS[i]}" == "unknown" ]]; then
+    record_stuck "$ticket" "$reason"
+  fi
+}
+
 run_wave() {
   local manifest="" concurrency=3 ram_thr=10 state_file="" poll_interval=10 spawn_helper="$DEFAULT_HELPER" dry=0 report=""
+  local verify_helper="$DEFAULT_VERIFY" transition_api="$DEFAULT_TRANSITION_API" lattice_home="${LATTICE_HOME:-.lattice}"
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --manifest) manifest="$2"; shift 2 ;;
@@ -107,6 +236,9 @@ run_wave() {
       --state-file) state_file="$2"; shift 2 ;;
       --poll-interval) poll_interval="$2"; shift 2 ;;
       --spawn-helper) spawn_helper="$2"; shift 2 ;;
+      --verify-helper) verify_helper="$2"; shift 2 ;;
+      --transition-api) transition_api="$2"; shift 2 ;;
+      --lattice-home) lattice_home="$2"; shift 2 ;;
       --dry-run) dry=1; shift ;;
       --report) report="$2"; shift 2 ;;
       *) echo "usage error: unknown arg '$1'" >&2; usage >&2; exit 2 ;;
@@ -115,6 +247,7 @@ run_wave() {
 
   [[ -n "$manifest" ]] || { echo "usage error: --manifest is required" >&2; usage >&2; exit 2; }
   [[ -f "$spawn_helper" ]] || { echo "error: spawn-helper not found: $spawn_helper" >&2; exit 1; }
+  [[ -f "$verify_helper" ]] || { echo "error: verify-helper not found: $verify_helper" >&2; exit 1; }
   [[ "$concurrency" =~ ^[0-9]+$ && "$concurrency" -ge 1 ]] || { echo "error: --concurrency must be a positive int" >&2; exit 2; }
 
   local count
@@ -124,15 +257,26 @@ run_wave() {
 
   local _state_auto=0
   [[ -n "$state_file" ]] || { state_file=$(mktemp -t batch-wave-state.XXXXXX); _state_auto=1; }
+  # Shell globals (not run_wave locals) so the EXIT trap still sees them after
+  # run_wave returns. _WAVE_STATE_FILE is set only when the wave owns the temp
+  # (auto-mktemp); _WAVE_RESULTS_DIR is always set (per-ticket result-artifact
+  # dir, spc-254 A1). The trap guards both with `${var:-}` so `set -u` can't
+  # fire on the never-set state-file path (tkt-257: the prior unconditional
+  # trap made every --state-file wave exit non-zero via an unbound var).
+  _WAVE_STATE_FILE=""
   if [[ "$_state_auto" -eq 1 ]]; then
-    # The wave created this temp file; clean it on exit so long unattended
-    # runs don't leak across waves (tkt-242 L2). Single-quoted trap expands
-    # at signal time; _WAVE_STATE_FILE is a shell global (not the run_wave
-    # local) so it still holds the path when the trap fires at EXIT, after
-    # run_wave has returned and the local is gone.
     _WAVE_STATE_FILE="$state_file"
-    trap 'rm -f -- "$_WAVE_STATE_FILE"' EXIT
   fi
+  trap '[[ -n "${_WAVE_STATE_FILE:-}" ]] && rm -f -- "$_WAVE_STATE_FILE"; [[ -n "${_WAVE_RESULTS_DIR:-}" ]] && rm -rf -- "$_WAVE_RESULTS_DIR"' EXIT
+
+  # Per-ticket result-artifact dir (spc-254 A1). Each spawn exports
+  # BATCH_RESULT_FILE=<dir>/<ticket>.result so the worker (real claude --bg or
+  # a test surrogate) can write its exit/result + PR claim; classify_node reads
+  # it at the barrier.
+  WAVE_RESULTS_DIR=$(mktemp -d -t bw-results.XXXXXX)
+  WAVE_VERIFY_HELPER="$verify_helper"
+  WAVE_TRANSITION_API="$transition_api"
+  WAVE_LATTICE_HOME="$lattice_home"
 
   if [[ "$dry" -eq 1 ]]; then
     echo "dry-run: wave plan ($count tickets, concurrency=$concurrency, ram-threshold=$ram_thr, poll=${poll_interval}s, helper=$spawn_helper)"
@@ -174,6 +318,9 @@ run_wave() {
         echo "error: worktree missing for ${M_TICKET[j]}: ${M_WT[j]} (host must ensure-workspace first)" >&2
         STATUS[j]="workspace-failed"; continue
       fi
+      # Export the per-ticket result path so the spawn helper forwards it
+      # (via its `env`-prefixed exec) to the worker, which writes exit/pr/oid.
+      export BATCH_RESULT_FILE="$WAVE_RESULTS_DIR/${M_TICKET[j]}.result"
       local out
       if out=$(bash "$spawn_helper" --cwd "${M_WT[j]}" --brief-file "${M_BRIEF[j]}" --state-file "$state_file" 2>&1); then
         local pid
@@ -211,6 +358,8 @@ run_wave() {
 }
 
 # Poll all "running" tickets until none running. timebox per ticket (minutes).
+# A PID that dies within its timebox is CLASSIFIED (ok|failed|unknown) — never
+# silently marked completed (spc-254 A1). Past-timebox → killed + timeout.
 barrier_poll() {
   local count="$1" interval="$2"
   while true; do
@@ -229,8 +378,8 @@ barrier_poll() {
           echo "timeout: ${M_TICKET[i]} pid=$pid (elapsed ${elapsed}s > timebox ${limit}s)" >&2
         fi
       else
-        STATUS[i]="completed"; ENDS[i]=$(now_epoch)
-        echo "completed: ${M_TICKET[i]} pid=$pid" >&2
+        # PID dead (settled within timebox) → classify from the four signals.
+        classify_node "$i"
       fi
     done
     [[ "$any_running" -eq 0 ]] && break
@@ -247,27 +396,31 @@ emit_report() {
   lines+=("")
   lines+=("| ticket | pid | worktree | status | timebox_min | duration_s |")
   lines+=("| --- | --- | --- | --- | --- | --- |")
-  local completed=0 timeout=0 failed=0 spawned_dead=0
+  local ok=0 failed=0 timeout=0 unknown=0 spawned_dead=0 wf=0
   for i in $(seq 0 $((count-1))); do
     local dur=0
     [[ "${ENDS[i]}" -gt 0 ]] && dur=$(( ENDS[i] - STARTS[i] ))
     lines+=("| ${M_TICKET[i]} | ${PIDS[i]:-—} | ${M_WT[i]} | ${STATUS[i]} | ${M_TIMEBOX[i]} | $dur |")
     case "${STATUS[i]}" in
-      completed) completed=$((completed+1)) ;;
+      ok) ok=$((ok+1)) ;;
+      failed) failed=$((failed+1)) ;;
       timeout) timeout=$((timeout+1)) ;;
+      unknown) unknown=$((unknown+1)) ;;
       spawned-but-dead) spawned_dead=$((spawned_dead+1)) ;;
-      *) failed=$((failed+1)) ;;
+      workspace-failed) wf=$((wf+1)) ;;
     esac
   done
   lines+=("")
   lines+=("## Summary")
-  lines+=("- spawned: $((count - failed - spawned_dead))")
-  lines+=("- completed: $completed")
+  lines+=("- spawned: $((count - wf - spawned_dead))")
+  lines+=("- ok: $ok")
+  lines+=("- failed: $failed")
   lines+=("- timeout: $timeout")
-  lines+=("- workspace-failed: $failed")
+  lines+=("- unknown: $unknown")
+  lines+=("- workspace-failed: $wf")
   lines+=("- spawned-but-dead: $spawned_dead")
   lines+=("")
-  lines+=("Host: probe each completed ticket's PR via verify-mutation.sh (spawn-brief item 6).")
+  lines+=("Classification (spc-254 A1): ok requires exit=0 + verify-mutation --expected-oid verified + agents --json not-failed; unknown fail-closes the binder to stuck + wait_reason: unblock (transition-api ledger recorded in-wave).")
   local report_text
   report_text=$(printf '%s\n' "${lines[@]}")
   printf '%s\n' "$report_text"
@@ -286,11 +439,14 @@ self_test() {
   local fail=0
   chk() { local label="$1"; shift; if "$@"; then echo "PASS: $label"; else echo "FAIL: $label"; fail=$((fail+1)); fi; }
 
-  # A fake spawn helper that spawns `sleep <timebox>min` surrogates so the wave
-  # logic is exercised without real claude.
-  local fake_helper sf
+  # A fake spawn helper that spawns `sleep 2` surrogates so the wave logic is
+  # exercised without real claude. It writes NO result artifact → the node is
+  # classified `unknown` (PID disappeared without exit/result — never success),
+  # which exercises the fail-close path.
+  local fake_helper sf lhome
   fake_helper=$(mktemp -t bw-fakehelper.XXXXXX)
   sf=$(mktemp -t bw-fakestate.XXXXXX)
+  lhome=$(mktemp -d -t bw-lhome.XXXXXX)
   cat > "$fake_helper" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -310,7 +466,6 @@ case "${1:-}" in
         *) shift ;;
       esac
     done
-    # read timebox from brief file 3rd line? no — surrogate sleeps a fixed short time
     ( cd "$cwd" && exec nohup sleep 2 >/dev/null 2>&1 ) &
     pid=$!; disown "$pid" 2>/dev/null || true
     printf 'started\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$state"
@@ -349,13 +504,15 @@ EOF
     brief=$(mktemp -t bw-brief.XXXXXX); echo x > "$brief"
     printf 'tkt-1\t%s\t%s\t1\n' "$wt" "$brief" > "$m"
     local out
-    out=$(bash "$0" --manifest "$m" --spawn-helper "$fake_helper" --ram-threshold 0 --dry-run 2>/dev/null) || { rm -f "$m" "$brief" "$fake_helper"; rm -rf "$wt"; return 1; }
+    out=$(bash "$0" --manifest "$m" --spawn-helper "$fake_helper" --verify-helper "$DEFAULT_VERIFY" --ram-threshold 0 --dry-run 2>/dev/null) || { rm -f "$m" "$brief"; rm -rf "$wt"; return 1; }
     rm -f "$m" "$brief"; rm -rf "$wt"
     [[ "$out" == *"dry-run: wave plan"* && "$out" == *"tkt-1"* ]]
   }
   chk "T3: --dry-run plan no-spawn" t3
 
-  # T4: full wave — 2 sleep surrogates, all complete within timebox
+  # T4: full wave — 2 sleep surrogates, settle within timebox. No result
+  #     artifact → both classified `unknown` (never `completed`); the
+  #     fail-close records a stuck ledger entry per ticket (spc-254 A1).
   t4() {
     local m wt1 wt2 b1 b2 rep out
     m=$(mktemp -t bw-manifest.XXXXXX)
@@ -364,21 +521,18 @@ EOF
     b2=$(mktemp -t bw-b2.XXXXXX); echo x > "$b2"
     rep=$(mktemp -t bw-rep.XXXXXX)
     printf 'tkt-A\t%s\t%s\t1\ntkt-B\t%s\t%s\t1\n' "$wt1" "$b1" "$wt2" "$b2" > "$m"
-    out=$(bash "$0" --manifest "$m" --spawn-helper "$fake_helper" --ram-threshold 0 --state-file "$sf" --poll-interval 1 --concurrency 2 --report "$rep" 2>/dev/null) || { rm -f "$m" "$b1" "$b2" "$rep"; rm -rf "$wt1" "$wt2"; return 1; }
+    out=$(bash "$0" --manifest "$m" --spawn-helper "$fake_helper" --verify-helper "$DEFAULT_VERIFY" --transition-api "$DEFAULT_TRANSITION_API" --lattice-home "$lhome" --ram-threshold 0 --state-file "$sf" --poll-interval 1 --concurrency 2 --report "$rep" 2>/dev/null) || { rm -f "$m" "$b1" "$b2" "$rep"; rm -rf "$wt1" "$wt2"; return 1; }
     local r=$?
-    [[ "$out" == *"completed: 2"* ]] && [[ "$out" == *"tkt-A"* && "$out" == *"tkt-B"* ]]
+    [[ "$out" == *"unknown: 2"* ]] && [[ "$out" == *"tkt-A"* && "$out" == *"tkt-B"* ]]
     r=$?
     rm -f "$m" "$b1" "$b2" "$rep"; rm -rf "$wt1" "$wt2"
     return $r
   }
-  chk "T4: wave spawn→poll→complete (2 surrogates)" t4
+  chk "T4: wave spawn→poll→classify (2 surrogates → unknown, never completed)" t4
 
   # T5: timebox timeout — surrogate sleeps longer than timebox → killed+timeout
-  #     (use a fake helper that sleeps 30s; timebox 1 min is too long for a test,
-  #      so patch the helper to sleep 30 and set timebox 1 → but 1min>30s won't
-  #      trip. Instead set timebox to 0 min → trips immediately.)
+  #     (use a fake helper that sleeps 30s; timebox 0 min trips immediately.)
   t5() {
-    # Build a slow fake helper (sleep 30)
     local slow_helper m wt b rep out
     slow_helper=$(mktemp -t bw-slowhelper.XXXXXX)
     cat > "$slow_helper" <<'EOF'
@@ -399,14 +553,14 @@ EOF
     rep=$(mktemp -t bw-rep.XXXXXX)
     # timebox 0 min → limit 0s → any elapsed trips immediately
     printf 'tkt-T\t%s\t%s\t0\n' "$wt" "$b" > "$m"
-    out=$(bash "$0" --manifest "$m" --spawn-helper "$slow_helper" --ram-threshold 0 --state-file "$sf" --poll-interval 1 --concurrency 1 --report "$rep" 2>/dev/null) || true
+    out=$(bash "$0" --manifest "$m" --spawn-helper "$slow_helper" --verify-helper "$DEFAULT_VERIFY" --transition-api "$DEFAULT_TRANSITION_API" --lattice-home "$lhome" --ram-threshold 0 --state-file "$sf" --poll-interval 1 --concurrency 1 --report "$rep" 2>/dev/null) || true
     rm -f "$m" "$b" "$rep" "$slow_helper"; rm -rf "$wt"
     [[ "$out" == *"timeout: 1"* ]]
   }
   chk "T5: timebox timeout → kill + timeout status" t5
 
   # T6: missing --manifest fails closed (exit 2)
-  t6() { bash "$0" --spawn-helper "$fake_helper" >/dev/null 2>&1; [[ $? -eq 2 ]]; }
+  t6() { bash "$0" --spawn-helper "$fake_helper" --verify-helper "$DEFAULT_VERIFY" >/dev/null 2>&1; [[ $? -eq 2 ]]; }
   chk "T6: missing --manifest fails closed" t6
 
   # T7: missing worktree → workspace-failed (not a hard crash)
@@ -416,13 +570,13 @@ EOF
     b=$(mktemp -t bw-b.XXXXXX); echo x > "$b"
     rep=$(mktemp -t bw-rep.XXXXXX)
     printf 'tkt-X\t/nonexistent/wt\t%s\t1\n' "$b" > "$m"
-    out=$(bash "$0" --manifest "$m" --spawn-helper "$fake_helper" --ram-threshold 0 --state-file "$sf" --poll-interval 1 --report "$rep" 2>/dev/null) || true
+    out=$(bash "$0" --manifest "$m" --spawn-helper "$fake_helper" --verify-helper "$DEFAULT_VERIFY" --ram-threshold 0 --state-file "$sf" --poll-interval 1 --report "$rep" 2>/dev/null) || true
     rm -f "$m" "$b" "$rep"
     [[ "$out" == *"workspace-failed: 1"* ]]
   }
   chk "T7: missing worktree → workspace-failed (not crash)" t7
 
-  rm -f "$fake_helper" "$sf"
+  rm -f "$fake_helper" "$sf"; rm -rf "$lhome"
   echo ""
   if [[ $fail -eq 0 ]]; then echo "✅ run-process-wave.sh --self-test passed"
   else echo "❌ run-process-wave.sh --self-test FAILED ($fail failure(s))"; exit 1; fi

@@ -1,7 +1,7 @@
 # tkt-257-process-false-success-closure
 
 > **TL;DR:** Redefine process-node final state ok|failed|timeout|unknown; unknown fail-closes binder to stuck
-> **Kind:** feat · **Status:** queued · **Priority:** P1
+> **Kind:** feat · **Status:** in-progress · **Priority:** P1
 > **Path:** spc-254 → tkt-257 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/257 |
-| status | queued |
+| status | in-progress |
 | adopted | false |
 | summary | Redefine process-node final state ok|failed|timeout|unknown; unknown fail-closes binder to stuck |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -24,12 +24,20 @@
 | worktree_bind | tkt-257-process-false-success-closure |
 | prs | (none) |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T04:40:00Z |
 
 ## Acceptance (this slice)
 
-- [ ] **A1**
+- [x] **A1**
 - mirror spc-254 A* criteria for this slice; see Spec for full text.
+  - Implemented in `skills/batch-work/scripts/run-process-wave.sh`: process-node
+    final state redefined from exit/result artifact (`$BATCH_RESULT_FILE`) +
+    `claude agents --json` + PID liveness + `verify-mutation --expected-oid`,
+    classified `ok|failed|timeout|unknown`; `unknown` fail-closes the binder to
+    `stuck + wait_reason: unblock` via `transition-api.py record`. A PID that
+    disappeared is never named success; `ok` requires agreement across the
+    available signals. Fault-injection evidence in
+    `skills/batch-work/scripts/tests/run-process-wave.bats` (5 A1 cases).
 
 ## Notes
 
