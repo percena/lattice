@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/286 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | start-work scans state dir for stale markers (mtime > threshold) and removes them as orphan-batch residue |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
 | prs | pr-291 — https://github.com/percena/lattice/pull/291 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T15:15:11Z |
+| updated | 2026-08-31T15:27:23Z |
 
 ## Why
 
@@ -60,3 +60,8 @@ A crashed batch leaves the relocated gate marker in the state dir (`$XDG_STATE_H
 ## blocked_by
 
 tkt-283 (provides the state-home helper + fingerprint layout)
+
+## Finish
+
+- pr-291 merged: 2026-08-31T15:26:39Z — https://github.com/percena/lattice/pull/291 (base merge)
+- issue #286 closed: 2026-08-31T15:27:03Z — https://github.com/percena/lattice/issues/286
