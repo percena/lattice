@@ -259,15 +259,15 @@ run_wave() {
   [[ -n "$state_file" ]] || { state_file=$(mktemp -t batch-wave-state.XXXXXX); _state_auto=1; }
   # Shell globals (not run_wave locals) so the EXIT trap still sees them after
   # run_wave returns. _WAVE_STATE_FILE is set only when the wave owns the temp
-  # (auto-mktemp); _WAVE_RESULTS_DIR is always set (per-ticket result-artifact
-  # dir, spc-254 A1). The trap guards both with `${var:-}` so `set -u` can't
-  # fire on the never-set state-file path (tkt-257: the prior unconditional
-  # trap made every --state-file wave exit non-zero via an unbound var).
+  # (auto-mktemp); WAVE_RESULTS_DIR is always set (per-ticket result-artifact
+  # dir, spc-254 A1) and the trap cleans it. Both guarded with `${var:-}` so
+  # `set -u` can't fire (tkt-257: the prior unconditional trap made every
+  # --state-file wave exit non-zero via an unbound var).
   _WAVE_STATE_FILE=""
   if [[ "$_state_auto" -eq 1 ]]; then
     _WAVE_STATE_FILE="$state_file"
   fi
-  trap '[[ -n "${_WAVE_STATE_FILE:-}" ]] && rm -f -- "$_WAVE_STATE_FILE"; [[ -n "${_WAVE_RESULTS_DIR:-}" ]] && rm -rf -- "$_WAVE_RESULTS_DIR"' EXIT
+  trap '[[ -n "${_WAVE_STATE_FILE:-}" ]] && rm -f -- "$_WAVE_STATE_FILE"; [[ -n "${WAVE_RESULTS_DIR:-}" ]] && rm -rf -- "$WAVE_RESULTS_DIR"' EXIT
 
   # Per-ticket result-artifact dir (spc-254 A1). Each spawn exports
   # BATCH_RESULT_FILE=<dir>/<ticket>.result so the worker (real claude --bg or
