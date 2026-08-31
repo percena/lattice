@@ -1,7 +1,7 @@
 # tkt-257-process-false-success-closure
 
 > **TL;DR:** Redefine process-node final state ok|failed|timeout|unknown; unknown fail-closes binder to stuck
-> **Kind:** feat · **Status:** pr-open · **Priority:** P1
+> **Kind:** feat · **Status:** closed · **Priority:** P1
 > **Path:** spc-254 → tkt-257 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/257 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Redefine process-node final state ok|failed|timeout|unknown; unknown fail-closes binder to stuck |
 | spec | spc-254 — Executable workflow contracts (path: ../../specs/spc-254-executable-workflow-contracts.md) |
@@ -67,4 +67,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-268 merged: 2026-08-31T04:55:01Z — https://github.com/percena/lattice/pull/268 (base merge)
+- issue #257 closed: 2026-08-31T04:55:20Z — https://github.com/percena/lattice/issues/257
