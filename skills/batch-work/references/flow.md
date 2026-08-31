@@ -165,7 +165,7 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      Interface contracts you depend on: <exact file/section names from the
      prior layer's tickets>.
      ```
-   - Before spawning the FIRST agent, write the batch marker at the repo MAIN clone (single gate point, spc-186 A1): `printf 'batch-id: %s\nstarted: %s\n' "$(date -u +%Y%m%d)-$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > <MAIN>/.lattice/.batch-work-active`. Do NOT write per-worktree copies. The marker stays untracked (MAIN `.lattice/.gitignore` or base-residue check tolerates it).
+   - Before spawning the FIRST agent, write the batch marker at the out-of-repo state home (single gate point, spc-186 A1, ADR-011 / spc-282 A1): `printf 'batch-id: %s\nstarted: %s\n' "$(date -u +%Y%m%d)-$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$(bash "$LIB/lattice-state-home.sh")/.batch-work-active"`. Do NOT write per-worktree copies. The marker lives OUT of the repo tree at `$XDG_STATE_HOME/lattice/<repo-fingerprint>/` (keyed by sha1(git common-dir)[:12]) so it never leaks as untracked dirt in a fresh customer repo; the merge hook resolves the same state home, so the gate stays fail-closed.
    - Record agent handle + ticket id + worktree path + **spawn timestamp** (watchdog input).
 
 ## WATCHDOG / TIMEBOX

@@ -18,7 +18,8 @@
 #                                                  # remove marker + emit trace
 #
 # Env:
-#   LATTICE_BATCH_GATE_HOME  override the lattice home (tests / manual pin)
+#   LATTICE_BATCH_GATE_HOME  override the state home (tests / manual pin)
+#   LATTICE_STATE_HOME       override the state home (marker-parent dir)
 #
 # Exit codes: 0 success/allowed, 1 blocked (marker present, no escape), 2 usage.
 
@@ -57,34 +58,51 @@ if [[ "$ACTION" == "remove" && -z "$REASON" ]]; then
   exit 2
 fi
 
-# Resolve the lattice home at the repo MAIN clone (not the worktree's .lattice).
-# Same priority as the hook lib; duplicated here so the skill script does not
-# depend on the plugin hook tree being installed.
+# Resolve the Lattice runtime state home (OUT OF REPO per ADR-011 / spc-282).
+# The marker lives here, not at <MAIN>/.lattice/, so it never leaks as untracked
+# dirt in a fresh customer repo. Priority:
+#   1. LATTICE_BATCH_GATE_HOME / LATTICE_STATE_HOME — explicit override (tests)
+#   2. _lattice-lib/scripts/lattice-state-home.sh — canonical resolver:
+#        ${XDG_STATE_HOME:-$HOME/.local/state}/lattice/<sha1(common-dir)[:12]>
+#   3. INLINE fallback — same algorithm, used if the helper cannot be found.
+# Same algorithm as the hook lib (plugins/lattice/hooks/lib/batch-merge-gate.sh);
+# duplicated here so the skill script does not depend on the plugin hook tree.
 resolve_home() {
-  local git_common main_root
-  if [[ -n "${LATTICE_BATCH_GATE_HOME:-}" ]]; then
-    printf '%s' "$LATTICE_BATCH_GATE_HOME"
+  local override="${LATTICE_BATCH_GATE_HOME:-${LATTICE_STATE_HOME:-}}"
+  if [[ -n "$override" ]]; then
+    printf '%s' "$override"
     return 0
   fi
+  local helper
+  helper="$(cd "${BASH_SOURCE[0]%/*}/../../_lattice-lib/scripts" 2>/dev/null && pwd)/lattice-state-home.sh"
+  if [[ -f "$helper" ]]; then
+    local resolved
+    if resolved=$(bash "$helper" 2>/dev/null); then
+      printf '%s' "$resolved"
+      return 0
+    fi
+  fi
+  # INLINE fallback (same algorithm as lattice-state-home.sh).
+  local git_common fingerprint state_root
   git_common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
   if [[ -z "$git_common" ]]; then
     git_common=$(git rev-parse --git-common-dir 2>/dev/null || true)
     [[ -n "$git_common" && "$git_common" != /* ]] && git_common="$PWD/$git_common"
   fi
   [[ -n "$git_common" ]] || return 1
-  case "$git_common" in
-    */.git) main_root="${git_common%/.git}" ;;
-    */.git/*) main_root="${git_common%%/.git/*}" ;;
-    *) main_root=$(git rev-parse --show-toplevel 2>/dev/null || true) ;;
-  esac
-  [[ -n "$main_root" && -d "$main_root/.lattice" ]] || return 1
-  printf '%s/.lattice' "$main_root"
+  fingerprint=$(printf '%s' "$git_common" | shasum 2>/dev/null | cut -c1-12 || true)
+  [[ -n "$fingerprint" ]] || fingerprint=$(printf '%s' "$git_common" | sha1sum 2>/dev/null | cut -c1-12 || true)
+  [[ -n "$fingerprint" ]] || return 1
+  state_root="${XDG_STATE_HOME:-$HOME/.local/state}/lattice"
+  local home="$state_root/$fingerprint"
+  mkdir -p "$home" 2>/dev/null || true
+  printf '%s' "$home"
   return 0
 }
 
 HOME_DIR=$(resolve_home 2>/dev/null || true)
 if [[ -z "$HOME_DIR" ]]; then
-  echo "Error: could not resolve lattice home (MAIN .lattice/); set LATTICE_BATCH_GATE_HOME" >&2
+  echo "Error: could not resolve Lattice state home; set LATTICE_BATCH_GATE_HOME or LATTICE_STATE_HOME" >&2
   if [[ "$ACTION" == "check" ]]; then
     # tkt-239: fail CLOSED on --check so a misresolvable home (submodule /
     # non-standard layout / no .lattice) does not silently bypass an active
