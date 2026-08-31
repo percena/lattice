@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/284 |
-| status | queued |
+| status | closed |
 | adopted | false |
 | summary | Bootstrap tracked docs/adr/.gitignore covering ADR temps + lock dirs; harden EXIT-trap cleanup |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -22,9 +22,9 @@
 | primary_ticket | tkt-284 |
 | related_tickets | (none) |
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
-| prs | (none yet) |
+| prs | pr-289 — https://github.com/percena/lattice/pull/289 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T00:00:00Z |
+| updated | 2026-08-31T15:22:25Z |
 
 ## Why
 
@@ -48,6 +48,10 @@
 - `pre-resolved` — atomic-write temps stay co-located (rename atomicity requires same filesystem); covered by gitignore, not relocation.
 - `agent-decides` — exact gitignore pattern wording (`.tmp*` vs `.*.tmp*`): reversible.
 
+## Decision journal
+
+- 2026-08-31T15:10:10Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #289) [WARN — signal logged, not silently lost]
+
 ## Pending decisions
 
 (none)
@@ -55,3 +59,8 @@
 ## blocked_by
 
 (none)
+
+## Finish
+
+- pr-289 merged: 2026-08-31T15:21:33Z — https://github.com/percena/lattice/pull/289 (base merge)
+- issue #284 closed: 2026-08-31T15:21:57Z — https://github.com/percena/lattice/issues/284
