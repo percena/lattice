@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | chore,P2 |
 | github | https://github.com/percena/lattice/issues/284 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Bootstrap tracked docs/adr/.gitignore covering ADR temps + lock dirs; harden EXIT-trap cleanup |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
 | prs | pr-289 — https://github.com/percena/lattice/pull/289 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T15:10:10Z |
+| updated | 2026-08-31T15:22:25Z |
 
 ## Why
 
@@ -59,3 +59,8 @@
 ## blocked_by
 
 (none)
+
+## Finish
+
+- pr-289 merged: 2026-08-31T15:21:33Z — https://github.com/percena/lattice/pull/289 (base merge)
+- issue #284 closed: 2026-08-31T15:21:57Z — https://github.com/percena/lattice/issues/284
