@@ -32,6 +32,7 @@ import json
 import os
 import sys
 import time
+import fcntl
 from pathlib import Path
 
 # Resolve the lib sibling so this works whether invoked from a skill cwd or a
@@ -41,9 +42,15 @@ sys.path.insert(0, str(_HERE))
 from lib import transition_table as tt  # noqa: E402
 
 
-def ledger_path() -> Path:
+def ledger_path(ticket: str) -> Path:
+    """Per-ticket committed ledger file (spc-254 review F2): a single shared
+    gitignored ledger made CI's replay a no-op (the file never existed on a
+    fresh checkout). Per-ticket files under .lattice/.transition-ledger/ are
+    committed alongside the binder stamp, so CI accumulates them and the
+    replay enforces edge legality for real. Per-ticket avoids cross-ticket
+    merge conflicts on parallel worktrees."""
     home = os.environ.get("LATTICE_HOME", ".lattice")
-    return Path(home) / ".transition-ledger.jsonl"
+    return Path(home) / ".transition-ledger" / f"{ticket}.jsonl"
 
 
 def cmd_legal(args: list) -> int:
@@ -106,45 +113,64 @@ def cmd_record(args: list) -> int:
     if dry:
         print(json.dumps(entry, indent=2))
         return 0
-    lp = ledger_path()
+    lp = ledger_path(ticket)
     lp.parent.mkdir(parents=True, exist_ok=True)
-    with lp.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
+    # Atomic append with a flock (review F7): batch-work spawns sibling
+    # worktrees; concurrent recorders must not interleave partial JSON lines.
+    lock_fd = os.open(str(lp) + ".lock", os.O_CREAT | os.O_WRONLY, 0o644)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        with lp.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
     print(f"recorded: {ticket} {frm} -> {to} ({owner})")
     return 0
 
 
 def cmd_replay(args: list) -> int:
-    """Replay the ledger and report any illegal (from,to) pair. Used by the
-    validator; exit 0 = all entries legal, 1 = at least one illegal edge."""
-    lp = ledger_path()
-    if not lp.exists():
-        print(f"no ledger at {lp}", file=sys.stderr)
+    """Replay all per-ticket ledgers and report any illegal (from,to) pair.
+    Used by the validator; exit 0 = all entries legal, 1 = at least one
+    illegal edge. Globs .lattice/.transition-ledger/*.jsonl (review F2:
+    per-ticket committed files so CI accumulates real history)."""
+    home = Path(os.environ.get("LATTICE_HOME", ".lattice"))
+    ledger_dir = home / ".transition-ledger"
+    if not ledger_dir.is_dir():
+        print(f"no ledger dir at {ledger_dir}", file=sys.stderr)
         return 0  # no ledger = nothing to replay (not an error)
     bad = 0
     total = 0
-    for lineno, line in enumerate(lp.read_text(encoding="utf-8").splitlines(), 1):
-        line = line.strip()
-        if not line:
-            continue
-        total += 1
-        try:
-            entry = json.loads(line)
-        except json.JSONDecodeError as exc:
-            print(f"ledger:{lineno}: malformed JSON: {exc}", file=sys.stderr)
-            bad += 1
-            continue
-        frm, to = entry.get("from", ""), entry.get("to", "")
-        if not tt.is_legal_edge(frm, to):
-            print(f"ledger:{lineno}: ILLEGAL edge {frm} -> {to} "
-                  f"(ticket {entry.get('ticket', '?')})", file=sys.stderr)
-            bad += 1
-            continue
-        if tt.requires_escape(frm, to) and not entry.get("force_side_state_reason"):
-            print(f"ledger:{lineno}: ILLEGAL escape-required edge {frm} -> {to} "
-                  f"without operator override (ticket {entry.get('ticket', '?')})",
-                  file=sys.stderr)
-            bad += 1
+    for lp in sorted(ledger_dir.glob("*.jsonl")):
+        for lineno, line in enumerate(
+            lp.read_text(encoding="utf-8").splitlines(), 1
+        ):
+            line = line.strip()
+            if not line:
+                continue
+            total += 1
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError as exc:
+                print(f"{lp}:{lineno}: malformed JSON: {exc}",
+                      file=sys.stderr)
+                bad += 1
+                continue
+            frm, to = entry.get("from", ""), entry.get("to", "")
+            if not tt.is_legal_edge(frm, to):
+                print(f"{lp}:{lineno}: ILLEGAL edge {frm} -> {to} "
+                      f"(ticket {entry.get('ticket', '?')})",
+                      file=sys.stderr)
+                bad += 1
+                continue
+            if tt.requires_escape(frm, to) and not entry.get(
+                "force_side_state_reason"
+            ):
+                print(f"{lp}:{lineno}: ILLEGAL escape-required edge "
+                      f"{frm} -> {to} without operator override "
+                      f"(ticket {entry.get('ticket', '?')})",
+                      file=sys.stderr)
+                bad += 1
     print(f"replay: {total} entries, {bad} illegal")
     return 1 if bad else 0
 

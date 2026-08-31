@@ -10,8 +10,9 @@ setup() {
   export API="$SCRIPT_DIR/transition-api.py"
   export VALIDATOR="$REPO_ROOT/tools/validate-lattice-artifacts.py"
   export LATTICE_HOME="$BATS_RUN_TMPDIR/lattice"
-  mkdir -p "$LATTICE_HOME"
-  rm -f "$LATTICE_HOME/.transition-ledger.jsonl"
+  mkdir -p "$LATTICE_HOME/.transition-ledger"
+  rm -rf "$LATTICE_HOME/.transition-ledger"
+  mkdir -p "$LATTICE_HOME/.transition-ledger"
 }
 
 @test "legal edge exits 0 (queued -> in-progress)" {
@@ -19,28 +20,28 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "illegal edge exits non-zero (rework -> pr-open direct)" {
-  run python3 "$API" legal rework pr-open
+@test "illegal edge exits non-zero (closed -> queued: terminal is not a source)" {
+  run python3 "$API" legal closed queued
   [ "$status" -ne 0 ]
 }
 
 @test "record appends a legal ledger entry" {
   run python3 "$API" record tkt-1 queued in-progress system spawn
   [ "$status" -eq 0 ]
-  grep -q '"from":"queued"' "$LATTICE_HOME/.transition-ledger.jsonl"
-  grep -q '"to":"in-progress"' "$LATTICE_HOME/.transition-ledger.jsonl"
+  grep -q '"from":"queued"' "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl"
+  grep -q '"to":"in-progress"' "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl"
 }
 
 @test "record refuses an illegal edge (no ledger entry written)" {
-  run python3 "$API" record tkt-1 rework pr-open agent push
+  run python3 "$API" record tkt-1 closed queued agent reopen
   [ "$status" -eq 1 ]
-  [ ! -s "$LATTICE_HOME/.transition-ledger.jsonl" ]
+  [ ! -s "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl" ]
 }
 
 @test "escape-required edge refused without operator override (exit 2)" {
   run python3 "$API" record tkt-1 parked pr-open agent force
   [ "$status" -eq 2 ]
-  [ ! -s "$LATTICE_HOME/.transition-ledger.jsonl" ]
+  [ ! -s "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl" ]
 }
 
 @test "escape-required edge recorded with operator override" {
@@ -48,7 +49,7 @@ setup() {
     --force-side-state-reason "operator: merge urgency"
   [ "$status" -eq 0 ]
   grep -q '"force_side_state_reason":"operator: merge urgency"' \
-    "$LATTICE_HOME/.transition-ledger.jsonl"
+    "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl"
 }
 
 @test "validator replays ledger: legal entry yields no illegal_transition_edge" {
@@ -60,8 +61,8 @@ setup() {
 }
 
 @test "validator replays ledger: illegal edge fails the run" {
-  printf '%s\n' '{"ts":"2026-08-31T00:00:00Z","ticket":"tkt-1","from":"rework","to":"pr-open","owner":"agent","reason":"push","force_side_state_reason":null}' \
-    > "$LATTICE_HOME/.transition-ledger.jsonl"
+  printf '%s\n' '{"ts":"2026-08-31T00:00:00Z","ticket":"tkt-1","from":"closed","to":"queued","owner":"agent","reason":"reopen","force_side_state_reason":null}' \
+    > "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl"
   run python3 "$VALIDATOR" --home "$LATTICE_HOME"
   [ "$status" -eq 1 ]
   grep -q "illegal_transition_edge" <<<"$output"
@@ -69,7 +70,7 @@ setup() {
 
 @test "validator replays ledger: escape-required without override fails" {
   printf '%s\n' '{"ts":"2026-08-31T00:00:00Z","ticket":"tkt-1","from":"parked","to":"pr-open","owner":"agent","reason":"force","force_side_state_reason":null}' \
-    > "$LATTICE_HOME/.transition-ledger.jsonl"
+    > "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl"
   run python3 "$VALIDATOR" --home "$LATTICE_HOME"
   [ "$status" -eq 1 ]
   grep -q "illegal_transition_edge" <<<"$output"

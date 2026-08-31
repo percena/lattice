@@ -42,6 +42,11 @@ class Transition(NamedTuple):
     escape: Optional[str]
     trace: Optional[str]
     metric: Optional[str]
+    # Structured flag (review F5): True when the edge is legal ONLY via an
+    # operator-adjudicated escape (side-state guard). Discriminating on this
+    # flag — not on substring prose in `guard` — keeps control flow robust
+    # to rephrasing.
+    escape_required: bool = False
 
 
 # M2 execution — legal ticket binder status transitions.
@@ -103,24 +108,41 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
     Transition("any", "closed", "human",
                "cancel", "cancel",
                None, "Finish ledger (no mergedAt)", "cancel-count"),
-    # Side-state guard (ADR-007 sec.5b): a pr-open stamp crossing a side state
-    # is refused without an explicit operator-adjudicated --force-side-state
-    # --reason override that journals a structured trace. These edges are legal
-    # ONLY with the escape; the validator requires the ledger entry's trace
-    # field to carry the override reason.
+    # Side-state guard (ADR-007 sec.5b): a pr-open stamp crossing a side
+    # state is refused without an explicit operator-adjudicated --force-side-
+    # state --reason override that journals a structured trace. These edges
+    # are legal ONLY with the escape; the validator requires the ledger
+    # entry's trace field to carry the override reason. SIDE_STATES (status
+    # _vocab.py) is {parked, stuck, rework, deferred} — so ALL FOUR side
+    # states get an escape edge here (review F1: the prior slice omitted
+    # rework/deferred, so --force-side-state flips on them were recorded as
+    # illegal and swallowed by stamp-pr-open's `|| echo WARN`, shipping an
+    # illegal binder state undetected).
     Transition("parked", "pr-open", "agent",
                "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
                "force-side-state crossing",
                "--force-side-state --reason", "operator-adjudicated trace",
-               "side-state-crossings"),
+               "side-state-crossings", True),
     Transition("stuck", "pr-open", "agent",
                "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
                "force-side-state crossing",
                "--force-side-state --reason", "operator-adjudicated trace",
-               "side-state-crossings"),
-    # NOTE: direct `rework -> pr-open` is intentionally ABSENT — the doc states
-    # "there is no direct rework -> pr-open"; it must go rework -> in-progress
-    # -> pr-open. Any ledger (rework, pr-open) pair is flagged illegal.
+               "side-state-crossings", True),
+    Transition("rework", "pr-open", "agent",
+               "ILLEGAL unless --force-side-state --reason (operator-adjudicated); "
+               "normal path is rework -> in-progress -> pr-open",
+               "force-side-state crossing",
+               "--force-side-state --reason", "operator-adjudicated trace",
+               "side-state-crossings", True),
+    Transition("deferred", "pr-open", "agent",
+               "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
+               "force-side-state crossing",
+               "--force-side-state --reason", "operator-adjudicated trace",
+               "side-state-crossings", True),
+    # NOTE: the normal (non-force) `rework -> pr-open` is intentionally
+    # absent — the doc states "there is no direct rework -> pr-open"; it must
+    # go rework -> in-progress -> pr-open. Any ledger (rework, pr-open) pair
+    # WITHOUT a force_side_state_reason is flagged illegal by the validator.
 )
 
 # Edge lookup keyed by (from, to). "any" matches any source for cancel.
@@ -151,10 +173,11 @@ def edge_for(frm: str, to: str) -> Optional[Transition]:
 
 def requires_escape(frm: str, to: str) -> bool:
     """True if the (frm, to) edge is legal ONLY via an operator-adjudicated
-    escape (side-state guard). The ledger entry must carry the override trace."""
+    escape (side-state guard). Discriminates on the structured `escape_
+    required` flag (review F5), not on substring prose in `guard`, so
+    rephrasing the guard text cannot silently disable the override check."""
     e = edge_for(frm, to)
-    return e is not None and e.escape is not None and e.guard is not None \
-        and "ILLEGAL unless" in (e.guard or "")
+    return e is not None and e.escape_required
 
 
 def legal_from_status(frm: str) -> list:

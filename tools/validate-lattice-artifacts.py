@@ -106,12 +106,18 @@ LEGAL_TRANSITIONS: set[tuple[str, str]] = {
     ("pr-open", "rework"), ("rework", "in-progress"),
     ("pr-open", "pr-open"), ("pr-open", "closed"), ("any", "closed"),
     # Side-state guard (ADR-007 sec.5b): legal ONLY with operator override.
+    # All four SIDE_STATES get an escape edge (review F1): omitting
+    # rework/deferred left --force-side-state flips on them undetected.
     ("parked", "pr-open"), ("stuck", "pr-open"),
+    ("rework", "pr-open"), ("deferred", "pr-open"),
 }
 # Edges legal ONLY via an operator-adjudicated --force-side-state --reason
 # escape; the ledger entry must carry force_side_state_reason.
-ESCAPE_REQUIRED: set[tuple[str, str]] = {("parked", "pr-open"), ("stuck", "pr-open")}
-TRANSITION_LEDGER = ".transition-ledger.jsonl"
+ESCAPE_REQUIRED: set[tuple[str, str]] = {
+    ("parked", "pr-open"), ("stuck", "pr-open"),
+    ("rework", "pr-open"), ("deferred", "pr-open"),
+}
+TRANSITION_LEDGER_DIR = ".transition-ledger"
 SPEC_ID_RE = re.compile(r"^spc-([1-9][0-9]*)$")
 TKT_ID_RE = re.compile(r"^tkt-([1-9][0-9]*)$")
 # tkt-pending-<slug> dirs are a valid transient state before gh issue create
@@ -1096,66 +1102,71 @@ def validate_home(home: Path) -> list[dict[str, str]]:
             )
 
     # Transition ledger replay (spc-254 A3). The transition API
-    # (skills/_lattice-lib/scripts/transition-api.py) appends a JSONL entry per
-    # status flip; the validator replays it and rejects an illegal edge between
-    # two legal snapshots -- the gap docs/workflow-fsm.md sec.5 explicitly left
-    # open. Per-home: each home has its own .transition-ledger.jsonl. Missing
-    # ledger = nothing to replay (not an error). Malformed JSON and illegal
-    # (from,to) pairs are errors; an escape-required edge without an operator
-    # override reason is also an error (side-state guard).
-    ledger = home / TRANSITION_LEDGER
-    if ledger.exists():
-        for lineno, line in enumerate(
-            ledger.read_text(encoding="utf-8").splitlines(), 1
-        ):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError as exc:
-                findings.append(
-                    {
-                        "code": "transition_ledger_malformed",
-                        "path": str(ledger),
-                        "detail": f"line {lineno}: malformed JSON: {exc}",
-                    }
-                )
-                continue
-            frm = str(entry.get("from", ""))
-            to = str(entry.get("to", ""))
-            # "any" wildcard (cancel) matches any source.
-            pair_legal = (frm, to) in LEGAL_TRANSITIONS or (
-                "any", to
-            ) in LEGAL_TRANSITIONS
-            if not pair_legal:
-                findings.append(
-                    {
-                        "code": "illegal_transition_edge",
-                        "path": str(ledger),
-                        "detail": (
-                            f"line {lineno}: illegal edge {frm!r} -> {to!r} "
-                            f"(ticket {entry.get('ticket', '?')}); not in "
-                            f"transition schema"
-                        ),
-                    }
-                )
-                continue
-            if (frm, to) in ESCAPE_REQUIRED and not entry.get(
-                "force_side_state_reason"
+    # (skills/_lattice-lib/scripts/transition-api.py) appends a JSONL entry
+    # per status flip; the validator replays it and rejects an illegal edge
+    # between two legal snapshots -- the gap docs/workflow-fsm.md sec.5
+    # explicitly left open. Per-ticket files under home/.transition-ledger/
+    # are COMMITTED (review F2: a single gitignored ledger made CI's replay a
+    # no-op on fresh checkouts; per-ticket committed files let CI accumulate
+    # real history and enforce edge legality for real). Missing dir = nothing
+    # to replay (not an error). Malformed JSON and illegal (from,to) pairs
+    # are errors; an escape-required edge without an operator override reason
+    # is also an error (side-state guard).
+    ledger_dir = home / TRANSITION_LEDGER_DIR
+    if ledger_dir.is_dir():
+        for ledger in sorted(ledger_dir.glob("*.jsonl")):
+            for lineno, line in enumerate(
+                ledger.read_text(encoding="utf-8").splitlines(), 1
             ):
-                findings.append(
-                    {
-                        "code": "illegal_transition_edge",
-                        "path": str(ledger),
-                        "detail": (
-                            f"line {lineno}: edge {frm!r} -> {to!r} (ticket "
-                            f"{entry.get('ticket', '?')}) requires an "
-                            f"operator-adjudicated --force-side-state-reason "
-                            f"(side-state guard; no agent self-adjudication)"
-                        ),
-                    }
-                )
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    findings.append(
+                        {
+                            "code": "transition_ledger_malformed",
+                            "path": str(ledger),
+                            "detail": f"line {lineno}: malformed JSON: {exc}",
+                        }
+                    )
+                    continue
+                frm = str(entry.get("from", ""))
+                to = str(entry.get("to", ""))
+                # "any" wildcard (cancel) matches any source.
+                pair_legal = (frm, to) in LEGAL_TRANSITIONS or (
+                    "any", to
+                ) in LEGAL_TRANSITIONS
+                if not pair_legal:
+                    findings.append(
+                        {
+                            "code": "illegal_transition_edge",
+                            "path": str(ledger),
+                            "detail": (
+                                f"line {lineno}: illegal edge {frm!r} -> "
+                                f"{to!r} (ticket {entry.get('ticket', '?')})"
+                                f"; not in transition schema"
+                            ),
+                        }
+                    )
+                    continue
+                if (frm, to) in ESCAPE_REQUIRED and not entry.get(
+                    "force_side_state_reason"
+                ):
+                    findings.append(
+                        {
+                            "code": "illegal_transition_edge",
+                            "path": str(ledger),
+                            "detail": (
+                                f"line {lineno}: edge {frm!r} -> {to!r} "
+                                f"(ticket {entry.get('ticket', '?')}) requires"
+                                f" an operator-adjudicated --force-side-state-"
+                                f"reason (side-state guard; no agent self-"
+                                f"adjudication)"
+                            ),
+                        }
+                    )
 
     return findings
 

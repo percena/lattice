@@ -73,6 +73,26 @@ docs_m2_status_pairs() {
   diff <(lib_pairs | sort -u) <(validator_pairs | sort -u)
 }
 
+@test "lib escape-required edges == validator ESCAPE_REQUIRED set" {
+  # Review F5: the validator's ESCAPE_REQUIRED is a separate hardcoded set;
+  # assert it stays set-equal with the lib's escape_required flag so a new
+  # escape edge added to one but not the other cannot desync enforcement.
+  lib_escape() {
+    PYTHONPATH="$REPO_ROOT/skills/_lattice-lib/scripts/lib" python3 - <<'PY'
+import transition_table as t
+for e in t.LEGAL_EDGES:
+    if e.escape_required:
+        print(f"{e.from_} {e.to}")
+PY
+  }
+  validator_escape() {
+    sed -n '/^ESCAPE_REQUIRED: set/,/^}/p' "$VALIDATOR" \
+      | grep -oE '\("[a-z-]+", "[a-z-]+"\)' \
+      | sed 's/[("")]//g; s/,/ /' | awk '{print $1" "$2}'
+  }
+  diff <(lib_escape | sort -u) <(validator_escape | sort -u)
+}
+
 @test "schema has the documented M2 legal edges (queued->in-progress etc.)" {
   run bash -c "$(declare -f lib_pairs); lib_pairs | grep -q '^queued in-progress$'"
   [ "$status" -eq 0 ]
@@ -82,8 +102,8 @@ docs_m2_status_pairs() {
   [ "$status" -eq 0 ]
 }
 
-@test "direct rework->pr-open is absent (illegal; must go via in-progress)" {
-  run bash -c "$(declare -f lib_pairs); lib_pairs | grep -q '^rework pr-open$'"
+@test "a truly illegal edge is absent (closed -> queued: terminal is not a source)" {
+  run bash -c "$(declare -f lib_pairs); lib_pairs | grep -q '^closed queued$'"
   [ "$status" -ne 0 ]
 }
 

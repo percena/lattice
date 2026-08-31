@@ -39,9 +39,10 @@ evals/artifacts/
 # Runtime id-claim markers (next-artifact-id.sh --claim); ids are recoverable
 # from committed artifact files, so claims stay local.
 .lattice/.ids/
-# Transition ledger (transition-api.py record) — runtime replay state, not
-# committed; edge legality is enforced per-run by validate-lattice-artifacts.py.
-.lattice/.transition-ledger.jsonl
+# Transition ledger (spc-254 A3): per-ticket files under .transition-ledger/
+# are COMMITTED so CI accumulates real history and replays edge legality.
+# The flock .lock sidecars are runtime-only and never committed.
+.lattice/.transition-ledger/*.lock
 # atomic_write temp files
 .lattice/**/.*.tmp
 # Derived lineage graph/board is not committed; do not create.
