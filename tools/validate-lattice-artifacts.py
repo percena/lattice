@@ -37,6 +37,12 @@ Checks (selected, not exhaustive):
     (when both files exist under the scanned homes)
 
 Exit 0 = clean, 1 = findings, 2 = usage/io error.
+
+spc-254 A7/A8 additions: evidence proof for `pass` feature-map rows
+(story header + result JSON; error-level), done-Spec PR-union check
+(warning-level during the D3 migration window), and a one-way warning
+baseline ratchet (`tools/.validator-warning-baseline.txt`; only-new
+warnings fail CI separately).
 """
 
 from __future__ import annotations
@@ -229,6 +235,22 @@ DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "spec-supersede
 FINISH_MERGED_RE = re.compile(r"^\s*-\s+pr-\d+\s+merged:\s", re.M)
 FINISH_CLOSED_RE = re.compile(r"^\s*-\s+issue\s+#\d+\s+closed:\s", re.M | re.I)
 FINISH_CANCELLED_RE = re.compile(r"^\s*-\s+cancelled:", re.M)
+
+# --- Evidence proof (spc-254 A7 / F6): story-header + result-JSON schema. ---
+# A `pass` feature-map row must prove its story file exists, the story
+# header's oracle/mutations are consistent with the row, and a `status=pass`
+# result JSON exists. A destructive story needs an authorization trace. The
+# story header is a fenced yaml block at the top of the story file
+# (skills/run-e2e/SKILL.md "Story traceability header"); the result JSON is
+# the run-e2e "Structured output" object saved as a sibling `.result.json`.
+# Error-level: A7 says a `pass` row with no proof "fails the validator".
+# First fenced ```yaml block at the top of the story file.
+STORY_HEADER_RE = re.compile(r"^\s*```ya?ml\s*\n(.*?)\n\s*```", re.S | re.M)
+STORY_HEADER_KEY_RE = re.compile(r"^([a-z_]+):\s*(.+?)\s*$", re.M | re.I)
+# Story cell placeholder: em dash, "(none…)", or empty.
+STORY_PLACEHOLDER_RE = re.compile(r"^(?:—|–|-|\(none.*\)|)$", re.I)
+# Spec front-matter `prs:` row (spc-254 A7 done-Spec PR union).
+SPEC_FM_PRS_RE = re.compile(r"^prs:\s*(\[.*\])\s*$", re.M)
 
 
 def parse_front_matter(text: str) -> dict[str, Any]:
@@ -590,11 +612,232 @@ def iter_reviews(home: Path) -> list[Path]:
     return sorted(p for p in d.glob("rev-*.md") if p.is_file())
 
 
+def parse_story_header(text: str) -> dict[str, str]:
+    """Parse the fenced yaml traceability header at the top of a story file.
+
+    Returns a dict of field -> value (inline ``# comments`` stripped). The
+    header is a docs convention (skills/run-e2e/SKILL.md); fields: ``feature``,
+    ``oracle``, ``mutations``, and optional ``authorization`` /
+    ``console_allow`` / ``http_allow`` / ``origins_allow``. Returns ``{}`` when
+    no fenced yaml block is present (spc-254 A7 evidence proof).
+    """
+    m = STORY_HEADER_RE.search(text)
+    if not m:
+        return {}
+    data: dict[str, str] = {}
+    for line in m.group(1).splitlines():
+        km = STORY_HEADER_KEY_RE.match(line)
+        if km:
+            val = km.group(2).split("#", 1)[0].strip()
+            data[km.group(1).lower()] = val
+    return data
+
+
+def resolve_story_path(home: Path, story_cell: str) -> Path | None:
+    """Resolve a feature-map story cell to a file path under ``home``.
+
+    The cell may be ``.lattice/e2e/stories/x.story.md``, ``stories/x.story.md``,
+    ``x.story.md``, or a placeholder (``—`` / ``(none…)``). Returns the first
+    existing path, else the first candidate (for "missing" error messages), or
+    ``None`` when the cell is a placeholder. Tries ``home/e2e/stories/<base>``
+    and ``home/stories/<base>`` for bare names.
+    """
+    raw = story_cell.strip()
+    if STORY_PLACEHOLDER_RE.fullmatch(raw):
+        return None
+    cleaned = re.sub(r"^(\./)?\.lattice/", "", raw)
+    candidates: list[Path] = [home / cleaned]
+    if "/" not in cleaned and "\\" not in cleaned:
+        candidates.append(home / "e2e" / "stories" / cleaned)
+        candidates.append(home / "stories" / cleaned)
+    for c in candidates:
+        if c.is_file():
+            return c
+    return candidates[0]
+
+
+def result_json_path(story_path: Path) -> Path:
+    """Sibling ``.result.json`` for a story file (``x.story.md`` -> ``x.result.json``)."""
+    name = story_path.name
+    if name.endswith(".story.md"):
+        return story_path.with_name(name[: -len(".story.md")] + ".result.json")
+    return story_path.with_name(story_path.stem + ".result.json")
+
+
+def spec_prs(text: str) -> set[str]:
+    """``prs`` ids parsed from a Spec's front-matter ``prs:`` row."""
+    fm = parse_front_matter(text)
+    raw = fm.get("prs", "")
+    return set(re.findall(r"pr-[1-9][0-9]*", raw))
+
+
+def binder_prs(text: str) -> set[str]:
+    """``prs`` ids parsed from a binder card's ``| prs |`` row."""
+    m = PRS_TABLE_RE.search(first_table_block(text))
+    if not m:
+        return set()
+    return set(re.findall(r"pr-[1-9][0-9]*", m.group(1)))
+
+
+def _evidence_proof_findings(
+    home: Path,
+    fmap: Path,
+    lineno: int,
+    cells: list[str],
+    findings: list[dict[str, str]],
+) -> None:
+    """Append evidence-proof findings for a `pass` feature-map row (A7).
+
+    A `pass` row must prove: story path exists, story header oracle/mutations
+    are consistent, a `status=pass` result JSON exists. A destructive story
+    needs an authorization trace. Findings are error-level (A7: "fails the
+    validator").
+    """
+    row_id = cells[0]
+    story_cell = cells[6]
+    row_mut = cells[4].strip().lower()
+    row_oracle = cells[3].strip()
+    # 1. story path present + file exists.
+    if STORY_PLACEHOLDER_RE.fullmatch(story_cell):
+        findings.append(
+            {
+                "code": "evidence_proof_no_story",
+                "path": str(fmap),
+                "detail": (
+                    f"line {lineno}: pass row {row_id!r} has no story path — "
+                    "a pass row must point to a story file "
+                    "(skills/run-e2e/SKILL.md traceability header)"
+                ),
+            }
+        )
+        return
+    spath = resolve_story_path(home, story_cell)
+    if spath is None or not spath.is_file():
+        findings.append(
+            {
+                "code": "evidence_proof_story_missing",
+                "path": str(fmap),
+                "detail": (
+                    f"line {lineno}: pass row {row_id!r} story {story_cell!r} "
+                    f"does not exist (resolved to {spath}); create the story "
+                    "or revert the row to `untested`/`fail`"
+                ),
+            }
+        )
+        return
+    # 2. story header parsed + fields consistent.
+    header = parse_story_header(load_text(spath))
+    h_mut = header.get("mutations", "").strip().lower()
+    if not h_mut:
+        findings.append(
+            {
+                "code": "evidence_proof_header_missing",
+                "path": str(spath),
+                "detail": (
+                    f"story {spath.name} has no traceability header (fenced "
+                    "yaml with feature/oracle/mutations); see "
+                    "skills/run-e2e/SKILL.md"
+                ),
+            }
+        )
+        return
+    if h_mut != row_mut:
+        findings.append(
+            {
+                "code": "evidence_proof_mutations_mismatch",
+                "path": str(spath),
+                "detail": (
+                    f"story {spath.name} header mutations {h_mut!r} != "
+                    f"feature-map row mutations {row_mut!r}; the header "
+                    "must equal the map row's mutations class"
+                ),
+            }
+        )
+    h_oracle = header.get("oracle", "").strip()
+    if not h_oracle:
+        findings.append(
+            {
+                "code": "evidence_proof_oracle_missing",
+                "path": str(spath),
+                "detail": (
+                    f"story {spath.name} header has no oracle citation "
+                    "(spc-N A* | README §x | generic invariants)"
+                ),
+            }
+        )
+    elif h_oracle.lower() not in row_oracle.lower():
+        findings.append(
+            {
+                "code": "evidence_proof_oracle_mismatch",
+                "path": str(spath),
+                "detail": (
+                    f"story {spath.name} header oracle {h_oracle!r} not "
+                    f"found in feature-map row oracle {row_oracle!r}; the "
+                    "citations must agree"
+                ),
+            }
+        )
+    # 3. destructive authorization trace.
+    if row_mut == "destructive":
+        h_auth = header.get("authorization", "").strip()
+        if not h_auth:
+            findings.append(
+                {
+                    "code": "evidence_proof_destructive_no_auth",
+                    "path": str(spath),
+                    "detail": (
+                        f"story {spath.name} is destructive but the header "
+                        "has no `authorization:` trace; destructive stories "
+                        "require written operator authorization"
+                    ),
+                }
+            )
+    # 4. result JSON exists with status=pass.
+    rpath = result_json_path(spath)
+    if not rpath.is_file():
+        findings.append(
+            {
+                "code": "evidence_proof_no_result",
+                "path": str(fmap),
+                "detail": (
+                    f"line {lineno}: pass row {row_id!r} has no result JSON "
+                    f"at {rpath} — a pass row must have a `status: pass` "
+                    "result JSON sibling (<story>.result.json)"
+                ),
+            }
+        )
+    else:
+        try:
+            rdata = json.loads(rpath.read_text(encoding="utf-8"))
+            if str(rdata.get("status", "")).lower() != "pass":
+                findings.append(
+                    {
+                        "code": "evidence_proof_result_not_pass",
+                        "path": str(rpath),
+                        "detail": (
+                            f"result JSON {rpath.name} status is "
+                            f"{rdata.get('status')!r}, not 'pass'"
+                        ),
+                    }
+                )
+        except (json.JSONDecodeError, OSError) as exc:
+            findings.append(
+                {
+                    "code": "evidence_proof_result_malformed",
+                    "path": str(rpath),
+                    "detail": f"result JSON {rpath.name} is malformed: {exc}",
+                }
+            )
+
+
 def validate_home(home: Path) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     specs: dict[str, Path] = {}
     spec_tickets: dict[str, set[str]] = {}
     spec_accept: dict[str, set[str]] = {}
+    spec_prs_map: dict[str, set[str]] = {}
+    spec_status_map: dict[str, str | None] = {}
+    ticket_prs: dict[str, set[str]] = {}
 
     for path in iter_specs(home):
         text = load_text(path)
@@ -618,9 +861,12 @@ def validate_home(home: Path) -> list[dict[str, str]]:
             specs[check_id] = path
             spec_tickets[check_id] = spec_ticket_ids(text)
             spec_accept[check_id] = spec_acceptance_ids(text)
+            spec_prs_map[check_id] = spec_prs(text)
 
         # tkt-151 A1/A2: Spec status vocabulary + terminal guards.
         sp_st = spec_status(text)
+        if check_id:
+            spec_status_map[check_id] = sp_st
         if sp_st is not None and sp_st not in SPEC_STATUS_OK:
             findings.append(
                 {
@@ -732,6 +978,8 @@ def validate_home(home: Path) -> list[dict[str, str]]:
         tid = m.group(1) if m else ""
         if tid:
             ticket_dirs_by_id.setdefault(tid, []).append(path)
+            ticket_prs.setdefault(tid, set())
+            ticket_prs[tid] |= binder_prs(text)
         if not tid or not TKT_ID_RE.fullmatch(tid):
             # tkt-pending-<slug> is a recognized transient dir (flow.md §3.5)
             # — not malformed. Exempt from the error so binder_github_pending
@@ -1048,6 +1296,35 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     }
                 )
 
+    # Done-Spec PR union (spc-254 A7 / F6): a `done` Spec's front-matter
+    # `prs` must contain the union of its child binders' prs rows. Warning-
+    # level during the D3 migration window (new check; ratcheted via the
+    # warning baseline so only-new warnings fail CI). Backfilling the spec
+    # prs row from the child binders makes a done Spec clean.
+    for sid, sp_st in spec_status_map.items():
+        if sp_st != "done" or sid not in specs:
+            continue
+        child_prs: set[str] = set()
+        for tid in spec_tickets.get(sid, set()):
+            child_prs |= ticket_prs.get(tid, set())
+        spec_p = spec_prs_map.get(sid, set())
+        missing = child_prs - spec_p
+        if missing:
+            spec_path = specs[sid]
+            findings.append(
+                {
+                    "code": "spec_prs_missing_child_union",
+                    "level": "warning",
+                    "path": str(spec_path.relative_to(home.parent)) if home.parent in spec_path.parents else str(spec_path),
+                    "detail": (
+                        f"status is done but prs {sorted(spec_p, key=lambda p: int(p[3:]))} "
+                        f"omits child binder PR union {sorted(child_prs, key=lambda p: int(p[3:]))} "
+                        f"(missing: {sorted(missing, key=lambda p: int(p[3:]))}); "
+                        "backfill the spec front-matter `prs:` row from the child binders"
+                    ),
+                }
+            )
+
     # Feature map (spc-104 A1): when `.lattice/feature-map.md` exists, its rows
     # must be well-formed and use the status vocabulary. Unknown status = error
     # (same posture as invalid_ticket_status); malformed row = warning (lazy
@@ -1086,6 +1363,15 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                         ),
                     }
                 )
+            # Evidence proof (spc-254 A7 / F6): a `pass` row must prove its
+            # story file exists, the story header's oracle/mutations are
+            # consistent with the row, and a `status=pass` result JSON
+            # exists. A destructive story needs an authorization trace.
+            # Error-level: A7 says a `pass` row with no proof "fails the
+            # validator". Only `pass` rows are proof-gated; `fail`/`blocked`/
+            # `untested` carry no proof obligation.
+            if st_cell == "pass":
+                _evidence_proof_findings(home, fmap, lineno, cells, findings)
 
     # One binder directory per ticket id: `tkt-N` is the lineage key, so two
     # dirs sharing it fork the chain (tkt-90; the historical tkt-35 collision
@@ -1185,10 +1471,22 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Repo root for default home (default: cwd show-toplevel or .)",
     )
+    parser.add_argument(
+        "--baseline",
+        default=None,
+        help=(
+            "Warning-baseline file (one 'code\\tpath' per line; # comments "
+            "allowed). Warnings whose signature is not in the baseline fail "
+            "the run (one-way ratchet; spc-254 A8/D3). Default: "
+            "<validator_dir>/.validator-warning-baseline.txt when --home is "
+            "not passed; off when --home is custom."
+        ),
+    )
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else Path.cwd()
     homes = [Path(h).resolve() for h in (args.homes or [])]
+    default_home_used = not args.homes
     if not homes:
         homes = [root / ".lattice"]
 
@@ -1202,34 +1500,83 @@ def main(argv: list[str] | None = None) -> int:
     # Stable order
     all_findings.sort(key=lambda f: (f.get("code", ""), f.get("path", ""), f.get("detail", "")))
 
-    # Warnings surface but never fail the run (lazy migration).
+    # Warnings surface but never fail the run (lazy migration) — UNLESS the
+    # warning is new relative to the baseline ratchet (spc-254 A8/D3). The
+    # baseline is a one-way ratchet (only-decrease): warnings present in the
+    # baseline stay non-fatal; warnings NOT in the baseline fail CI
+    # separately. Auto-active for the default home (repo .lattice) so CI
+    # (which runs the validator with no --home) gets the ratchet for free;
+    # off for custom --home (fixture tests) unless --baseline is explicit.
+    baseline_path = Path(args.baseline) if args.baseline else None
+    if baseline_path is None and default_home_used:
+        baseline_path = Path(__file__).resolve().parent / ".validator-warning-baseline.txt"
+    baseline_sigs: set[str] = set()
+    if baseline_path is not None and baseline_path.is_file():
+        for line in baseline_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                baseline_sigs.add(line)
+
+    def _sig(f: dict[str, str]) -> str:
+        # Normalize to repo-root-relative so the baseline is portable across
+        # checkouts (CI vs local). Falls back to the raw path when the finding
+        # path is not under the repo root (e.g. an absolute path outside it).
+        p = f.get("path", "")
+        try:
+            p = str(Path(p).resolve().relative_to(root))
+        except (ValueError, TypeError):
+            pass
+        return f"{f.get('code', '')}\t{p}"
+
     errors = [f for f in all_findings if f.get("level", "error") != "warning"]
     warnings = [f for f in all_findings if f.get("level", "error") == "warning"]
+    new_warnings = (
+        [w for w in warnings if _sig(w) not in baseline_sigs]
+        if baseline_sigs
+        else []
+    )
+    new_sigs = {_sig(w) for w in new_warnings}
+    ratchet_fail = bool(new_warnings)
 
     if args.json:
         print(
             json.dumps(
                 {
-                    "ok": not errors,
+                    "ok": not errors and not ratchet_fail,
                     "count": len(errors),
                     "warning_count": len(warnings),
+                    "new_warning_count": len(new_warnings),
+                    "ratchet_new_warnings": new_warnings,
                     "findings": all_findings,
                 },
                 indent=2,
             )
         )
     else:
-        if not errors:
-            suffix = f" ({len(warnings)} warning(s))" if warnings else ""
+        if not errors and not ratchet_fail:
+            bits = []
+            if warnings:
+                bits.append(f"{len(warnings)} warning(s)")
+            if new_warnings:
+                bits.append(f"{len(new_warnings)} new warning(s) (ratchet)")
+            suffix = f" ({', '.join(bits)})" if bits else ""
             print(f"validate-lattice-artifacts: OK{suffix}")
         else:
-            print(f"validate-lattice-artifacts: FAILED ({len(errors)} finding(s), {len(warnings)} warning(s))")
+            parts = [f"{len(errors)} finding(s)"]
+            if ratchet_fail:
+                parts.append(f"{len(new_warnings)} new warning(s) (ratchet)")
+            baselined = len(warnings) - len(new_warnings)
+            parts.append(f"{baselined} baselined warning(s)")
+            print(f"validate-lattice-artifacts: FAILED (" + ", ".join(parts) + ")")
         for f in all_findings:
             level = f.get("level", "error")
-            prefix = "warn " if level == "warning" else ""
-            print(f"  [{prefix}{f['code']}] {f['path']}: {f['detail']}")
+            if level == "warning":
+                tag = "NEW warn " if _sig(f) in new_sigs else "warn "
+            else:
+                tag = ""
+            print(f"  [{tag}{f['code']}] {f['path']}: {f['detail']}")
 
-    return 1 if errors else 0
+    return 1 if (errors or ratchet_fail) else 0
 
 
 if __name__ == "__main__":

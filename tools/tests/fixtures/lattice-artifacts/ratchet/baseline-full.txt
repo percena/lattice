@@ -1,0 +1,3 @@
+# full baseline — covers both; no new warnings
+legacy_open_status	tools/tests/fixtures/lattice-artifacts/ratchet/tickets/tkt-301-baseline/README.md
+legacy_open_status	tools/tests/fixtures/lattice-artifacts/ratchet/tickets/tkt-302-new/README.md

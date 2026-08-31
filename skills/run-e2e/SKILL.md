@@ -179,19 +179,30 @@ const leftovers = []
 
 ## Story traceability header
 
-**DEFAULT:** Every `*.story.md` file starts with a small fenced yaml block that says what the story verifies and how dangerous it is. It is a docs convention read by humans and skills (verify-features matches it against the feature map) — no tooling parses it yet.
+**DEFAULT:** Every `*.story.md` file starts with a small fenced yaml block that says what the story verifies and how dangerous it is. It is a docs convention read by humans and skills (verify-features matches it against the feature map) — and since spc-254 A7, machine-checked by `validate-lattice-artifacts.py` for `pass` rows (see Verification).
 
 ```yaml
 feature: ftr-<slug>       # feature-map row id (.lattice/feature-map.md)
 oracle: spc-104 A2        # citation: spc-N A* | README §x | generic invariants
 mutations: none           # none | safe | destructive — must equal the map row's class
+# authorization: <trace>  # REQUIRED when mutations: destructive — written operator authorization
 # console_allow: []       # optional: expected console.error lines (substring match)
 # http_allow: []          # optional: expected first-party HTTP failures ("METHOD url-substring status")
 # origins_allow: []       # optional: extra first-party origins (e.g. an API on another port)
 ```
 
-- `oracle` cites where the expected behavior comes from — a spec acceptance line beats a README claim beats generic invariants (see verify-features for the hierarchy).
-- `mutations` gates the round-trip requirement above and the calling skill's environment policy.
+- `oracle` cites where the expected behavior comes from — a spec acceptance line beats a README claim beats generic invariants (see verify-features for the hierarchy). The citation must agree with the feature-map row's oracle cell (the validator checks the header citation appears in the row oracle).
+- `mutations` gates the round-trip requirement above and the calling skill's environment policy. It **must equal** the feature-map row's `mutations` class — a mismatch fails the validator.
+- `authorization` is **required for destructive stories** — a written operator-authorization trace (who/when/why). A destructive story header without it fails the validator.
+
+## Result JSON (evidence contract)
+
+**DEFAULT:** The structured output object a story prints (see Structured output) is the evidence a `pass` feature-map row must cite. Since spc-254 A7, `validate-lattice-artifacts.py` requires a `status: pass` result JSON sibling to the story file: `<story>.story.md` → `<story>.result.json`. The result JSON must carry `"status": "pass"`.
+
+- The result JSON is the same object the story prints to stdout (one `console.log(JSON.stringify(result, null, 2))` at the end); the caller saves it as `<story>.result.json` next to the story.
+- A `pass` feature-map row with no result JSON, or a result JSON whose `status` is not `pass`, fails the validator (`evidence_proof_no_result` / `evidence_proof_result_not_pass`).
+- Save the result JSON immediately after the story run; a stale or missing result JSON means the `pass` row is unproven.
+
 - `http_allow` entries are `"<METHOD> <url-substring> <status>"` (e.g. `"POST /api/login 422"` for a negative login story); `console_allow` entries are substrings of tolerated `console.error` lines. Both filter assertions, not evidence — the arrays in the JSON stay complete.
 
 ## Not a YAML runner
@@ -277,6 +288,7 @@ Consumer repos keep stories in a catalog at `.lattice/e2e/stories/*.story.md` �
 - No screenshot on the failure path — evidence is most useful exactly there
 - A mutation story with no reload/re-navigate between the write and the persistence assertion
 - A story file with no traceability header — the caller cannot tell what feature/oracle it verifies
+- A `pass` feature-map row with no matching story or `.result.json` — the `pass` is unproven (spc-254 A7)
 
 ## Verification
 
@@ -287,7 +299,8 @@ Before declaring a story done, confirm:
 - [ ] Fail-loud auth check present when the target page expects authentication.
 - [ ] Console/pageerror subscription set **before** navigation.
 - [ ] HTTP error subscription (`response` with first-party `status >= 400` + `requestfailed`) set **before** navigation; `httpErrors` is its own array (never merged), entries `{url, status|failure, method}`.
-- [ ] Story file starts with the traceability header: `feature`, `oracle`, `mutations` (plus `console_allow`/`http_allow`/`origins_allow` when needed), and lives at `.lattice/e2e/stories/` in consumer repos.
+- [ ] Story file starts with the traceability header: `feature`, `oracle`, `mutations` (plus `authorization` when `mutations: destructive`, plus `console_allow`/`http_allow`/`origins_allow` when needed), and lives at `.lattice/e2e/stories/` in consumer repos.
+- [ ] `pass` feature-map row has a matching story file whose header `oracle`/`mutations` agree with the row, and a `status: pass` `.result.json` sibling (spc-254 A7 evidence proof; `validate-lattice-artifacts.py` enforces it).
 - [ ] Mutation stories (`safe`/`destructive`) round-trip: reload/re-navigate between the write and the persistence assertion; `safe` stories clean up when possible and report `leftovers` in the JSON.
 - [ ] All waits (`waitForResponse`/`waitForURL`) registered before the triggering action.
 - [ ] Assertions run via `page.evaluate` (or locator `evaluateAll`); no `JSON.parse` of evaluate results.

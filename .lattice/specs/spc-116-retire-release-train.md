@@ -11,7 +11,7 @@ summary: "Move plugin version-bump gate from per-PR (dev) to dev→main release 
 created: 2026-08-27
 updated: 2026-08-27
 tickets: [tkt-117, tkt-118, tkt-119, tkt-120]
-prs: []
+prs: [pr-125]
 reviews: []
 supersedes: []
 superseded_by: null

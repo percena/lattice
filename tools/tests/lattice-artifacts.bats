@@ -469,3 +469,102 @@ setup_file() {
   printf '%s\n' "$output" | grep -qF '"ok": true'
   [ -z "$(printf '%s\n' "$output" | grep -F spec_done_open_acceptance)" ]
 }
+
+# tkt-259 / spc-254 A7: evidence proof for `pass` feature-map rows. A pass row
+# must prove: story path exists, story header oracle/mutations consistent, a
+# status=pass result JSON exists. A destructive story needs an authorization
+# trace. Each fault is injected in one row of the evidence-proof-fail home; the
+# ftr-clean row is the control (no finding).
+
+@test "A7: pass row with no story path fails (evidence_proof_no_story)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF evidence_proof_no_story
+  printf '%s\n' "$output" | grep -qF ftr-no-story
+}
+
+@test "A7: pass row with missing story file fails (evidence_proof_story_missing)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF evidence_proof_story_missing
+  printf '%s\n' "$output" | grep -qF ftr-missing-story
+}
+
+@test "A7: pass row with mutations mismatch fails (evidence_proof_mutations_mismatch)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF evidence_proof_mutations_mismatch
+  printf '%s\n' "$output" | grep -qF mut.story.md
+}
+
+@test "A7: pass row with oracle mismatch fails (evidence_proof_oracle_mismatch)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF evidence_proof_oracle_mismatch
+  printf '%s\n' "$output" | grep -qF spc-99
+}
+
+@test "A7: pass row with no result JSON fails (evidence_proof_no_result)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF evidence_proof_no_result
+  printf '%s\n' "$output" | grep -qF ftr-no-result
+}
+
+@test "A7: pass row with result JSON not pass fails (evidence_proof_result_not_pass)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF evidence_proof_result_not_pass
+  printf '%s\n' "$output" | grep -qF notpass.result.json
+}
+
+@test "A7: destructive pass row without authorization trace fails (evidence_proof_destructive_no_auth)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF evidence_proof_destructive_no_auth
+  printf '%s\n' "$output" | grep -qF destructive.story.md
+}
+
+@test "A7: a fully-proven pass row fires no evidence-proof finding (control)" {
+  run python3 "$VAL" --home "$FIX/evidence-proof-fail" --json
+  [ "$status" -eq 1 ]   # other rows fail; the control row itself is clean
+  [ -z "$(printf '%s\n' "$output" | grep -F 'evidence_proof' | grep -F clean)" ]
+}
+
+# tkt-259 / spc-254 A7: done-Spec PR union. A `done` Spec's front-matter `prs`
+# must contain the union of its child binders' prs rows. Warning-level during
+# the D3 migration window (ratcheted via the warning baseline).
+
+@test "A7: done Spec missing a child binder PR warns spec_prs_missing_child_union" {
+  # spc-900 (done, prs []) but tkt-900 binder lists pr-900 → warning. spc-901
+  # (done, prs [pr-901]) with tkt-901 binder pr-901 is the clean control.
+  run python3 "$VAL" --home "$FIX/spec-prs-union" --json
+  [ "$status" -eq 0 ]   # warning-level; run still passes
+  printf '%s\n' "$output" | grep -qF spec_prs_missing_child_union
+  printf '%s\n' "$output" | grep -qF spc-900
+  printf '%s\n' "$output" | grep -qF pr-900
+  [ -z "$(printf '%s\n' "$output" | grep -F 'spec_prs_missing_child_union' | grep -F spc-901)" ]
+}
+
+# tkt-259 / spc-254 A8: warning baseline + one-way ratchet. Warnings in the
+# baseline pass; new (non-baselined) warnings fail the run separately.
+
+@test "A8: a baselined warning passes (ratchet clean)" {
+  # Full baseline covers both legacy_open_status warnings → 0 new → exit 0.
+  run python3 "$VAL" --home "$FIX/ratchet" --baseline "$FIX/ratchet/baseline-full.txt" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"new_warning_count": 0'
+  printf '%s\n' "$output" | grep -qF '"warning_count": 2'
+}
+
+@test "A8: a new (non-baselined) warning fails the run (ratchet)" {
+  # Partial baseline covers tkt-301 only; tkt-302 is new → exit 1.
+  run python3 "$VAL" --home "$FIX/ratchet" --baseline "$FIX/ratchet/baseline-partial.txt" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF '"new_warning_count": 1'
+  printf '%s\n' "$output" | grep -qF ratchet_new_warnings
+}
+
