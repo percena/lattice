@@ -110,7 +110,7 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      ```
      Worktree: <path> (branch <branch>). cd there before any work.
      Run: start-work tkt-<id>.
-     Batch marker: .lattice/.batch-work-active is present at the repo MAIN clone
+     Batch marker: .batch-work-active is present at the out-of-repo state home
      .lattice/ (single gate point — NOT in this worktree). The merge hook blocks
      `gh pr merge` while it exists. Do not call finish-work; do not remove the marker.
      Never `git add -A`; stage named paths.
@@ -223,7 +223,7 @@ Per wave, after every ticket in the wave has been `ensure-workspace`'d and its b
      --state-file <batch-state> [--report <path>]
    ```
    The script spawns `claude --bg -p "$(cat brief_file)" --permission-mode acceptEdits` detached per worktree (via `spawn-ticket-process.sh`, which fixes the reference tool's shared-`cwd` defect by binding `cwd` to each ticket's sibling worktree — ADR-006 preserved), records pid+worktree+started-iso to the batch state file, and runs the barrier (below).
-3. The batch marker (`.lattice/.batch-work-active` at repo MAIN) is written before the first wave in **both** modes — process mode is not exempt.
+3. The batch marker (`.batch-work-active` at the out-of-repo state home) is written before the first wave in **both** modes — process mode is not exempt.
 4. Concurrency cap + RAM gate are enforced inside the script (per-wave RAM re-check; below-threshold stops further spawns, in-flight continues). The host's `--concurrency` / `--ram-threshold` pass straight through.
 
 The host records the wave's report rows (compact: ticket/pid/status/timebox/duration — `status` is the in-wave classification `ok|failed|timeout|unknown`, see STATUS DETECTION below) — NOT the per-agent transcript. The spawn-brief still carries the verify-after-mutate mandate (item 6); the wave now runs `verify-mutation.sh --pr <N> --expected-oid <OID>` IN-WAVE against each claimed PR (spc-254 A1), so the host no longer re-probes `completed` tickets — a row is `ok` only after the in-wave probe agrees.
@@ -297,7 +297,7 @@ ran: <UTC timestamp>
 
 ## Handoff
 Human reviews open PRs, then runs finish-work per PR.
-The repo-MAIN .lattice/.batch-work-active marker ensured no agent merged.
+The out-of-repo `.batch-work-active` marker (state home) ensured no agent merged.
 ```
 
 Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by the agents: `queued → in-progress → pr-open` (or `stuck`/`parked` per policy); **fuse-halted tickets stamp `deferred`+reason `fuse-halt`** (ADR-004 amd tkt-136 Option B), **blocked-by-failure dependents stamp `deferred`+reason `blocked-by-failure`**, **watchdog-timeout stamps `stuck`+`wait_reason: unblock`** (FSM-2b, tkt-132); never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
