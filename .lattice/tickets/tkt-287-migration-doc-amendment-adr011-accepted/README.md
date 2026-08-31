@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | docs,P3 |
 | github | https://github.com/percena/lattice/issues/287 |
-| status | pr-open |
+| status | closed |
 | adopted | false |
 | summary | Migrate relocated in-repo files; amend ADR-008/spc-186 A1 gate-location ref; fix flow.md stale prose; flip ADR-011 Accepted |
 | spec | spc-282 — Consumer-repo footprint hygiene (path: ../../specs/spc-282-consumer-repo-footprint-hygiene.md) |
@@ -24,7 +24,7 @@
 | worktree_bind | spc-282-consumer-repo-footprint-hygiene |
 | prs | pr-292 — https://github.com/percena/lattice/pull/292 |
 | created | 2026-08-31T00:00:00Z |
-| updated | 2026-08-31T15:29:54Z |
+| updated | 2026-08-31T15:31:07Z |
 
 ## Why
 
@@ -63,3 +63,8 @@ Existing clones (Lattice monorepo + any consumer repos that ran batch-work befor
 ## blocked_by
 
 tkt-283, tkt-284 (needs final state-dir layout + gitignore bootstrap before migration + doc amendment are accurate)
+
+## Finish
+
+- pr-292 merged: 2026-08-31T15:30:23Z — https://github.com/percena/lattice/pull/292 (base merge)
+- issue #287 closed: 2026-08-31T15:30:46Z — https://github.com/percena/lattice/issues/287
