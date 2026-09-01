@@ -261,11 +261,10 @@ for n in ticket_nums:
         # Idempotent: already deferred via spec-superseded.
         if status == "deferred" and wait_reason == "spec-superseded":
             # tkt-237 M2 recovery: a prior run stamped this binder on disk
-            # but its `git commit` failed mid-loop, leaving the stamp
-            # uncommitted. The idempotent skip would strand it forever (bash
-            # commits nothing on re-run). Detect the uncommitted mutation
-            # (differs from HEAD) and emit it for bash to commit, recovering
-            # the interrupted sweep without manual `git add -A && commit`.
+            # (via `commit`) but its `git commit` failed mid-loop, leaving the
+            # stamp uncommitted. The idempotent skip would strand it forever.
+            # Detect the uncommitted mutation (differs from HEAD) and emit it
+            # for bash to commit, recovering the interrupted sweep.
             rel = os.path.relpath(binder, repo_root)
             diff_rc = subprocess.run(
                 ["git", "-C", repo_root, "diff", "--quiet", "HEAD", "--", rel],
@@ -274,7 +273,7 @@ for n in ticket_nums:
             if diff_rc == 0:
                 report.append((n, status, "skip", "already stamped (idempotent)"))
                 continue
-            mutated.append(rel)
+            print(f"@@RECOMMIT:{binder}")
             report.append((n, status, "stamped",
                            "re-committed on-disk-stamped-but-uncommitted binder "
                            "(prior sweep commit failed mid-loop — M2 recovery)"))
@@ -289,94 +288,38 @@ for n in ticket_nums:
             report.append((n, status, "would-stamp", "deferred + spec-superseded"))
             continue
 
-        # --- Contained read-modify-write mutations (under the lock) --------
-        orig = s
-        # 1. Flip status -> deferred (preserve the row shape: [ \t] not \s so the
-        #    regex cannot swallow the trailing newline / merge the table). Group 2
-        #    is the bare value-column-closing pipe (trailing [ \t]* eats whitespace
-        #    before it) so the replacement yields `| status | deferred |` cleanly.
-        s = re.sub(r'^(\|\s*status\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
-                   r'\1 deferred \2', s, count=1, flags=re.MULTILINE)
-
-        # 2. Set wait_reason -> spec-superseded. Update the value column in place
-        #    when the row exists (preserving any description column); insert a new
-        #    row after the status row when absent.
-        wr_row = re.compile(r'^(\|\s*wait_reason\s*\|)[ \t]*[^|]*?[ \t]*(\|)',
-                            re.MULTILINE)
-        if wr_row.search(s):
-            s = wr_row.sub(r'\1 spec-superseded \2', s, count=1)
-        else:
-            # Insert after the status row, mirroring its column count so the table
-            # stays well-formed. A 3-col status row (4 pipes) gets a 3-col insert;
-            # a 2-col row gets a 2-col insert.
-            status_row = re.search(r'^(\|\s*status\s*\|[ \t]*[^|]*?[ \t]*\|[ \t]*[^\n]*)\n',
-                                   s, re.MULTILINE)
-            if status_row:
-                row = status_row.group(1)
-                pipe_count = row.count("|")
-                if pipe_count >= 4:
-                    new_row = "| wait_reason | spec-superseded | (spec superseded) |"
-                else:
-                    new_row = "| wait_reason | spec-superseded |"
-                s = s[:status_row.end()] + new_row + "\n" + s[status_row.end():]
-            # else: no status row — the status flip above already failed silently;
-            # the no-change guard below refuses the write.
-
-        # 3. Journal entry under ## Decision journal.
+        # A1.3 (spc-270): the status flip (→ deferred), the wait_reason set
+        # (→ spec-superseded, inserted if absent), the journal entry, the
+        # `updated` bump, and the ledger entry are routed through
+        # `transition-api.py commit` (bash, below) in ONE atomic transaction.
+        # The python only reads under the lock + emits the prior status + the
+        # journal trace so bash can drive the commit. The locked re-read is the
+        # M1 TOCTOU guard: a concurrent stamp during the lock-wait is visible
+        # here (status re-read), and a concurrent stamp AFTER the emit is
+        # caught by commit's --from continuity guard.
         entry = (f"- spec {superseded_by} supersedes this ticket's Spec — "
                  f"stamp deferred + spec-superseded (supersede sweep {stamp})")
-        m_hdr = re.search(r'^## Decision journal[ \t]*\n', s, re.MULTILINE)
-        if m_hdr:
-            body_start = m_hdr.end()
-            tail = s[body_start:]
-            bnd = re.search(r'\n## ', tail)
-            if bnd:
-                body, trailing = tail[:bnd.start()], tail[bnd.start():]
-            else:
-                body, trailing = tail, ""
-            stripped = body.strip("\n")
-            new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
-            s = s[:body_start] + "\n" + new_body + trailing
-
-        # 4. Bump `updated` atomically with the status flip (spc-186 A4).
-        s = binder_rows.stamp_updated(s, stamp)
-
-        if s == orig:
-            report.append((n, status, "skip", "no mutation (status row missing?)"))
-            continue
-
-        # Atomic replace: temp + fsync + rename (the dir lock is already held).
-        mode = os.stat(binder).st_mode
-        fd, tmp = tempfile.mkstemp(dir=binder_dir, prefix=".supersede.", suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                fh.write(s)
-                fh.flush()
-                os.fsync(fh.fileno())
-            os.chmod(tmp, stat.S_IMODE(mode))
-            os.replace(tmp, binder)
-        except BaseException:
-            if os.path.exists(tmp):
-                os.unlink(tmp)
-            raise
-
-        rel = os.path.relpath(binder, repo_root)
-        mutated.append(rel)
-        report.append((n, "deferred", "stamped", "deferred + spec-superseded"))
+        import base64
+        journal_b64 = base64.b64encode(entry.encode("utf-8")).decode()
+        print(f"@@STAMP:tkt-{n}|{binder}|{status}|{journal_b64}")
+        report.append((n, status, "stamped", "deferred + spec-superseded"))
     finally:
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_UN)
         finally:
             os.close(lock_fd)
 
-# --- Report + emit mutated paths for bash to commit ------------------------
+# --- Report (human-readable, stderr) ----------------------------------------
+# The per-child action report goes to stderr; the @@STAMP:/@@RECOMMIT: machine
+# lines on stdout are parsed by bash below to drive `commit` + per-binder git
+# commits. `mutated` is intentionally unused here (bash owns the per-binder
+# commits); the count line mirrors the original so "0 binder(s) stamped" still
+# appears when every child was skipped (TOCTOU / not stampable).
 print("spec-supersede: sweep report", file=sys.stderr)
 for n, st, action, detail in report:
     print(f"  tkt-{n}: {st} -> {action} ({detail})", file=sys.stderr)
-print(f"spec-supersede: {len(mutated)} binder(s) stamped", file=sys.stderr)
-print("SS_STATUS=ok")
-for rel in mutated:
-    print(rel)
+stamped_count = sum(1 for r in report if r[2] == "stamped")
+print(f"spec-supersede: {stamped_count} binder(s) stamped", file=sys.stderr)
 PY
 )
 SS_RC=$?
@@ -384,31 +327,74 @@ if [[ $SS_RC -ne 0 ]]; then
   exit $SS_RC
 fi
 
-# --- Commit each mutated binder atomically (ratify.sh pattern) -------------
-# Parse the sweep output: the SS_STATUS marker line, then one binder path
-# per line. Commit each binder in its own commit so a crash between binders
-# never leaves a half-written transaction.
-MUTATED=$(printf '%s\n' "$SWEEP_OUT" | sed -n '/^SS_STATUS=/,$p' | tail -n +2)
+# Preserve the human report (stderr) but strip the @@ machine lines from stdout
+# so they never leak to a terminal/CI log (internal IPC only). `|| true`: under
+# set -e, grep -v exits 1 when SWEEP_OUT is purely @@ lines (the human report
+# went to stderr), which would kill the script before the commit loop runs.
+printf '%s\n' "$SWEEP_OUT" | grep -vE '^@@(STAMP|RECOMMIT):' || true
 
 if [[ "$DRY_RUN" == "true" ]]; then
   echo "spec-supersede: dry-run — no commits written"
   exit 0
 fi
 
-if [[ -z "$MUTATED" ]]; then
+# --- A1.3 (spc-270): route each child flip through `commit` (one atomic
+# transaction per binder: status→deferred + wait_reason→spec-superseded +
+# journal + updated + ledger), then one git commit per binder (ratify.sh
+# pattern) so a crash between binders never leaves a half-written sweep.
+# @@STAMP:tkt-<n>|<binder_abs>|<prior_status>|<journal_b64>
+# @@RECOMMIT:<binder_abs>  (M2 recovery: on-disk-stamped-but-uncommitted)
+STAMP_COUNT=0
+while IFS= read -r line; do
+  [[ -z "$line" ]] && continue
+  BINDER=""
+  TICKET_ID=""
+  PRIOR_STATUS=""
+  JOURNAL_TEXT=""
+  RECOMMIT=false
+  if [[ "$line" == @@STAMP:* ]]; then
+    payload="${line#@@STAMP:}"
+    # <ticket>|<binder_abs>|<prior_status>|<journal_b64>
+    TICKET_ID="${payload%%|*}"; rest="${payload#*|}"
+    BINDER="${rest%%|*}"; rest="${rest#*|}"
+    PRIOR_STATUS="${rest%%|*}"; JOURNAL_B64="${rest#*|}"
+    JOURNAL_TEXT=$(printf '%s' "$JOURNAL_B64" | base64 -d 2>/dev/null || true)
+  elif [[ "$line" == @@RECOMMIT:* ]]; then
+    BINDER="${line#@@RECOMMIT:}"
+    TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+    RECOMMIT=true
+  else
+    continue
+  fi
+  BINDER_NAME=$(basename "$(dirname "$BINDER")")
+  REL_BINDER=$(git -C "$REPO_ROOT" ls-files --full-name -- "$BINDER" 2>/dev/null)
+  # commit may have flipped the binder (A1.3) unless this is a recommit recovery.
+  if [[ "$RECOMMIT" == false ]]; then
+    LATTICE_HOME="$HOME_DIR" python3 "$SCRIPT_DIR/transition-api.py" commit \
+      "$TICKET_ID" deferred system "spec superseded — stamp deferred + spec-superseded" \
+      --from "$PRIOR_STATUS" --wait-reason spec-superseded \
+      --append-journal "$JOURNAL_TEXT" --binder "$BINDER" \
+      || { echo "spec-supersede: ERROR — commit failed for $BINDER_NAME" >&2; exit 1; }
+  fi
+  # Stage the binder + its per-ticket ledger, commit only those pathspecs.
+  LEDGER_REL=".lattice/.transition-ledger/${TICKET_ID}.jsonl"
+  LEDGER_ABS="$HOME_DIR/.transition-ledger/${TICKET_ID}.jsonl"
+  git -C "$REPO_ROOT" add -- "$REL_BINDER" 2>/dev/null || true
+  [[ -f "$LEDGER_ABS" ]] && git -C "$REPO_ROOT" add -- "$LEDGER_REL" 2>/dev/null || true
+  if [[ -f "$LEDGER_ABS" ]]; then
+    git -C "$REPO_ROOT" commit -q \
+      -m "supersede(${BINDER_NAME}): spec superseded — stamp deferred + spec-superseded" \
+      -- "$REL_BINDER" "$LEDGER_REL"
+  else
+    git -C "$REPO_ROOT" commit -q \
+      -m "supersede(${BINDER_NAME}): spec superseded — stamp deferred + spec-superseded" \
+      -- "$REL_BINDER"
+  fi
+  STAMP_COUNT=$((STAMP_COUNT + 1))
+done < <(printf '%s\n' "$SWEEP_OUT" | grep -E '^@@(STAMP|RECOMMIT):')
+
+if [[ "$STAMP_COUNT" -eq 0 ]]; then
   echo "spec-supersede: no binders mutated (all skipped or idempotent)"
-  exit 0
+else
+  echo "spec-supersede: ${STAMP_COUNT} binder(s) stamped"
 fi
-
-COUNT=0
-while IFS= read -r rel; do
-  [[ -z "$rel" ]] && continue
-  BINDER_NAME=$(basename "$(dirname "$rel")")
-  git -C "$REPO_ROOT" add -- "$rel"
-  git -C "$REPO_ROOT" commit -q \
-    -m "supersede(${BINDER_NAME}): spec superseded — stamp deferred + spec-superseded" \
-    -- "$rel"
-  COUNT=$((COUNT + 1))
-done <<<"$MUTATED"
-
-echo "spec-supersede: done — ${COUNT} commit(s) written (one per stamped binder)"

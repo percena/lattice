@@ -379,7 +379,7 @@ fi
 
 # --- Stamp the binder (idempotent) --------------------------------------------
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
-BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" <<'PY'
+STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" <<'PY'
 import sys, re, os, stat, fcntl, datetime
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
@@ -499,23 +499,21 @@ else:
             body = "\n" + entry_line + anomaly_line + issue_line + "\n"
     s = s[:m.start()] + head + body + s[m.end():]
 
-# 2. status: any working status → closed. The full FSM working vocabulary is
-#    matched (queued|in-progress|parked|stuck|pr-open|rework|deferred) plus
-#    legacy `open` — cancel/terminal evidence must not strand a binder in a
-#    working state regardless of which side state it held (tkt-90 extended the
-#    set once; tkt-150 closes parked/stuck/deferred which the prior regex
-#    omitted, codified by the parked-preservation regression it replaces).
-#    Closed-without-merge never claims mergedAt; merged outcomes keep firm
-#    timestamps. The flip fires on: cancel (terminal evidence already
-#    verified), issue closed, or a merged PR with no linked issue. The
-#    nonterminal alternation is single-sourced in lib/status_vocab.py (tkt-189
-#    / spc-186 A2) so it cannot drift from the validator's vocabulary.
-if cancel or issue_closed == "true" or (not issue_m and merged):
-    s = re.sub(
-        rf'(\| status \|)\s*{status_vocab.NONTERMINAL_RE.pattern}\s*(\|)',
-        r'\1 closed \2',
-        s,
-    )
+# 2. status: any working status → closed. A1.3 (spc-270): the status flip +
+#    `updated` bump are NO LONGER stamped here; the python only writes the
+#    ## Finish body + prs row. It emits @@TRANSITION_FROM:<prior>|<reason>
+#    |<owner>@@ when the flip condition holds (cancel / issue closed / merged
+#    with no linked issue) so bash routes the close through `transition-api.py
+#    commit` — the binder flip + `updated` + ledger entry land in one atomic
+#    transaction (curing the pr-open→closed ledger gap A1.3 closes). The prior
+#    is the REAL on-disk status (captured above, before any rewrite); commit's
+#    edge_for resolves pr-open→closed (merge) or any→closed (cancel) for it.
+#    Idempotent re-runs (status already closed) do not emit — the
+#    nonterminal-only flip never matched closed, so no second commit fires.
+flip_close = cancel or issue_closed == "true" or (not issue_m and merged)
+if flip_close and prior_status and not status_vocab.is_terminal(prior_status):
+    close_reason = "merge" if (merged and not cancel) else "cancel"
+    print(f"@@TRANSITION_FROM:{prior_status}|{close_reason}|human@@")
 
 # 3. prs table row: canonical `pr-N — URL`, comma-joined for multiples —
 # grammar single-sourced in lib/binder_rows.py (tkt-91). Placeholder variants
@@ -534,13 +532,12 @@ if m_prs:
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {merged_row} {mm.group(3)}", s, count=1)
 
 # Bump `updated` atomically with the status stamp (spc-186 A4 / tkt-191).
-# Gated on a real mutation so an idempotent re-run (s == orig) does not touch
-# `updated` — the no-change/idempotency contract holds. stamp_updated is a
-# no-op when the row is absent (lazy migration; the validator warns, never
-# fails).
+# A1.3 (spc-270): the `updated` bump + status flip are routed through
+# `transition-api.py commit`; the python only writes the ## Finish body +
+# prs row here. The no-change/idempotency contract still holds: an
+# idempotent re-run emits no @@TRANSITION_FROM line, so bash invokes no
+# `commit` and `updated` is untouched.
 mutated = (s != orig)
-if mutated:
-    s = binder_rows.stamp_updated(s, updated_stamp)
 if s != orig:
     # Write via temp + atomic rename: a crash (or a second finish session
     # stamping the same binder for a sibling PR) must never leave a truncated
@@ -566,5 +563,36 @@ try:
 finally:
     os.close(lock_fd)
 PY
+)
+
+# Preserve human output; strip the @@TRANSITION_FROM IPC line (review F6).
+printf '%s\n' "$STAMP_OUT" | grep -v '^@@TRANSITION_FROM:' || true
+
+# --- Atomic close transition (spc-270 A1.3): route the working→closed flip
+# through `transition-api.py commit` so the binder status flip, the `updated`
+# bump, and the per-ticket ledger entry land in ONE atomic transaction. This
+# cures the drift class where finish-ledger closed the binder without
+# recording a pr-open→closed (or any→closed cancel) ledger entry — replay's
+# snapshot check now reconciles. The python emits @@TRANSITION_FROM:
+# <prior>|<reason>|<owner>@@ only when the flip condition held against a
+# nonterminal prior (idempotent re-runs on an already-closed binder emit
+# nothing). A failed commit is non-blocking (decision-policy: never strand a
+# merged outcome); the validator catches binder/ledger drift on the next run.
+TRANSITION_LINE=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
+if [[ -n "$TRANSITION_LINE" ]]; then
+  TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+  PRIOR_STATUS="${TRANSITION_LINE%%|*}"
+  REST="${TRANSITION_LINE#*|}"
+  CLOSE_REASON="${REST%%|*}"
+  CLOSE_OWNER="${REST##*|}"
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  python3 "$SCRIPT_DIR/transition-api.py" commit "${TICKET_ID:-unknown}" closed \
+    "${CLOSE_OWNER:-human}" "${CLOSE_REASON:-merge}" \
+    --from "$PRIOR_STATUS" --binder "$BINDER" \
+    || echo "finish-ledger: WARN — transition commit failed (non-blocking; validator will catch)" >&2
+  LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
+  LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
+  [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
+fi
 
 exit 0

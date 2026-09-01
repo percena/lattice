@@ -106,7 +106,8 @@ def is_side_state(status: str) -> bool:
 # must go rework -> in-progress -> pr-open).
 LEGAL_TRANSITIONS: set[tuple[str, str]] = {
     ("init", "queued"), ("queued", "in-progress"), ("queued", "pr-open"),
-    ("queued", "deferred"), ("deferred", "queued"),
+    ("queued", "deferred"), ("in-progress", "deferred"), ("deferred", "queued"),
+    ("deferred", "deferred"),
     ("in-progress", "pr-open"), ("in-progress", "parked"),
     ("in-progress", "stuck"), ("parked", "queued"), ("stuck", "queued"),
     ("pr-open", "rework"), ("rework", "in-progress"),
@@ -123,6 +124,103 @@ ESCAPE_REQUIRED: set[tuple[str, str]] = {
     ("parked", "pr-open"), ("stuck", "pr-open"),
     ("rework", "pr-open"), ("deferred", "pr-open"),
 }
+# Vendored FULL edge contract (spc-270 A1.5): the ADR-007 five-piece shape
+# (from/to/owner/guard/reason/escape/trace/metric/escape_required) mirrored
+# field-for-field from lib/transition_table.py LEGAL_EDGES. LEGAL_TRANSITIONS
+# and ESCAPE_REQUIRED above are the (from,to) + escape-flag projections of THIS
+# table; the bats parity test (tools/tests/transition-parity.bats) asserts the
+# full table stays field-equal with the lib so owner/guard/reason/escape/trace/
+# metric cannot drift silently. Field order matches the lib's Transition
+# NamedTuple. The lib is canonical -- edit there, then mirror here.
+LEGAL_EDGES_FULL: tuple[tuple, ...] = (
+    ("init", "queued", "system",
+     None, "ticket created via create-tickets",
+     None, "binder created", "ticket-count", False),
+    ("queued", "in-progress", "system",
+     "start-work bind / batch-work spawn", "spawn",
+     None, "status stamp", "water-level", False),
+    ("queued", "pr-open", "agent",
+     "queued only (DIRECT_JUMP_SOURCES); WARN-journaled",
+     "trivial direct PR (jump over in-progress)",
+     None, "WARN journal entry", "direct-jumps", False),
+    ("queued", "deferred", "system|human",
+     "fuse-halt | blocked-by-failure | deliberate deschedule",
+     "deschedule at trip time",
+     None, "deferred + wait_reason stamp", "deferred-count", False),
+    ("in-progress", "deferred", "system|human",
+     "spec-supersede trip-time sweep | fuse-halt | deliberate deschedule",
+     "deschedule at trip time (in-flight work obsoleted)",
+     None, "deferred + wait_reason stamp", "deferred-count", False),
+    # A deferred binder re-stamped by a spec-supersede sweep (its wait_reason
+    # flips to spec-superseded, superseding the prior reason) is a reason-change
+    # self-loop, analogous to the pr-open -> pr-open rebase-void self-loop.
+    ("deferred", "deferred", "system",
+     "spec-supersede re-stamp: wait_reason superseded (reason change)",
+     "reason-supersede",
+     None, "wait_reason rewrite + journal", "deferred-reason-change", False),
+    ("deferred", "queued", "human",
+     "re-scheduled into a later batch", "reschedule",
+     None, "status flip", None, False),
+    ("in-progress", "pr-open", "agent",
+     "create-pr opens the PR", "open PR",
+     None, "pr-open stamp", "pr-open-count", False),
+    ("in-progress", "parked", "agent",
+     "irreversible / cross-contract decision", "park & pivot",
+     None, "park stamp", "parked-count", False),
+    ("in-progress", "stuck", "agent|system",
+     "fallback bounds hit OR watchdog-timeout/abandonment; "
+     "wait_reason stamped (unblock | re-scope)",
+     "block",
+     None, "stuck + wait_reason stamp", "stuck-count", False),
+    ("parked", "queued", "human",
+     "ratify.sh single-commit (journal + flip)", "decision ratification",
+     None, "journal entry + status flip", "ratify-count", False),
+    ("stuck", "queued", "human",
+     "wait_reason: unblock (answer/env fix) | re-scope (after Spec revision)",
+     "unblock",
+     None, "status flip", "unblock-count", False),
+    ("pr-open", "rework", "system",
+     "PR returned with findings; bump-fix-cycle stamps rework + fix_cycles",
+     "review-hold",
+     "--extend-budget --reason (one more cycle, operator-adjudicated)",
+     "rework + fix_cycles stamp", "fix-cycles", False),
+    ("rework", "in-progress", "system",
+     "re-enter queue; fix_cycles stamps the round (cap <=2)",
+     "requeue after fix",
+     None, "status flip", "fix-cycles", False),
+    ("pr-open", "pr-open", "system",
+     "materially changed rebase -> verdict voided; clean rebase carries verdict",
+     "rebase-void",
+     None, "re-review trace", "re-review-count", False),
+    ("pr-open", "closed", "human",
+     "merge — day only; .batch-work-active marker gate",
+     "merge",
+     None, "Finish ledger mergedAt", "merge-count", False),
+    ("any", "closed", "human",
+     "cancel", "cancel",
+     None, "Finish ledger (no mergedAt)", "cancel-count", False),
+    ("parked", "pr-open", "agent",
+     "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
+     "force-side-state crossing",
+     "--force-side-state --reason", "operator-adjudicated trace",
+     "side-state-crossings", True),
+    ("stuck", "pr-open", "agent",
+     "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
+     "force-side-state crossing",
+     "--force-side-state --reason", "operator-adjudicated trace",
+     "side-state-crossings", True),
+    ("rework", "pr-open", "agent",
+     "ILLEGAL unless --force-side-state --reason (operator-adjudicated); "
+     "normal path is rework -> in-progress -> pr-open",
+     "force-side-state crossing",
+     "--force-side-state --reason", "operator-adjudicated trace",
+     "side-state-crossings", True),
+    ("deferred", "pr-open", "agent",
+     "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
+     "force-side-state crossing",
+     "--force-side-state --reason", "operator-adjudicated trace",
+     "side-state-crossings", True),
+)
 TRANSITION_LEDGER_DIR = ".transition-ledger"
 SPEC_ID_RE = re.compile(r"^spc-([1-9][0-9]*)$")
 TKT_ID_RE = re.compile(r"^tkt-([1-9][0-9]*)$")
@@ -603,6 +701,23 @@ def iter_tickets(home: Path) -> list[Path]:
         for readme in base.glob("tkt-*/README.md"):
             out.append(readme)
     return sorted(out)
+
+
+def binder_for_ticket_id(home: Path, ticket: str) -> Path | None:
+    """Resolve a ticket's binder README from its id (spc-270 A1.4 snapshot
+    check). Mirrors transition-api._binder_for_ticket: glob
+    home/tickets/tkt-<id>-*/README.md (one match). Returns None when no binder
+    exists — the snapshot check is then skipped (a ticket with a ledger but no
+    binder is not, by itself, drift; the ledger still must be edge-legal)."""
+    td = home / "tickets"
+    if not td.is_dir():
+        return None
+    pat = re.compile(rf"^{re.escape(ticket)}-[^\s/]+$")
+    matches = [d for d in td.iterdir() if d.is_dir() and pat.match(d.name)]
+    if len(matches) != 1:
+        return None
+    b = matches[0] / "README.md"
+    return b if b.is_file() else None
 
 
 def iter_reviews(home: Path) -> list[Path]:
@@ -1387,20 +1502,28 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                 }
             )
 
-    # Transition ledger replay (spc-254 A3). The transition API
-    # (skills/_lattice-lib/scripts/transition-api.py) appends a JSONL entry
-    # per status flip; the validator replays it and rejects an illegal edge
-    # between two legal snapshots -- the gap docs/workflow-fsm.md sec.5
-    # explicitly left open. Per-ticket files under home/.transition-ledger/
-    # are COMMITTED (review F2: a single gitignored ledger made CI's replay a
-    # no-op on fresh checkouts; per-ticket committed files let CI accumulate
-    # real history and enforce edge legality for real). Missing dir = nothing
-    # to replay (not an error). Malformed JSON and illegal (from,to) pairs
-    # are errors; an escape-required edge without an operator override reason
-    # is also an error (side-state guard).
+    # Transition ledger replay (spc-254 A3 / spc-270 A1.4). The transition API
+    # (skills/_lattice-lib/scripts/transition-api.py) appends a JSONL entry per
+    # status flip; the validator replays it and rejects an illegal edge between
+    # two legal snapshots -- the gap docs/workflow-fsm.md sec.5 explicitly left
+    # open. Per-ticket files under home/.transition-ledger/ are COMMITTED
+    # (review F2) so CI accumulates real history and enforces edge legality for
+    # real. Missing dir = nothing to replay (not an error).
+    #
+    # spc-270 A1.4/A1.5: replay now enforces the three continuity invariants the
+    # append-only `record` primitive left to trust (mirroring transition-api
+    # replay-ledger): identity (entry ticket == ledger file ticket), continuity
+    # (entry.from == prior entry.to), and snapshot (the ledger's final `to` ==
+    # the binder's current `status`). This is the check that catches the
+    # finish-ledger close-without-ledger-entry drift class in CI. The 6 dev-base
+    # drift cases (tkt-256/261/284/285/286/287) were backfilled with their
+    # missing pr-open→closed entry so CI stays green going forward.
     ledger_dir = home / TRANSITION_LEDGER_DIR
     if ledger_dir.is_dir():
         for ledger in sorted(ledger_dir.glob("*.jsonl")):
+            file_ticket = ledger.stem  # tkt-N
+            prev_to: str | None = None
+            last_to: str | None = None
             for lineno, line in enumerate(
                 ledger.read_text(encoding="utf-8").splitlines(), 1
             ):
@@ -1420,6 +1543,19 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     continue
                 frm = str(entry.get("from", ""))
                 to = str(entry.get("to", ""))
+                eticket = str(entry.get("ticket", ""))
+                # Identity: the entry must belong to this ledger's ticket.
+                if eticket and eticket != file_ticket:
+                    findings.append(
+                        {
+                            "code": "transition_ledger_identity_mismatch",
+                            "path": str(ledger),
+                            "detail": (
+                                f"line {lineno}: identity mismatch: entry ticket "
+                                f"{eticket!r} != ledger {file_ticket!r}"
+                            ),
+                        }
+                    )
                 # "any" wildcard (cancel) matches any source.
                 pair_legal = (frm, to) in LEGAL_TRANSITIONS or (
                     "any", to
@@ -1431,11 +1567,13 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             "path": str(ledger),
                             "detail": (
                                 f"line {lineno}: illegal edge {frm!r} -> "
-                                f"{to!r} (ticket {entry.get('ticket', '?')})"
+                                f"{to!r} (ticket {eticket or '?'})"
                                 f"; not in transition schema"
                             ),
                         }
                     )
+                    prev_to = to
+                    last_to = to
                     continue
                 if (frm, to) in ESCAPE_REQUIRED and not entry.get(
                     "force_side_state_reason"
@@ -1446,13 +1584,44 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             "path": str(ledger),
                             "detail": (
                                 f"line {lineno}: edge {frm!r} -> {to!r} "
-                                f"(ticket {entry.get('ticket', '?')}) requires"
+                                f"(ticket {eticket or '?'}) requires"
                                 f" an operator-adjudicated --force-side-state-"
                                 f"reason (side-state guard; no agent self-"
                                 f"adjudication)"
                             ),
                         }
                     )
+                # Continuity: each entry's `from` must equal the prior `to`.
+                if prev_to is not None and frm != prev_to:
+                    findings.append(
+                        {
+                            "code": "transition_ledger_discontinuity",
+                            "path": str(ledger),
+                            "detail": (
+                                f"line {lineno}: discontinuity: entry from="
+                                f"{frm!r} but prior to={prev_to!r}"
+                            ),
+                        }
+                    )
+                prev_to = to
+                last_to = to
+            # Final snapshot: the ledger's last `to` must equal the binder status.
+            if last_to is not None:
+                binder = binder_for_ticket_id(home, file_ticket)
+                if binder is not None:
+                    bstatus = ticket_status(binder.read_text(encoding="utf-8"))
+                    if bstatus is not None and bstatus != last_to:
+                        findings.append(
+                            {
+                                "code": "transition_ledger_snapshot_mismatch",
+                                "path": str(ledger),
+                                "detail": (
+                                    f"snapshot mismatch: ledger final to="
+                                    f"{last_to!r} but binder status="
+                                    f"{bstatus!r}"
+                                ),
+                            }
+                        )
 
     return findings
 

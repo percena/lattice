@@ -373,32 +373,21 @@ if check_all:
 # pr-open is a direct jump: allowed but WARN-journaled so the "started"
 # signal is logged, not silently lost (in-progress → pr-open stays the
 # default, ungated, no trace).
-def append_journal_trace(text, entry):
-    """Append a dated bullet to ## Decision journal, creating the section if
-    absent (mirrors ratify.sh). Returns the new text."""
-    m_hdr = re.search(r'^## Decision journal[ \t]*\n', text, re.MULTILINE)
-    if m_hdr:
-        body_start = m_hdr.end()
-        tail = text[body_start:]
-        bnd = re.search(r'\n## ', tail)
-        body = tail[:bnd.start()] if bnd else tail
-        trailing = tail[bnd.start():] if bnd else ""
-        stripped = body.strip("\n")
-        new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
-        return text[:body_start] + "\n" + new_body + trailing
-    # No journal section: insert one before the first of the standard tail
-    # sections, else at EOF. Keeps the binder well-formed.
-    anchor = re.search(r'\n(## (?:Notes|References|Lineage|Finish|Pending decisions|Attempts)\b)', text)
-    block = f"\n## Decision journal\n\n{entry}\n"
-    if anchor:
-        return text[:anchor.start()] + block + text[anchor.start():]
-    return text.rstrip("\n") + "\n" + block
-
+#
+# A1.3 (spc-270): the status flip + updated bump + the structured journal
+# trace are NO LONGER written here. The python only mutates non-status
+# fields (prs row, acceptance boxes) and refuses side-state crossings
+# without --force-side-state (so the binder stays untouched on refusal).
+# It emits @@TRANSITION_FROM:<prior>|<reason>|<owner>@@ plus, when a trace
+# applies, @@JOURNAL_B64:<base64>@@; bash routes the flip through
+# `transition-api.py commit --append-journal` so journal + status +
+# updated + ledger land in ONE atomic transaction (a crash before commit
+# leaves no trace → re-run appends it once, no duplicate).
 stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 status_row = re.compile(r'(\| status \|)\s*(.*?)\s*(\|)')
 m_status = status_row.search(s)
 prior = m_status.group(2).strip() if m_status else ""
-status_trace = ""  # journal entry to persist alongside the flip, if any
+status_trace = ""  # journal entry text; emitted for bash → commit --append-journal
 transition_reason = "create-pr opens the PR"  # default; overridden per branch
 transition_owner = "agent"
 if prior == "closed":
@@ -420,8 +409,6 @@ elif status_vocab.is_side_state(prior):
         f"(reason: {side_reason}; PR #{pr_n}) "
         f"[operator-adjudicated — ADR-007 sec.5b]"
     )
-    s = append_journal_trace(s, status_trace)
-    s = status_row.sub(r'\1 pr-open \3', s, count=1)
     transition_reason = "force-side-state override (operator-adjudicated)"
     transition_owner = "human"
     print(f"stamp-pr-open: side-state override traced ({prior} → pr-open)")
@@ -431,21 +418,19 @@ elif prior in status_vocab.DIRECT_JUMP_SOURCES:
         f"(in-progress stamp skipped; PR #{pr_n}) "
         f"[WARN — signal logged, not silently lost]"
     )
-    s = append_journal_trace(s, status_trace)
-    s = status_row.sub(r'\1 pr-open \3', s, count=1)
     transition_reason = "direct jump (in-progress skipped)"
     transition_owner = "agent"
     print(f"stamp-pr-open: WARN — direct jump {prior} → pr-open journaled", file=sys.stderr)
 else:
-    s = status_row.sub(r'\1 pr-open \3', s, count=1)
+    pass  # in-progress → pr-open: ungated default, no trace; commit flips status
 
 # Bump `updated` atomically with the status stamp (spc-186 A4 / tkt-191).
-# Gated on a real mutation so an idempotent re-run (s == orig) does not touch
-# `updated` — the no-change contract holds. stamp_updated is a no-op when the
-# row is absent (lazy migration; the validator warns, never fails).
+# A1.3 (spc-270): the `updated` bump + status flip are routed through
+# `transition-api.py commit`; the python only writes non-status fields (prs
+# row / acceptance boxes) here. The no-change contract still holds: an
+# idempotent re-run (s == orig) emits no @@TRANSITION_FROM line, so bash
+# invokes no `commit` and `updated` is untouched.
 mutated = (s != orig)
-if mutated:
-    s = binder_rows.stamp_updated(s, stamp)
 if s != orig and not dry_run:
     import tempfile
     d = os.path.dirname(os.path.abspath(binder)) or "."
@@ -479,6 +464,11 @@ else:
     # rebase-void; only a real status flip is recorded.
     if prior and prior != "closed" and prior != "pr-open":
         print(f"@@TRANSITION_FROM:{prior}|{transition_reason}|{transition_owner}@@")
+        if status_trace:
+            # base64 so the trace text (→, (), []) cannot collide with the
+            # `|`-delimited TRANSITION line or confuse grep/sed in bash.
+            import base64
+            print(f"@@JOURNAL_B64:{base64.b64encode(status_trace.encode()).decode()}@@")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
@@ -488,17 +478,21 @@ PY
 )
 
 # Preserve human output (idempotent/dry-run/stamped messages). The machine
-# @@TRANSITION_FROM:...@@ line is stripped so it never leaks to a terminal or
-# CI log (review F6) -- it is an internal IPC channel only.
-printf '%s\n' "$STAMP_OUT" | grep -v '^@@TRANSITION_FROM:'
+# @@TRANSITION_FROM:...@@ / @@JOURNAL_B64:...@@ lines are stripped so they
+# never leak to a terminal or CI log (review F6) -- internal IPC only.
+printf '%s\n' "$STAMP_OUT" | grep -vE '^@@(TRANSITION_FROM|JOURNAL_B64):' || true
 
-# --- Transition ledger (spc-254 A3): record the pr-open flip via the single
-# transition API so the validator can replay edge legality. The embedded
+# --- Atomic transition (spc-270 A1.3): route the pr-open flip through the
+# single guarded `commit` API so the binder status flip, the `updated` bump,
+# the structured Decision-journal trace (when one applies), and the per-ticket
+# ledger entry land in ONE atomic transaction (A1.1/A1.2). The embedded
 # python emits `@@TRANSITION_FROM:<prior>|<reason>|<owner>@@` only on a real
-# (non-idempotent, non-dry-run, non-pr-open->pr-open) flip. A failed record
-# is non-blocking (decision-policy: never block the PR flow); the validator
-# catches ledger/edge drift on the next run. The per-ticket ledger file is
-# COMMITTED (review F2) so CI accumulates real history -- stage it here.
+# (non-idempotent, non-dry-run, non-pr-open->pr-open) flip, plus
+# `@@JOURNAL_B64:<base64>@@` when a side-state override / direct-jump trace
+# applies. A failed `commit` is non-blocking (decision-policy: never block the
+# PR flow); the validator catches binder/ledger drift on the next run. The
+# per-ticket ledger file is COMMITTED (review F2) so CI accumulates real
+# history -- stage it here.
 TRANSITION_LINE=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
 if [[ -n "$TRANSITION_LINE" ]]; then
   TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
@@ -506,17 +500,20 @@ if [[ -n "$TRANSITION_LINE" ]]; then
   REST="${TRANSITION_LINE#*|}"
   TRANS_REASON="${REST%%|*}"
   TRANS_OWNER="${REST##*|}"
+  JOURNAL_B64=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@JOURNAL_B64:\(.*\)@@$/\1/p')
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  RECORD_ARGS=(record "${TICKET_ID:-unknown}" "$PRIOR_STATUS" pr-open "${TRANS_OWNER:-agent}" "${TRANS_REASON:-create-pr opens the PR}")
+  COMMIT_ARGS=(commit "${TICKET_ID:-unknown}" pr-open "${TRANS_OWNER:-agent}" "${TRANS_REASON:-create-pr opens the PR}"
+    --from "$PRIOR_STATUS" --binder "$BINDER")
   if [[ "$FORCE_SIDE_STATE" == true && -n "$SIDE_STATE_REASON" ]]; then
-    RECORD_ARGS+=(--force-side-state-reason "$SIDE_STATE_REASON")
+    COMMIT_ARGS+=(--force-side-state-reason "$SIDE_STATE_REASON")
   fi
-  python3 "$SCRIPT_DIR/transition-api.py" "${RECORD_ARGS[@]}" \
-    || echo "stamp-pr-open: WARN — transition ledger record failed (non-blocking; validator will catch)" >&2
+  if [[ -n "$JOURNAL_B64" ]]; then
+    JOURNAL_TEXT=$(printf '%s' "$JOURNAL_B64" | base64 -d 2>/dev/null || true)
+    [[ -n "$JOURNAL_TEXT" ]] && COMMIT_ARGS+=(--append-journal "$JOURNAL_TEXT")
+  fi
+  python3 "$SCRIPT_DIR/transition-api.py" "${COMMIT_ARGS[@]}" \
+    || echo "stamp-pr-open: WARN — transition commit failed (non-blocking; validator will catch)" >&2
   # Stage the per-ticket ledger for commit (F2: committed so CI replays it).
-  # Derive the lattice home from $BINDER (.../.lattice/tickets/<dir>/README.md)
-  # rather than relying on $LATTICE_HOME, which stamp-pr-open does not export
-  # itself (ensure-workspace does, but standalone invocation must still stage).
   LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
   LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
   [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true

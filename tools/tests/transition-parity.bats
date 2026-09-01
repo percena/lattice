@@ -118,3 +118,94 @@ PY
     }
   done < <(docs_m2_status_pairs)
 }
+
+# ---------------------------------------------------------------------------
+# spc-270 A1.5: field-level parity (owner/guard/reason/escape/trace/metric).
+# lib↔validator: the full ADR-007 five-piece contract stays field-for-field
+# equal so the validator's dependency-free vendored copy cannot drift from the
+# canonical lib. lib↔docs: the docs M2 table's Owner cell matches the lib
+# edge's owner set for every documented status edge (the field the docs
+# carries; guard/escape/trace/metric are lib/implementation detail).
+# ---------------------------------------------------------------------------
+
+lib_validator_full_equal() {
+  PYTHONPATH="$REPO_ROOT/skills/_lattice-lib/scripts/lib" python3 - "$VALIDATOR" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('validator', sys.argv[1])
+v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
+import transition_table as t
+trows = [(e.from_, e.to, e.owner, e.guard, e.reason, e.escape, e.trace,
+         e.metric, e.escape_required) for e in t.LEGAL_EDGES]
+vrows = list(v.LEGAL_EDGES_FULL)
+bad = 0
+if len(trows) != len(vrows):
+    print(f'LENGTH lib={len(trows)} validator={len(vrows)}'); sys.exit(1)
+for i, (a, b) in enumerate(zip(vrows, trows)):
+    if a != b:
+        print(f'EDGE {i} lib={b}')
+        print(f'EDGE {i} val={a}')
+        bad += 1
+sys.exit(1 if bad else 0)
+PY
+}
+
+validator_full_projections() {
+  PYTHONPATH="$REPO_ROOT/skills/_lattice-lib/scripts/lib" python3 - "$VALIDATOR" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('validator', sys.argv[1])
+v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
+proj_pairs = {(e[0], e[1]) for e in v.LEGAL_EDGES_FULL}
+assert proj_pairs == v.LEGAL_TRANSITIONS, 'LEGAL_TRANSITIONS != projection of LEGAL_EDGES_FULL'
+proj_escape = {(e[0], e[1]) for e in v.LEGAL_EDGES_FULL if e[8]}
+assert proj_escape == v.ESCAPE_REQUIRED, 'ESCAPE_REQUIRED != escape projection of LEGAL_EDGES_FULL'
+PY
+}
+
+docs_m2_owner_pairs() {
+  PYTHONPATH="$REPO_ROOT/skills/_lattice-lib/scripts/lib" python3 - "$FSM_DOC" <<'PY'
+import re, sys, transition_table as t
+doc = open(sys.argv[1], encoding='utf-8').read()
+m = re.search(r'(?ms)^### M2 execution\s*\n(.*?)(?=^### )', doc)
+assert m, 'no M2 section'
+body = m.group(1)
+lib = {(e.from_, e.to): e.owner for e in t.LEGAL_EDGES}
+def owners(s):
+    # docs uses 'a / b' (and sometimes 'a, b'); lib uses 'a|b'. Split on any
+    # of those, strip each token.
+    return {x.strip() for x in re.split(r'[|/]', s.replace(',', ''))}
+bad = 0
+for line in body.splitlines():
+    # cell1 (from → to) has no internal pipes; the Trigger cell MAY contain a
+    # pipe inside backticks (e.g. `unblock | re-scope`), so take it greedily
+    # and anchor the final pipe-delimited Owner cell (which has no pipes).
+    rm = re.match(r'\|\s*([^|]+?)\s*→\s*([^|]+?)\s*\|\s*(.*)\|\s*([^|]*?)\s*\|$', line)
+    if not rm:
+        continue
+    frm, to_raw, _trigger, owner = rm.group(1), rm.group(2), rm.group(3), rm.group(4)
+    frm = frm.strip()
+    to = re.sub(r'\(.*$', '', to_raw).strip()
+    if (frm, to) not in lib:
+        continue  # prose edge (e.g. stuck -> M1, rework -> deep-review)
+    want = owners(lib[(frm, to)])
+    got = owners(owner)
+    if want != got:
+        print(f'{frm} -> {to}: docs owner {sorted(got)} != lib {sorted(want)}')
+        bad += 1
+sys.exit(1 if bad else 0)
+PY
+}
+
+@test "lib and validator full edge tables are field-equal (owner/guard/reason/escape/trace/metric)" {
+  run lib_validator_full_equal
+  [ "$status" -eq 0 ]
+}
+
+@test "validator LEGAL_TRANSITIONS + ESCAPE_REQUIRED are projections of LEGAL_EDGES_FULL (internal consistency)" {
+  run validator_full_projections
+  [ "$status" -eq 0 ]
+}
+
+@test "every documented M2 edge's Owner matches the lib schema (lib↔docs owner parity)" {
+  run docs_m2_owner_pairs
+  [ "$status" -eq 0 ]
+}

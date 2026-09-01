@@ -199,30 +199,22 @@ try:
               f"ratify.sh only ratifies parked binders (rerun is fail-safe).", file=sys.stderr)
         raise SystemExit(1)
 
-    # --- 1. Insert dated decision into ## Decision journal ------------------
-    # Section body runs from after the header newline to the next `## ` heading
-    # or EOF. Reconstruct preserving the blank-line convention (header, blank
-    # line, bullets, blank line, next heading). Works whether the journal is at
-    # EOF or followed by another section.
+    # --- Precondition: ## Decision journal section must exist (commit appends
+    #     the ratified entry there via --append-journal; refuse before mutation
+    #     if it is absent — A1.3 preserves the ratify precondition).
     m_hdr = re.search(r'^## Decision journal[ \t]*\n', s, re.MULTILINE)
     if not m_hdr:
         print("Error: binder has no `## Decision journal` section", file=sys.stderr)
         raise SystemExit(1)
-    body_start = m_hdr.end()
-    tail = s[body_start:]
-    bnd = re.search(r'\n## ', tail)
-    if bnd:
-        body, trailing = tail[:bnd.start()], tail[bnd.start():]
-    else:
-        body, trailing = tail, ""
-    stripped = body.strip("\n")
-    if stripped:
-        new_body = stripped + "\n" + entry + "\n"
-    else:
-        new_body = entry + "\n"
-    s = s[:body_start] + "\n" + new_body + trailing
 
-    # --- 2. Settle the selected pending decision (when --pending supplied) ---
+    # --- 1. Settle the selected pending decision (when --pending supplied) ---
+    # A1.3 (spc-270): the dated journal entry + status flip (parked → queued)
+    # + `updated` bump + ledger entry are NO LONGER written here — bash routes
+    # them through `transition-api.py commit --append-journal` (below) so they
+    # land in ONE atomic transaction. The python only mutates the ##
+    # Pending decisions section (the bullet removal), in this same locked
+    # transaction; when --pending is omitted it writes nothing and `commit`
+    # performs the whole mutation.
     if pending:
         m_pend = re.search(r'^## Pending decisions[ \t]*\n', s, re.MULTILINE)
         if not m_pend:
@@ -264,36 +256,25 @@ try:
         new_p = ("\n" + new_p_body + "\n") if new_p_body else ""
         s = s[:p_start] + new_p + p_trailing
 
-    # --- 3. Flip status: parked → queued (field table) -----------------------
-    # [ \t] (not \s) so the regex cannot swallow the row's trailing newline
-    # and merge the table into the following section.
-    s = re.sub(r'^(\| status \|)[ \t]*parked[ \t]*(\|)[ \t]*$', r'\1 queued \2', s, count=1, flags=re.MULTILINE)
-
-    # --- 4. Bump `updated` atomically with the parked → queued flip (A4) ----
-    # stamp_updated is a no-op when the row is absent (lazy migration; the
-    # validator warns, never fails). `stamp` was computed above (ratified <ts>).
-    s = binder_rows.stamp_updated(s, stamp)
-
-    if s == orig:
-        # No mutation should happen on a valid parked binder; if it did, don't write.
-        print("ratify: no change (binder already ratified?)", file=sys.stderr)
-        raise SystemExit(1)
-
-    # Atomic replace: temp + fsync + rename. Preserve original mode.
-    d = os.path.dirname(os.path.abspath(binder)) or "."
-    mode = os.stat(binder).st_mode
-    fd, tmp = tempfile.mkstemp(dir=d, prefix=".ratify.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(s)
-            fh.flush()
-            os.fsync(fh.fileno())
-        os.chmod(tmp, stat.S_IMODE(mode))
-        os.replace(tmp, binder)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise
+    # The journal entry + status flip + `updated` bump + ledger entry are
+    # written by `commit` (bash, below). The python only writes the pending
+    # settle here (when --pending), atomically; with no --pending it writes
+    # nothing (s == orig) and `commit` performs the whole mutation.
+    if s != orig:
+        d = os.path.dirname(os.path.abspath(binder)) or "."
+        mode = os.stat(binder).st_mode
+        fd, tmp = tempfile.mkstemp(dir=d, prefix=".ratify.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(s)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.chmod(tmp, stat.S_IMODE(mode))
+            os.replace(tmp, binder)
+        except BaseException:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            raise
 finally:
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
@@ -301,11 +282,36 @@ finally:
         os.close(lock_fd)
 PY
 
-# --- 4. Single git commit (journal + status flip together) -----------------
-# Stage only the binder, then commit only that pathspec — unrelated index
-# entries (already refused above) cannot sneak into this commit.
+# --- Atomic transition (spc-270 A1.3): route the parked → queued flip through
+# `transition-api.py commit` so the dated journal entry + status flip + `updated`
+# bump + ledger entry land in ONE atomic transaction (A1.1/A1.2). ratify is NOT
+# non-blocking: a commit failure must not claim a ratification it did not do.
+STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+ENTRY="- $DECISION (ratified $STAMP)"
+TICKET_ID=$(printf '%s' "$BINDER_NAME" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMIT_OUT=$(python3 "$SCRIPT_DIR/transition-api.py" commit "${TICKET_ID:-tkt-0}" queued human \
+  "decision ratification" --from parked --append-journal "$ENTRY" --binder "$BINDER" 2>&1) || {
+  echo "Error: ratify transition commit failed (parked → queued); binder not flipped:" >&2
+  printf '%s\n' "$COMMIT_OUT" >&2
+  exit 1
+}
+
+# --- Single git commit (pending settle + journal + status flip together) -----
+# Stage the binder (mutated by commit, and by the python pending settle when
+# --pending) plus the per-ticket ledger (F2: committed so CI replays it); then
+# one commit. Unrelated pre-staged paths were already refused above, so the
+# pathspec commit cannot sneak in foreign index entries.
 git -C "$BINDER_REPO_ROOT" add -- "$RELATIVE_BINDER"
+LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
+LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-tkt-0}.jsonl"
+RELATIVE_LEDGER=".lattice/.transition-ledger/${TICKET_ID:-tkt-0}.jsonl"
+COMMIT_PATHS=("$RELATIVE_BINDER")
+if [[ -f "$LEDGER_FILE" ]]; then
+  git -C "$BINDER_REPO_ROOT" add -- "$LEDGER_FILE" 2>/dev/null || true
+  COMMIT_PATHS+=("$RELATIVE_LEDGER")
+fi
 SUMMARY=$(printf '%s' "$DECISION" | head -c 72)
-git -C "$BINDER_REPO_ROOT" commit -q -m "ratify(${BINDER_NAME}): ${SUMMARY}" -- "$RELATIVE_BINDER"
+git -C "$BINDER_REPO_ROOT" commit -q -m "ratify(${BINDER_NAME}): ${SUMMARY}" -- "${COMMIT_PATHS[@]}"
 
 echo "ratify: done — single commit written (journal entry + parked → queued)"

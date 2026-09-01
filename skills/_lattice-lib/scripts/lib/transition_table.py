@@ -67,6 +67,20 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
                "fuse-halt | blocked-by-failure | deliberate deschedule",
                "deschedule at trip time",
                None, "deferred + wait_reason stamp", "deferred-count"),
+    Transition("in-progress", "deferred", "system|human",
+               "spec-supersede trip-time sweep | fuse-halt | deliberate deschedule",
+               "deschedule at trip time (in-flight work obsoleted)",
+               None, "deferred + wait_reason stamp", "deferred-count"),
+    # A deferred binder re-stamped by a spec-supersede sweep (its wait_reason
+    # flips to spec-superseded, superseding the prior reason) is a reason-change
+    # self-loop, analogous to the pr-open → pr-open rebase-void self-loop: the
+    # status does not change but the coupled wait_reason does, and the ledger
+    # records the reason supersede (spc-270 A1.3 routes spec-supersede through
+    # commit, so the edge must be legal).
+    Transition("deferred", "deferred", "system",
+               "spec-supersede re-stamp: wait_reason superseded (reason change)",
+               "reason-supersede",
+               None, "wait_reason rewrite + journal", "deferred-reason-change"),
     Transition("deferred", "queued", "human",
                "re-scheduled into a later batch", "reschedule",
                None, "status flip", None),
