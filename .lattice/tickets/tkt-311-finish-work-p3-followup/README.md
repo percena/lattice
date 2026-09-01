@@ -9,7 +9,7 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/311 |
-| status | pr-open |
+| status | closed |
 | adopted | true |
 | summary | GHE host gap (gh api --hostname) + TOCTOU (single REST call for base ref+sha) + stderr noise (capture-then-emit-on-failure) |
 | spec | none |
@@ -21,7 +21,7 @@
 | worktree_bind | tkt-311-finish-work-p3-followup |
 | prs | pr-315 — https://github.com/percena/lattice/pull/315 |
 | created | 2026-09-01T07:40:00Z |
-| updated | 2026-09-01T09:17:46Z |
+| updated | 2026-09-01T09:35:37Z |
 
 ## Acceptance
 
@@ -44,3 +44,8 @@
 ## Decision journal
 
 - 2026-09-01T09:17:46Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #315) [WARN — signal logged, not silently lost]
+
+## Finish
+
+- pr-315 merged: 2026-09-01T09:34:57Z — https://github.com/percena/lattice/pull/315 (base merge)
+- issue #311 closed: 2026-09-01T09:35:14Z (reason: completed) — https://github.com/percena/lattice/issues/311
