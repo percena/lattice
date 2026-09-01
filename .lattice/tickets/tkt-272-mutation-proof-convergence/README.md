@@ -32,11 +32,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A4.1** Normal, delegated, batch, single-PR, and multi-PR paths invoke one expected-OID proof contract.
-- [ ] **A4.2** Push proves remote OID; PR create proves repository/base/head/body/head OID.
-- [ ] **A4.3** Merge proves the target PR is MERGED and its merge commit/content is reachable from the intended base before cleanup or ledger writes.
-- [ ] **A4.4** Concurrent unrelated base advancement, wrong PR state, wrong target, and OID drift fail closed with structured recovery state.
-- [ ] **A4.5** Multi-PR regression fixtures cover successful merged PR, unrelated base advancement, and stale OID.
+- [x] **A4.1** Normal, delegated, batch, single-PR, and multi-PR paths invoke one expected-OID proof contract.
+- [x] **A4.2** Push proves remote OID; PR create proves repository/base/head/body/head OID.
+- [x] **A4.3** Merge proves the target PR is MERGED and its merge commit/content is reachable from the intended base before cleanup or ledger writes.
+- [x] **A4.4** Concurrent unrelated base advancement, wrong PR state, wrong target, and OID drift fail closed with structured recovery state.
+- [x] **A4.5** Multi-PR regression fixtures cover successful merged PR, unrelated base advancement, and stale OID.
 
 ## Approach
 
