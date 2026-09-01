@@ -63,7 +63,7 @@ case "$*" in
     fi
     ;;
   "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
-  *"api repos/"*"pulls"*) printf '{"ref":"main","sha":"%s"}\n' "$GH_BASE_SHA" ;;
+  *"api repos/"*"pulls"*) printf '{"ref":"%s","sha":"%s"}\n' "${GH_BASE_BRANCH:-main}" "$GH_BASE_SHA" ;;
   *) exit 1 ;;
 esac
 EOF
@@ -82,6 +82,7 @@ make_pr_view() {
   head_oid=$(git -C "$MAIN" rev-parse "origin/$head_branch")
   base_oid=$(git -C "$MAIN" rev-parse origin/main)
   export GH_BASE_SHA="$base_oid"
+  export GH_BASE_BRANCH="main"
   export BASE_OID="$base_oid"
   cat >"$PR_VIEW_JSON" <<EOF
 {"id":"PR_node1","number":6,"url":"https://example.test/pr/6","state":"OPEN",
