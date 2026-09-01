@@ -52,7 +52,7 @@ if [[ "$1" == "api" && "$2" == "graphql" ]]; then
   exit "$GH_UPDATE_RC"
 fi
 if [[ "$1" == "api" && "$2" == repos/*pulls/* ]]; then
-  printf '%s' "${GH_BASE_SHA:-2222222222222222222222222222222222222222}"
+  printf '{"ref":"%s","sha":"%s"}' "${GH_BASE_BRANCH:-dev}" "${GH_BASE_SHA:-2222222222222222222222222222222222222222}"
   exit 0
 fi
 exit 1
@@ -120,6 +120,7 @@ setup_rebase_fixture() {
   export GH_REPO_JSON='{"nameWithOwner":"example/repo","defaultBranchRef":{"name":"main"}}'
   export GH_INITIAL_JSON="{\"id\":\"PR_test\",\"number\":1,\"url\":\"https://example.test/pr/1\",\"state\":\"OPEN\",\"title\":\"t\",\"headRefName\":\"feat-x\",\"headRefOid\":\"$head_oid\",\"headRepository\":{\"nameWithOwner\":\"example/repo\"},\"isCrossRepository\":false,\"baseRefName\":\"main\",\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"BEHIND\",\"isDraft\":false}"
   export GH_BASE_SHA="$base_oid"
+  export GH_BASE_BRANCH="main"
   export GH_POST_JSON="{\"headRefOid\":\"$head_oid\",\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"CLEAN\"}"
 }
 

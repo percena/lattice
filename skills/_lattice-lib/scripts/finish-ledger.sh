@@ -347,7 +347,8 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
       # lost when the API is least reliable (rate limits, auth, cross-repo).
       if [[ "$GH_ISSUE_STATE" == "CLOSED" && -n "$GH_TARGET_REPO_ID" ]]; then
         API_REPO="${GH_TARGET_REPO_ID#*/}"  # strip host → owner/repo
-        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${API_REPO}/issues/${ISSUE_M}" --jq '.state_reason' 2>/dev/null); then
+        API_HOST="${GH_TARGET_REPO_ID%%/*}"  # host for --hostname (tkt-311 A1)
+        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${API_REPO}/issues/${ISSUE_M}" --jq '.state_reason' ${API_HOST:+--hostname "$API_HOST"} 2>/dev/null); then
           GH_ISSUE_STATE_REASON=""
           echo "finish-ledger: WARNING — cannot fetch state_reason for issue #$ISSUE_M (REST API failed); close-reason not recorded in ledger" >&2
         fi

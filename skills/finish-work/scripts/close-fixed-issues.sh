@@ -371,9 +371,11 @@ print("ISSUE_EPIC="+("true" if "epic" in names else "false"))
     if [[ -n "$PR_URL" ]]; then
       # Match last two path segments before /pull/ — handles both standard
       # GitHub and GHE path-prefixed URLs (tkt-302).
+      # Extract hostname for --hostname flag on gh api (tkt-311 A1).
+      api_host=$(printf '%s' "$PR_URL" | sed -E 's#https?://([^/]+)/.*#\1#')
       repo_base=$(printf '%s' "$PR_URL" | sed -E 's#https?://[^/]+/(.+)/pull/.*#\1#' | awk -F/ '{print $(NF-1)"/"$NF}')
       if [[ -n "$repo_base" ]]; then
-        if ! close_reason=$("$GH_BIN" api "repos/${repo_base}/issues/${id}" --jq '.state_reason' 2>/dev/null); then
+        if ! close_reason=$("$GH_BIN" api "repos/${repo_base}/issues/${id}" --jq '.state_reason' ${api_host:+--hostname "$api_host"} 2>/dev/null); then
           close_reason=""
           echo "close-fixed-issues: WARNING — cannot fetch state_reason for issue #$id (REST API failed)" >&2
         fi

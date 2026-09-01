@@ -9,7 +9,7 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/311 |
-| status | queued |
+| status | pr-open |
 | adopted | true |
 | summary | GHE host gap (gh api --hostname) + TOCTOU (single REST call for base ref+sha) + stderr noise (capture-then-emit-on-failure) |
 | spec | none |
@@ -19,15 +19,15 @@
 | **primary_ticket** | tkt-311 (this issue) |
 | **related_tickets** | tkt-293 (baseRefOid fix), tkt-294 (close-reason awareness), tkt-301 (state_reason REST fix), tkt-302 (GHE URL parsing) |
 | worktree_bind | tkt-311-finish-work-p3-followup |
-| prs | (none…) |
+| prs | pr-315 — https://github.com/percena/lattice/pull/315 |
 | created | 2026-09-01T07:40:00Z |
-| updated | 2026-09-01T07:40:00Z |
+| updated | 2026-09-01T09:17:46Z |
 
 ## Acceptance
 
-- [ ] **A1** GHE host gap: pass hostname to `gh api` calls (via `--hostname` flag or full API URL) in alignment-check.sh, close-fixed-issues.sh, finish-ledger.sh — extract hostname from PR URL or GH_TARGET_REPO_ID
-- [ ] **A2** TOCTOU: fetch both `baseRefName` and base SHA from a single `gh api repos/.../pulls/...` REST call (returns `.base.ref` + `.base.sha`), or add consistency check verifying SHA belongs to branch
-- [ ] **A3** stderr noise: capture stderr to temp var, emit only on failure (not unconditionally) — preserves tkt-293's error-surfacing intent without leaking noise
+- [x] **A1** GHE host gap: pass hostname to `gh api` calls (via `--hostname` flag or full API URL) in alignment-check.sh, close-fixed-issues.sh, finish-ledger.sh — extract hostname from PR URL or GH_TARGET_REPO_ID
+- [x] **A2** TOCTOU: fetch both `baseRefName` and base SHA from a single `gh api repos/.../pulls/...` REST call (returns `.base.ref` + `.base.sha`), or add consistency check verifying SHA belongs to branch
+- [x] **A3** stderr noise: capture stderr to temp var, emit only on failure (not unconditionally) — preserves tkt-293's error-surfacing intent without leaking noise
 
 ## Approach
 
@@ -40,3 +40,7 @@
 - GHE hostname source — pre-resolved: extract from PR URL (alignment-check, close-fixed-issues) or GH_TARGET_REPO_ID host prefix (finish-ledger). Source: existing URL parsing + repo_identity_from_url. Reversible, ticket-local.
 - TOCTOU fix approach — pre-resolved: single REST call returning both base.ref and base.sha (atomic snapshot). Alternative (consistency check) adds complexity for no atomicity gain. Source: issue #311 fix approach. Reversible, ticket-local.
 - stderr capture pattern — pre-resolved: temp-file capture (mktemp) is the standard bash pattern. Variable capture (`2>&1` into var) mixes stdout/stderr on failure. Source: issue #311 fix approach. Reversible, ticket-local.
+
+## Decision journal
+
+- 2026-09-01T09:17:46Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #315) [WARN — signal logged, not silently lost]

@@ -73,12 +73,17 @@ json_escape() {
 }
 
 # baseRefOid is absent from gh pr view --json on older gh (≤ 2.45.x — tkt-293);
-# the base commit SHA is fetched separately via REST below. stderr is NOT
-# masked so a field/contract mismatch or auth failure is diagnosable.
-view_json=$(gh pr view "$PR" --json id,number,url,state,title,headRefName,headRefOid,headRepository,isCrossRepository,baseRefName,mergeable,mergeStateStatus,isDraft) || {
+# the base commit SHA is fetched separately via REST below. stderr is captured
+# to a temp file so a field/contract mismatch or auth failure is diagnosable
+# without leaking gh deprecation/rate-limit noise on success (tkt-311 A3).
+_view_err=$(mktemp)
+view_json=$(gh pr view "$PR" --json id,number,url,state,title,headRefName,headRefOid,headRepository,isCrossRepository,baseRefName,mergeable,mergeStateStatus,isDraft 2>"$_view_err") || {
+  cat "$_view_err" >&2
   echo "Error: cannot view PR #$PR (gh pr view failed — see diagnostic above)" >&2
+  rm -f "$_view_err"
   exit 1
 }
+rm -f "$_view_err"
 
 repo_json=$(gh repo view --json nameWithOwner,defaultBranchRef 2>/dev/null) || {
   echo "Error: cannot resolve current GitHub repository identity" >&2
@@ -106,9 +111,6 @@ emit("HEAD_OID", view.get("headRefOid") or "")
 emit("HEAD_REPOSITORY", (view.get("headRepository") or {}).get("nameWithOwner") or "")
 emit("IS_CROSS_REPOSITORY", bool(view.get("isCrossRepository")))
 emit("BASE_BRANCH", view.get("baseRefName") or "")
-# BASE_OID: baseRefOid is no longer requested via gh pr view --json (tkt-293);
-# this emit produces empty — the REST fetch below fills it in.
-emit("BASE_OID", view.get("baseRefOid") or "")
 emit("MERGEABLE", view.get("mergeable") or "")
 emit("MERGE_STATE_INITIAL", view.get("mergeStateStatus") or "")
 emit("STATE", view.get("state") or "")
@@ -118,15 +120,24 @@ emit("REPOSITORY", repo.get("nameWithOwner") or "")
 emit("DEFAULT_BRANCH", (repo.get("defaultBranchRef") or {}).get("name") or "")
 ' "$view_json" "$repo_json")"
 
-# BASE_OID: baseRefOid is not a valid gh pr view --json field on all gh
-# versions (absent on gh ≤ 2.45.x — tkt-293). Fetch the base commit SHA via
-# REST, which is stable across all gh versions. stderr is not masked.
-if [[ -z "$BASE_OID" ]]; then
-  BASE_OID=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq '.base.sha') || {
-    echo "Error: cannot fetch base SHA for PR #$PR via REST (repos/${REPOSITORY}/pulls/${PR}) — see diagnostic above" >&2
-    exit 1
-  }
-fi
+# Fetch both base branch name and base commit SHA from a single REST call so
+# the (branch, sha) pair is an atomic snapshot — no TOCTOU window between
+# gh pr view and a separate base.sha fetch (tkt-311 A2). stderr captured to
+# temp file, emitted only on failure (tkt-311 A3 — same pattern as gh pr view).
+_base_err=$(mktemp)
+base_json=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq '.base' 2>"$_base_err") || {
+  cat "$_base_err" >&2
+  echo "Error: cannot fetch base identity for PR #$PR via REST (repos/${REPOSITORY}/pulls/${PR}) — see diagnostic above" >&2
+  rm -f "$_base_err"
+  exit 1
+}
+rm -f "$_base_err"
+eval "$(printf '%s' "$base_json" | python3 -c '
+import json, shlex, sys
+d = json.load(sys.stdin)
+print("BASE_BRANCH=" + shlex.quote(d.get("ref") or ""))
+print("BASE_OID=" + shlex.quote(d.get("sha") or ""))
+')"
 
 if [[ -z "$PR_NODE_ID" || -z "$HEAD_BRANCH" || -z "$HEAD_OID" || -z "$HEAD_REPOSITORY" || -z "$BASE_BRANCH" || -z "$BASE_OID" || -z "$REPOSITORY" || -z "$DEFAULT_BRANCH" ]]; then
   echo "{\"ok\": false, \"pr\": $PR, \"action\": \"stop\", \"reason\": \"incomplete_identity\"}"
