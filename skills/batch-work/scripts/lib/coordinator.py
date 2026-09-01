@@ -363,31 +363,44 @@ def cmd_record_node(args: list) -> int:
     state["settled_tickets"] = sorted(settled)
     save_state(state, lattice_home)
 
-    # Consume tkt-255: record the binder status flip via transition-api.py.
-    # Best-effort — a missing/errored transition-api MUST NOT lose the
-    # persisted DAG state (already written above); it warns so the host's
-    # triage still sees the unrecorded binder flip. ok -> pr-open;
-    # unknown/timeout -> stuck + wait_reason: unblock. failed records the
-    # failure class only (host triages the crashed worker's binder).
-    if status in ("ok", "unknown", "timeout"):
-        to_status = "pr-open" if status == "ok" else "stuck"
+    # tkt-298: the coordinator no longer duplicates the ok→pr-open flip. The
+    # worker (spawned agent) owns that flip: it runs start-work (in-progress
+    # stamp) then create-pr → stamp-pr-open, which (post-tkt-271 A1.3) flips
+    # the binder in-progress→pr-open via `commit` and records the ledger
+    # atomically. The worker STOPS at create-pr, so by the time the coordinator
+    # settles an `ok` node the binder is already pr-open; a second record would
+    # be a discontinuity (A1.5). For `unknown`/`timeout` (worker crashed/timed
+    # out — no PR created, binder still in-progress) the coordinator IS the
+    # sole recorder, so it flips the binder to `stuck` via `commit`
+    # (in-progress→stuck + wait_reason: unblock) — binder + ledger agree
+    # atomically (A1.3); the validator's snapshot/continuity checks stay clean.
+    # Best-effort: a missing/errored transition-api or a missing binder (worker
+    # crashed before start-work stamped one) MUST NOT lose the persisted DAG
+    # state (already written above); it warns so the host's triage still sees
+    # the unrecorded binder flip. `failed` records the failure class only (host
+    # triages the crashed worker's binder).
+    if status in ("unknown", "timeout"):
         reason = kv.get("--reason") or f"coordinator: node {status}"
-        trace = "coordinator spine" if status == "ok" else "wait_reason: unblock"
         if Path(tapi).is_file():
             env = dict(os.environ, LATTICE_HOME=lattice_home)
             try:
-                subprocess.run(
-                    [sys.executable, tapi, "record", ticket,
-                     "in-progress", to_status, "system", reason,
-                     "--trace", trace],
+                result = subprocess.run(
+                    [sys.executable, tapi, "commit", ticket,
+                     "stuck", "system", reason,
+                     "--wait-reason", "unblock",
+                     "--trace", "wait_reason: unblock"],
                     env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                     check=False, timeout=10,
                 )
+                if result.returncode != 0:
+                    print(f"warn: transition-api commit returned {result.returncode} "
+                          f"for {ticket} (binder missing/crashed before stamp?); "
+                          f"DAG state unchanged", file=sys.stderr)
             except (subprocess.TimeoutExpired, OSError) as exc:
-                print(f"warn: transition-api record failed for {ticket}: {exc}",
+                print(f"warn: transition-api commit failed for {ticket}: {exc}",
                       file=sys.stderr)
         else:
-            print(f"warn: transition-api not found; cannot record {status} flip "
+            print(f"warn: transition-api not found; cannot commit stuck flip "
                   f"for {ticket}", file=sys.stderr)
     print(f"record-node: {ticket} status={status} failure_class={failure_class}")
     return 0
