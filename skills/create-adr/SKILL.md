@@ -44,7 +44,8 @@ Write a durable **Architecture Decision Record** (`ADR-NNN`) under the consumer 
 6. **DEFAULT — Status lives in the ADR file:** `Proposed` → `Accepted` → `Superseded by ADR-NNN`. Prefer **supersede over delete**. Record transitions in the optional `## Status history` block.
 7. **INVARIANT — No product implementation:** this skill writes a doc; it does not implement code or open tickets/PRs.
 8. **DEFAULT — Same-pass co-create reuses the worktree:** if `create-review` / `create-spec` / `create-tickets` already opened a shippable worktree in this pass, write the ADR **there**; do **not** open a second tree. ADR-only writes are exempt (team base OK — ADR is durable doc, not a delivery unit).
-9. **INVARIANT — Accountable ownership:** one owner controls the decision, authority, and final validation of the ADR; bounded drafting may be delegated (`orchestration-patterns.md`).
+9. **DEFAULT — Reversing decision → preceding `rev-` by default:** when the ADR supersedes another ADR or replaces existing infrastructure, a preceding `create-review` (`rev-…`) evaluation carrying the up-front comparison is **required by default**. If skipped, the author records an explicit one-line skip reason (in `## Status history` or `## Notes`). A trivial reversal may skip, but the skip must be explicit, never silent. This connects `create-review`'s Problem Audit into the decision path so it cannot be bypassed by jumping to `create-adr` → `create-tickets` → `start-work` → code. (See `../create-review` Problem Audit policy.)
+10. **INVARIANT — Accountable ownership:** one owner controls the decision, authority, and final validation of the ADR; bounded drafting may be delegated (`orchestration-patterns.md`).
 
 ## Flow
 
@@ -113,7 +114,7 @@ Then fill:
 - **Date:** today `YYYY-MM-DD`
 - **Deciders:** names or `maintainers`
 - **Related / Related ADRs:** bare ids (`spc-n`, `rev-YYYYMMDD-HHMMSSZ`, `pr-n`, `ADR-NNN`)
-- Body: `## Context` (required) · `## Decision Drivers` (optional) · `## Considered Options` (optional) · `## Decision` (required) · `## Consequences` (required) · `## Status history` (optional) · `## Notes` (optional)
+- Body: `## Goal` (required for reversing/replacing; optional otherwise) · `## Context` (required) · `## Decision Drivers` (optional) · `## Considered Options` (optional; required + status-quo row for reversing) · `## Decision` (required) · `## Consequences` (required) · `## Status history` (optional) · `## Notes` (optional)
 
 Keep the optional sections when the decision has real alternatives or a supersede chain; drop them (delete the placeholder) for a crisp Nygard-minimal ADR. Either way, the footer note stays.
 
@@ -184,3 +185,5 @@ Before claiming the ADR is written:
 - [ ] Status set (`Proposed` / `Accepted`); footer note intact
 - [ ] Origin linked (Spec `## References` / Review `## Follow-ups` / PR body)
 - [ ] No product implementation; no existing ADR body rewritten
+- [ ] Reversing/replacing decision: `## Goal` + `## Considered Options` (with status-quo row against Goal) present; status-quo dismissal tied to Goal
+- [ ] Reversing/replacing decision: preceding `rev-…` recorded, or explicit one-line skip reason in `## Status history` / `## Notes`

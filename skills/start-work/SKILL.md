@@ -161,10 +161,13 @@ Policy tables (profiles, labels, bloodline): **`references/policy.md`**.
 - Workspace name: tkt-<id>-slug | spc-<n>-slug
 - Ship: one-PR | multi-PR
 - Primary ticket: none | tkt-N
+- Direction confirmed via: ADR-NNN | rev-… | user-stated | assumed
 - User-decided / Agent-assumed
 ```
 
 Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
+
+**`Direction confirmed via: assumed` → batch-confirm before product EXECUTE.** A wholly un-confirmed direction (no accepted ADR, no concluded `rev-`, not user-stated) must not silently proceed to implementation; surface it at the workspace gate and confirm the direction first. A reversing/replacing architecture choice implemented before confirmation can produce major rework, so `assumed` flips a PCA batch before EXECUTE rather than after.
 
 ## Loading constraints
 
@@ -220,7 +223,7 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 Before claiming workflow setup / EXECUTE handoff is done:
 
 - [ ] Mode `S|M|C` announced with one-line reason
-- [ ] COMMITTED card (or locked L0 resume) is explicit
+- [ ] COMMITTED card (or locked L0 resume) is explicit, including `Direction confirmed via:` (`ADR-NNN` / `rev-…` / `user-stated` / `assumed`); `assumed` triggered a batch-confirm before product EXECUTE
 - [ ] Shippable path: `assert-shippable-cwd` passes under the workspace or records the explicit clean base-direct escape (or pure throwaway no-PR)
 - [ ] Ticket/Spec ids recorded when required by mode
 - [ ] Setup-only stops without product implementation when requested
