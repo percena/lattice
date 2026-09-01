@@ -183,10 +183,32 @@ probe_agents_json() {
 # host's morning triage still sees the unrecorded stuck node in the report.
 record_stuck() {
   local ticket="$1" reason="$2"
-  [[ -f "$WAVE_TRANSITION_API" ]] || { echo "warn: transition-api.py not found; cannot record stuck flip for $ticket" >&2; return 0; }
-  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_TRANSITION_API" record "$ticket" in-progress stuck system "$reason" \
-    --trace "wait_reason: unblock" >/dev/null 2>&1 \
-    || echo "warn: transition-api record failed for $ticket (ledger not written; host must stamp stuck manually)" >&2
+  [[ -f "$WAVE_TRANSITION_API" ]] || { echo "error: transition-api.py not found; cannot atomic-fail-close $ticket" >&2; return 1; }
+  # Resolve the binder for this ticket under LATTICE_HOME. commit needs a real
+  # binder to flip | status | atomically (A2.2). When none exists (test or
+  # no-binder edge), fall back to ledger-only record so the stuck transition is
+  # still journaled — this is degraded (not an A2.3 transition failure: there
+  # was no binder to flip), so return 0 and do NOT bump WAVE_TRANSITION_FAIL.
+  local binder="" d
+  for d in "$WAVE_LATTICE_HOME"/tickets/${ticket}-*/; do
+    [[ -f "${d}README.md" ]] && { binder="${d}README.md"; break; }
+  done
+  if [[ -z "$binder" ]]; then
+    LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_TRANSITION_API" record "$ticket" in-progress stuck system "$reason" \
+      --trace "wait_reason: unblock" >/dev/null 2>&1 && return 0
+    echo "warn: transition-api record (ledger-only fallback) failed for $ticket (no binder; ledger not written)" >&2
+    return 1
+  fi
+  # Atomic binder-bound transition (spc-270 A2.2): commit wraps
+  # prepare_commit_text + commit_transaction under the binder dir lock,
+  # flipping status in-progress→stuck AND wait_reason:unblock AND appending
+  # the ledger entry in one transaction. Returns the rc so the caller
+  # fail-closes (A2.3) — a real binder-bound failure is never swallowed.
+  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_TRANSITION_API" commit "$ticket" stuck system "$reason" \
+    --from in-progress --wait-reason unblock --trace "wait_reason: unblock" >/dev/null 2>&1
+  local rc=$?
+  [[ "$rc" -ne 0 ]] && echo "error: atomic stuck transition FAILED for $ticket (rc=$rc; binder NOT fail-closed — host must stamp stuck manually)" >&2
+  return $rc
 }
 
 # coordinator spine helpers (spc-254 A5). When WAVE_COORDINATOR is set, the
@@ -272,10 +294,13 @@ classify_node() {
     STATUS[i]="failed"; reason="worker exit=$exit_code (non-zero)"
   elif [[ "$verify" == "failed" ]]; then
     STATUS[i]="failed"; reason="verify-mutation FAILED for claimed pr=$pr oid=$oid (phantom PR)"
-  elif [[ "$agents" == "failed" ]]; then
-    STATUS[i]="failed"; reason="claude agents --json reported failure"
   elif [[ "$exit_code" == "0" && -n "$pr" && "$verify" == "verified" ]]; then
-    STATUS[i]="ok"; reason="exit=0 + verify verified + agents=${agents:-na}"
+    STATUS[i]="ok"; reason="exit=0 + verify verified"
+    # agents --json is advisory-only when uncorrelated to this ticket's
+    # PID/session (spc-270 A2.4): a global unrelated agent failure cannot
+    # veto ok. PID↔session correlation is not yet wired, so never
+    # hard-classify failed on uncorrelated agents output.
+    [[ "$agents" == "failed" ]] && reason+="; advisory: uncorrelated agents --json failure (not vetoed)"
   else
     STATUS[i]="unknown"; reason="exit=0 but no verified PR claim (pr=${pr:-none} oid=${oid:-none} verify=${verify:-none})"
   fi
@@ -291,7 +316,14 @@ classify_node() {
   if [[ -n "${WAVE_COORDINATOR:-}" ]]; then
     coord_record_node "$ticket" "${STATUS[i]}" "$pid" "$pr" "$oid" "$reason"
   elif [[ "${STATUS[i]}" == "unknown" ]]; then
-    record_stuck "$ticket" "$reason"
+    # Atomic fail-close (A2.2). A transition failure prevents node settle
+    # and makes the wave exit machine-decidably non-ok (A2.3): the node
+    # stays unsolved and WAVE_TRANSITION_FAIL bumps so run_wave exits 1.
+    if ! record_stuck "$ticket" "$reason"; then
+      WAVE_TRANSITION_FAIL=$(( WAVE_TRANSITION_FAIL + 1 ))
+      reason+="; ATOMIC TRANSITION FAILED — node not settled (host must stamp stuck)"
+      echo "${STATUS[i]}-transition-failed: ${ticket} pid=$pid ($reason)" >&2
+    fi
   fi
 }
 
@@ -374,6 +406,7 @@ run_wave() {
   # a test surrogate) can write its exit/result + PR claim; classify_node reads
   # it at the barrier.
   WAVE_RESULTS_DIR=$(mktemp -d -t bw-results.XXXXXX)
+  WAVE_TRANSITION_FAIL=0  # spc-270 A2.3: transition failures → non-ok exit
   WAVE_VERIFY_HELPER="$verify_helper"
   WAVE_TRANSITION_API="$transition_api"
   WAVE_LATTICE_HOME="$lattice_home"
@@ -437,7 +470,7 @@ run_wave() {
         # after a short grace; a dead PID here is `spawned-but-dead`, not a
         # silent completed. Mirrors the spawn helper's own grace re-check.
         sleep "${SPAWN_GRACE_SEC:-0.3}"
-        if bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
+        if timeout "${PROBE_TIMEOUT_SEC:-8}" bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
           echo "spawned: ${M_TICKET[j]} pid=$pid" >&2
         else
           STATUS[j]="spawned-but-dead"; ENDS[j]=$(now_epoch)
@@ -466,6 +499,10 @@ run_wave() {
   coord_advance
 
   emit_report "$count" "$report"
+  # A2.3: a transition failure makes the wave exit machine-decidably non-ok
+  # so the host cannot mistake a not-fail-closed node for success. An `if`
+  # (not `&&`) keeps the function's return 0 when no transition failed.
+  if [[ "$WAVE_TRANSITION_FAIL" -gt 0 ]]; then exit 1; fi
 }
 
 # Poll all "running" tickets until none running. timebox per ticket (minutes).
@@ -479,7 +516,7 @@ barrier_poll() {
       [[ "${STATUS[i]}" == "running" ]] || continue
       any_running=1
       local pid="${PIDS[i]}"
-      if bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
+      if timeout "${PROBE_TIMEOUT_SEC:-8}" bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
         # still alive — check timebox
         local elapsed=$(( $(now_epoch) - STARTS[i] ))
         local limit=$(( M_TIMEBOX[i] * 60 ))
@@ -532,7 +569,7 @@ emit_report() {
   lines+=("- workspace-failed: $wf")
   lines+=("- spawned-but-dead: $spawned_dead")
   lines+=("")
-  lines+=("Classification (spc-254 A1): ok requires exit=0 + verify-mutation --expected-oid verified + agents --json not-failed; unknown fail-closes the binder to stuck + wait_reason: unblock (transition-api ledger recorded in-wave).")
+  lines+=("Classification (spc-254 A1 / spc-270 A2): ok requires exit=0 + verify-mutation --expected-oid verified; agents --json is advisory-only when uncorrelated (A2.4); unknown atomically fail-closes the binder to stuck + wait_reason: unblock via transition-api commit (A2.2); a transition failure leaves the wave exit non-ok (A2.3).")
   local report_text
   report_text=$(printf '%s\n' "${lines[@]}")
   printf '%s\n' "$report_text"
