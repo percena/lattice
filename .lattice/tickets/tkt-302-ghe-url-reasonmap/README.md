@@ -9,7 +9,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/302 |
-| status | queued |
+| status | pr-open |
 | adopted | true |
 | summary | Fix URL regex/sed to match last two segments before /pull/ (handles GHE path-prefix); fix reason_map to validate against known set and handle null |
 | spec | none |
@@ -19,7 +19,7 @@
 | **primary_ticket** | tkt-302 (this issue) |
 | **related_tickets** | tkt-301 (co-delivered — state_reason REST call fix) |
 | **worktree_bind** | tkt-301-state-reason-rest-fix |
-| prs | (pending) |
+| prs | (pending), pr-303 — https://github.com/percena/lattice/pull/303 |
 
 ## Acceptance
 
@@ -41,3 +41,7 @@ echo 'https://github.acme.io/org/team/repo/pull/1' | sed -E 's#https?://[^/]+/([
 reason_map('354=not planned')  # → {354: 'not'} (truncated)
 reason_map('354=null')         # → {354: 'null'} (literal null)
 ```
+
+## Decision journal
+
+- 2026-09-01T07:26:05Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #303) [WARN — signal logged, not silently lost]
