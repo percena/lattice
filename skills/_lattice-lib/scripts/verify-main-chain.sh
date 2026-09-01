@@ -313,7 +313,53 @@ stage_merge() {
       "next_action" "$(json_escape "base tip did not advance past pre-merge OID — the merge likely did not land on origin; gh pr view $PR + git ls-remote; do NOT run finish-ledger/cleanup")"
   fi
 
-  echo "verified: merge pr-$PR state=MERGED base=$base_name tip=$base_ref (advanced past pre-merge $EXPECTED_OID)"
+  # A4.3 target-bound merge-commit ancestry (spc-270 A4): a base-tip advance
+  # alone does not prove THIS PR landed — a concurrent unrelated PR could advance
+  # the base, or the base could be rewound/reverted after a stale MERGED state.
+  # Prove this PR's merge_commit_sha is an ancestor of the LIVE remote base tip
+  # (base_ref from ls-remote, not a stale tracking ref). Requires --repo (the
+  # canonical finish path always supplies it); absent --repo the base-tip-advance
+  # probe still ran and the echo notes ancestry was not checked.
+  local ancestry_proven=""
+  if [ -n "$REPO" ]; then
+    # One gh api call returns the full PR object; python extracts both fields
+    # (merge_commit_sha + headRefOid) — no triple round-trip, one failure mode.
+    local pr_api_json
+    if ! pr_api_json=$(gh api "repos/$REPO/pulls/$PR" 2>/dev/null); then
+      emit_failure merge merge_commit_api_failed "$EXPECTED_OID" "<gh-api-error>" \
+        "pr" "$PR" "repo" "$(json_escape "$REPO")" \
+        "base_branch" "$(json_escape "$base_name")" \
+        "next_action" "$(json_escape "gh api repos/$REPO/pulls/$PR failed (transient rate-limit/5xx/auth?) — re-run once gh is reachable; do NOT assume the merge did not land")"
+    fi
+    local merge_commit_sha
+    merge_commit_sha=$(printf '%s' "$pr_api_json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("merge_commit_sha") or "")' 2>/dev/null) || merge_commit_sha=""
+    if [ -z "$merge_commit_sha" ] || [ "$merge_commit_sha" = "null" ]; then
+      emit_failure merge merge_commit_unresolved "$EXPECTED_OID" "<no-merge-commit-sha>" \
+        "pr" "$PR" "repo" "$(json_escape "$REPO")" \
+        "base_branch" "$(json_escape "$base_name")" \
+        "next_action" "$(json_escape "PR $PR has no merge_commit_sha — the merge did not produce a commit on the base; gh pr view $PR; do NOT run finish-ledger/cleanup")"
+    fi
+    # Fetch the EXACT live remote base tip (base_ref) so both it and the merge
+    # commit (its ancestor) are in the local object DB. Fail closed on fetch
+    # failure — a stale tracking ref must never satisfy the ancestry proof.
+    if ! git fetch origin "$base_ref" >/dev/null 2>&1; then
+      emit_failure merge base_fetch_failed "$EXPECTED_OID" "<fetch-error>" \
+        "pr" "$PR" "repo" "$(json_escape "$REPO")" \
+        "base_branch" "$(json_escape "$base_name")" \
+        "base_tip" "$(json_escape "$base_ref")" \
+        "next_action" "$(json_escape "git fetch origin $base_ref failed (network/auth?) — re-run once origin is reachable; do NOT run finish-ledger/cleanup")"
+    fi
+    if ! git merge-base --is-ancestor "$merge_commit_sha" "$base_ref" >/dev/null 2>&1; then
+      emit_failure merge merge_commit_not_ancestor "$EXPECTED_OID" "$(json_escape "$merge_commit_sha")" \
+        "pr" "$PR" "repo" "$(json_escape "$REPO")" \
+        "base_branch" "$(json_escape "$base_name")" \
+        "base_tip" "$(json_escape "$base_ref")" \
+        "next_action" "$(json_escape "this PR merge commit $merge_commit_sha is NOT reachable from base $base_name (tip=$base_ref) — a concurrent unrelated PR advanced the base, or the merge was rewound; gh pr view $PR + git log $base_ref; do NOT run finish-ledger/cleanup")"
+    fi
+    ancestry_proven="; merge-commit ancestry proven"
+  fi
+
+  echo "verified: merge pr-$PR state=MERGED base=$base_name tip=$base_ref (advanced past pre-merge $EXPECTED_OID${ancestry_proven})"
 }
 
 case "$STAGE" in
