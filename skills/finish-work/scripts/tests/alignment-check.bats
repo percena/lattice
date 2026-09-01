@@ -506,3 +506,39 @@ ARCH
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "ambiguous binder dirs for tkt-26"
 }
+
+@test "WARN: Fixes issue closed as NOT_PLANNED while PR delivers it (tkt-294)" {
+  # Override the PR JSON with a GitHub-style URL so repo_id extraction works.
+  python3 - <<'PY' >"$GH_PR_JSON"
+import json, sys
+json.dump({
+  "number": 99, "title": "feat: demo", "body": "## Why\n\nShip demo.\n\nFixes #26\n",
+  "state": "OPEN", "headRefName": "feat/tkt-99-demo", "baseRefName": "dev",
+  "url": "https://github.com/acme/r/pull/99", "isDraft": False, "mergeable": "MERGEABLE",
+}, sys.stdout)
+PY
+  # Issue is CLOSED with all Acceptance checked
+  python3 - <<'PY' >"$GH_ISSUE_JSON"
+import json, sys
+json.dump({
+  "number": 26, "title": "demo ticket",
+  "body": "### Acceptance\n- [x] **A1** first\n",
+  "state": "CLOSED", "labels": [],
+}, sys.stdout)
+PY
+  write_binder $'- [x] **A1** first\n'
+  # Override the stub to also handle gh api repos/.../issues/... returning state_reason
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+echo "$*" >>"${GH_CALL_LOG:-/dev/null}"
+if [[ "$1" == "pr" && "$2" == "view" ]]; then cat "${GH_PR_JSON:?}"; exit 0; fi
+if [[ "$1" == "issue" && "$2" == "view" ]]; then cat "${GH_ISSUE_JSON:?}"; exit 0; fi
+if [[ "$1" == "api" && "$2" == repos/*issues/* ]]; then printf 'not_planned'; exit 0; fi
+exit 1
+EOF
+  chmod +x "$STUB_BIN/gh"
+  run bash "$ALIGN" --pr 99 --home "$LATTICE"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "NOT_PLANNED"
+  printf '%s\n' "$output" | grep -qF "reconcile close-reason"
+}

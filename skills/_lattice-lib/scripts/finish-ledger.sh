@@ -319,6 +319,7 @@ fi
 # --- Resolve closing issue state ---------------------------------------------
 CLOSED_AT="$CLOSED_AT_OVERRIDE"
 ISSUE_CLOSED=false
+GH_ISSUE_STATE_REASON=""
 if [[ -n "$ISSUE_M" ]]; then
   if [[ -n "$CLOSED_AT_OVERRIDE" ]]; then
     ISSUE_CLOSED=true
@@ -336,6 +337,15 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
 ')"
       CLOSED_AT="$GH_ISSUE_CLOSED_AT"
       [[ "$GH_ISSUE_STATE" == "CLOSED" ]] && ISSUE_CLOSED=true
+      # state_reason is not a gh issue view --json field on all gh versions
+      # (tkt-294). Fetch via REST for ledger fidelity + anomaly detection.
+      # Surface fetch failures so a close-reason contradiction is not silently
+      # lost when the API is least reliable (rate limits, auth, cross-repo).
+      if [[ "$GH_ISSUE_STATE" == "CLOSED" && -n "$GH_TARGET_REPO_ID" ]]; then
+        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${GH_TARGET_REPO_ID}/issues/${ISSUE_M}" --jq '.state_reason' 2>/dev/null); then
+          echo "finish-ledger: WARNING — cannot fetch state_reason for issue #$ISSUE_M (REST API failed); close-reason not recorded in ledger" >&2
+        fi
+      fi
     fi
   fi
   # Same "null"-string trap as mergedAt: an OPEN issue reports null.
@@ -379,14 +389,14 @@ fi
 
 # --- Stamp the binder (idempotent) --------------------------------------------
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
-STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" <<'PY'
+STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" "$GH_ISSUE_STATE_REASON" <<'PY'
 import sys, re, os, stat, fcntl, datetime
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
 import status_vocab
 
-binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state, cancel, reason, issue_base = sys.argv[1:12]
+binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state, cancel, reason, issue_base, state_reason = sys.argv[1:13]
 # `updated` field-table stamp (spc-186 A4 / tkt-191): bumped atomically with
 # the status flip below, in this same locked transaction. Seconds-precision
 # ISO-8601 UTC, matching the mergedAt/closedAt format the ledger records.
@@ -457,12 +467,19 @@ if issue_m and closed_at and issue_closed == "true":
         base = pr_url.split("/pull/")[0]  # https://github.com/owner/repo
     elif issue_base:
         base = issue_base
+    reason_suffix = f" (reason: {state_reason})" if state_reason else ""
     if base:
-        issue_line = f"\n- issue #{issue_m} closed: {closed_at} — {base}/issues/{issue_m}"
+        issue_line = f"\n- issue #{issue_m} closed: {closed_at}{reason_suffix} — {base}/issues/{issue_m}"
     else:
-        issue_line = f"\n- issue #{issue_m} closed: {closed_at} — https://github.com/<org>/<repo>/issues/{issue_m}"
+        issue_line = f"\n- issue #{issue_m} closed: {closed_at}{reason_suffix} — https://github.com/<org>/<repo>/issues/{issue_m}"
 elif issue_m and not issue_closed == "true" and not cancel:
     issue_line = f"\n- issue #{issue_m}: not closed (closed-without-merge? status recorded without mergedAt claim)"
+
+# Anomaly: a Fixes issue closed as NOT_PLANNED/DUPLICATE/OUT_OF_DATE while a
+# merged PR delivers it (tkt-294). The ledger already has an anomaly:
+# vocabulary for unexpected states — this is the same class of surprise.
+if (not cancel) and issue_m and issue_closed == "true" and state_reason and state_reason != "completed":
+    anomaly_line += f"\n- anomaly: issue #{issue_m} closed as {state_reason.upper()} while PR #{pr_n} delivers it — reconcile close-reason vs delivery"
 
 # 1. Replace `## Finish` body.
 # Find the ## Finish section (up to next ## heading or EOF).
@@ -478,10 +495,12 @@ else:
         # refresh anomaly line if present
         if anomaly_line:
             anom_pat = re.compile(r'^- anomaly: .*$', re.MULTILINE)
-            if anom_pat.search(body):
-                body = anom_pat.sub(anomaly_line.lstrip("\n"), body)
-            else:
-                body = body.rstrip() + anomaly_line + "\n"
+            # Remove ALL existing anomaly lines first, then append the fresh
+            # block. Without this, sub() replaces each of N existing lines with
+            # the full multi-line anomaly_line, doubling on every re-stamp.
+            body = anom_pat.sub('', body)
+            body = re.sub(r'\n{3,}', '\n\n', body)  # collapse blanks from removal
+            body = body.rstrip() + anomaly_line + "\n"
         # refresh issue line if issue info present
         if issue_line:
             iss_pat = re.compile(rf'^- issue #{re.escape(issue_m)}.*$', re.MULTILINE) if issue_m else None

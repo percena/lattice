@@ -35,7 +35,7 @@ setup() {
 {"id":"PR_node1","number":6,"url":"https://example.test/pr/6","state":"OPEN",
  "title":"feat: demo","headRefName":"tkt-6-feature","headRefOid":"$HEAD_OID",
  "headRepository":{"nameWithOwner":"acme/r"},"isCrossRepository":false,
- "baseRefName":"main","baseRefOid":"$BASE_OID",
+ "baseRefName":"main",
  "mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}
 EOF
   PR_VIEW2_JSON="$TEST_DIR/pr-view2.json"
@@ -63,12 +63,14 @@ case "$*" in
     fi
     ;;
   "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
+  *"api repos/"*"pulls"*) printf '%s\n' "$GH_BASE_SHA" ;;
   *) exit 1 ;;
 esac
 EOF
   chmod +x "$STUB_BIN/gh"
   export PATH="$STUB_BIN:$PATH"
-  export PR_VIEW_JSON PR_VIEW2_JSON TEST_DIR
+  export PR_VIEW_JSON PR_VIEW2_JSON TEST_DIR HEAD_OID BASE_OID
+  export GH_BASE_SHA="$BASE_OID"
   cd "$MAIN"
 }
 
@@ -79,11 +81,13 @@ make_pr_view() {
   git -C "$MAIN" fetch -q origin
   head_oid=$(git -C "$MAIN" rev-parse "origin/$head_branch")
   base_oid=$(git -C "$MAIN" rev-parse origin/main)
+  export GH_BASE_SHA="$base_oid"
+  export BASE_OID="$base_oid"
   cat >"$PR_VIEW_JSON" <<EOF
 {"id":"PR_node1","number":6,"url":"https://example.test/pr/6","state":"OPEN",
  "title":"feat: demo","headRefName":"$head_branch","headRefOid":"$head_oid",
  "headRepository":{"nameWithOwner":"acme/r"},"isCrossRepository":false,
- "baseRefName":"main","baseRefOid":"$base_oid",
+ "baseRefName":"main",
  "mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}
 EOF
   cat >"$PR_VIEW2_JSON" <<EOF
@@ -232,4 +236,19 @@ last_json() {
   run bash "$UPDATE" --pr 6
   [ "$status" -eq 0 ]
   last_json "$output" | jq -e '.ok == true and .action == "update_branch" and .diff_changed == false and .conflict == false'
+}
+
+@test "base OID is fetched via REST when gh pr view JSON lacks baseRefOid (tkt-293 regression)" {
+  # The PR_VIEW_JSON fixture no longer includes baseRefOid (mirrors older gh
+  # versions where the field is absent). The script must fetch the base SHA
+  # via gh api repos/.../pulls/... and populate BASE_OID from it.
+  # Verify: the final JSON summary includes the correct baseOid.
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  # baseOid in the output must match the REST-fetched value ($BASE_OID)
+  last_json "$output" | jq -e --arg oid "$BASE_OID" '.baseOid == $oid'
+  # PR_VIEW_JSON fixture must not contain baseRefOid
+  grep -qv 'baseRefOid' "$PR_VIEW_JSON"
 }
