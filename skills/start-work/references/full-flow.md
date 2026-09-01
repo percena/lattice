@@ -93,10 +93,13 @@ When batching: 2–5 principals + recommendation + trade-off; secondary self-dec
 - Workspace name: tkt-<id>-slug | spc-<n>-slug
 - Ship: one-PR | multi-PR
 - Primary ticket: none | tkt-N
+- Direction confirmed via: ADR-NNN | rev-… | user-stated | assumed
 - User-decided / Agent-assumed
 ```
 
 **Ship (INVARIANT when split):** multi-ticket ≠ multi-PR. Path-overlap → **one-PR**. Independent concurrent EXECUTE → **multi-PR** + one worktree per concurrent tkt.
+
+**`Direction confirmed via: assumed` → batch-confirm before product EXECUTE** (see `SKILL.md`): a wholly un-confirmed direction must not silently proceed to implementation.
 
 ## 4.5 Spec + binder init (DEFAULT: M optional, C required)
 

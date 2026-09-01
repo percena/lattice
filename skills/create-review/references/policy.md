@@ -17,7 +17,7 @@ Before writing solution-oriented **Findings** / **Recommendations**, run a short
 | **Hidden issues** | Related risks or deeper root causes the prompt did not name (or “none found”). |
 | **Existing solution** | Is there an existing solution that already meets the stated goal? If yes, surface it as the **status-quo comparison row** before proposing alternatives — the single question that surfaces a redundant replacement. |
 
-**Comparison matrix (DEFAULT — decision-support reviews):** for reviews of kind `design` / `audit` that compare options, Findings must include a **multi-dimensional comparison matrix**: rows = proposed option / status quo / alternatives; columns = cost, code-delta, risk, constraints, capability/feature tradeoffs. Without it, options are weighed by vibes / confirmation bias. Other review kinds (`dogfood`, `research`) stay free-form.
+**Comparison matrix (DEFAULT — decision-support reviews):** for reviews of kind `design` / `audit` that compare options, the review must include a **`## Comparison matrix`** section: rows = proposed option / status quo / alternatives; columns = cost, code-delta, risk, constraints, capability/feature tradeoffs. Without it, options are weighed by vibes / confirmation bias. Other review kinds (`dogfood`, `research`) stay free-form.
 
 **Explicit skip (allowed):** the question is already crisp (e.g. locked compare of two known designs, pure dogfood of a finished path) **and** you write one line under Problem Audit: `Skipped — <reason>`. Do **not** silent-skip on fuzzy “help me think / something feels wrong” prompts.
 

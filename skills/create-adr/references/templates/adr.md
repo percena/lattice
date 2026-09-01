@@ -9,9 +9,10 @@
 ## Goal
 
 <!-- required for reversing/replacing decisions (supersedes an ADR or replaces existing
-     infrastructure); optional otherwise. The underlying problem to solve, distinct from
-     Context (which describes the proposed solution/situation). Separating goal from means
-     forces the status quo to be weighed against the real goal, not the proposed means. -->
+     infrastructure); DELETE this section for non-reversing Nygard-minimal ADRs. The
+     underlying problem to solve, distinct from Context (which describes the proposed
+     solution/situation). Separating goal from means forces the status quo to be weighed
+     against the real goal, not the proposed means. -->
 
 What is the underlying problem to solve?
 
@@ -30,7 +31,8 @@ What forces a decision? Constraints, alternatives pressure, who is affected.
 <!-- optional (MADR-style) — forces explicit alternatives instead of burying them in Notes.
      For reversing/replacing decisions (supersedes an ADR / replaces existing infrastructure),
      REQUIRED, and MUST include a "keep status quo" row evaluated against ## Goal. Dismissing
-     the status quo requires a reason tied to the goal, not "the user wants to change." -->
+     the status quo requires a reason tied to the goal, not "the user wants to change."
+     For non-reversing Nygard-minimal ADRs, DELETE this section. -->
 
 - **Keep status quo** — one-line trade-off against Goal (good: …; bad: …)
 - **Option A** — one-line trade-off (good: …; bad: …)

@@ -116,7 +116,7 @@ Then fill:
 - **Related / Related ADRs:** bare ids (`spc-n`, `rev-YYYYMMDD-HHMMSSZ`, `pr-n`, `ADR-NNN`)
 - Body: `## Goal` (required for reversing/replacing; optional otherwise) · `## Context` (required) · `## Decision Drivers` (optional) · `## Considered Options` (optional; required + status-quo row for reversing) · `## Decision` (required) · `## Consequences` (required) · `## Status history` (optional) · `## Notes` (optional)
 
-Keep the optional sections when the decision has real alternatives or a supersede chain; drop them (delete the placeholder) for a crisp Nygard-minimal ADR. Either way, the footer note stays.
+Keep the optional sections when the decision has real alternatives or a supersede chain; drop them (delete the placeholder — including `## Goal` and the `Keep status quo` row) for a crisp Nygard-minimal ADR. Either way, the footer note stays. A non-reversing ADR that leaves `## Goal` / `Keep status quo` placeholders in is not mis-classified as reversing — the reversing checklist is conditional on an author-declared reversing trigger, not on section presence.
 
 ### 3. Append the README index row
 

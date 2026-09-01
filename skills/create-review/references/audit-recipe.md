@@ -2,7 +2,7 @@
 
 How to run a **findings-class repo/system audit** as a Lattice Review: sweep wide, then let **nothing** into Findings that the accountable auditor has not re-verified against the tree. Worked example throughout: `rev-20260827-033352Z` (post-round-4 verified audit → tkt-90…96 → PRs #97–#103).
 
-**Composition (DEFAULT):** this recipe **composes with** the existing Problem Audit DEFAULT (validity / info sufficiency / hidden issues **before** solutions — `policy.md`); it never replaces it. Run the Problem Audit gate first, then the six elements below.
+**Composition (DEFAULT):** this recipe **composes with** the existing Problem Audit DEFAULT (validity / info sufficiency / hidden issues / **existing-solution-meets-goal** — `policy.md`); it never replaces it. Run the Problem Audit gate first, then the six elements below. Because `audit` is a decision-support kind that compares options, the review must also include the **multi-dimensional comparison matrix** (`policy.md`: rows = proposed option / status quo / alternatives; columns = cost, code-delta, risk, constraints, capability/feature tradeoffs) — the audit's recommendations are not credible without it.
 
 **Delegation law is not restated here:** fan-out follows `../../_lattice-lib/references/orchestration-patterns.md` — one accountable owner, disjoint briefs, merged result validated by the host.
 
@@ -66,7 +66,7 @@ Audit revs are findings-class: they usually conclude **`spawn_tickets`** with a 
 | "The doc just needs a wording refresh" | If the sentence promises tool behavior, execute it against the tool; disagreement is a finding whichever side is right |
 | "CI is green now, old reds are history" | Red runs never dispositioned are exactly the archaeology signal; mine them and mark addressed-or-not |
 | "File the fix ticket, prevention can come later" | Mechanism pairing: every spawned ticket pairs repair with the guard preventing recurrence |
-| "Skip the Problem Audit — this is an audit already" | The recipe composes with the Problem Audit DEFAULT (validity/sufficiency first); it does not replace it |
+| "Skip the Problem Audit — this is an audit already" | The recipe composes with the Problem Audit DEFAULT (validity/sufficiency/existing-solution first) + the comparison matrix; it does not replace them |
 | "One big sweep is simpler than fan-out" | Disjoint parallel sweeps make gaps visible; a monolithic sweep hides what it never looked at |
 
 ## Verification
@@ -77,4 +77,4 @@ Audit revs are findings-class: they usually conclude **`spawn_tickets`** with a 
 - [ ] Doc sentences promising tool behavior were executed/read against the implementation
 - [ ] CI red history + deferral/"noticed twice" mining done; each item marked addressed-or-not against later work
 - [ ] Findings clustered by root cause; each spawned ticket pairs repair with prevention mechanism
-- [ ] Problem Audit gate ran (or explicit one-line skip); outcome set (usually `spawn_tickets` + wave plan)
+- [ ] Problem Audit gate ran (or explicit one-line skip) including the existing-solution-meets-goal row; comparison matrix present (audit is decision-support); outcome set (usually `spawn_tickets` + wave plan)

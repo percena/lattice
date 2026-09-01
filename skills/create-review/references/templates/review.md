@@ -46,9 +46,9 @@ Why this review exists (trigger, repo area, question). Enough that a cold reader
 
 | Option | Cost | Code-delta | Risk | Constraints | Capability |
 | --- | --- | --- | --- | --- | --- |
+| Proposed option | | | | | |
 | Keep status quo | | | | | |
-| Option A | | | | | |
-| Option B | | | | | |
+| Alternative A | | | | | |
 
 <!-- required -->
 ## Findings

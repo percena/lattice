@@ -101,7 +101,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
    - `in-progress` (interrupted/abandoned) — a watchdog-timeout or crash from a prior session left the binder at `in-progress`. If the host stamped `stuck`+`wait_reason: unblock` at trip time (FSM-2b, tkt-132), route through the stuck exits above. If the binder is genuinely still being worked (human resume mid-session), continue implementation — the status is honest. An abandoned `in-progress` with no `stuck` stamp is an edge case: treat as `stuck`, investigate the prior ledger, and route through the operator-chosen exits.
 3. Else if **existing GH issue `#M`** / `tkt-M` **without complete L0** → **ADOPT_CHECK** (portable detail in `references/policy.md`) — **append-only** on issue body; write binder; optional Spec/comment; soft-fail edges.  
 4. Else if fuzzy greenfield → **delegate `create-spec`** (then tickets if needed).  
-5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship).  
+5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship / **Direction confirmed via**).  
 5b. Duplicate-work precheck (advisory, DEFAULT): run `check-duplicate-work.sh --title "<ticket title>"` (in `_lattice-lib/scripts/`) before `ensure-workspace`. Review ⚠️ overlaps; never blocks (advisory, exits 0).  
 6. WORKSPACE: `ensure-workspace --mode worktree --bind tkt|spc …` (or light/user branch escape). **cd** to path.  
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.

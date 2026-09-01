@@ -4,7 +4,7 @@
 | --- | --- |
 | id | tkt-307 |
 | issue | #307 |
-| slug | status-quo-goal |
+| slug | direction-confirm-gate |
 | adopted | true |
 | kind | bug |
 | status | pr-open |
