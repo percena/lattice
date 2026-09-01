@@ -30,9 +30,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] The four suites (stamp-pr-open, ratify, bump-fix-cycle, spec-supersede) write ledgers to a per-test tmp `LATTICE_HOME` (like transition-api.bats / reconcile-state.bats), never the repo home.
-- [ ] No `.transition-ledger/tkt-7.jsonl` / `tkt-9.jsonl` residue after a full suite run.
-- [ ] `python3 tools/validate-lattice-artifacts.py --home .lattice` is clean (0 transition-ledger findings) on a dev checkout after running the writer suites.
+- [x] The four suites (stamp-pr-open, ratify, bump-fix-cycle, spec-supersede) write ledgers to a per-test tmp `LATTICE_HOME` (like transition-api.bats / reconcile-state.bats), never the repo home.
+- [x] No `.transition-ledger/tkt-7.jsonl` / `tkt-9.jsonl` residue after a full suite run.
+- [x] `python3 tools/validate-lattice-artifacts.py --home .lattice` is clean (0 transition-ledger findings) on a dev checkout after running the writer suites. — proven: 0 findings; suites green (27/20/17/13); no residue.
 
 ## Approach
 
