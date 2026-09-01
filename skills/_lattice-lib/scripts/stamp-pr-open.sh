@@ -309,11 +309,15 @@ CHECK_ALL_MODE=$($CHECK_ALL && echo "check-all" || echo "keep-boxes")
 FORCE_MODE=$($FORCE_SIDE_STATE && echo "force" || echo "guard")
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$PR_URL" "$STAMP_MODE" "$CHECK_ALL_MODE" "$FORCE_MODE" "$SIDE_STATE_REASON" <<'PY'
-import datetime, sys, re, os, stat, fcntl
+import datetime, sys, re, os, stat, fcntl, importlib.util
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
 import status_vocab
+# spc-297: import transition-api for in-lock single-write atomicity.
+_ta_path = os.path.join(os.environ["BINDER_ROWS_LIB"], "..", "transition-api.py")
+_ta_spec = importlib.util.spec_from_file_location("transition_api", _ta_path)
+_ta = importlib.util.module_from_spec(_ta_spec); _ta_spec.loader.exec_module(_ta)
 
 binder, pr_n, pr_url, mode, box_mode, force_mode, side_reason = sys.argv[1:8]
 dry_run = mode == "dry-run"
@@ -425,13 +429,38 @@ else:
     pass  # in-progress → pr-open: ungated default, no trace; commit flips status
 
 # Bump `updated` atomically with the status stamp (spc-186 A4 / tkt-191).
-# A1.3 (spc-270): the `updated` bump + status flip are routed through
-# `transition-api.py commit`; the python only writes non-status fields (prs
-# row / acceptance boxes) here. The no-change contract still holds: an
-# idempotent re-run (s == orig) emits no @@TRANSITION_FROM line, so bash
-# invokes no `commit` and `updated` is untouched.
-mutated = (s != orig)
-if s != orig and not dry_run:
+# spc-297: single-write atomicity. The status flip + journal trace + `updated`
+# + ledger land in ONE `commit_transaction` (merged with the prs/acceptance
+# mutations already in `s`), called inside this dir lock. A crash leaves
+# neither a half-mutated binder nor a misleading ledger (A1.2 fail-close,
+# in-process). No `record`/direct-stamp bypass; no two-write window.
+TICKET_ID = ""
+m_tid = re.match(r'^(tkt-[1-9][0-9]*)', os.path.basename(os.path.dirname(binder)))
+if m_tid:
+    TICKET_ID = m_tid.group(1)
+flip = bool(prior) and prior not in ("closed", "pr-open")
+written = False
+if dry_run:
+    pass  # no write; DRY-RUN message below
+elif flip:
+    rc, nt, entry = _ta.prepare_commit_text(
+        s, TICKET_ID, "pr-open", transition_owner, transition_reason,
+        force_reason=(side_reason if force_side_state else None),
+        journal_entry=(status_trace or None))
+    if rc != 0:
+        print("stamp-pr-open: WARN — transition refused (non-blocking; "
+              "validator will catch); binder untouched", file=sys.stderr)
+    else:
+        rc2 = _ta.commit_transaction(binder, nt, entry)
+        if rc2 == 0:
+            written = True
+        else:
+            print("stamp-pr-open: WARN — transaction failed (non-blocking; "
+                  "validator will catch)", file=sys.stderr)
+elif s != orig:
+    # no status flip but prs/acceptance mutated (multi-PR append, or acceptance
+    # boxes on an already-pr-open binder) — write `s` directly (no ledger;
+    # pr-open→pr-open is not a recorded rebase-void).
     import tempfile
     d = os.path.dirname(os.path.abspath(binder)) or "."
     fmode = os.stat(binder).st_mode
@@ -443,6 +472,7 @@ if s != orig and not dry_run:
             os.fsync(fh.fileno())
         os.chmod(tmp, stat.S_IMODE(fmode))
         os.replace(tmp, binder)
+        written = True
     except BaseException:
         if os.path.exists(tmp):
             os.unlink(tmp)
@@ -451,24 +481,12 @@ if s != orig and not dry_run:
 box_note = f" + {boxes_checked} acceptance box(es) checked" if boxes_checked else ""
 trace_note = " + side-state override traced" if status_trace and status_trace.startswith("- ") and "override" in status_trace else (" + direct-jump WARN journaled" if status_trace else "")
 stamp_label = binder_rows.format_entry(pr_n, pr_url) if pr_url else f"pr-{pr_n} (URL unresolved)"
-if s == orig:
-    print("stamp-pr-open: binder no change (idempotent)")
-elif dry_run:
+if dry_run and (flip or s != orig):
     print(f"stamp-pr-open: DRY-RUN — would stamp binder prs row `{stamp_label}` + status pr-open{box_note}{trace_note}")
-else:
+elif written:
     print(f"stamp-pr-open: binder stamped ({stamp_label}, status pr-open{box_note}{trace_note})")
-    # Machine line: emit the prior status + reason/owner so bash can record the
-    # transition via the API (spc-254 A3). Idempotent re-runs (s == orig) and
-    # dry-runs do not emit. F4: a re-stamp where the status row was already
-    # pr-open (multi-PR append) does NOT emit -- pr-open->pr-open is not a
-    # rebase-void; only a real status flip is recorded.
-    if prior and prior != "closed" and prior != "pr-open":
-        print(f"@@TRANSITION_FROM:{prior}|{transition_reason}|{transition_owner}@@")
-        if status_trace:
-            # base64 so the trace text (→, (), []) cannot collide with the
-            # `|`-delimited TRANSITION line or confuse grep/sed in bash.
-            import base64
-            print(f"@@JOURNAL_B64:{base64.b64encode(status_trace.encode()).decode()}@@")
+else:
+    print("stamp-pr-open: binder no change (idempotent)")
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
@@ -477,47 +495,15 @@ finally:
 PY
 )
 
-# Preserve human output (idempotent/dry-run/stamped messages). The machine
-# @@TRANSITION_FROM:...@@ / @@JOURNAL_B64:...@@ lines are stripped so they
-# never leak to a terminal or CI log (review F6) -- internal IPC only.
-printf '%s\n' "$STAMP_OUT" | grep -vE '^@@(TRANSITION_FROM|JOURNAL_B64):' || true
+# Human output (strip the internal `committed:` line from commit_transaction).
+printf '%s\n' "$STAMP_OUT" | grep -vE '^committed:'
 
-# --- Atomic transition (spc-270 A1.3): route the pr-open flip through the
-# single guarded `commit` API so the binder status flip, the `updated` bump,
-# the structured Decision-journal trace (when one applies), and the per-ticket
-# ledger entry land in ONE atomic transaction (A1.1/A1.2). The embedded
-# python emits `@@TRANSITION_FROM:<prior>|<reason>|<owner>@@` only on a real
-# (non-idempotent, non-dry-run, non-pr-open->pr-open) flip, plus
-# `@@JOURNAL_B64:<base64>@@` when a side-state override / direct-jump trace
-# applies. A failed `commit` is non-blocking (decision-policy: never block the
-# PR flow); the validator catches binder/ledger drift on the next run. The
-# per-ticket ledger file is COMMITTED (review F2) so CI accumulates real
-# history -- stage it here.
-TRANSITION_LINE=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
-if [[ -n "$TRANSITION_LINE" ]]; then
-  TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
-  PRIOR_STATUS="${TRANSITION_LINE%%|*}"
-  REST="${TRANSITION_LINE#*|}"
-  TRANS_REASON="${REST%%|*}"
-  TRANS_OWNER="${REST##*|}"
-  JOURNAL_B64=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@JOURNAL_B64:\(.*\)@@$/\1/p')
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  COMMIT_ARGS=(commit "${TICKET_ID:-unknown}" pr-open "${TRANS_OWNER:-agent}" "${TRANS_REASON:-create-pr opens the PR}"
-    --from "$PRIOR_STATUS" --binder "$BINDER")
-  if [[ "$FORCE_SIDE_STATE" == true && -n "$SIDE_STATE_REASON" ]]; then
-    COMMIT_ARGS+=(--force-side-state-reason "$SIDE_STATE_REASON")
-  fi
-  if [[ -n "$JOURNAL_B64" ]]; then
-    JOURNAL_TEXT=$(printf '%s' "$JOURNAL_B64" | base64 -d 2>/dev/null || true)
-    [[ -n "$JOURNAL_TEXT" ]] && COMMIT_ARGS+=(--append-journal "$JOURNAL_TEXT")
-  fi
-  python3 "$SCRIPT_DIR/transition-api.py" "${COMMIT_ARGS[@]}" \
-    || echo "stamp-pr-open: WARN — transition commit failed (non-blocking; validator will catch)" >&2
-  # Stage the per-ticket ledger for commit (F2: committed so CI replays it).
-  LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
-  LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
-  [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
-fi
+# Stage the per-ticket ledger for commit (F2: committed so CI replays it).
+# commit_transaction wrote it (in-python); stage if present.
+TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
+LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
+[[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
 
 # --- Mirror binder-checked acceptance into the GitHub issue -------------------
 if [[ -z "$ISSUE_M" ]]; then

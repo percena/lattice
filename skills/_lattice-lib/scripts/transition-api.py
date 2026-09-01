@@ -319,36 +319,52 @@ def cmd_commit(args: list) -> int:
         os.close(lock_fd)
 
 
-def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
-                   expected_from: str | None, wait_reason: str | None,
-                   force_reason: str | None, trace_override: str | None,
-                   journal_entry: str | None, dry: bool) -> int:
-    """Run the read-validate-write transaction under the caller's dir lock."""
-    orig = binder.read_text(encoding="utf-8")
-    prior = _read_field(orig, "status")
+def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
+                        reason: str, expected_from: str | None = None,
+                        wait_reason: str | None = None,
+                        force_reason: str | None = None,
+                        trace_override: str | None = None,
+                        journal_entry: str | None = None
+                        ) -> tuple[int, str | None, dict | None]:
+    """PURE (no disk I/O) validation + snapshot build for a binder-bound
+    transition (spc-297). Writers call this inside their own dir lock, merge
+    the returned `new_text` (status+wait_reason+updated+journal flipped) with
+    their non-status field mutations, then call `commit_transaction` for the
+    atomic disk write — restoring single-write atomicity (the writer mutates
+    the binder ONCE: its own fields + the prepared flip + ledger).
+
+    Returns `(rc, new_text, entry)`:
+      rc=0  success — `new_text` is `orig_text` with status→to, wait_reason
+            resolved (and the row inserted when --wait-reason given on a
+            minimal binder), `updated` bumped, and the journal trace appended;
+            `entry` is the ledger dict.
+      rc=1  illegal edge / continuity-guard mismatch / bad coupled wait_reason
+      rc=2  escape-required edge without --force-side-state-reason
+      rc=3  no `| status |` row in orig_text
+    On rc!=0 the same stderr message as the `commit` CLI is printed and
+    `new_text`/`entry` are None."""
+    prior = _read_field(orig_text, "status")
     if prior is None:
-        print(f"commit: binder {binder} has no `| status |` row — refusing to "
-              f"mutate a binder whose status row is absent", file=sys.stderr)
-        return 3
+        print(f"commit: binder has no `| status |` row — refusing to mutate a "
+              f"binder whose status row is absent", file=sys.stderr)
+        return 3, None, None
     if expected_from is not None and prior != expected_from:
         print(f"commit: expected from={expected_from!r} but binder status is "
               f"{prior!r} (continuity guard; refusing)", file=sys.stderr)
-        return 1
-
-    # 1. Edge legality + escape (validation mutates nothing).
+        return 1, None, None
     if not tt.is_legal_edge(prior, to):
         print(f"ILLEGAL transition: {prior} -> {to} (not in schema; refused)",
               file=sys.stderr)
-        return 1
+        return 1, None, None
     if tt.requires_escape(prior, to) and not force_reason:
         print(f"ILLEGAL without operator override: {prior} -> {to} requires "
               f"--force-side-state-reason (side-state guard; no agent "
               f"self-adjudication)", file=sys.stderr)
-        return 2
+        return 2, None, None
     ok, msg = _validate_coupled_wait_reason(to, wait_reason)
     if not ok:
         print(f"ILLEGAL coupled field: {msg}", file=sys.stderr)
-        return 1
+        return 1, None, None
 
     edge = tt.edge_for(prior, to)
     entry = {
@@ -364,48 +380,38 @@ def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
         "trace": trace_override or (edge.trace if edge else None),
         "metric": edge.metric if edge else None,
     }
-    if dry:
-        print(json.dumps(entry, indent=2))
-        return 0
-
-    # 2. Build the new binder snapshot (status + wait_reason + updated +
-    #    optional Decision journal trace). The journal append is in-transaction
-    #    so a crash before the atomic rename leaves neither the status flip nor
-    #    the trace (A1.3: no duplicate trace on re-run).
-    new_text = _rewrite_field(orig, "status", to)
+    new_text = _rewrite_field(orig_text, "status", to)
     resolved_wait_reason = wait_reason if wait_reason else "(none)"
     new_text = _rewrite_field(new_text, "wait_reason", resolved_wait_reason)
-    # A side-state/deferred transition with --wait-reason on a binder that
-    # PREDATES the wait_reason row would leave the row absent (lazy migration:
-    # _rewrite_field is a no-op then) — but a deferred/stuck binder MUST carry
-    # its coupled wait_reason or the validator flags it. Insert the row after
-    # the status row when --wait-reason is given and the row is absent, so
-    # spec-supersede's trip-time stamp on a minimal binder is well-formed.
     if wait_reason:
         new_text = _ensure_wait_reason_row(new_text, resolved_wait_reason)
     updated_stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     new_text = binder_rows.stamp_updated(new_text, updated_stamp)
     new_text = _append_journal_trace(new_text, journal_entry or "")
+    return 0, new_text, entry
 
-    # 3. Transaction: write binder temp -> append ledger -> atomic rename.
-    #    Failure ordering (A1.2 fail-close): a ledger-append or rename failure
-    #    rolls back so neither a half-mutated binder nor a misleading ledger
-    #    record survives. Temp is in the binder dir so rename is atomic on one
-    #    filesystem.
-    lp = ledger_path(ticket)
+
+def commit_transaction(binder: Path, new_text: str, entry: dict,
+                       ticket: str | None = None) -> int:
+    """The disk-IO half of a binder-bound transition (spc-297). Writers that
+    have already prepared `new_text` (their non-status mutations + the
+    prepare_commit_text flip) call this for the atomic write: temp binder →
+    append ledger → atomic rename, with the A1.2 fail-close ordering (a
+    ledger-append or rename failure rolls back so neither a half-mutated
+    binder nor a misleading ledger record survives). Preserves the binder file
+    mode. `binder` may be a str or Path. Returns 0 on success, 3 on
+    io/transaction failure."""
+    binder = Path(binder)
+    tk = ticket or entry.get("ticket", "")
+    lp = ledger_path(tk)
     lp.parent.mkdir(parents=True, exist_ok=True)
     tmp = binder.with_suffix(".README.md.tmp")
     try:
         tmp.write_text(new_text, encoding="utf-8")
-        # Preserve the original binder mode so a binder stamped -rw-r----- by a
-        # writer is not relaxed to the umask default on the atomic rename
-        # (tkt-271 A1.3: writers delegate the write to `commit`).
         try:
             os.chmod(tmp, os.stat(binder).st_mode & 0o777)
         except OSError:
             pass
-        # Append ledger first; if it fails, discard the temp and leave the
-        # binder untouched with no ledger record.
         _append_ledger_locked(lp, entry)
     except OSError as exc:
         try:
@@ -415,8 +421,6 @@ def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
         print(f"commit: transaction aborted (write/ledger failure: {exc}); "
               f"binder and ledger unchanged", file=sys.stderr)
         return 3
-    # Atomic rename last. If it fails, roll the ledger back to the prior
-    # content so no misleading record points at an unmutated binder.
     try:
         os.replace(tmp, binder)
     except OSError as exc:
@@ -424,8 +428,28 @@ def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
         print(f"commit: transaction aborted (rename failure: {exc}); "
               f"binder and ledger unchanged", file=sys.stderr)
         return 3
-    print(f"committed: {ticket} {prior} -> {to} ({owner})")
+    print(f"committed: {tk} {entry.get('from', '?')} -> {entry.get('to', '?')} "
+          f"({entry.get('owner', '?')})")
     return 0
+
+
+def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
+                   expected_from: str | None, wait_reason: str | None,
+                   force_reason: str | None, trace_override: str | None,
+                   journal_entry: str | None, dry: bool) -> int:
+    """CLI path: read orig under the caller's dir lock, prepare, then either
+    dry-print or commit_transaction. Preserves the `commit` CLI's exit codes
+    (1 illegal, 2 escape-required, 3 usage/io) verbatim."""
+    orig = binder.read_text(encoding="utf-8")
+    rc, new_text, entry = prepare_commit_text(
+        orig, ticket, to, owner, reason, expected_from, wait_reason,
+        force_reason, trace_override, journal_entry)
+    if rc != 0:
+        return rc
+    if dry:
+        print(json.dumps(entry, indent=2))
+        return 0
+    return commit_transaction(binder, new_text, entry)
 
 
 def _append_ledger_locked(lp: Path, entry: dict) -> None:
