@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug |
 | github | https://github.com/percena/lattice/issues/299 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-01T10:40:00Z |
-| updated | 2026-09-01T10:40:00Z |
+| updated | 2026-09-01T07:38:58Z |
 | adopted | true |
 | summary | Route the 4 writer bats suites' ledger writes through a per-test tmp LATTICE_HOME so no residue lands in the repo home. |
 | spec | (none — follow-up) |
@@ -26,7 +26,7 @@
 | **primary_ticket** | tkt-299 (this issue) |
 | **related_tickets** | tkt-271 (surfaced the NOTICED) |
 | **worktree_bind** | `tkt-299-test-residue-hygiene` |
-| prs | (none) |
+| prs | pr-304 — https://github.com/percena/lattice/pull/304 |
 
 ## Acceptance (this slice)
 
@@ -37,6 +37,10 @@
 ## Approach
 
 Each suite already creates a tmp `$REPO` with its own `.lattice/`. The writer scripts resolve the ledger via `LATTICE_HOME` (default `.lattice` relative to cwd). The fix: export `LATTICE_HOME="$REPO/.lattice"` (or the suite's tmp home) for every `run bash "$SPO"/"$SCRIPT" …` invocation so `commit`/`record` write the per-ticket ledger into the tmp repo, not the real repo home. Mirror the `setup()` tmp-home pattern from transition-api.bats.
+
+## Decision journal
+
+- 2026-09-01T07:38:58Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #304) [WARN — signal logged, not silently lost]
 
 ## Lineage
 
