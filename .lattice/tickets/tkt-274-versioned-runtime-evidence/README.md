@@ -32,11 +32,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A5.1** Story and result use a versioned schema with stable feature/story/run identity.
-- [ ] **A5.2** A pass proves oracle/mutations parity, valid last-verified/run freshness, non-empty all-passing assertions, and existing screenshots.
-- [ ] **A5.3** Mutation stories prove reload/re-navigation round-trip and disclose leftovers; destructive runs include authorization trace.
-- [ ] **A5.4** Shallow handwritten pass, stale run, mismatched identity, missing assertion/screenshot, failed assertion, and undeclared leftovers all fail validator fixtures.
-- [ ] **A5.5** Existing artifacts have an explicit compatibility and migration path.
+- [x] **A5.1** Story and result use a versioned schema with stable feature/story/run identity.
+- [x] **A5.2** A pass proves oracle/mutations parity, valid last-verified/run freshness, non-empty all-passing assertions, and existing screenshots.
+- [x] **A5.3** Mutation stories prove reload/re-navigation round-trip and disclose leftovers; destructive runs include authorization trace.
+- [x] **A5.4** Shallow handwritten pass, stale run, mismatched identity, missing assertion/screenshot, failed assertion, and undeclared leftovers all fail validator fixtures.
+- [x] **A5.5** Existing artifacts have an explicit compatibility and migration path.
 
 ## Approach
 
