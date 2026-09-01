@@ -20,15 +20,23 @@ setup_bin() {
 
 write_fake_gh_pr() {
   # $1 = dir, $2 = state, $3 = headRefOid, $4 = url, $5 = baseRefName, $6 = headRefName, $7 = body
+  # $8 (optional) = merge_commit_sha for `gh api repos/.../pulls/N` (merge stage).
   local dir="$1" state="$2" head="$3" url="$4" base="$5" headname="$6" body="$7"
+  local mcs="${8:-}"
   local json_line
   json_line=$(BODY="$body" STATE="$state" HEAD="$head" URL="$url" BASE="$base" HEADNAME="$headname" \
     python3 -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"headRefOid":os.environ["HEAD"],"url":os.environ["URL"],"baseRefName":os.environ["BASE"],"headRefName":os.environ["HEADNAME"],"body":os.environ["BODY"]}))')
   printf '%s\n' "$json_line" > "$dir/gh.response"
+  local api_json=""
+  if [ -n "$mcs" ]; then
+    api_json=$(MCS="$mcs" HEAD="$head" python3 -c 'import json,os; print(json.dumps({"merge_commit_sha":os.environ["MCS"],"headRefOid":os.environ["HEAD"]}))')
+  fi
+  printf '%s\n' "$api_json" > "$dir/gh.api.response"
   cat > "$dir/bin/gh" <<EOF
 #!/usr/bin/env bash
 case "\$1 \$2" in
   "pr view") cat "$dir/gh.response" ;;
+  api*) cat "$dir/gh.api.response" ;;   # full PR JSON; script extracts fields
   *) exit 1 ;;
 esac
 EOF
@@ -180,16 +188,21 @@ EOF
 # stage merge
 # ---------------------------------------------------------------------------
 
-@test "merge: MERGED + base advanced verifies (exit 0)" {
+@test "merge: MERGED + base advanced + ancestry proven verifies (A4.3, exit 0)" {
   FAKE_DIR="$BATS_TMPDIR/vmc-merge-ok-${BATS_TEST_NUMBER}-$$"
   setup_bin "$FAKE_DIR"
-  write_fake_gh_pr "$FAKE_DIR" "MERGED" "abc1234abcd" "https://github.com/percena/lattice/pull/1" "dev" "feat-x" "body"
+  MCS="2222222222222222222222222222222222222222"
+  write_fake_gh_pr "$FAKE_DIR" "MERGED" "abc1234abcd" "https://github.com/percena/lattice/pull/1" "dev" "feat-x" "body" "$MCS"
   PRE="0000000000000000000000000000000000000000"
   POST="1111111111111111111111111111111111111111"
   cat > "$FAKE_DIR/bin/git" <<EOF
 #!/usr/bin/env bash
 case "\$1" in
   ls-remote) printf '%s\trefs/heads/dev\n' "$POST" ;;
+  # git fetch origin <base_ref SHA> — succeed (merge commit now in object DB)
+  fetch) exit 0 ;;
+  # git merge-base --is-ancestor <mcs> <base_ref> → ancestor → exit 0
+  merge-base) exit 0 ;;
   *) exit 1 ;;
 esac
 EOF
@@ -199,6 +212,7 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'verified: merge pr-1'
   printf '%s\n' "$output" | grep -qF 'state=MERGED'
+  printf '%s\n' "$output" | grep -qF 'ancestry proven'
 }
 
 @test "merge: PR not MERGED halts with recovery JSON (fault-injection)" {
@@ -258,6 +272,103 @@ EOF
     --expected-oid 0000000000000000000000000000000000000000 --repo percena/lattice
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF '"failed":"base_tip_absent"'
+}
+
+@test "merge: merge_commit_sha not ancestor of base halts (A4.4 concurrent unrelated advancement, fault-injection)" {
+  FAKE_DIR="$BATS_TMPDIR/vmc-merge-noanc-${BATS_TEST_NUMBER}-$$"
+  setup_bin "$FAKE_DIR"
+  MCS="3333333333333333333333333333333333333333"
+  write_fake_gh_pr "$FAKE_DIR" "MERGED" "abc1234abcd" "https://github.com/percena/lattice/pull/1" "dev" "feat-x" "body" "$MCS"
+  PRE="0000000000000000000000000000000000000000"
+  POST="1111111111111111111111111111111111111111"
+  # fake git: base advanced (POST≠PRE) BUT merge-base says MCS is NOT an ancestor
+  # of the live base tip (concurrent unrelated PR advanced the base).
+  cat > "$FAKE_DIR/bin/git" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  ls-remote) printf '%s\trefs/heads/dev\n' "$POST" ;;
+  fetch) exit 0 ;;
+  merge-base) exit 1 ;;   # NOT an ancestor of base_ref → ancestry proof fails
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$FAKE_DIR/bin/git"
+  run env PATH="$FAKE_DIR/bin:$PATH" bash "$SCRIPT" --stage merge --pr 1 \
+    --expected-oid "$PRE" --repo percena/lattice
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"failed":"merge_commit_not_ancestor"'
+  printf '%s\n' "$output" | grep -qF 'do NOT run finish-ledger/cleanup'
+}
+
+@test "merge: no merge_commit_sha halts (A4.3 unresolved, fault-injection)" {
+  FAKE_DIR="$BATS_TMPDIR/vmc-merge-nomcs-${BATS_TEST_NUMBER}-$$"
+  setup_bin "$FAKE_DIR"
+  write_fake_gh_pr "$FAKE_DIR" "MERGED" "abc1234abcd" "https://github.com/percena/lattice/pull/1" "dev" "feat-x" "body" "null"
+  PRE="0000000000000000000000000000000000000000"
+  POST="1111111111111111111111111111111111111111"
+  cat > "$FAKE_DIR/bin/git" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  ls-remote) printf '%s\trefs/heads/dev\n' "$POST" ;;
+  *) exit 0 ;;
+esac
+EOF
+  chmod +x "$FAKE_DIR/bin/git"
+  run env PATH="$FAKE_DIR/bin:$PATH" bash "$SCRIPT" --stage merge --pr 1 \
+    --expected-oid "$PRE" --repo percena/lattice
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"failed":"merge_commit_unresolved"'
+}
+
+@test "merge: gh api failure halts with transient hint (A4.3 api_failed, fault-injection)" {
+  FAKE_DIR="$BATS_TMPDIR/vmc-merge-apifail-${BATS_TEST_NUMBER}-$$"
+  setup_bin "$FAKE_DIR"
+  write_fake_gh_pr "$FAKE_DIR" "MERGED" "abc1234abcd" "https://github.com/percena/lattice/pull/1" "dev" "feat-x" "body"
+  # fake gh: api exits 1 (transient 5xx/rate-limit); pr view still works
+  printf '%s\n' '{}' > "$FAKE_DIR/gh.api.response"
+  cat > "$FAKE_DIR/bin/gh" <<EOF
+#!/usr/bin/env bash
+case "\$1 \$2" in
+  "pr view") cat "$FAKE_DIR/gh.response" ;;
+  api*) exit 1 ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$FAKE_DIR/bin/gh"
+  PRE="0000000000000000000000000000000000000000"
+  POST="1111111111111111111111111111111111111111"
+  cat > "$FAKE_DIR/bin/git" <<EOF
+#!/usr/bin/env bash
+case "\$1" in ls-remote) printf '%s\trefs/heads/dev\n' "$POST" ;; *) exit 0 ;; esac
+EOF
+  chmod +x "$FAKE_DIR/bin/git"
+  run env PATH="$FAKE_DIR/bin:$PATH" bash "$SCRIPT" --stage merge --pr 1 \
+    --expected-oid "$PRE" --repo percena/lattice
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"failed":"merge_commit_api_failed"'
+  printf '%s\n' "$output" | grep -qF 'transient'
+}
+
+@test "merge: git fetch of base tip fails halts (A4.3 base_fetch_failed, fault-injection)" {
+  FAKE_DIR="$BATS_TMPDIR/vmc-merge-fetchfail-${BATS_TEST_NUMBER}-$$"
+  setup_bin "$FAKE_DIR"
+  MCS="2222222222222222222222222222222222222222"
+  write_fake_gh_pr "$FAKE_DIR" "MERGED" "abc1234abcd" "https://github.com/percena/lattice/pull/1" "dev" "feat-x" "body" "$MCS"
+  PRE="0000000000000000000000000000000000000000"
+  POST="1111111111111111111111111111111111111111"
+  cat > "$FAKE_DIR/bin/git" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  ls-remote) printf '%s\trefs/heads/dev\n' "$POST" ;;
+  fetch) exit 1 ;;   # fetch of base_ref fails (network/auth) → fail closed
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$FAKE_DIR/bin/git"
+  run env PATH="$FAKE_DIR/bin:$PATH" bash "$SCRIPT" --stage merge --pr 1 \
+    --expected-oid "$PRE" --repo percena/lattice
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"failed":"base_fetch_failed"'
 }
 
 @test "merge: --pr required (exit 2)" {
