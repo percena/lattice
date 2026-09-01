@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug |
 | github | https://github.com/percena/lattice/issues/297 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-01T11:00:00Z |
-| updated | 2026-09-01T09:07:14Z |
+| updated | 2026-09-01T09:08:22Z |
 | adopted | true |
 | summary | Writers call prepare_commit_text+commit_transaction in-lock for one atomic binder mutation (no two-write window). |
 | spec | (none — follow-up) |
@@ -52,4 +52,6 @@ Refactor `_commit_locked` into `prepare_commit_text` (pure: read prior from orig
 
 ## Finish
 
-- (none yet)
+
+- pr-312 merged: 2026-09-01T09:07:42Z — https://github.com/percena/lattice/pull/312 (base merge)
+- issue #297 closed: 2026-09-01T09:07:56Z (reason: completed) — https://github.com/percena/lattice/issues/297
