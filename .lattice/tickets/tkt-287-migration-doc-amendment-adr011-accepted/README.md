@@ -1,7 +1,7 @@
 # tkt-287-migration-doc-amendment-adr011-accepted
 
 > **TL;DR:** One-shot migrate in-repo relocated files; amend ADR-008/spc-186 A1 location ref; fix stale flow.md prose; flip ADR-011 Accepted.
-> **Kind:** docs · **Status:** queued · **Priority:** P3
+> **Kind:** docs · **Status:** closed · **Priority:** P3
 > **Path:** spc-282 → tkt-287 → (pr-…)
 
 | Field | Value |

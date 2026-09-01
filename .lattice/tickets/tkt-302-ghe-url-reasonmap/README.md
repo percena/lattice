@@ -20,6 +20,8 @@
 | **related_tickets** | tkt-301 (co-delivered — state_reason REST call fix) |
 | **worktree_bind** | tkt-301-state-reason-rest-fix |
 | prs | pr-303 — https://github.com/percena/lattice/pull/303 |
+| created | 2026-09-01T02:40:00Z |
+| updated | 2026-09-01T07:26:05Z |
 
 ## Acceptance
 

@@ -23,6 +23,8 @@
 | **worktree_bind** | tkt-293-finish-work-baserefoid-closereason |
 | worktree | sibling …/lattice.worktrees/tkt-293-finish-work-baserefoid-closereason/ |
 | prs | pr-295 — https://github.com/percena/lattice/pull/295 |
+| created | 2026-09-01T02:40:00Z |
+| updated | 2026-09-01T07:26:05Z |
 
 ## Acceptance (this slice)
 

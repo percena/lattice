@@ -1,7 +1,7 @@
 # tkt-284-bootstrap-docs-adr-gitignore
 
 > **TL;DR:** Bootstrap tracked docs/adr/.gitignore for ADR atomic-write temps + mutex lock dirs; harden EXIT traps.
-> **Kind:** chore · **Status:** queued · **Priority:** P2
+> **Kind:** chore · **Status:** closed · **Priority:** P2
 > **Path:** spc-282 → tkt-284 → (pr-…)
 
 | Field | Value |
