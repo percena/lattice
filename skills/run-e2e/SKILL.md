@@ -149,6 +149,10 @@ const leftovers = []
 
 ```json
 {
+  "schema_version": 1,
+  "feature_id": "ftr-login",
+  "story_id": "login",
+  "run_id": "run-login-1",
   "status": "pass" | "fail",
   "reason": "short machine-readable code (e.g. title-mismatch, landed-on-login, console-errors)",
   "taskSpaceId": "task space id (string)",
@@ -158,7 +162,9 @@ const leftovers = []
     { "name": "title contains Weftd", "pass": true },
     { "name": "no console errors", "pass": true }
   ],
-  "screenshot": "path/to/evidence.png",
+  "screenshots": ["path/to/evidence.png"],
+  "round_trip": true,
+  "leftovers": [],
   "consoleErrors": [],
   "pageErrors": [],
   "httpErrors": [
@@ -167,6 +173,10 @@ const leftovers = []
   ]
 }
 ```
+
+- `schema_version` + `feature_id` + `story_id` + `run_id` (spc-270 A5.1) bind the result to the story traceability header; a `pass` feature-map row is only proven when these match.
+- `screenshots` is a **list** of file paths (the caller can attach each as evidence); `screenshot` (singular) is the legacy v0 field.
+- `leftovers: []` (spc-270 A5.3) discloses undeclared side-effects (may be empty); `round_trip: true` is required when the story header declares `mutation_type: round-trip`.
 
 - `console.log(JSON.stringify(result, null, 2))` once, at the end.
 - Do not print intermediate JSON objects; intermediate reads stay in-script.
@@ -182,14 +192,20 @@ const leftovers = []
 **DEFAULT:** Every `*.story.md` file starts with a small fenced yaml block that says what the story verifies and how dangerous it is. It is a docs convention read by humans and skills (verify-features matches it against the feature map) — and since spc-254 A7, machine-checked by `validate-lattice-artifacts.py` for `pass` rows (see Verification).
 
 ```yaml
+schema_version: 1         # spc-270 A5: versioned evidence. v1 carries identity
 feature: ftr-<slug>       # feature-map row id (.lattice/feature-map.md)
+story: <story-id>         # spc-270 A5.1: stable story identity (matches result story_id)
 oracle: spc-104 A2        # citation: spc-N A* | README §x | generic invariants
 mutations: none           # none | safe | destructive — must equal the map row's class
+# mutation_type: round-trip  # safe/destructive only: result must prove round_trip: true (A5.3)
 # authorization: <trace>  # REQUIRED when mutations: destructive — written operator authorization
 # console_allow: []       # optional: expected console.error lines (substring match)
 # http_allow: []          # optional: expected first-party HTTP failures ("METHOD url-substring status")
 # origins_allow: []       # optional: extra first-party origins (e.g. an API on another port)
 ```
+
+- `schema_version` (spc-270 A5.1) gates the versioned evidence proof: a v1 header (+ result JSON) is checked for identity binding, freshness, assertions, screenshots, round-trip + leftovers. A header without `schema_version` is v0 (lazy-migration warning, not error — A5.5) and only the spc-254 A7 checks apply.
+- `story` (A5.1) is the stable story identity that binds the header to the result JSON's `story_id`.
 
 - `oracle` cites where the expected behavior comes from — a spec acceptance line beats a README claim beats generic invariants (see verify-features for the hierarchy). The citation must agree with the feature-map row's oracle cell (the validator checks the header citation appears in the row oracle).
 - `mutations` gates the round-trip requirement above and the calling skill's environment policy. It **must equal** the feature-map row's `mutations` class — a mismatch fails the validator.
@@ -202,6 +218,7 @@ mutations: none           # none | safe | destructive — must equal the map row
 - The result JSON is the same object the story prints to stdout (one `console.log(JSON.stringify(result, null, 2))` at the end); the caller saves it as `<story>.result.json` next to the story.
 - A `pass` feature-map row with no result JSON, or a result JSON whose `status` is not `pass`, fails the validator (`evidence_proof_no_result` / `evidence_proof_result_not_pass`).
 - Save the result JSON immediately after the story run; a stale or missing result JSON means the `pass` row is unproven.
+- **spc-270 A5 v1 result JSON** (when the story header carries `schema_version: 1`): the result JSON must also carry `schema_version`, `feature_id`, `story_id`, `run_id` (identity bound to the header — A5.1), a non-empty `assertions[]` list with all `pass: true` (A5.2), a non-empty `screenshots[]` list whose files exist (A5.2), `leftovers: []` disclosed even if empty (A5.3), and `round_trip: true` when the header declares `mutation_type: round-trip` (A5.3). A v1 `pass` row missing any of these fails the validator (`evidence_v1_identity_mismatch`, `evidence_stale_run`, `evidence_no_assertions`, `evidence_failed_assertion`, `evidence_no_screenshot`, `evidence_screenshot_missing`, `evidence_round_trip_not_proven`, `evidence_leftovers_undeclared`).
 
 - `http_allow` entries are `"<METHOD> <url-substring> <status>"` (e.g. `"POST /api/login 422"` for a negative login story); `console_allow` entries are substrings of tolerated `console.error` lines. Both filter assertions, not evidence — the arrays in the JSON stay complete.
 
