@@ -179,7 +179,7 @@ MD
   [ "$status" -eq 1 ]
   grep -q '| status | in-progress |' "$B"
   # No ledger entry recorded for the refused flip.
-  ! grep -q '"to":"stuck"' "$LATTICE_HOME/.transition-ledger/tkt-13.jsonl"
+  if grep -q '"to":"stuck"' "$LATTICE_HOME/.transition-ledger/tkt-13.jsonl"; then false; fi
 }
 
 @test "commit accepts stuck with --wait-reason unblock" {
