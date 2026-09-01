@@ -154,7 +154,9 @@ setup_file() {
 # spc-104 A1: feature-map format + status vocabulary (checked when the file exists).
 
 @test "well-formed feature map passes clean" {
-  run python3 "$VAL" --home "$FIX/feature-map" --json
+  # LATTICE_EVIDENCE_FRESHNESS_DAYS bumped so the static fixture's last-verified
+  # date never goes stale (spc-270 A5.2 freshness is exercised by the fault fixture).
+  run env LATTICE_EVIDENCE_FRESHNESS_DAYS=36500 python3 "$VAL" --home "$FIX/feature-map" --json
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF '"warning_count": 0'
 }
@@ -568,3 +570,33 @@ setup_file() {
   printf '%s\n' "$output" | grep -qF ratchet_new_warnings
 }
 
+
+# --- spc-270 A5: versioned runtime evidence (tkt-274) ---
+
+@test "A5: v1 evidence (identity+freshness+assertions+screenshot+leftovers) is clean" {
+  run env LATTICE_EVIDENCE_FRESHNESS_DAYS=36500 python3 "$VAL" --home "$FIX/evidence-v1" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+}
+
+@test "A5.5: v0 legacy evidence warns (lazy migration, not error)" {
+  run python3 "$VAL" --home "$FIX/evidence-v0" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF evidence_legacy_v0
+}
+
+@test "A5.4: v1 fault fixture reports identity mismatch, stale run, no/failed assertions, missing screenshot, undeclared leftovers" {
+  run python3 "$VAL" --home "$FIX/evidence-v1-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF evidence_v1_identity_mismatch
+  printf '%s\n' "$output" | grep -qF evidence_stale_run
+  printf '%s\n' "$output" | grep -qF evidence_no_assertions
+  printf '%s\n' "$output" | grep -qF evidence_failed_assertion
+  printf '%s\n' "$output" | grep -qF evidence_screenshot_missing
+  printf '%s\n' "$output" | grep -qF evidence_leftovers_undeclared
+  printf '%s\n' "$output" | grep -qF evidence_v1_identity_missing
+  printf '%s\n' "$output" | grep -qF evidence_v1_run_id_missing
+  printf '%s\n' "$output" | grep -qF evidence_v1_result_schema_missing
+}

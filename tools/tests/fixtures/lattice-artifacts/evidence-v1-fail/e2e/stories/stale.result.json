@@ -1,0 +1,1 @@
+{"schema_version":1,"feature_id":"ftr-stale","story_id":"stale","run_id":"r","status":"pass","assertions":[{"name":"x","pass":true}],"screenshots":["stale.png"],"round_trip":true,"leftovers":[]}

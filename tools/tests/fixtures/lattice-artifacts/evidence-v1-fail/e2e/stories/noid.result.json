@@ -1,0 +1,1 @@
+{"schema_version":1,"feature_id":"ftr-noid","story_id":"noid","run_id":"r","status":"pass","assertions":[{"name":"x","pass":true}],"screenshots":["noid.png"],"round_trip":true,"leftovers":[]}

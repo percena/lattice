@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -349,6 +350,9 @@ STORY_HEADER_KEY_RE = re.compile(r"^([a-z_]+):\s*(.+?)\s*$", re.M | re.I)
 STORY_PLACEHOLDER_RE = re.compile(r"^(?:—|–|-|\(none.*\)|)$", re.I)
 # Spec front-matter `prs:` row (spc-254 A7 done-Spec PR union).
 SPEC_FM_PRS_RE = re.compile(r"^prs:\s*(\[.*\])\s*$", re.M)
+
+# spc-270 A5.2: a pass result is fresh if last-verified is within this window.
+EVIDENCE_FRESHNESS_DAYS = int(os.environ.get("LATTICE_EVIDENCE_FRESHNESS_DAYS", "30"))
 
 
 def parse_front_matter(text: str) -> dict[str, Any]:
@@ -794,6 +798,72 @@ def binder_prs(text: str) -> set[str]:
     return set(re.findall(r"pr-[1-9][0-9]*", m.group(1)))
 
 
+def _evidence_v1_findings(spath, rpath, rdata, fmap, lineno, row_id, cells, header, findings):
+    """spc-270 A5 v1 evidence proof: identity binding, freshness, assertions,
+    screenshots, mutation round-trip + leftovers. v1 only (v0 skips — A5.5)."""
+    h_feature = header.get("feature", "").strip()
+    h_story = header.get("story", "").strip()
+    if not h_feature or not h_story:
+        findings.append({"code": "evidence_v1_identity_missing", "path": str(spath),
+            "detail": f"story {spath.name} v1 header must carry feature + story identity"})
+    r_feature = str(rdata.get("feature_id", "")).strip()
+    r_story = str(rdata.get("story_id", "")).strip()
+    r_run = str(rdata.get("run_id", "")).strip()
+    if not r_run:
+        findings.append({"code": "evidence_v1_run_id_missing", "path": str(rpath),
+            "detail": f"result JSON {rpath.name} v1 must carry run_id"})
+    r_sv = str(rdata.get("schema_version", "")).strip()
+    if not r_sv or r_sv.lower() == "null":
+        findings.append({"code": "evidence_v1_result_schema_missing", "path": str(rpath),
+            "detail": f"result JSON {rpath.name} v1 must carry schema_version (matches the story header)"})
+    if h_feature and r_feature and h_feature.lower() != r_feature.lower():
+        findings.append({"code": "evidence_v1_identity_mismatch", "path": str(rpath),
+            "detail": f"result JSON feature_id {r_feature!r} != story header feature {h_feature!r}"})
+    if h_story and r_story and h_story.lower() != r_story.lower():
+        findings.append({"code": "evidence_v1_identity_mismatch", "path": str(rpath),
+            "detail": f"result JSON story_id {r_story!r} != story header story {h_story!r}"})
+    lv_cell = cells[7].strip() if len(cells) > 7 else ""
+    lv_m = re.match(r"\d{4}-\d{2}-\d{2}", lv_cell)
+    if lv_m and not STORY_PLACEHOLDER_RE.fullmatch(lv_cell):
+        try:
+            from datetime import datetime, timezone
+            lv_dt = datetime.strptime(lv_m.group(0), "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            age = (datetime.now(timezone.utc) - lv_dt).days
+            if age > EVIDENCE_FRESHNESS_DAYS:
+                findings.append({"code": "evidence_stale_run", "path": str(fmap),
+                    "detail": f"line {lineno}: pass row {row_id!r} last-verified {lv_m.group(0)} is {age}d old (> {EVIDENCE_FRESHNESS_DAYS}d) — re-run the story"})
+        except ValueError:
+            pass
+    assertions = rdata.get("assertions")
+    if not isinstance(assertions, list) or not assertions:
+        findings.append({"code": "evidence_no_assertions", "path": str(rpath),
+            "detail": f"result JSON {rpath.name} v1 must carry a non-empty assertions[] list"})
+    else:
+        failed = [a for a in assertions if not (a.get("pass") if isinstance(a, dict) else False)]
+        if failed:
+            findings.append({"code": "evidence_failed_assertion", "path": str(rpath),
+                "detail": f"result JSON {rpath.name} has {len(failed)} failing assertion(s); pass requires all-passing"})
+    screenshots = rdata.get("screenshots")
+    if not isinstance(screenshots, list) or not screenshots:
+        findings.append({"code": "evidence_no_screenshot", "path": str(rpath),
+            "detail": f"result JSON {rpath.name} v1 must carry a non-empty screenshots[] list"})
+    else:
+        for sc in screenshots:
+            if not (spath.parent / str(sc)).is_file():
+                findings.append({"code": "evidence_screenshot_missing", "path": str(rpath),
+                    "detail": f"screenshot {sc!r} (resolved {spath.parent / str(sc)}) does not exist"})
+    row_mut = cells[4].strip().lower() if len(cells) > 4 else ""
+    if row_mut in ("safe", "destructive"):
+        mtype = header.get("mutation_type", "").strip().lower()
+        if mtype == "round-trip" and not rdata.get("round_trip"):
+            findings.append({"code": "evidence_round_trip_not_proven", "path": str(rpath),
+                "detail": f"story {spath.name} declares mutation_type: round-trip but result has no round_trip: true"})
+    leftovers = rdata.get("leftovers")
+    if not isinstance(leftovers, list):
+        findings.append({"code": "evidence_leftovers_undeclared", "path": str(rpath),
+            "detail": f"result JSON {rpath.name} v1 must declare leftovers: [] as a list (even if empty; null/absent is not disclosure)"})
+
+
 def _evidence_proof_findings(
     home: Path,
     fmap: Path,
@@ -908,6 +978,25 @@ def _evidence_proof_findings(
                 }
             )
     # 4. result JSON exists with status=pass.
+    # A5.5 migration: v0 artifacts (no schema_version in the story header) get
+    # a lazy-migration WARNING (not error) and skip the v1 identity/freshness/
+    # assertion/screenshot/round-trip/leftovers checks. v1 artifacts carry
+    # schema_version and get the full spc-270 A5 proof.
+    schema_v = header.get("schema_version", "").strip()
+    is_v1 = bool(schema_v) and schema_v.lower() != "null"
+    if not is_v1:
+        findings.append(
+            {
+                "code": "evidence_legacy_v0",
+                "level": "warning",
+                "path": str(spath),
+                "detail": (
+                    f"story {spath.name} has no schema_version — v0 evidence "
+                    "(lazy migration; add schema_version: 1 + story/run identity "
+                    "for the full spc-270 A5 proof)"
+                ),
+            }
+        )
     rpath = result_json_path(spath)
     if not rpath.is_file():
         findings.append(
@@ -934,6 +1023,11 @@ def _evidence_proof_findings(
                             f"{rdata.get('status')!r}, not 'pass'"
                         ),
                     }
+                )
+            # --- spc-270 A5 v1 evidence proof (only when schema_version present) ---
+            if is_v1:
+                _evidence_v1_findings(
+                    spath, rpath, rdata, fmap, lineno, row_id, cells, header, findings
                 )
         except (json.JSONDecodeError, OSError) as exc:
             findings.append(
@@ -1699,8 +1793,13 @@ def main(argv: list[str] | None = None) -> int:
 
     errors = [f for f in all_findings if f.get("level", "error") != "warning"]
     warnings = [f for f in all_findings if f.get("level", "error") == "warning"]
+    # spc-270 A5.5: evidence_legacy_v0 is a lazy-migration warning (v0 artifacts
+    # accepted during the v0→v1 transition) — never ratcheted fatal, so the
+    # first v0 pass row in .lattice does not break CI. Exempt it only when a
+    # baseline is present (ratchet mode); no baseline ⇒ no ratchet (else []).
+    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0"}
     new_warnings = (
-        [w for w in warnings if _sig(w) not in baseline_sigs]
+        [w for w in warnings if _sig(w) not in baseline_sigs and w.get("code", "") not in RATCHET_EXEMPT_CODES]
         if baseline_sigs
         else []
     )

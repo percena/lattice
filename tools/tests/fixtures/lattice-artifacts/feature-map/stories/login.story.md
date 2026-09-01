@@ -1,7 +1,9 @@
 # Login story
 
 ```yaml
+schema_version: 1
 feature: ftr-login
+story: login
 oracle: spc-7 A1
 mutations: none
 ```
