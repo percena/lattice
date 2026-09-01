@@ -29,8 +29,24 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # spc-270 A6.3: need base-branch history for the base baseline
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      - name: Fetch base-branch warning baseline (spc-270 A6.3)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git show "origin/${{ github.base_ref }}:tools/.validator-warning-baseline.txt" > base-baseline.txt 2>/dev/null || true
       - name: Validate Lattice artifacts (binders, specs, reviews)
-        run: python3 tools/validate-lattice-artifacts.py
+        run: |
+          # spc-270 A6.3: compare feature warnings against the BASE-branch baseline
+          # (a PR that adds a warning AND adds it to the feature baseline still
+          # fails — the base baseline does not have it). Falls back to the
+          # feature baseline for push events (no base to compare).
+          if [ -s base-baseline.txt ]; then
+            python3 tools/validate-lattice-artifacts.py --baseline base-baseline.txt
+          else
+            python3 tools/validate-lattice-artifacts.py
+          fi
