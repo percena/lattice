@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/273 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-08-31T10:07:37Z |
+| updated | 2026-09-01T09:53:18Z |
 | adopted | false |
 | summary | Deterministically classify process workers and atomically stamp failed/timeout/unknown binders stuck. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-273-deterministic-process-proof` |
 | worktree | sibling `…/lattice.worktrees/tkt-273-deterministic-process-proof/` |
-| prs | (none) |
+| prs | pr-316 — https://github.com/percena/lattice/pull/316 |
 
 ## Acceptance (this slice)
 
@@ -52,6 +52,7 @@ Make the result artifact the primary ticket-scoped completion signal and treat `
 ## Decision journal
 
 - 2026-08-31 — blocked by tkt-271 because binder fail-close must use the atomic transition contract (source: spc-270 D2).
+- 2026-09-01T09:53:18Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #316) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
