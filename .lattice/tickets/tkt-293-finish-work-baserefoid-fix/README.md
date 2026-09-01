@@ -9,7 +9,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/293 |
-| status | queued |
+| status | pr-open |
 | adopted | true |
 | summary | Drop `baseRefOid` from `gh pr view --json`; fetch base OID via REST `gh api repos/{owner}/{repo}/pulls/{n} --jq .base.sha`; surface real gh errors instead of masking stderr; fix bats fixtures + add regression test |
 | spec | none |
@@ -22,7 +22,7 @@
 | **related_tickets** | tkt-294 (co-delivered in same PR — close-reason awareness) |
 | **worktree_bind** | tkt-293-finish-work-baserefoid-closereason |
 | worktree | sibling …/lattice.worktrees/tkt-293-finish-work-baserefoid-closereason/ |
-| prs | (pending) |
+| prs | (pending), pr-295 — https://github.com/percena/lattice/pull/295 |
 
 ## Acceptance (this slice)
 
@@ -58,6 +58,8 @@ Minimal, surgical fix:
 - REST vs GraphQL vs git-resolve for base OID — pre-resolved: REST `gh api repos/{owner}/{repo}/pulls/{n}` is simplest and already used elsewhere in the skill stack; GraphQL adds query complexity; git-resolve from `origin/<baseRefName>` requires a fetch that may not have happened in the non-rebase path. Source: issue #293 suggested fix list (option 1). Reversible, ticket-local.
 
 ## Decision journal
+
+- 2026-09-01T02:54:03Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #295) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 

@@ -9,7 +9,7 @@
 | priority | P3 |
 | labels | enhancement, P3 |
 | github | https://github.com/percena/lattice/issues/294 |
-| status | queued |
+| status | pr-open |
 | adopted | true |
 | summary | Fetch `stateReason` for closed Fixes issues via `gh api`; emit WARN in alignment-check when NOT_PLANNED/DUPLICATE/OUT_OF_DATE while PR delivers; record `stateReason` in finish-ledger (anomaly line when != COMPLETED); include reason in close-fixed-issues already_closed report |
 | spec | none |
@@ -22,7 +22,7 @@
 | **related_tickets** | tkt-293 (co-delivered in same PR — baseRefOid field fix) |
 | **worktree_bind** | tkt-293-finish-work-baserefoid-closereason |
 | worktree | sibling …/lattice.worktrees/tkt-293-finish-work-baserefoid-closereason/ |
-| prs | (pending) |
+| prs | (pending), pr-295 — https://github.com/percena/lattice/pull/295 |
 
 ## Acceptance (this slice)
 
@@ -42,6 +42,8 @@
 - Contradiction set scope — `NOT_PLANNED` is the primary case; `DUPLICATE` and `OUT_OF_DATE` are included because they also contradict "delivered by this PR". `REOPENED` and `COMPLETED` do not contradict. Source: issue #294 proposed enhancement §1. Reversible, ticket-local.
 
 ## Decision journal
+
+- 2026-09-01T02:54:07Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #295) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
