@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug |
 | github | https://github.com/percena/lattice/issues/297 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-01T11:00:00Z |
-| updated | 2026-09-01T11:00:00Z |
+| updated | 2026-09-01T09:07:14Z |
 | adopted | true |
 | summary | Writers call prepare_commit_text+commit_transaction in-lock for one atomic binder mutation (no two-write window). |
 | spec | (none — follow-up) |
@@ -26,7 +26,7 @@
 | **primary_ticket** | tkt-297 (this issue) |
 | **related_tickets** | tkt-271 (surfaced) |
 | **worktree_bind** | `tkt-297-two-write-atomicity-prepare-commit` |
-| prs | (none) |
+| prs | pr-312 — https://github.com/percena/lattice/pull/312 |
 
 ## Acceptance (this slice)
 
@@ -43,6 +43,7 @@ Refactor `_commit_locked` into `prepare_commit_text` (pure: read prior from orig
 ## Decision journal
 
 - 2026-09-01 — prepare_commit_text returns `(rc, new_text, entry)` (rc 0/1/2/3 mirroring the CLI) so writers can branch on refusal without parsing stderr. commit_transaction preserves the binder mode + A1.2 fail-close ordering. The `committed:` line is stripped from writer stdout (tests assert the writer's own messages).
+- 2026-09-01T09:07:14Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #312) [WARN — signal logged, not silently lost]
 
 ## Lineage
 
