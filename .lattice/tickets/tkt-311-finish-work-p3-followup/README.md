@@ -25,9 +25,9 @@
 
 ## Acceptance
 
-- [ ] **A1** GHE host gap: pass hostname to `gh api` calls (via `--hostname` flag or full API URL) in alignment-check.sh, close-fixed-issues.sh, finish-ledger.sh — extract hostname from PR URL or GH_TARGET_REPO_ID
-- [ ] **A2** TOCTOU: fetch both `baseRefName` and base SHA from a single `gh api repos/.../pulls/...` REST call (returns `.base.ref` + `.base.sha`), or add consistency check verifying SHA belongs to branch
-- [ ] **A3** stderr noise: capture stderr to temp var, emit only on failure (not unconditionally) — preserves tkt-293's error-surfacing intent without leaking noise
+- [x] **A1** GHE host gap: pass hostname to `gh api` calls (via `--hostname` flag or full API URL) in alignment-check.sh, close-fixed-issues.sh, finish-ledger.sh — extract hostname from PR URL or GH_TARGET_REPO_ID
+- [x] **A2** TOCTOU: fetch both `baseRefName` and base SHA from a single `gh api repos/.../pulls/...` REST call (returns `.base.ref` + `.base.sha`), or add consistency check verifying SHA belongs to branch
+- [x] **A3** stderr noise: capture stderr to temp var, emit only on failure (not unconditionally) — preserves tkt-293's error-surfacing intent without leaking noise
 
 ## Approach
 

@@ -158,14 +158,16 @@ def gh_json(args):
 CONTRADICTION_REASONS = {"not_planned", "duplicate", "out_of_date"}
 VALID_STATE_REASONS = {"completed", "not_planned", "reopened", "duplicate", "out_of_date"}
 
-def gh_state_reason(iid, repo_id):
+def gh_state_reason(iid, repo_id, api_hostname=""):
     if not repo_id:
         return ""
+    api_args = ["gh", "api", f"repos/{repo_id}/issues/{iid}", "--jq", ".state_reason"]
+    # Pass --hostname for GHE instances (tkt-311 A1). For github.com the
+    # flag is a no-op (gh resolves the default host).
+    if api_hostname:
+        api_args += ["--hostname", api_hostname]
     try:
-        out = subprocess.check_output(
-            ["gh", "api", f"repos/{repo_id}/issues/{iid}", "--jq", ".state_reason"],
-            text=True, stderr=subprocess.DEVNULL,
-        ).strip()
+        out = subprocess.check_output(api_args, text=True, stderr=subprocess.DEVNULL).strip()
         # Defense-in-depth: discard null or error-body output (tkt-301).
         return out if out in VALID_STATE_REASONS else ""
     except Exception:
@@ -184,11 +186,14 @@ url = pr_data.get("url") or ""
 # Extract owner/repo from the PR URL for REST issue close-reason lookups (tkt-294).
 # Match the LAST two path segments before /pull/ to handle GHE path-prefixed
 # URLs like https://github.acme.io/org/team/repo/pull/1 (tkt-302).
-_repo_match = re.match(r'https?://[^/]+/(.+)/pull/\d+', url)
+# Also extract the hostname for --hostname flag on gh api (tkt-311 A1).
+_repo_match = re.match(r'https?://([^/]+)/(.+)/pull/\d+', url)
 if _repo_match:
-    _segments = _repo_match.group(1).split('/')
-    repo_id = '/'.join(_segments[-2:]) if len(_segments) >= 2 else _repo_match.group(1)
+    api_hostname = _repo_match.group(1)
+    _segments = _repo_match.group(2).split('/')
+    repo_id = '/'.join(_segments[-2:]) if len(_segments) >= 2 else _repo_match.group(2)
 else:
+    api_hostname = ""
     repo_id = ""
 
 # Executable closing keywords (shared fence-aware extractor with close-fixed-issues).
@@ -353,7 +358,7 @@ for iid in issue_ids:
         continue
     issues.append(data)
     if data.get("state") == "CLOSED":
-        sr = gh_state_reason(iid, repo_id)
+        sr = gh_state_reason(iid, repo_id, api_hostname)
         if sr and sr in CONTRADICTION_REASONS and iid in closing_ids:
             warn.append(
                 f"issue #{iid} is closed as {sr.upper()} but PR #{pr} Fixes/Closes it — "

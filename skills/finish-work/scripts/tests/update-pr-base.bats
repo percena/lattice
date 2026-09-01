@@ -63,7 +63,7 @@ case "$*" in
     fi
     ;;
   "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
-  *"api repos/"*"pulls"*) printf '%s\n' "$GH_BASE_SHA" ;;
+  *"api repos/"*"pulls"*) printf '{"ref":"main","sha":"%s"}\n' "$GH_BASE_SHA" ;;
   *) exit 1 ;;
 esac
 EOF
