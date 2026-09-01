@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/273 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-09-01T09:53:18Z |
+| updated | 2026-09-01T10:01:20Z |
 | adopted | false |
 | summary | Deterministically classify process workers and atomically stamp failed/timeout/unknown binders stuck. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -87,4 +87,6 @@ Do not modify `coordinator.py`; tkt-275 integrates this result contract after me
 
 ## Finish
 
-- (none yet)
+
+- pr-316 merged: 2026-09-01T10:00:42Z — https://github.com/percena/lattice/pull/316 (base merge)
+- issue #273 closed: 2026-09-01T10:00:58Z (reason: completed) — https://github.com/percena/lattice/issues/273
