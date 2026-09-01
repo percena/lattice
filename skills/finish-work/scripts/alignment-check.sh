@@ -153,6 +153,22 @@ def gh_json(args):
     except Exception as e:
         return None
 
+# stateReason is not a gh issue view --json field on all gh versions (same
+# asymmetry as baseRefOid — tkt-293). Fetch via REST, which is stable.
+CONTRADICTION_REASONS = {"not_planned", "duplicate", "out_of_date"}
+
+def gh_state_reason(iid, repo_id):
+    if not repo_id:
+        return ""
+    try:
+        out = subprocess.check_output(
+            ["gh", "api", f"repos/{repo_id}/issues/{iid}", "--jq", ".state_reason"],
+            text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+        return out
+    except Exception:
+        return ""
+
 pr_data = gh_json(["pr", "view", pr, "--json", "number,title,body,state,headRefName,baseRefName,url,isDraft,mergeable"])
 if not pr_data:
     print("Error: cannot load PR", pr, file=sys.stderr)
@@ -162,6 +178,10 @@ body = pr_data.get("body") or ""
 title = pr_data.get("title") or ""
 head = pr_data.get("headRefName") or ""
 url = pr_data.get("url") or ""
+
+# Extract owner/repo from the PR URL for REST issue close-reason lookups (tkt-294).
+_repo_match = re.match(r'https?://[^/]+/([^/]+/[^/]+)/pull/\d+', url)
+repo_id = _repo_match.group(1) if _repo_match else ""
 
 # Executable closing keywords (shared fence-aware extractor with close-fixed-issues).
 # Refs does not auto-close. Repository-qualified Fixes owner/repo#N stay non-local.
@@ -325,7 +345,16 @@ for iid in issue_ids:
         continue
     issues.append(data)
     if data.get("state") == "CLOSED":
-        info.append(f"issue #{iid} already CLOSED")
+        sr = gh_state_reason(iid, repo_id)
+        if sr and sr in CONTRADICTION_REASONS and iid in closing_ids:
+            warn.append(
+                f"issue #{iid} is closed as {sr.upper()} but PR #{pr} Fixes/Closes it — "
+                "reconcile close-reason vs the delivering PR (re-close as completed, or drop the Fixes/Retarget)"
+            )
+        elif sr:
+            info.append(f"issue #{iid} already CLOSED (reason: {sr})")
+        else:
+            info.append(f"issue #{iid} already CLOSED")
     ibody = data.get("body") or ""
     boxes = parse_boxes(ibody)
     issue_boxes[iid] = boxes

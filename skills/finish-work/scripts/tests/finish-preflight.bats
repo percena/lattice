@@ -16,7 +16,8 @@ setup_gh_stub() {
   export GH_REPO_JSON='{"nameWithOwner":"example/repo","defaultBranchRef":{"name":"dev"}}'
   export GH_ORIGIN_REPO_JSON='{"nameWithOwner":"example/repo"}'
   export GH_PUSH_REPO_JSON='{"nameWithOwner":"example/repo"}'
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
+  export GH_BASE_SHA='2222222222222222222222222222222222222222'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   export GH_POST_JSON='{"headRefOid":"3333333333333333333333333333333333333333","mergeable":"MERGEABLE","mergeStateStatus":"CLEAN"}'
   export GH_UPDATE_RC=0
   export GH_UPDATE_OUTPUT="updated"
@@ -49,6 +50,10 @@ if [[ "$1" == "api" && "$2" == "graphql" ]]; then
   printf '%q ' "$@" >"$GH_UPDATE_ARGS_FILE"
   printf '%s' "$GH_UPDATE_OUTPUT"
   exit "$GH_UPDATE_RC"
+fi
+if [[ "$1" == "api" && "$2" == repos/*pulls/* ]]; then
+  printf '%s' "${GH_BASE_SHA:-2222222222222222222222222222222222222222}"
+  exit 0
 fi
 exit 1
 EOF
@@ -113,7 +118,8 @@ setup_rebase_fixture() {
   head_oid=$(git -C "$SEED" rev-parse feat-x)
   base_oid=$(git -C "$SEED" rev-parse main)
   export GH_REPO_JSON='{"nameWithOwner":"example/repo","defaultBranchRef":{"name":"main"}}'
-  export GH_INITIAL_JSON="{\"id\":\"PR_test\",\"number\":1,\"url\":\"https://example.test/pr/1\",\"state\":\"OPEN\",\"title\":\"t\",\"headRefName\":\"feat-x\",\"headRefOid\":\"$head_oid\",\"headRepository\":{\"nameWithOwner\":\"example/repo\"},\"isCrossRepository\":false,\"baseRefName\":\"main\",\"baseRefOid\":\"$base_oid\",\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"BEHIND\",\"isDraft\":false}"
+  export GH_INITIAL_JSON="{\"id\":\"PR_test\",\"number\":1,\"url\":\"https://example.test/pr/1\",\"state\":\"OPEN\",\"title\":\"t\",\"headRefName\":\"feat-x\",\"headRefOid\":\"$head_oid\",\"headRepository\":{\"nameWithOwner\":\"example/repo\"},\"isCrossRepository\":false,\"baseRefName\":\"main\",\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"BEHIND\",\"isDraft\":false}"
+  export GH_BASE_SHA="$base_oid"
   export GH_POST_JSON="{\"headRefOid\":\"$head_oid\",\"mergeable\":\"MERGEABLE\",\"mergeStateStatus\":\"CLEAN\"}"
 }
 
@@ -150,7 +156,7 @@ teardown() {
 
 @test "rebase rejects the live default branch even when it is dev" {
   setup_gh_stub
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"dev","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"release","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"dev","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"release","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF '"reason": "head_is_default"'
@@ -159,7 +165,7 @@ teardown() {
 @test "rebase rejects non-default long-lived head main when default is dev" {
   setup_gh_stub
   export GH_REPO_JSON='{"nameWithOwner":"example/repo","defaultBranchRef":{"name":"dev"}}'
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"main","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"main","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF '"reason": "head_is_long_lived"'
@@ -169,7 +175,7 @@ teardown() {
 @test "rebase rejects conventional long-lived head release when default is dev" {
   setup_gh_stub
   export GH_REPO_JSON='{"nameWithOwner":"example/repo","defaultBranchRef":{"name":"dev"}}'
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"release","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"release","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF '"reason": "head_is_long_lived"'
@@ -178,7 +184,7 @@ teardown() {
 
 @test "rebase rejects a fork head even when its short branch name exists upstream" {
   setup_gh_stub
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"contributor/repo"},"isCrossRepository":true,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"contributor/repo"},"isCrossRepository":true,"baseRefName":"dev","mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}'
   run bash "$UPDATE" --pr 1 --rebase --dry-run
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF '"reason": "fork_head"'
@@ -235,7 +241,7 @@ teardown() {
 
 @test "already up-to-date state is a verified noop without calling update-branch" {
   setup_gh_stub
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","isDraft":false}'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","isDraft":false}'
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF '"action": "noop"'
@@ -255,7 +261,7 @@ teardown() {
 
 @test "unknown initial mergeability fails closed" {
   setup_gh_stub
-  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","baseRefOid":"2222222222222222222222222222222222222222","mergeable":"UNKNOWN","mergeStateStatus":"UNKNOWN","isDraft":false}'
+  export GH_INITIAL_JSON='{"id":"PR_test","number":1,"url":"https://example.test/pr/1","state":"OPEN","title":"t","headRefName":"feat-x","headRefOid":"1111111111111111111111111111111111111111","headRepository":{"nameWithOwner":"example/repo"},"isCrossRepository":false,"baseRefName":"dev","mergeable":"UNKNOWN","mergeStateStatus":"UNKNOWN","isDraft":false}'
   run bash "$UPDATE" --pr 1
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF '"reason": "unverified_initial_mergeable"'
