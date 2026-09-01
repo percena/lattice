@@ -339,8 +339,12 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
       [[ "$GH_ISSUE_STATE" == "CLOSED" ]] && ISSUE_CLOSED=true
       # state_reason is not a gh issue view --json field on all gh versions
       # (tkt-294). Fetch via REST for ledger fidelity + anomaly detection.
+      # Surface fetch failures so a close-reason contradiction is not silently
+      # lost when the API is least reliable (rate limits, auth, cross-repo).
       if [[ "$GH_ISSUE_STATE" == "CLOSED" && -n "$GH_TARGET_REPO_ID" ]]; then
-        GH_ISSUE_STATE_REASON=$(gh api "repos/${GH_TARGET_REPO_ID}/issues/${ISSUE_M}" --jq '.state_reason' 2>/dev/null || true)
+        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${GH_TARGET_REPO_ID}/issues/${ISSUE_M}" --jq '.state_reason' 2>/dev/null); then
+          echo "finish-ledger: WARNING — cannot fetch state_reason for issue #$ISSUE_M (REST API failed); close-reason not recorded in ledger" >&2
+        fi
       fi
     fi
   fi
@@ -491,10 +495,12 @@ else:
         # refresh anomaly line if present
         if anomaly_line:
             anom_pat = re.compile(r'^- anomaly: .*$', re.MULTILINE)
-            if anom_pat.search(body):
-                body = anom_pat.sub(anomaly_line.lstrip("\n"), body)
-            else:
-                body = body.rstrip() + anomaly_line + "\n"
+            # Remove ALL existing anomaly lines first, then append the fresh
+            # block. Without this, sub() replaces each of N existing lines with
+            # the full multi-line anomaly_line, doubling on every re-stamp.
+            body = anom_pat.sub('', body)
+            body = re.sub(r'\n{3,}', '\n\n', body)  # collapse blanks from removal
+            body = body.rstrip() + anomaly_line + "\n"
         # refresh issue line if issue info present
         if issue_line:
             iss_pat = re.compile(rf'^- issue #{re.escape(issue_m)}.*$', re.MULTILINE) if issue_m else None

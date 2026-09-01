@@ -269,8 +269,7 @@ else:
         print("  dry_run: true")
     else:
         closed_items = payload['closed']
-        if closed_items:
-            print(f"  closed: {' '.join(map(str, closed_items))}")
+        print(f"  closed: {' '.join(map(str, closed_items)) or '(none)'}")
         already_items = payload['already_closed']
         if already_items and already_reasons:
             items_str = ' '.join(f"{n} ({already_reasons.get(n, 'unknown')})" for n in already_items)
@@ -370,7 +369,9 @@ print("ISSUE_EPIC="+("true" if "epic" in names else "false"))
     if [[ -n "$PR_URL" ]]; then
       repo_base=$(printf '%s' "$PR_URL" | sed -E 's#https?://[^/]+/([^/]+/[^/]+)/pull/.*#\1#')
       if [[ -n "$repo_base" ]]; then
-        close_reason=$("$GH_BIN" api "repos/${repo_base}/issues/${id}" --jq '.state_reason' 2>/dev/null || true)
+        if ! close_reason=$("$GH_BIN" api "repos/${repo_base}/issues/${id}" --jq '.state_reason' 2>/dev/null); then
+          echo "close-fixed-issues: WARNING — cannot fetch state_reason for issue #$id (REST API failed)" >&2
+        fi
       fi
     fi
     if [[ -n "$close_reason" ]]; then

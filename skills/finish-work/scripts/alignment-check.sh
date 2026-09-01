@@ -351,10 +351,11 @@ for iid in issue_ids:
                 f"issue #{iid} is closed as {sr.upper()} but PR #{pr} Fixes/Closes it — "
                 "reconcile close-reason vs the delivering PR (re-close as completed, or drop the Fixes/Retarget)"
             )
+            info.append(f"issue #{iid} already CLOSED (reason: {sr}) — contradiction WARN emitted")
         elif sr:
             info.append(f"issue #{iid} already CLOSED (reason: {sr})")
         else:
-            info.append(f"issue #{iid} already CLOSED")
+            info.append(f"issue #{iid} already CLOSED (close-reason unavailable — REST fetch failed or repo_id unresolved)")
     ibody = data.get("body") or ""
     boxes = parse_boxes(ibody)
     issue_boxes[iid] = boxes
