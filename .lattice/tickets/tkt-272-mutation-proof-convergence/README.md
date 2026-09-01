@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/272 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-08-31T10:07:37Z |
+| updated | 2026-09-01T13:04:44Z |
 | adopted | false |
 | summary | Converge normal, delegated, batch, single-PR, and multi-PR mutation proof on target-bound expected-OID checks. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-272-mutation-proof-convergence` |
 | worktree | sibling `…/lattice.worktrees/tkt-272-mutation-proof-convergence/` |
-| prs | (none) |
+| prs | pr-318 — https://github.com/percena/lattice/pull/318 |
 
 ## Acceptance (this slice)
 
@@ -86,4 +86,6 @@ This ticket owns mutation proof only; coordinator persistence/integration belong
 
 ## Finish
 
-- (none yet)
+
+- pr-318 merged: 2026-09-01T13:03:46Z — https://github.com/percena/lattice/pull/318 (base merge)
+- issue #272 closed: 2026-09-01T13:04:05Z (reason: completed) — https://github.com/percena/lattice/issues/272
