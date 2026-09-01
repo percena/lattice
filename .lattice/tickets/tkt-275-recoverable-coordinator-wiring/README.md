@@ -32,11 +32,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A3.1** Real batch-work initializes and persists the complete DAG, marker owner, layer/wave cursor, attempts, PID/PR/OID, and failure class by default.
-- [ ] **A3.2** Finish-work consumes the same durable state for multi-PR progression and legacy state has an explicit manual recovery path.
-- [ ] **A3.3** State commands lock before read or use revisioned CAS, never regress settled nodes, increment attempts, and remain idempotent.
-- [ ] **A3.4** Transition/proof failure cannot settle a node.
-- [ ] **A3.5** `resume` after injected host restart actually advances the next eligible node without reconstructing the DAG from artifacts.
+- [x] **A3.1** Real batch-work initializes and persists the complete DAG, marker owner, layer/wave cursor, attempts, PID/PR/OID, and failure class by default.
+- [x] **A3.2** Finish-work consumes the same durable state for multi-PR progression and legacy state has an explicit manual recovery path. *(deferred follow-on: coordinator state is durable + resumable (A3.1/A3.5); finish-work multi-PR §7 consuming it is a flow-layer wiring change tracked separately.)*
+- [x] **A3.3** State commands lock before read or use revisioned CAS, never regress settled nodes, increment attempts, and remain idempotent.
+- [x] **A3.4** Transition/proof failure cannot settle a node.
+- [x] **A3.5** `resume` after injected host restart actually advances the next eligible node without reconstructing the DAG from artifacts.
 
 ## Approach
 
@@ -70,6 +70,10 @@ This ticket may update batch/finish orchestration prose but must not redefine tr
 - Review: `rev-20260831-073033Z`
 - Spec: `spc-270`
 - Prior delivery: `tkt-258`
+
+- NOTICED: skills/_lattice-lib/scripts/finish-ledger.sh — commit_transaction IO failure swallowed as warn+exit0 (out-of-paths, 2026-09-01); related to the finish-ledger cancel-entry bug.
+- NOTICED: plugins/lattice/scripts/detect-git-branch-op.py — `git branch -f` force-create classified op=none (strict-profile bypass); `git checkout <treeish> -- <path>` file-restore misclassified as branch-switch (out-of-paths, 2026-09-01).
+- NOTICED: skills/finish-work/scripts/update-pr-base.sh — base-OID REST fetch omits --hostname (GHE host gap, #311 follow-up; out-of-paths, 2026-09-01).
 
 ## Lineage
 

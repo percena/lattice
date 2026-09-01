@@ -70,8 +70,19 @@ from typing import Optional
 
 # Resolve the _lattice-lib sibling so transition-api.py is found by default.
 _HERE = Path(__file__).resolve().parent
-_LIB_DIR = _HERE.parent.parent / "_lattice-lib" / "scripts"  # ../../_lattice-lib/scripts
+# _HERE = skills/batch-work/scripts/lib; the _lattice-lib sibling is at
+# skills/_lattice-lib/scripts — 3 up (lib -> scripts -> batch-work -> skills),
+# NOT 2 up (which would resolve under skills/batch-work/_lattice-lib — nonexistent).
+_LIB_DIR = _HERE.parent.parent.parent / "_lattice-lib" / "scripts"
 DEFAULT_TRANSITION_API = str(_LIB_DIR / "transition-api.py")
+
+
+# spc-270 A3.3: settled node statuses — a settled node never regresses to a
+# non-settled status (pending/running). record-node is idempotent: re-recording
+# the same settled status is a no-op (does not re-run the transition-api).
+SETTLED_STATUSES = frozenset({"ok", "failed", "timeout", "unknown", "closed",
+                              "transition_failed", "spawned-but-dead",
+                              "workspace-failed"})
 
 
 def now_iso() -> str:
@@ -174,6 +185,7 @@ def save_state(state: dict, lattice_home: str) -> None:
                 state["updated"] = now_iso()
             except (json.JSONDecodeError, KeyError):
                 pass  # corrupted/missing — overwrite with the new state
+        state["_rev"] = int(state.get("_rev", 0)) + 1  # spc-270 A3.3 monotonic rev
         fd, tmp = tempfile.mkstemp(dir=str(p.parent), prefix=".state.")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
@@ -211,7 +223,16 @@ def _merge_state(cur: dict, new: dict) -> None:
                 cw = cur_waves[wid]
                 cur_nodes = {n["ticket"]: n for n in cw.get("nodes", [])}
                 for nn in nw.get("nodes", []):
-                    cur_nodes[nn["ticket"]] = nn  # overwrite (update)
+                    existing = cur_nodes.get(nn["ticket"])
+                    # spc-270 A3.3 monotonic: a settled node never regresses to a
+                    # non-settled status; an identical settled status is idempotent
+                    # (keep the existing — do not overwrite with a stale re-record).
+                    # NOTE: local var is `existing`, NOT `cur` (which shadows the
+                    # outer state dict and would break the settled_tickets merge).
+                    if (existing and existing.get("status") in SETTLED_STATUSES
+                            and nn.get("status") not in SETTLED_STATUSES):
+                        continue  # never regress a settled node
+                    cur_nodes[nn["ticket"]] = nn
                 cw["nodes"] = list(cur_nodes.values())
                 cur_waves[wid] = cw
             cl["waves"] = list(cur_waves.values())
@@ -296,6 +317,16 @@ def cmd_load_dag(args: list) -> int:
     return 0
 
 
+def _find_node(state: dict, ticket: str) -> dict | None:
+    """Return the persisted node for <ticket>, or None."""
+    for layer in state.get("dag", []):
+        for wave in layer.get("waves", []):
+            for node in wave.get("nodes", []):
+                if node.get("ticket") == ticket:
+                    return node
+    return None
+
+
 def cmd_record_spawn(args: list) -> int:
     kv = _parse(
         args,
@@ -324,11 +355,43 @@ def cmd_record_spawn(args: list) -> int:
     wave = {"wave": int(kv["--wave"]), "nodes": [node]}
     layer = {"layer": int(kv["--layer"]), "waves": [wave]}
     state = load_state(batch_id, lattice_home)
+    # spc-270 A3.3: increment attempt on re-spawn of an existing ticket (a
+    # restart re-runs a ticket that already attempted); a first spawn is 1.
+    existing = _find_node(state, kv["--ticket"])
+    if existing is not None and existing.get("attempt", 0) > 0:
+        node["attempt"] = existing["attempt"] + 1
     state["dag"] = [layer]  # merge adds/overwrites this node
     save_state(state, lattice_home)
     print(f"record-spawn: {kv['--ticket']} pid={kv['--pid']} "
           f"layer={kv['--layer']} wave={kv['--wave']}")
     return 0
+
+
+def _commit_stuck(tapi: str, lattice_home: str, ticket: str, reason: str) -> bool:
+    """spc-270 A3.4: atomic in-progress→stuck flip via transition-api commit.
+    Returns True on success (binder + ledger agree); False on any failure (the
+    node must NOT be settled — host triage stamps stuck manually)."""
+    if not Path(tapi).is_file():
+        print(f"warn: transition-api not found; cannot commit stuck flip for {ticket}",
+              file=sys.stderr)
+        return False
+    env = dict(os.environ, LATTICE_HOME=lattice_home)
+    try:
+        result = subprocess.run(
+            [sys.executable, tapi, "commit", ticket, "stuck", "system", reason,
+             "--wait-reason", "unblock", "--trace", "wait_reason: unblock"],
+            env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            check=False, timeout=10,
+        )
+        if result.returncode != 0:
+            print(f"warn: transition-api commit returned {result.returncode} for "
+                  f"{ticket} (binder missing/crashed before stamp?); node NOT settled",
+                  file=sys.stderr)
+            return False
+        return True
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        print(f"warn: transition-api commit failed for {ticket}: {exc}", file=sys.stderr)
+        return False
 
 
 def cmd_record_node(args: list) -> int:
@@ -345,11 +408,26 @@ def cmd_record_node(args: list) -> int:
     failure_class = kv.get("--failure-class") or status
     tapi = kv.get("--transition-api") or DEFAULT_TRANSITION_API
 
-    # Persist the node's settled state (failure class, PID/PR/OID, epochs).
+    # spc-270 A3.4: for unknown/timeout, the atomic stuck flip (transition-api
+    # commit) MUST succeed BEFORE the node is settled. A transition failure
+    # leaves the node unsettled (status=transition_failed, NOT in settled_tickets)
+    # and record-node returns non-zero so the wave knows the node did not settle
+    # (run-process-wave's WAVE_TRANSITION_FAIL mirrors this for the non-coordinator
+    # path). ok/failed/spawned-but-dead/workspace-failed settle immediately (the
+    # worker owns the ok→pr-open flip; failed records the failure class only).
+    transition_ok = True
+    if status in ("unknown", "timeout"):
+        reason = kv.get("--reason") or f"coordinator: node {status}"
+        transition_ok = _commit_stuck(tapi, lattice_home, ticket, reason)
+
+    # Persist: settle only when the transition succeeded (or status is not
+    # unknown/timeout). On failure, persist status=transition_failed but do NOT
+    # add to settled_tickets — the node is not settled (host must stamp stuck).
+    persist_status = status if transition_ok else "transition_failed"
     node = {
         "ticket": ticket,
-        "status": status,
-        "failure_class": failure_class,
+        "status": persist_status,
+        "failure_class": failure_class if transition_ok else "transition_failed",
         "pid": int(kv["--pid"]) if kv.get("--pid") else None,
         "pr": int(kv["--pr"]) if kv.get("--pr") else None,
         "oid": kv.get("--oid"),
@@ -358,50 +436,15 @@ def cmd_record_node(args: list) -> int:
     }
     state = load_state(batch_id, lattice_home)
     _patch_node(state, ticket, node)
-    settled = set(state.get("settled_tickets", []))
-    settled.add(ticket)
-    state["settled_tickets"] = sorted(settled)
+    if transition_ok:
+        settled = set(state.get("settled_tickets", []))
+        settled.add(ticket)
+        state["settled_tickets"] = sorted(settled)
     save_state(state, lattice_home)
-
-    # tkt-298: the coordinator no longer duplicates the ok→pr-open flip. The
-    # worker (spawned agent) owns that flip: it runs start-work (in-progress
-    # stamp) then create-pr → stamp-pr-open, which (post-tkt-271 A1.3) flips
-    # the binder in-progress→pr-open via `commit` and records the ledger
-    # atomically. The worker STOPS at create-pr, so by the time the coordinator
-    # settles an `ok` node the binder is already pr-open; a second record would
-    # be a discontinuity (A1.5). For `unknown`/`timeout` (worker crashed/timed
-    # out — no PR created, binder still in-progress) the coordinator IS the
-    # sole recorder, so it flips the binder to `stuck` via `commit`
-    # (in-progress→stuck + wait_reason: unblock) — binder + ledger agree
-    # atomically (A1.3); the validator's snapshot/continuity checks stay clean.
-    # Best-effort: a missing/errored transition-api or a missing binder (worker
-    # crashed before start-work stamped one) MUST NOT lose the persisted DAG
-    # state (already written above); it warns so the host's triage still sees
-    # the unrecorded binder flip. `failed` records the failure class only (host
-    # triages the crashed worker's binder).
-    if status in ("unknown", "timeout"):
-        reason = kv.get("--reason") or f"coordinator: node {status}"
-        if Path(tapi).is_file():
-            env = dict(os.environ, LATTICE_HOME=lattice_home)
-            try:
-                result = subprocess.run(
-                    [sys.executable, tapi, "commit", ticket,
-                     "stuck", "system", reason,
-                     "--wait-reason", "unblock",
-                     "--trace", "wait_reason: unblock"],
-                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                    check=False, timeout=10,
-                )
-                if result.returncode != 0:
-                    print(f"warn: transition-api commit returned {result.returncode} "
-                          f"for {ticket} (binder missing/crashed before stamp?); "
-                          f"DAG state unchanged", file=sys.stderr)
-            except (subprocess.TimeoutExpired, OSError) as exc:
-                print(f"warn: transition-api commit failed for {ticket}: {exc}",
-                      file=sys.stderr)
-        else:
-            print(f"warn: transition-api not found; cannot commit stuck flip "
-                  f"for {ticket}", file=sys.stderr)
+    if not transition_ok:
+        print(f"record-node: {ticket} status={status} → transition_failed "
+              f"(node NOT settled; host must stamp stuck)", file=sys.stderr)
+        return 1
     print(f"record-node: {ticket} status={status} failure_class={failure_class}")
     return 0
 
@@ -414,6 +457,13 @@ def _patch_node(state: dict, ticket: str, patch: dict) -> None:
         for wave in layer.get("waves", []):
             for node in wave.get("nodes", []):
                 if node.get("ticket") == ticket:
+                    # spc-270 A3.3: monotonic — a settled node never regresses;
+                    # idempotent — re-recording the same settled status is a no-op.
+                    cur_status = node.get("status")
+                    new_status = patch.get("status", cur_status)
+                    if (cur_status in SETTLED_STATUSES
+                            and new_status not in SETTLED_STATUSES):
+                        return  # settled node must not regress
                     for k, v in patch.items():
                         if v is not None:
                             node[k] = v
@@ -469,11 +519,14 @@ def cmd_resume(args: list) -> int:
                         "brief_file": node.get("brief_file", ""),
                         "timebox_min": node.get("timebox_min", 0),
                     })
+    # spc-270 A3.5: next_node is the first eligible pending node so a host
+    # restart drives it directly (no DAG re-derivation).
     resume = {
         "batch_id": batch_id,
         "resume_cursor": cursor,
         "settled_tickets": sorted(settled),
         "pending": pending,
+        "next_node": pending[0] if pending else None,
         "marker_owner": state.get("marker_owner"),
     }
     print(json.dumps(resume, indent=2))
