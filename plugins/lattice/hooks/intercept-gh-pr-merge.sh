@@ -3,8 +3,7 @@
 # Default mode is strict (blocks). Set LATTICE_HOOK_MODE=advisory to nudge-only.
 # Thin entry: skill-specific config only; the shared flow (pre-filter, strip,
 # marker check, rewind re-validation, advisory/strict delivery) lives in
-# lib/intercept-gh-pr-common.sh. Fail CLOSED on missing python3 in strict mode;
-# fail OPEN on other ambiguity, including a missing lib.
+# lib/intercept-gh-pr-common.sh. Fail OPEN on ambiguity, including a missing lib.
 # Does NOT edit issue/PR/binder bodies.
 
 # shellcheck disable=SC2034  # consumed by lib/intercept-gh-pr-common.sh

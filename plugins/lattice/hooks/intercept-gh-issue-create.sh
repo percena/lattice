@@ -3,11 +3,12 @@
 # Default mode is strict (blocks). Set LATTICE_HOOK_MODE=advisory to nudge-only.
 # Thin entry: skill-specific config only; the shared flow (pre-filter, strip,
 # marker check, rewind re-validation, advisory/strict delivery) lives in
-# lib/intercept-gh-pr-common.sh. Fail CLOSED on missing python3 in strict mode;
-# fail OPEN on other ambiguity, including a missing lib.
+# lib/intercept-gh-pr-common.sh. Fail OPEN on ambiguity, including a missing lib.
+# Also accepts create-spec marker — that skill legitimately calls gh issue create.
 
 # shellcheck disable=SC2034  # consumed by lib/intercept-gh-pr-common.sh
 INTERCEPT_SKILL_NAME="create-tickets"
+INTERCEPT_SKILL_NAME_ALT="create-spec"  # create-spec also calls gh issue create (references/issue-and-write.md)
 INTERCEPT_GH_PR_VERB='issue-create'
 INTERCEPT_SYSTEM_MESSAGE="lattice: bare gh issue create blocked — /create-tickets is the required path (strict)"
 INTERCEPT_ADVICE='⚠️ Direct gh issue create detected. The create-tickets skill is the required path, not an optional one.

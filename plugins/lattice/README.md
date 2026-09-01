@@ -80,40 +80,41 @@ Optional guidance — **skills remain correct without hooks** (Codex / `npx skil
 | --- | --- |
 | `track-skill-activation` | Record Skill-tool loads |
 | `track-skill-slash-command` | Record `/create-pr` / `/finish-work` (and `/lattice:…`) slash loads |
-| `intercept-gh-pr-create` | Advise on bare `gh pr create`; `LATTICE_HOOK_MODE=strict` opts into blocking |
-| `intercept-gh-pr-merge` | Advise on bare `gh pr merge`; strict mode same |
+| `intercept-gh-pr-create` | Block bare `gh pr create` unless `create-pr` skill is active |
+| `intercept-gh-pr-merge` | Block bare `gh pr merge` unless `finish-work` skill is active |
+| `intercept-gh-issue-create` | Block bare `gh issue create` unless `create-tickets` (or `create-spec`) skill is active |
 | `clear-skill-markers-on-compact` | Drop markers after context compact |
 
 Does **not** auto-edit issue/PR/binder bodies. Fail-open on ambiguity.
 
 ### Hook configuration: `LATTICE_HOOK_MODE`
 
-Default is **advisory** — bare `gh pr create` / `gh pr merge` get a stderr nudge
-(`exit 0`); the skill is recommended, not mandatory.
+Default is **strict** — bare `gh pr create` / `gh pr merge` / `gh issue create`
+are **blocked** (`exit 2`) unless the respective skill marker is active in the
+session.
 
-To **enforce** the marker gate (block the tool call until `create-pr` /
-`finish-work` is active in the session), set:
+To **disable** the block and get a nudge-only advisory (`exit 0`), set:
 
 ```bash
 # per shell
-export LATTICE_HOOK_MODE=strict
+export LATTICE_HOOK_MODE=advisory
 ```
 
 or in `~/.claude/settings.json` env (applies to every session):
 
 ```json
-{ "env": { "LATTICE_HOOK_MODE": "strict" } }
+{ "env": { "LATTICE_HOOK_MODE": "advisory" } }
 ```
 
-Any value other than `advisory`/`strict` falls back to advisory. Strict mode is
-recommended for the dogfood repo and teams that want a best-effort guard around
-direct `gh pr create` / `gh pr merge` calls. It recognizes documented `gh`/`pr`
-repository-flag placements, but it is not a shell security sandbox and remains
-fail-open when parsing itself is unavailable or indeterminate. In strict mode,
-an unquoted `gh pr create` / `merge` mutation behind an unknown command prefix
-is conservatively treated as executable unless the prefix is a known text/search
-command. The skills themselves remain correct without hooks
-(Codex / `npx skills`).
+Any value other than `advisory`/`strict` falls back to strict. Advisory mode is
+available for sessions that want nudge-only enforcement. The hooks recognize
+documented `gh`/`pr`/`issue` repository-flag placements, but are not a shell
+security sandbox and remain fail-open when parsing itself is unavailable or
+indeterminate (including `python3` missing — see spc-212). In strict mode,
+an unquoted `gh pr create` / `merge` / `issue create` mutation behind an
+unknown command prefix is conservatively treated as executable unless the
+prefix is a known text/search command. The skills themselves remain correct
+without hooks (Codex / `npx skills`).
 
 ### Marker TTL: `LATTICE_SKILL_MARKER_TTL_HOURS`
 
