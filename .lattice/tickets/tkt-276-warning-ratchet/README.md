@@ -32,11 +32,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A6.1** Warning identity uses stable entity plus occurrence/detail semantics; repeated same-code/path findings remain distinct.
-- [ ] **A6.2** Missing, empty where disallowed, malformed, or corrupt baseline fails closed in ratchet mode.
-- [ ] **A6.3** CI compares current warnings and baseline against the base branch, forbids additions/baseline growth, permits verified removals, and reports stale entries.
-- [ ] **A6.4** Done-Spec PR union and reciprocal-edge warnings have a versioned warning→error schedule enforced by the validator.
-- [ ] **A6.5** Fixtures cover repeated occurrence, missing/empty/corrupt baseline, attempted growth, valid removal, stale entry, and migration deadline.
+- [x] **A6.1** Warning identity uses stable entity plus occurrence/detail semantics; repeated same-code/path findings remain distinct.
+- [x] **A6.2** Missing, empty where disallowed, malformed, or corrupt baseline fails closed in ratchet mode.
+- [x] **A6.3** CI compares current warnings and baseline against the base branch, forbids additions/baseline growth, permits verified removals, and reports stale entries.
+- [x] **A6.4** Done-Spec PR union and reciprocal-edge warnings have a versioned warning→error schedule enforced by the validator.
+- [x] **A6.5** Fixtures cover repeated occurrence, missing/empty/corrupt baseline, attempted growth, valid removal, stale entry, and migration deadline.
 
 ## Approach
 

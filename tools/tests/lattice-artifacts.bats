@@ -600,3 +600,48 @@ setup_file() {
   printf '%s\n' "$output" | grep -qF evidence_v1_run_id_missing
   printf '%s\n' "$output" | grep -qF evidence_v1_result_schema_missing
 }
+
+# --- spc-270 A6: true warning ratchet (tkt-276) ---
+
+@test "A6.2: missing baseline (--baseline <nonexistent>) fails closed (ratchet mode)" {
+  # A configured-but-missing baseline must NOT silently pass — fail closed.
+  run python3 "$VAL" --home "$FIX/ratchet" --baseline "$FIX/ratchet/DOES-NOT-EXIST.txt"
+  [ "$status" -eq 1 ]
+}
+
+@test "A6.2: corrupt/malformed baseline fails closed (ratchet mode)" {
+  run python3 "$VAL" --home "$FIX/ratchet" --baseline "$FIX/ratchet/corrupt.txt"
+  [ "$status" -eq 1 ]
+}
+
+@test "A6.1: two same-code+path findings with different details are DISTINCT new_warnings (real validator)" {
+  # ratchet-distinct fixture: 2 malformed feature-map rows → 2 feature_map_row_format
+  # findings at the SAME path with DIFFERENT line numbers. With a dummy baseline
+  # (activates ratchet, matches neither), BOTH must be new_warnings with DISTINCT
+  # signatures (no set-collapse — the A6.1 goal). Exercises the REAL validator.
+  run python3 "$VAL" --home "$FIX/ratchet-distinct" --baseline "$FIX/ratchet/dummy.txt" --json
+  [ "$status" -eq 1 ]
+  out=$(printf '%s\n' "$output" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+nw=d.get('ratchet_new_warnings',[])
+fm=[w for w in nw if w.get('code')=='feature_map_row_format']
+assert len(fm)==2, 'expected 2 feature_map new_warnings, got %d' % len(fm)
+sigs={w.get('detail','') for w in fm}
+assert len(sigs)==2, '2 findings collapsed to %d sig (A6.1 regression)' % len(sigs)
+print('A6.1: 2 distinct new_warnings (real validator)')
+")
+  [ -n "$out" ]
+}
+
+@test "A6.2: a valid present 3-column baseline does NOT false fail-closed (no warnings → pass)" {
+  # A non-corrupt baseline + a fixture with zero warnings must pass (fail-closed
+  # only on missing/corrupt, not on a present valid baseline).
+  run python3 "$VAL" --home "$FIX/ratchet-clean" --baseline "$FIX/ratchet/valid-3col.txt"
+  [ "$status" -eq 0 ]
+}
+
+@test "A6.4: non-numeric --migration-version exits 2 (usage error, not a findings crash)" {
+  run python3 "$VAL" --migration-version next --home "$FIX/pass"
+  [ "$status" -eq 2 ]
+}

@@ -1,0 +1,2 @@
+# A6.5 valid 3-column baseline (non-corrupt; tests no false fail-closed)
+legacy_open_status	.lattice/tickets/tkt-x/README.md	some detail prefix

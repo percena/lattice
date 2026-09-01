@@ -1,0 +1,7 @@
+# spc-270 A6.4: warning → error migration schedule. Format: <code>\t<error_at_version>
+# When the validator runs with --migration-version >= error_at_version, the
+# warning is upgraded to error (fails the run). Version 1 = current (no
+# warnings scheduled to error yet — entries below are forward commitments).
+# Add a line when a warning code is committed to become a hard error.
+# Example forward commitment (commented — not yet active):
+# legacy_open_status	2

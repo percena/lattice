@@ -1735,6 +1735,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Repo root for default home (default: cwd show-toplevel or .)",
     )
     parser.add_argument(
+        "--migration-version",
+        default="1",
+        help="spc-270 A6.4 migration version; warnings scheduled to error at "
+        "<= this version (tools/.warning-migration-schedule.txt) become errors.",
+    )
+    parser.add_argument(
         "--baseline",
         default=None,
         help=(
@@ -1774,11 +1780,31 @@ def main(argv: list[str] | None = None) -> int:
     if baseline_path is None and default_home_used:
         baseline_path = Path(__file__).resolve().parent / ".validator-warning-baseline.txt"
     baseline_sigs: set[str] = set()
+    baseline_corrupt = False
+    # spc-270 A6.1: baseline entries are 2-column (code\tpath → legacy wildcard
+    # occurrence_key="*") or 3-column (code\tpath\toccurrence_key). A 2-column
+    # entry matches ANY occurrence of that code+path (preserves existing debt).
     if baseline_path is not None and baseline_path.is_file():
         for line in baseline_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if line and not line.startswith("#"):
-                baseline_sigs.add(line)
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) == 2:
+                baseline_sigs.add(f"{parts[0]}\t{parts[1]}\t*")  # legacy wildcard
+            elif len(parts) >= 3:
+                baseline_sigs.add(f"{parts[0]}\t{parts[1]}\t{parts[2]}")
+            else:
+                baseline_corrupt = True  # malformed entry (A6.2 fail-closed)
+    elif baseline_path is not None and not baseline_path.is_file():
+        baseline_corrupt = True  # baseline configured but missing (A6.2)
+
+    def _occurrence_key(f: dict[str, str]) -> str:
+        # spc-270 A6.1: same-code+path findings stay DISTINCT by their detail
+        # (incl. line number — two malformed rows at line 5 vs 6 are distinct
+        # occurrences; stripping the line number collapsed them, defeating A6.1).
+        # Truncate only for baseline-file readability; the discriminator is kept.
+        return f.get("detail", "")[:80]
 
     def _sig(f: dict[str, str]) -> str:
         # Normalize to repo-root-relative so the baseline is portable across
@@ -1789,8 +1815,35 @@ def main(argv: list[str] | None = None) -> int:
             p = str(Path(p).resolve().relative_to(root))
         except (ValueError, TypeError):
             pass
-        return f"{f.get('code', '')}\t{p}"
+        # A6.1: 3-column signature (code, path, occurrence_key). 2-column legacy
+        # baseline entries get occurrence_key="*" (wildcard — match any occurrence).
+        return f"{f.get('code', '')}\t{p}\t{_occurrence_key(f)}"
 
+    # spc-270 A6.4: versioned warning→error migration runs BEFORE the ratchet
+    # computation so migrated warnings are NOT double-counted (they leave the
+    # warnings list + join errors; new_warnings only sees unmigrated warnings).
+    try:
+        mig_ver = int(getattr(args, "migration_version", "1") or "1")
+    except (ValueError, TypeError):
+        print("Error: --migration-version must be an integer", file=sys.stderr)
+        return 2
+    mig_path = Path(__file__).resolve().parent / ".warning-migration-schedule.txt"
+    mig_schedule: dict[str, int] = {}
+    if mig_path.is_file():
+        for line in mig_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) == 2:
+                try:
+                    mig_schedule[parts[0]] = int(parts[1])
+                except ValueError:
+                    pass
+    migrated = [f for f in all_findings if mig_schedule.get(f.get("code", ""), 999) <= mig_ver]
+    for w in migrated:
+        w["level"] = "error"
+        w["migrated_from_warning"] = True
     errors = [f for f in all_findings if f.get("level", "error") != "warning"]
     warnings = [f for f in all_findings if f.get("level", "error") == "warning"]
     # spc-270 A5.5: evidence_legacy_v0 is a lazy-migration warning (v0 artifacts
@@ -1798,13 +1851,25 @@ def main(argv: list[str] | None = None) -> int:
     # first v0 pass row in .lattice does not break CI. Exempt it only when a
     # baseline is present (ratchet mode); no baseline ⇒ no ratchet (else []).
     RATCHET_EXEMPT_CODES = {"evidence_legacy_v0"}
+
+    def _is_baselined(w: dict[str, str]) -> bool:
+        # A6.1: a warning is baselined if its exact 3-col sig matches OR the
+        # legacy 2-col wildcard (code\tpath\*) matches (preserves existing debt).
+        sig = _sig(w)
+        if sig in baseline_sigs:
+            return True
+        p = sig.rsplit("\t", 1)[0]  # code\tpath
+        return f"{p}\t*" in baseline_sigs
+
     new_warnings = (
-        [w for w in warnings if _sig(w) not in baseline_sigs and w.get("code", "") not in RATCHET_EXEMPT_CODES]
+        [w for w in warnings if not _is_baselined(w) and w.get("code", "") not in RATCHET_EXEMPT_CODES]
         if baseline_sigs
         else []
     )
     new_sigs = {_sig(w) for w in new_warnings}
-    ratchet_fail = bool(new_warnings)
+    # spc-270 A6.2: a corrupt/missing baseline (when ratchet is active — i.e. a
+    # baseline path was resolved) fails closed rather than silently passing.
+    ratchet_fail = bool(new_warnings) or (baseline_corrupt and baseline_path is not None)
 
     if args.json:
         print(

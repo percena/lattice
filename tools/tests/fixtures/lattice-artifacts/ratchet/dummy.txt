@@ -1,0 +1,2 @@
+# dummy baseline entry (activates ratchet; matches nothing in ratchet-distinct)
+legacy_open_status	.lattice/tickets/tkt-none/README.md	*
