@@ -40,3 +40,6 @@ Apply silently; never blocks ship.
 
 <!-- Superseded entries stay in place, e.g.
      - ~~HTTP client: axios~~ superseded 2026-08-26 by "stdlib, not a new library" -->
+
+## Review-findings → tickets (operator-stated, 2026-09-01)
+When a code review (review-code / finish-work mini-review) surfaces material findings, prefer **creating follow-up tickets** for each issue (with Why/Acceptance/Approach, linked to the PR) over folding fixes into the in-flight PR — *unless* the fix is small and in-scope. Rationale: keeps the reviewed PR's verdict honest + tracks the refinement work as durable, traceable items rather than ad-hoc patches. The operator wants the workflow (including its details) progressively refined via these tickets. Source: finish-work pr-296 (tkt-271) — chose ship-as-is + filed #297-#300.
