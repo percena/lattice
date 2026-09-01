@@ -780,3 +780,17 @@ EOF
   grep -q '^- cancelled: second — closedAt: unavailable' "$BINDER"
   if grep -q '^- cancelled: first' "$BINDER"; then false; fi
 }
+
+@test "tkt-323: commit_transaction IO failure fails closed (exit non-zero, not swallowed WARN)" {
+  # A read-only binder directory makes commit_transaction's os.replace fail
+  # (cannot rename the temp into a read-only dir). Before tkt-323 this was
+  # swallowed as a WARN + exit 0; now it raises SystemExit (fail-closed).
+  write_fresh_binder
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm "binder"
+  chmod 555 "$BINDER_DIR"  # make the binder dir read-only → os.replace fails
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -ne 0 ]  # fail-closed (not exit 0)
+  printf '%s\n' "$output" | grep -qF "FAILED"
+  chmod 755 "$BINDER_DIR"  # restore so teardown can rm
+}

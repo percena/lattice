@@ -380,14 +380,16 @@ elif flip_journal is not None:
         s, TICKET_ID, "rework", flip_owner, flip_reason,
         journal_entry=flip_journal)
     if rc != 0:
-        print("bump-fix-cycle: WARN — transition refused (non-blocking; "
-              "validator will catch); fix_cycles written but status not "
-              "flipped", file=sys.stderr)
-    else:
-        rc2 = _ta.commit_transaction(binder, nt, ledentry)
-        if rc2 != 0:
-            print("bump-fix-cycle: WARN — transaction failed (non-blocking; "
-                  "validator will catch)", file=sys.stderr)
+        raise SystemExit(
+            f"bump-fix-cycle: REFUSED — transition refused (rc={rc}); fix_cycles "
+            f"NOT flipped + ledger NOT appended. Do NOT proceed. (tkt-323)"
+        )
+    rc2 = _ta.commit_transaction(binder, nt, ledentry)
+    if rc2 != 0:
+        raise SystemExit(
+            f"bump-fix-cycle: FAILED — commit_transaction rc={rc2} (IO/lock "
+            f"failure); binder NOT flipped. Do NOT proceed. (tkt-323)"
+        )
 elif s != orig:
     # rework → rework escape (fix_cycles + journal, no status flip) — write `s`
     # directly (no ledger; rework→rework is not a recorded edge).

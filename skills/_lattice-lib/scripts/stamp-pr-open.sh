@@ -448,15 +448,23 @@ elif flip:
         force_reason=(side_reason if force_side_state else None),
         journal_entry=(status_trace or None))
     if rc != 0:
-        print("stamp-pr-open: WARN — transition refused (non-blocking; "
-              "validator will catch); binder untouched", file=sys.stderr)
-    else:
-        rc2 = _ta.commit_transaction(binder, nt, entry)
-        if rc2 == 0:
-            written = True
-        else:
-            print("stamp-pr-open: WARN — transaction failed (non-blocking; "
-                  "validator will catch)", file=sys.stderr)
+        # tkt-323: fail closed — a refused transition leaves the binder
+        # untouched (status NOT pr-open); create-pr/finish must NOT proceed.
+        raise SystemExit(
+            f"stamp-pr-open: REFUSED — transition refused (rc={rc}); binder "
+            f"NOT flipped to pr-open + ledger NOT appended. Do NOT proceed "
+            f"to create-pr/finish. (tkt-323)"
+        )
+    rc2 = _ta.commit_transaction(binder, nt, entry)
+    if rc2 != 0:
+        # tkt-323: fail closed — commit_transaction IO failure leaves no
+        # half-flipped binder; create-pr/finish must NOT proceed.
+        raise SystemExit(
+            f"stamp-pr-open: FAILED — commit_transaction rc={rc2} (IO/lock "
+            f"failure); atomic stamp FAILED (binder may be unchanged; an orphan ledger entry is possible — investigate the ledger before re-running). Do NOT "
+            f"proceed to create-pr/finish. (tkt-323)"
+        )
+    written = True
 elif s != orig:
     # no status flip but prs/acceptance mutated (multi-PR append, or acceptance
     # boxes on an already-pr-open binder) — write `s` directly (no ledger;

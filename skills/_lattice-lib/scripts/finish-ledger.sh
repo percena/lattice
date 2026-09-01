@@ -584,16 +584,23 @@ if do_flip:
     rc, nt, entry = _ta.prepare_commit_text(s, TICKET_ID, "closed", "human",
                                             close_reason)
     if rc != 0:
-        print("finish-ledger: WARN — transition refused (non-blocking; "
-              "validator will catch); ## Finish body written but status not "
-              "flipped", file=sys.stderr)
-    else:
-        rc2 = _ta.commit_transaction(binder, nt, entry)
-        if rc2 == 0:
-            written = True
-        else:
-            print("finish-ledger: WARN — transaction failed (non-blocking; "
-                  "validator will catch)", file=sys.stderr)
+        # tkt-323: fail closed — a refused transition means the ledger is NOT
+        # stamped; finish-work must NOT proceed to cleanup/merge.
+        raise SystemExit(
+            f"finish-ledger: REFUSED — transition refused (rc={rc}); ## Finish "
+            f"body written to memory but status NOT flipped + ledger NOT "
+            f"appended. Do NOT proceed to cleanup/merge. (tkt-323)"
+        )
+    rc2 = _ta.commit_transaction(binder, nt, entry)
+    if rc2 != 0:
+        # tkt-323: fail closed — commit_transaction IO failure leaves no
+        # half-stamped ledger; finish-work must NOT proceed.
+        raise SystemExit(
+            f"finish-ledger: FAILED — commit_transaction rc={rc2} (IO/lock "
+            f"failure); atomic stamp FAILED (binder may be unchanged; an orphan ledger entry is possible — investigate the ledger before re-running). Do NOT "
+            f"proceed to cleanup/merge. (tkt-323)"
+        )
+    written = True
 elif s != orig:
     # no status flip but ## Finish/prs mutated (e.g. re-stamp, already closed)
     # — write `s` directly (no ledger).
