@@ -39,4 +39,4 @@
 ## Finish
 
 - pr-313 merged: 2026-09-01T09:27:58Z — https://github.com/percena/lattice/pull/313 (base merge)
-- issue #308 closed: 2026-09-01T09:28:27Z — https://github.com/percena/lattice/issues/308
+- issue #308 closed: 2026-09-01T09:28:27Z (reason: completed) — https://github.com/percena/lattice/issues/308
