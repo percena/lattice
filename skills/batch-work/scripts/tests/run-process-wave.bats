@@ -151,6 +151,23 @@ EOF
   chmod +x "$f"
 }
 
+# Create a minimal binder under LATTICE_HOME for <ticket> so the atomic
+# transition-api commit (spc-270 A2.2) can flip | status | in one transaction.
+# <status> defaults to in-progress (the legal pre-stuck from-state).
+build_binder() {
+  local ticket="$1" status="${2:-in-progress}"
+  local bdir="$LATTICE_HOME/tickets/${ticket}-test"
+  mkdir -p "$bdir"
+  cat >"$bdir/README.md" <<EOF
+# ${ticket} test binder
+
+| Field | Value |
+| --- | --- |
+| status | ${status} |
+| updated | 2026-09-01T00:00:00Z |
+EOF
+}
+
 # Count files left in an isolated TMPDIR (no pipes — glob + test, env-safe).
 count_leftover() {
   local d="$1" n=0 f
@@ -255,12 +272,13 @@ count_leftover() {
 @test "A1: PID disappears without an opened PR → unknown (never completed/ok)" {
   # A worker whose PID disappears leaving NO result artifact (no exit code, no
   # PR claim) is classified `unknown` — fail-closed, never `ok`/`completed`.
-  # The wave records the binder in-progress → stuck flip via transition-api.py.
+  # The wave atomically fail-closes the binder in-progress → stuck (A2.2).
   helper="$TEST_DIR/nopr.sh"
   FAKE_EXIT=none build_result_helper "$helper"
   m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
   mkdir -p "$wt"; printf 'x\n' >"$brief"
   printf 'tkt-U\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-U in-progress   # A2.2: real binder so commit flips atomically
   run env FAKE_EXIT=none bash "$WAVE" --manifest "$m" \
     --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
@@ -270,19 +288,25 @@ count_leftover() {
   printf '%s\n' "$output" | grep -qF "failed: 0"
 }
 
-@test "A1: unknown fail-closes binder to stuck + wait_reason: unblock (transition ledger)" {
-  # The unknown classification records a transition ledger entry
-  # in-progress → stuck with trace "wait_reason: unblock" via transition-api.py
-  # (tkt-255). The validator replays this edge; it is legal per the schema.
+@test "A2.2: unknown atomically fail-closes binder status + ledger via commit" {
+  # The unknown classification drives an ATOMIC binder-bound transition (spc-270
+  # A2.2): transition-api.py commit flips | status | in-progress→stuck AND
+  # appends the ledger entry in one locked transaction (not ledger-only record).
   helper="$TEST_DIR/nopr.sh"
   FAKE_EXIT=none build_result_helper "$helper"
   m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
   mkdir -p "$wt"; printf 'x\n' >"$brief"
   printf 'tkt-U\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-U in-progress
   run env FAKE_EXIT=none bash "$WAVE" --manifest "$m" \
     --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
   [ "$status" -eq 0 ]
+  # Atomic binder flip: | status | row is now stuck (not ledger-only).
+  binder="$LATTICE_HOME/tickets/tkt-U-test/README.md"
+  grep -qF '| status | stuck |' "$binder"
+  grep -qF 'wait_reason' "$binder"
+  # Ledger entry also written (edge legal: in-progress → stuck).
   ledger="$LATTICE_HOME/.transition-ledger/tkt-U.jsonl"
   [ -f "$ledger" ]
   grep -qF '"from":"in-progress"' "$ledger"
@@ -329,4 +353,88 @@ count_leftover() {
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "failed: 1"
   printf '%s\n' "$output" | grep -qF "ok: 0"
+}
+
+@test "A2.3: transition failure (bad binder continuity) → wave exits non-ok, node not settled" {
+  # A binder whose status does NOT match the expected from-state (in-progress)
+  # makes commit fail (continuity mismatch, rc=1). The wave must NOT swallow
+  # it: WAVE_TRANSITION_FAIL bumps and the wave exits 1 (machine-decidable
+  # non-ok) so the host cannot mistake a not-fail-closed node for success.
+  helper="$TEST_DIR/nopr.sh"
+  FAKE_EXIT=none build_result_helper "$helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-TF\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-TF closed   # actual status closed ≠ expected in-progress → commit rc=1
+  run env FAKE_EXIT=none bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -ne 0 ]
+  printf '%s\n' "$output" | grep -qF "unknown: 1"
+  # The binder was NOT flipped to stuck (transition failed; status stays closed).
+  binder="$LATTICE_HOME/tickets/tkt-TF-test/README.md"
+  grep -qF '| status | closed |' "$binder"
+}
+
+@test "A2.5: malformed result artifact (exit=NaN) → failed, does not crash the wave" {
+  # A garbage exit= value (non-numeric) is classified failed (≠ "0"), not ok
+  # and not a crash — sed parsing is robust; the wave terminates bounded.
+  helper="$TEST_DIR/malformed.sh"
+  cat >"$helper" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "--probe" ]]; then
+  pid="$2"; [[ "$pid" =~ ^[0-9]+$ ]] || { echo "dead: $pid"; exit 0; }
+  if kill -0 "$pid" 2>/dev/null; then echo "alive: $pid"; else echo "dead: $pid"; fi
+  exit 0
+fi
+cwd=""; brief=""; state=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in --cwd) cwd="$2"; shift 2 ;; --brief-file) brief="$2"; shift 2 ;; --state-file) state="$2"; shift 2 ;; *) shift ;; esac
+done
+[[ -n "${BATCH_RESULT_FILE:-}" ]] && printf 'exit=NaN\npr=\noid=\n' > "$BATCH_RESULT_FILE"
+( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+pid=$!; disown "$pid" 2>/dev/null || true
+echo "spawned: pid=$pid worktree=$cwd"
+echo "state-file=$state"
+EOF
+  chmod +x "$helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-MF\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  run bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "failed: 1"
+  printf '%s\n' "$output" | grep -qF "ok: 0"
+}
+
+@test "A2.4: uncorrelated agents --json failure does NOT veto ok" {
+  # A worker that exits 0 + claims a verified PR is classified ok EVEN when a
+  # global `claude agents --json` reports an unrelated failure — agents output
+  # is advisory-only when uncorrelated to this ticket's PID/session (A2.4).
+  helper="$TEST_DIR/ok.sh"
+  FAKE_EXIT=0 FAKE_PR=42 FAKE_OID=abc1234 build_result_helper "$helper"
+  fverify="$TEST_DIR/verify.sh"; build_fake_verify "$fverify" 42 abc1234
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-OK\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  # Fake claude on PATH that emits a global failure marker (unrelated ticket).
+  fakeclaude="$TEST_DIR/claude"
+  cat >"$fakeclaude" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "agents" && "${2:-}" == "--json" ]]; then
+  printf '%s\n' '[{"id":"unrelated-session","status":"failed"}]'
+  exit 0
+fi
+exit 0
+EOF
+  chmod +x "$fakeclaude"
+  run env FAKE_EXIT=0 FAKE_PR=42 FAKE_OID=abc1234 PATH="$TEST_DIR:$PATH" CLAUDE_BIN="$fakeclaude" bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$helper" --verify-helper "$fverify" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "ok: 1"
+  printf '%s\n' "$output" | grep -qF "failed: 0"
 }
