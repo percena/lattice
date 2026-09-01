@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug |
 | github | https://github.com/percena/lattice/issues/299 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-01T10:40:00Z |
-| updated | 2026-09-01T07:38:58Z |
+| updated | 2026-09-01T07:41:01Z |
 | adopted | true |
 | summary | Route the 4 writer bats suites' ledger writes through a per-test tmp LATTICE_HOME so no residue lands in the repo home. |
 | spec | (none — follow-up) |
@@ -49,4 +49,6 @@ Each suite already creates a tmp `$REPO` with its own `.lattice/`. The writer sc
 
 ## Finish
 
-- (none yet)
+
+- pr-304 merged: 2026-09-01T07:40:04Z — https://github.com/percena/lattice/pull/304 (base merge)
+- issue #299 closed: 2026-09-01T07:40:27Z (reason: completed) — https://github.com/percena/lattice/issues/299
