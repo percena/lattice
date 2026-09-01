@@ -23,10 +23,10 @@
 
 ## Acceptance
 
-- [ ] **A1** finish-ledger.sh: use `$REPO` (owner/repo) instead of `$GH_TARGET_REPO_ID` for `gh api repos/` URL path — GH_TARGET_REPO_ID is `host/owner/repo` (for `--repo` flag), not valid as a `repos/` path segment
-- [ ] **A2** Both finish-ledger.sh + close-fixed-issues.sh: in the `if !` failure handler, explicitly clear the variable to empty (`GH_ISSUE_STATE_REASON=""` / `close_reason=""`) before printing the WARNING — `gh api --jq` outputs error JSON to stdout on 404, captured by command substitution
-- [ ] **A3** Defense-in-depth: validate `state_reason` against the known set (`completed`, `not_planned`, `reopened`, `duplicate`, `out_of_date`) before using it in ledger/anomaly/report logic; discard anything else as "unavailable"
-- [ ] **A4** Clean up corrupted binder ledger lines in tkt-293 and tkt-294 binders (error JSON as reason/anomaly from PR #295 finish-work)
+- [x] **A1** finish-ledger.sh: use `$REPO` (owner/repo) instead of `$GH_TARGET_REPO_ID` for `gh api repos/` URL path — GH_TARGET_REPO_ID is `host/owner/repo` (for `--repo` flag), not valid as a `repos/` path segment
+- [x] **A2** Both finish-ledger.sh + close-fixed-issues.sh: in the `if !` failure handler, explicitly clear the variable to empty (`GH_ISSUE_STATE_REASON=""` / `close_reason=""`) before printing the WARNING — `gh api --jq` outputs error JSON to stdout on 404, captured by command substitution
+- [x] **A3** Defense-in-depth: validate `state_reason` against the known set (`completed`, `not_planned`, `reopened`, `duplicate`, `out_of_date`) before using it in ledger/anomaly/report logic; discard anything else as "unavailable"
+- [x] **A4** Clean up corrupted binder ledger lines in tkt-293 and tkt-294 binders (error JSON as reason/anomaly from PR #295 finish-work)
 
 ## Reproduction
 

@@ -23,8 +23,8 @@
 
 ## Acceptance
 
-- [ ] **A1** Fix URL parsing in alignment-check.sh (regex) and close-fixed-issues.sh (sed) to match the **last two** path segments before `/pull/` instead of the first two after the host — handles both standard GitHub and GHE path-prefixed URLs
-- [ ] **A2** Fix reason_map in close-fixed-issues.sh: validate state_reason against known set; handle `null` output from --jq; use a delimiter that doesn't conflict with reason values
+- [x] **A1** Fix URL parsing in alignment-check.sh (regex) and close-fixed-issues.sh (sed) to match the **last two** path segments before `/pull/` instead of the first two after the host — handles both standard GitHub and GHE path-prefixed URLs
+- [x] **A2** Fix reason_map in close-fixed-issues.sh: validate state_reason against known set; handle `null` output from --jq; use a delimiter that doesn't conflict with reason values
 
 ## Reproduction
 
