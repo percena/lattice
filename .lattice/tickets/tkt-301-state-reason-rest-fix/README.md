@@ -9,7 +9,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/301 |
-| status | pr-open |
+| status | closed |
 | adopted | true |
 | summary | Fix finish-ledger: use $REPO not $GH_TARGET_REPO_ID for gh api repos/ path; clear variable in if-failure handlers; validate state_reason against known set; clean corrupted binder ledger lines |
 | spec | none |
@@ -21,7 +21,7 @@
 | **worktree_bind** | tkt-301-state-reason-rest-fix |
 | prs | pr-303 — https://github.com/percena/lattice/pull/303 |
 | created | 2026-09-01T02:40:00Z |
-| updated | 2026-09-01T07:26:05Z |
+| updated | 2026-09-01T07:39:49Z |
 
 ## Acceptance
 
@@ -53,3 +53,8 @@ completed
 ## Decision journal
 
 - 2026-09-01T07:26:05Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #303) [WARN — signal logged, not silently lost]
+
+## Finish
+
+- pr-303 merged: 2026-09-01T07:38:30Z — https://github.com/percena/lattice/pull/303 (base merge)
+- issue #301 closed: 2026-09-01T07:38:47Z (reason: completed) — https://github.com/percena/lattice/issues/301

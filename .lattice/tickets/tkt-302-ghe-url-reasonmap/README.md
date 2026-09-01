@@ -9,7 +9,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/302 |
-| status | pr-open |
+| status | closed |
 | adopted | true |
 | summary | Fix URL regex/sed to match last two segments before /pull/ (handles GHE path-prefix); fix reason_map to validate against known set and handle null |
 | spec | none |
@@ -21,7 +21,7 @@
 | **worktree_bind** | tkt-301-state-reason-rest-fix |
 | prs | pr-303 — https://github.com/percena/lattice/pull/303 |
 | created | 2026-09-01T02:40:00Z |
-| updated | 2026-09-01T07:26:05Z |
+| updated | 2026-09-01T07:39:52Z |
 
 ## Acceptance
 
@@ -47,3 +47,8 @@ reason_map('354=null')         # → {354: 'null'} (literal null)
 ## Decision journal
 
 - 2026-09-01T07:26:05Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #303) [WARN — signal logged, not silently lost]
+
+## Finish
+
+- pr-303 merged: 2026-09-01T07:38:30Z — https://github.com/percena/lattice/pull/303 (base merge)
+- issue #302 closed: 2026-09-01T07:38:52Z (reason: completed) — https://github.com/percena/lattice/issues/302
