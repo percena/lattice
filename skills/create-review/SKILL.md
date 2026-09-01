@@ -37,7 +37,7 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
 
 
 1. **Self-contained** findings + recommendations; cite evidence paths.  
-1b. **Problem Audit (DEFAULT):** before solution Findings, audit validity / info sufficiency / hidden issues (`references/policy.md`). Insufficient **must-have** info → stop inventing solutions. Explicit one-line skip only when the question is already crisp.  
+1b. **Problem Audit (DEFAULT):** before solution Findings, audit validity / info sufficiency / hidden issues / existing-solution-meets-goal (`references/policy.md`). Insufficient **must-have** info → stop inventing solutions. Explicit one-line skip only when the question is already crisp. For decision-support reviews of kind `design` / `audit` that compare options, the review must include a **`## Comparison matrix`** section (rows = proposed option / status quo / alternatives; columns = cost, code-delta, risk, constraints, capability/feature tradeoffs); other kinds (`dogfood`, `research`) stay free-form.  
 2. **When concluding (INVARIANT):** set `status: concluded` and **exactly one** `outcome`:  
    `inform_only` | `needs_decision` | `spawn_spec` | `spawn_tickets` | `spawn_fix` | `needs_grill`
 3. **Never** bind a shippable worktree to `rev-` alone (INVARIANT).  

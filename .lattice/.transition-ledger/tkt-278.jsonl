@@ -1,0 +1,1 @@
+{"ts": "2026-08-31T10:30:02Z", "ticket": "tkt-278", "from": "pr-open", "to": "closed", "owner": "human", "reason": "merge", "guard": "merge — day only; .batch-work-active marker gate", "escape_used": false, "force_side_state_reason": null, "trace": "Finish ledger mergedAt", "metric": "merge-count"}

@@ -101,7 +101,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
    - `in-progress` (interrupted/abandoned) — a watchdog-timeout or crash from a prior session left the binder at `in-progress`. If the host stamped `stuck`+`wait_reason: unblock` at trip time (FSM-2b, tkt-132), route through the stuck exits above. If the binder is genuinely still being worked (human resume mid-session), continue implementation — the status is honest. An abandoned `in-progress` with no `stuck` stamp is an edge case: treat as `stuck`, investigate the prior ledger, and route through the operator-chosen exits.
 3. Else if **existing GH issue `#M`** / `tkt-M` **without complete L0** → **ADOPT_CHECK** (portable detail in `references/policy.md`) — **append-only** on issue body; write binder; optional Spec/comment; soft-fail edges.  
 4. Else if fuzzy greenfield → **delegate `create-spec`** (then tickets if needed).  
-5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship).  
+5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship / **Direction confirmed via**).  
 5b. Duplicate-work precheck (advisory, DEFAULT): run `check-duplicate-work.sh --title "<ticket title>"` (in `_lattice-lib/scripts/`) before `ensure-workspace`. Review ⚠️ overlaps; never blocks (advisory, exits 0).  
 6. WORKSPACE: `ensure-workspace --mode worktree --bind tkt|spc …` (or light/user branch escape). **cd** to path.  
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.
@@ -161,10 +161,13 @@ Policy tables (profiles, labels, bloodline): **`references/policy.md`**.
 - Workspace name: tkt-<id>-slug | spc-<n>-slug
 - Ship: one-PR | multi-PR
 - Primary ticket: none | tkt-N
+- Direction confirmed via: ADR-NNN | rev-… | user-stated | assumed
 - User-decided / Agent-assumed
 ```
 
 Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
+
+**`Direction confirmed via: assumed` → batch-confirm before product EXECUTE.** A wholly un-confirmed direction (no accepted ADR, no concluded `rev-`, not user-stated) must not silently proceed to implementation; surface it at the workspace gate and confirm the direction first. A reversing/replacing architecture choice implemented before confirmation can produce major rework, so `assumed` flips a PCA batch before EXECUTE rather than after.
 
 ## Loading constraints
 
@@ -220,7 +223,7 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 Before claiming workflow setup / EXECUTE handoff is done:
 
 - [ ] Mode `S|M|C` announced with one-line reason
-- [ ] COMMITTED card (or locked L0 resume) is explicit
+- [ ] COMMITTED card (or locked L0 resume) is explicit, including `Direction confirmed via:` (`ADR-NNN` / `rev-…` / `user-stated` / `assumed`); `assumed` triggered a batch-confirm before product EXECUTE
 - [ ] Shippable path: `assert-shippable-cwd` passes under the workspace or records the explicit clean base-direct escape (or pure throwaway no-PR)
 - [ ] Ticket/Spec ids recorded when required by mode
 - [ ] Setup-only stops without product implementation when requested

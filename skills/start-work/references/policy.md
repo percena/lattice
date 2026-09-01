@@ -178,10 +178,13 @@ Required before EXECUTE on M/C (S may be implicit):
 - Workspace name: tkt-… | spc-…
 - Ship: one-PR | multi-PR
 - Primary ticket: none | tkt-N
+- Direction confirmed via: ADR-NNN | rev-… | user-stated | assumed
 - User-decided / Agent-assumed
 ```
 
 Promote to Spec file for **C** multi-session work.
+
+**`Direction confirmed via: assumed` → batch-confirm before product EXECUTE** (see `SKILL.md`): a wholly un-confirmed direction (no accepted ADR, no concluded `rev-`, not user-stated) must not silently proceed to implementation.
 
 **Ship:** multi-ticket ≠ multi-PR. Path-overlapping or serial slices → **one-PR** (`Fixes` primary + `Refs` related). **multi-PR** only when independence gates pass and concurrent EXECUTE is planned.
 
