@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug |
 | github | https://github.com/percena/lattice/issues/298 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-01T10:50:00Z |
-| updated | 2026-09-01T07:49:36Z |
+| updated | 2026-09-01T07:50:50Z |
 | adopted | true |
 | summary | Coordinator flips stuck via commit (binder+ledger atomic); drops the duplicate ok flip (stamp-pr-open owns it). |
 | spec | (none — follow-up) |
@@ -51,4 +51,6 @@ The worker (spawned agent) stops at `create-pr` → `stamp-pr-open` already flip
 
 ## Finish
 
-- (none yet)
+
+- pr-305 merged: 2026-09-01T07:50:02Z — https://github.com/percena/lattice/pull/305 (base merge)
+- issue #298 closed: 2026-09-01T07:50:23Z (reason: completed) — https://github.com/percena/lattice/issues/298
