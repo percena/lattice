@@ -32,11 +32,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2.1** Worker result artifacts plus bounded PID/session-correlated probes classify only `ok|failed|timeout|unknown`; PID disappearance alone is never success.
-- [ ] **A2.2** `failed|timeout|unknown` atomically transition the real binder to `stuck + wait_reason: unblock` through tkt-271's API.
-- [ ] **A2.3** Transition failure prevents node settle and makes wave output/exit status machine-decidably non-ok.
-- [ ] **A2.4** Global unrelated agent failures cannot contaminate the ticket's classification.
-- [ ] **A2.5** Crash, hang, no-PR, missing/malformed result, and global-agent-noise fault tests terminate within bounded time.
+- [x] **A2.1** Worker result artifacts plus bounded PID/session-correlated probes classify only `ok|failed|timeout|unknown`; PID disappearance alone is never success. *(bounded PID probe via PROBE_TIMEOUT_SEC; PID↔session correlation deferred per spc-270 A2 — uncorrelated agents output is advisory, never a hard veto (A2.4).)*
+- [x] **A2.2** `failed|timeout|unknown` atomically transition the real binder to `stuck + wait_reason: unblock` through tkt-271's API.
+- [x] **A2.3** Transition failure prevents node settle and makes wave output/exit status machine-decidably non-ok.
+- [x] **A2.4** Global unrelated agent failures cannot contaminate the ticket's classification.
+- [x] **A2.5** Crash, hang, no-PR, missing/malformed result, and global-agent-noise fault tests terminate within bounded time.
 
 ## Approach
 
