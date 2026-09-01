@@ -33,4 +33,4 @@ start-work's COMMITTED card records Why/In/Out/Acceptance/mode/workspace/ship bu
 ## Finish
 
 - pr-313 merged: 2026-09-01T09:27:58Z — https://github.com/percena/lattice/pull/313 (base merge)
-- issue #310 closed: 2026-09-01T09:28:34Z — https://github.com/percena/lattice/issues/310
+- issue #310 closed: 2026-09-01T09:28:34Z (reason: completed) — https://github.com/percena/lattice/issues/310

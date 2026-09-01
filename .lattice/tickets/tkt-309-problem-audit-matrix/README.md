@@ -35,4 +35,4 @@ create-review's Problem Audit audits validity/info-sufficiency/hidden-issues but
 ## Finish
 
 - pr-313 merged: 2026-09-01T09:27:58Z — https://github.com/percena/lattice/pull/313 (base merge)
-- issue #309 closed: 2026-09-01T09:28:31Z — https://github.com/percena/lattice/issues/309
+- issue #309 closed: 2026-09-01T09:28:31Z (reason: completed) — https://github.com/percena/lattice/issues/309
