@@ -522,7 +522,16 @@ else:
         if issue_line:
             iss_pat = re.compile(rf'^- issue #{re.escape(issue_m)}.*$', re.MULTILINE) if issue_m else None
             if iss_pat and iss_pat.search(body):
-                body = iss_pat.sub(issue_line.lstrip("\n"), body)
+                # tkt-317 idempotency guard: a transient state_reason fetch
+                # failure makes reason_suffix empty on a re-run; do NOT clobber
+                # an already-recorded ` (reason: ...)` from a prior successful
+                # fetch. Only replace when the fresh line carries a reason (data
+                # improvement) or the existing line had none.
+                fresh_has_reason = " (reason:" in issue_line
+                existing_match = iss_pat.search(body).group(0)
+                existing_has_reason = " (reason:" in existing_match
+                if fresh_has_reason or not existing_has_reason:
+                    body = iss_pat.sub(issue_line.lstrip("\n"), body)
             else:
                 body = body.rstrip() + issue_line + "\n"
     else:
@@ -612,11 +621,13 @@ PY
 printf '%s\n' "$STAMP_OUT" | grep -vE '^committed:'
 
 # Stage the per-ticket ledger for commit (F2). commit_transaction wrote it.
+# Also stage the binder README itself so the caller's single `git commit` captures
+# both the ledger and the stamped binder (tkt-317: previously only the JSONL was
+# staged, leaving the binder write uncommitted and forcing manual cleanup).
 TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
 LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
 LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
 [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
-
-exit 0
+git add "$BINDER" 2>/dev/null || true
 
 exit 0

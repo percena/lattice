@@ -8,10 +8,12 @@
 | adopted | false |
 | kind | bug |
 | priority | P2 |
-| status | queued |
+| status | in-progress |
 | github | https://github.com/percena/lattice/issues/317 |
 | paths | `skills/_lattice-lib/scripts/finish-ledger.sh`, `skills/finish-work/SKILL.md` |
 | ship | one-PR |
+| created | 2026-09-01T12:48:52Z |
+| updated | 2026-09-01T12:48:52Z |
 
 ## Why
 
