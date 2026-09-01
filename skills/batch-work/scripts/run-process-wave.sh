@@ -96,8 +96,9 @@ usage: run-process-wave.sh --manifest <path> [options]
                          model inference (D4) — it consumes the transition API
                          (tkt-255) and this wave's classification (tkt-257).
                          Requires --batch-id.
-  --batch-id <id>         Batch id for the coordinator state file. Required
-                         when --coordinator is set.
+  --batch-id <id>         Batch id. DEFAULT-ON: when set, the coordinator
+                         persists DAG/cursor/attempts/PID-PR-OID (spc-270
+                         A3.1); omit for the legacy no-state path.
   --layer <N>             DAG layer index this wave belongs to (forwarded to
                          the coordinator so resume knows which layer settled).
   --wave <N>              Wave index within the layer (forwarded to the
@@ -330,7 +331,7 @@ classify_node() {
 run_wave() {
   local manifest="" concurrency=3 ram_thr=10 state_file="" poll_interval=10 spawn_helper="$DEFAULT_HELPER" dry=0 report=""
   local verify_helper="$DEFAULT_VERIFY" transition_api="$DEFAULT_TRANSITION_API" lattice_home="${LATTICE_HOME:-.lattice}"
-  local coordinator="" coordinator_explicit=0 batch_id="" layer=0 wave=0
+  local coordinator="" batch_id="" layer=0 wave=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --manifest) manifest="$2"; shift 2 ;;
@@ -342,7 +343,7 @@ run_wave() {
       --verify-helper) verify_helper="$2"; shift 2 ;;
       --transition-api) transition_api="$2"; shift 2 ;;
       --lattice-home) lattice_home="$2"; shift 2 ;;
-      --coordinator) coordinator="$2"; coordinator_explicit=1; shift 2 ;;
+      --coordinator) coordinator="$2"; shift 2 ;;
       --batch-id) batch_id="$2"; shift 2 ;;
       --layer) layer="$2"; shift 2 ;;
       --wave) wave="$2"; shift 2 ;;
@@ -361,18 +362,20 @@ run_wave() {
   [[ -f "$spawn_helper" ]] || { echo "error: spawn-helper not found: $spawn_helper" >&2; exit 1; }
   [[ -f "$verify_helper" ]] || { echo "error: verify-helper not found: $verify_helper" >&2; exit 1; }
   [[ "$concurrency" =~ ^[0-9]+$ && "$concurrency" -ge 1 ]] || { echo "error: --concurrency must be a positive int" >&2; exit 2; }
-  # Coordinator wiring (spc-254 A5). Opt-in: when --coordinator is set, the wave
-  # persists DAG/layer/node-attempt/PID-PR-OID/marker-owner/failure-class/
-  # resume-cursor so a host restart resumes without re-deriving. The coordinator
-  # performs NO model inference (D4); it consumes the transition API (tkt-255)
-  # and this wave's four-signal classification (tkt-257 ok|failed|timeout|unknown).
+  # Coordinator wiring (spc-254 A5 / spc-270 A3.1). DEFAULT-ON: when --batch-id
+  # is supplied, the wave persists DAG/layer/node-attempt/PID-PR-OID/marker-
+  # owner/failure-class/resume-cursor so a host restart resumes without
+  # re-deriving. An explicit --coordinator overrides the path; --batch-id
+  # without --coordinator uses the sibling default. No --batch-id ⇒ legacy
+  # opt-out (unchanged). The coordinator performs NO model inference (D4); it
+  # consumes the transition API (tkt-255) + this wave's four-signal
+  # classification (tkt-257 ok|failed|timeout|unknown).
   WAVE_COORDINATOR=""
   WAVE_BATCH_ID=""
   WAVE_LAYER=0
   WAVE_WAVE=0
-  if [[ "$coordinator_explicit" -eq 1 ]]; then
-    [[ -n "$batch_id" ]] || { echo "error: --coordinator requires --batch-id" >&2; exit 2; }
-    [[ -f "$coordinator" ]] || { echo "error: coordinator not found: $coordinator" >&2; exit 1; }
+  if [[ -n "$batch_id" ]]; then
+    [[ -f "$coordinator" ]] || { echo "error: coordinator not found: $coordinator (required when --batch-id is set; spc-270 A3.1 default-on)" >&2; exit 1; }
     # Ensure the state file exists (idempotent — init is a no-op if it does).
     LATTICE_HOME="$lattice_home" python3 "$coordinator" init --batch-id "$batch_id" --lattice-home "$lattice_home" >/dev/null 2>&1 || true
     WAVE_COORDINATOR="$coordinator"

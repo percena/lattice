@@ -344,17 +344,26 @@ EOF
   [ -f "$LATTICE_HOME/.transition-ledger/tkt-L.jsonl" ]
 }
 
-@test "A5 wiring: --coordinator without --batch-id fails closed (exit 2)" {
+@test "A3.1 wiring: --batch-id alone DEFAULT-ON persists state; --coordinator without --batch-id is legacy (spc-270)" {
   fast_helper="$TEST_DIR/fast.sh"
   build_fast_helper "$fast_helper"
   m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
   mkdir -p "$wt"; printf 'x\n' >"$brief"
-  printf 'tkt-E\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  printf 'tkt-D\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  # --batch-id alone (no --coordinator) → coordinator default-on (state persisted)
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
+    --batch-id "default-on-1" --layer 0 --wave 0
+  [ "$status" -eq 0 ]
+  [ -f "$LATTICE_HOME/.coordinator/default-on-1.json" ]
+  # --coordinator WITHOUT --batch-id → legacy no-state (no failure; just no persistence)
+  run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
+    --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf2" \
     --coordinator "$COORD"
-  [ "$status" -eq 2 ]
+  [ "$status" -eq 0 ]
+  [ ! -f "$LATTICE_HOME/.coordinator/no-batch.json" ]
 }
 
 @test "A5 wiring: host restart between waves resumes from persisted cursor (integration)" {
@@ -366,6 +375,13 @@ EOF
   m0="$TEST_DIR/m0"; wt0="$TEST_DIR/wt0"; b0="$TEST_DIR/b0"
   mkdir -p "$wt0"; printf 'x\n' >"$b0"
   printf 'tkt-A\t%s\t%s\t1\n' "$wt0" "$b0" >"$m0"
+  # A3.4 (spc-270): the coordinator fail-closes an unknown node via the atomic
+  # stuck commit, which needs the in-progress binder the worker's start-work
+  # would have stamped. The fast_helper sleeps instead of running start-work,
+  # so create it (mirrors test 9's tkt-W binder).
+  ADIR="$LATTICE_HOME/tickets/tkt-A-demo"
+  mkdir -p "$ADIR"
+  printf '# tkt-A\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$ADIR/README.md"
   LATTICE_HOME="$LATTICE_HOME" bash "$WAVE" --manifest "$m0" \
     --spawn-helper "$fast_helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf0" \
@@ -380,4 +396,63 @@ EOF
   # its result artifact or the transition ledger.
   run assert_pending_ticket "$output" "tkt-A"
   [ "$status" -ne 0 ]
+}
+
+# --- spc-270 A3: recoverable coordinator hardening (tkt-275) ---
+
+@test "A3.4: unknown node WITHOUT a binder does NOT settle (transition failure prevents settle)" {
+  LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a34 --lattice-home "$LATTICE_HOME" >/dev/null
+  # record-spawn then record-node unknown with NO binder → _commit_stuck fails → node not settled, exit 1
+  LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" record-spawn --batch-id a34 --ticket tkt-NA \
+    --layer 0 --wave 0 --pid 1234 --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  run python3 "$COORD" record-node --batch-id a34 --ticket tkt-NA --status unknown \
+    --pid 1234 --failure-class unknown --reason "crash" --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -ne 0 ]
+  # node persisted as transition_failed, NOT in settled_tickets
+  # node persisted as transition_failed (status cmd dumps the full node), NOT settled
+  run python3 "$COORD" status --batch-id a34 --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF "transition_failed"
+  # tkt-NA must NOT be in settled_tickets (JSON parse, not a whole-output grep)
+  printf '%s' "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if 'tkt-NA' not in d.get('settled_tickets',[]) else 1)"
+  # resume shows tkt-NA still pending (not settled)
+  run python3 "$COORD" resume --batch-id a34 --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF 'tkt-NA'
+}
+
+@test "A3.3: settled node never regresses (re-recording a settled ticket with a lesser status is a no-op)" {
+  LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a33 --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id a33 --ticket tkt-S --layer 0 --wave 0 --pid 1 \
+    --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  # create a binder so the stuck commit succeeds → node settles as unknown
+  SDIR="$LATTICE_HOME/tickets/tkt-S-demo"; mkdir -p "$SDIR"
+  printf '# tkt-S\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n' >"$SDIR/README.md"
+  python3 "$COORD" record-node --batch-id a33 --ticket tkt-S --status unknown --pid 1 \
+    --failure-class unknown --reason crash --transition-api "$TAPI" --lattice-home "$LATTICE_HOME" >/dev/null
+  # re-record with a NON-settled status (running) — must NOT regress the settled unknown node
+  python3 "$COORD" record-node --batch-id a33 --ticket tkt-S --status running --pid 1 \
+    --failure-class running --reason stale-retry --transition-api "$TAPI" --lattice-home "$LATTICE_HOME" >/dev/null 2>&1 || true
+  run python3 "$COORD" status --batch-id a33 --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF '"status": "unknown"'  # not regressed to running
+}
+
+@test "A3.3: re-spawn increments attempt (does not reset to 1)" {
+  LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a33att --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id a33att --ticket tkt-R --layer 0 --wave 0 --pid 100 \
+    --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id a33att --ticket tkt-R --layer 0 --wave 0 --pid 101 \
+    --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  run python3 "$COORD" status --batch-id a33att --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF '"attempt": 2'  # incremented, not reset to 1
+}
+
+@test "A3.5: resume carries next_node (first eligible) so a host restart drives it directly" {
+  LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a35 --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id a35 --ticket tkt-N1 --layer 0 --wave 0 --pid 1 \
+    --worktree /p1 --brief-file /b1 --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id a35 --ticket tkt-N2 --layer 0 --wave 0 --pid 2 \
+    --worktree /p2 --brief-file /b2 --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  run python3 "$COORD" resume --batch-id a35 --lattice-home "$LATTICE_HOME"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"next_node"'
+  printf '%s\n' "$output" | grep -qF 'tkt-N1'  # first eligible = next_node
 }
