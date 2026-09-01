@@ -8,12 +8,12 @@
 | adopted | false |
 | kind | bug |
 | priority | P2 |
-| status | pr-open |
+| status | closed |
 | github | https://github.com/percena/lattice/issues/317 |
 | paths | `skills/_lattice-lib/scripts/finish-ledger.sh`, `skills/finish-work/SKILL.md` |
 | ship | one-PR |
 | created | 2026-09-01T12:48:52Z |
-| updated | 2026-09-01T12:50:51Z |
+| updated | 2026-09-01T13:09:26Z |
 
 ## Why
 
@@ -63,3 +63,8 @@
 - NOTICED: `skills/_lattice-lib/scripts/stamp-pr-open.sh` (~line 506) and `bump-fix-cycle.sh` (~line 460) carry the SAME staging bug this ticket fixes for finish-ledger.sh (write binder via commit_transaction/os.replace but stage only the JSONL, never `git add` the binder). Out-of-paths (2026-09-01) — follow-up ticket, not this agent's detour.
 - NOTICED: `finish-ledger.sh` gh api `state_reason` fetch (line ~351) is single-shot with no retry; a first-run failure means no `(reason: ...)` recorded AND the anomaly detector (line ~498, `state_reason and state_reason != "completed"`) short-circuits to False, silently missing a close-reason contradiction. Deeper root cause; out-of-paths (2026-09-01) — separate ticket.
 - NOTICED: no bats test exercises the new idempotency guard or the `git add "$BINDER"` staging line (2026-09-01). Existing 50 tests + manual validator cover regression risk; a focused test with a gh api mock is a follow-up.
+
+## Finish
+
+- pr-319 merged: 2026-09-01T13:07:22Z — https://github.com/percena/lattice/pull/319 (base merge)
+- issue #317 closed: 2026-09-01T13:07:47Z — https://github.com/percena/lattice/issues/317
