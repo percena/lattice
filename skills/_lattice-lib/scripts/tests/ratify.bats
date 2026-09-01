@@ -12,6 +12,8 @@ setup_file() {
 setup() {
   TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ratify.XXXXXX")"
   REPO="$TEST_DIR/repo"
+  # tkt-299: route ledger writes to the tmp repo home (no tkt-7.jsonl residue).
+  export LATTICE_HOME="$REPO/.lattice"
   BINDER_DIR="$REPO/.lattice/tickets/tkt-7-demo"
   mkdir -p "$BINDER_DIR"
   git -C "$REPO" init -q -b main

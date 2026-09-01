@@ -14,6 +14,10 @@ setup_file() {
 setup() {
   TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/supersede.XXXXXX")"
   REPO="$TEST_DIR/repo"
+  # tkt-299: route ledger writes to the tmp repo home (no tkt-10/11/12.jsonl
+  # residue); spec-supersede also derives HOME_DIR from the spec path, but the
+  # export makes the bash commit/record subprocess consistent.
+  export LATTICE_HOME="$REPO/.lattice"
   SPECS_DIR="$REPO/.lattice/specs"
   mkdir -p "$SPECS_DIR"
   git -C "$REPO" init -q -b main
