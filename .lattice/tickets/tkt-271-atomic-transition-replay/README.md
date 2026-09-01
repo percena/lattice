@@ -14,7 +14,7 @@
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-09-01T03:12:43Z |
+| updated | 2026-09-01T03:21:23Z |
 | adopted | false |
 | summary | Atomically mutate binder state and ledger through one guarded transition API; replay real continuity and final snapshot. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -81,6 +81,12 @@ Replay invariant surfaced 6 pre-existing dev-base drift cases (tkt-256/261/284/2
 - Review: `rev-20260831-073033Z`
 - Spec: `spc-270`
 - Prior delivery: `tkt-255` / `spc-254`
+- PR: `pr-296`
+- Follow-up tickets (surfaced by the pr-296 review):
+  - #297 — two-write atomicity refactor (`prepare_commit_text`); cures bump-fix-cycle double-increment + writer concurrency windows.
+  - #298 — migrate batch-work coordinator from `record` to `commit` (A1.5 snapshot check flags batch-work until done).
+  - #299 — test-residue hygiene (writer bats write tkt-7/tkt-9 ledgers into repo home).
+  - #300 — spec drift sweep (spc-277 unchecked acceptance + spc-282 prs union; pre-existing ci-local FAIL).
 
 ## Lineage
 
