@@ -12,6 +12,10 @@ setup() {
   # Real layout: binder under <repo>/.lattice/tickets/<bind>/README.md; the
   # script refuses paths outside a repo's .lattice/ tree.
   REPO="$TEST_DIR/repo"
+  # tkt-299: route ledger writes (commit/record) to the tmp repo home, never
+  # the real repo home (avoids untracked .transition-ledger/tkt-7.jsonl residue
+  # that A1.5's validator flags locally).
+  export LATTICE_HOME="$REPO/.lattice"
   BINDER_DIR="$REPO/.lattice/tickets/tkt-7-demo"
   mkdir -p "$BINDER_DIR"
   git -C "$REPO" init -q -b main
