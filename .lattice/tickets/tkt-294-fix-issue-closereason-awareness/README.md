@@ -22,7 +22,9 @@
 | **related_tickets** | tkt-293 (co-delivered in same PR — baseRefOid field fix) |
 | **worktree_bind** | tkt-293-finish-work-baserefoid-closereason |
 | worktree | sibling …/lattice.worktrees/tkt-293-finish-work-baserefoid-closereason/ |
-| prs | (pending), pr-295 — https://github.com/percena/lattice/pull/295 |
+| prs | pr-295 — https://github.com/percena/lattice/pull/295 |
+| created | 2026-09-01T02:40:00Z |
+| updated | 2026-09-01T07:26:05Z |
 
 ## Acceptance (this slice)
 
@@ -64,13 +66,4 @@
 ## Finish
 
 - pr-295 merged: 2026-09-01T05:53:57Z — https://github.com/percena/lattice/pull/295 (base merge)
-- anomaly: issue #294 closed as {
-  "MESSAGE": "NOT FOUND",
-  "DOCUMENTATION_URL": "HTTPS://DOCS.GITHUB.COM/REST",
-  "STATUS": "404"
-} while PR #295 delivers it — reconcile close-reason vs delivery
-- issue #294 closed: 2026-09-01T05:54:30Z (reason: {
-  "message": "Not Found",
-  "documentation_url": "https://docs.github.com/rest",
-  "status": "404"
-}) — https://github.com/percena/lattice/issues/294
+- issue #294 closed: 2026-09-01T05:54:30Z (reason: completed) — https://github.com/percena/lattice/issues/294

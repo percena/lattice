@@ -339,12 +339,24 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
       [[ "$GH_ISSUE_STATE" == "CLOSED" ]] && ISSUE_CLOSED=true
       # state_reason is not a gh issue view --json field on all gh versions
       # (tkt-294). Fetch via REST for ledger fidelity + anomaly detection.
+      # GH_TARGET_REPO_ID is host/owner/repo (e.g. github.com/percena/lattice)
+      # — strip the host prefix for the gh api repos/ path (needs owner/repo).
+      # GH_TARGET_REPO_ID is set in both the --repo path and the auto-resolve
+      # path; $REPO alone is empty without --repo (tkt-301 code review).
       # Surface fetch failures so a close-reason contradiction is not silently
       # lost when the API is least reliable (rate limits, auth, cross-repo).
       if [[ "$GH_ISSUE_STATE" == "CLOSED" && -n "$GH_TARGET_REPO_ID" ]]; then
-        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${GH_TARGET_REPO_ID}/issues/${ISSUE_M}" --jq '.state_reason' 2>/dev/null); then
+        API_REPO="${GH_TARGET_REPO_ID#*/}"  # strip host → owner/repo
+        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${API_REPO}/issues/${ISSUE_M}" --jq '.state_reason' 2>/dev/null); then
+          GH_ISSUE_STATE_REASON=""
           echo "finish-ledger: WARNING — cannot fetch state_reason for issue #$ISSUE_M (REST API failed); close-reason not recorded in ledger" >&2
         fi
+        # Defense-in-depth: gh api --jq may emit 'null' (issue lacks state_reason)
+        # or an error body on non-2xx — discard anything not in the known set.
+        case "$GH_ISSUE_STATE_REASON" in
+          completed|not_planned|reopened|duplicate|out_of_date) ;;
+          *) GH_ISSUE_STATE_REASON="" ;;
+        esac
       fi
     fi
   fi

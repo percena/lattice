@@ -11,7 +11,7 @@ summary: "Stop Lattice temp files leaking into fresh customer repos: relocate ru
 created: 2026-08-31
 updated: 2026-08-31
 tickets: [tkt-283, tkt-284, tkt-285, tkt-286, tkt-287]
-prs: []
+prs: [pr-288, pr-289, pr-290, pr-291, pr-292]
 reviews: []
 supersedes: []
 superseded_by: null

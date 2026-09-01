@@ -156,6 +156,7 @@ def gh_json(args):
 # stateReason is not a gh issue view --json field on all gh versions (same
 # asymmetry as baseRefOid — tkt-293). Fetch via REST, which is stable.
 CONTRADICTION_REASONS = {"not_planned", "duplicate", "out_of_date"}
+VALID_STATE_REASONS = {"completed", "not_planned", "reopened", "duplicate", "out_of_date"}
 
 def gh_state_reason(iid, repo_id):
     if not repo_id:
@@ -165,7 +166,8 @@ def gh_state_reason(iid, repo_id):
             ["gh", "api", f"repos/{repo_id}/issues/{iid}", "--jq", ".state_reason"],
             text=True, stderr=subprocess.DEVNULL,
         ).strip()
-        return out
+        # Defense-in-depth: discard null or error-body output (tkt-301).
+        return out if out in VALID_STATE_REASONS else ""
     except Exception:
         return ""
 
@@ -180,8 +182,14 @@ head = pr_data.get("headRefName") or ""
 url = pr_data.get("url") or ""
 
 # Extract owner/repo from the PR URL for REST issue close-reason lookups (tkt-294).
-_repo_match = re.match(r'https?://[^/]+/([^/]+/[^/]+)/pull/\d+', url)
-repo_id = _repo_match.group(1) if _repo_match else ""
+# Match the LAST two path segments before /pull/ to handle GHE path-prefixed
+# URLs like https://github.acme.io/org/team/repo/pull/1 (tkt-302).
+_repo_match = re.match(r'https?://[^/]+/(.+)/pull/\d+', url)
+if _repo_match:
+    _segments = _repo_match.group(1).split('/')
+    repo_id = '/'.join(_segments[-2:]) if len(_segments) >= 2 else _repo_match.group(1)
+else:
+    repo_id = ""
 
 # Executable closing keywords (shared fence-aware extractor with close-fixed-issues).
 # Refs does not auto-close. Repository-qualified Fixes owner/repo#N stay non-local.

@@ -1,7 +1,7 @@
 # tkt-285-onboarding-contract-lattice-commit
 
 > **TL;DR:** Tell the operator .lattice/ is meant to be committed; stop mis-flagging scaffolded bootstrap files as leak residue.
-> **Kind:** chore · **Status:** queued · **Priority:** P2
+> **Kind:** chore · **Status:** closed · **Priority:** P2
 > **Path:** spc-282 → tkt-285 → (pr-…)
 
 | Field | Value |

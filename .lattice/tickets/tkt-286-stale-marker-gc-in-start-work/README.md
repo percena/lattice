@@ -1,7 +1,7 @@
 # tkt-286-stale-marker-gc-in-start-work
 
 > **TL;DR:** start-work GCs stale state-dir marker entries by mtime so a crashed batch doesn't leave a permanent open merge gate.
-> **Kind:** chore · **Status:** queued · **Priority:** P2
+> **Kind:** chore · **Status:** closed · **Priority:** P2
 > **Path:** spc-282 → tkt-286 → (pr-…)
 
 | Field | Value |
