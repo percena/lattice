@@ -160,10 +160,14 @@ echo "ratify: $BINDER_NAME — ratifying parked binder (status: parked → queue
 RATIFY_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 RATIFY_BINDER="$BINDER" RATIFY_DECISION="$DECISION" RATIFY_PENDING="$PENDING" \
   RATIFY_LIB="$RATIFY_LIB" python3 - <<'PY'
-import datetime, fcntl, os, re, stat, sys, tempfile
+import datetime, fcntl, os, re, stat, sys, importlib.util
 
 sys.path.insert(0, os.environ["RATIFY_LIB"])
 import binder_rows
+# spc-297: import transition-api for in-lock single-write atomicity.
+_ta_path = os.path.join(os.environ["RATIFY_LIB"], "..", "transition-api.py")
+_ta_spec = importlib.util.spec_from_file_location("transition_api", _ta_path)
+_ta = importlib.util.module_from_spec(_ta_spec); _ta_spec.loader.exec_module(_ta)
 
 binder   = os.environ["RATIFY_BINDER"]
 decision = os.environ["RATIFY_DECISION"]
@@ -256,25 +260,23 @@ try:
         new_p = ("\n" + new_p_body + "\n") if new_p_body else ""
         s = s[:p_start] + new_p + p_trailing
 
-    # The journal entry + status flip + `updated` bump + ledger entry are
-    # written by `commit` (bash, below). The python only writes the pending
-    # settle here (when --pending), atomically; with no --pending it writes
-    # nothing (s == orig) and `commit` performs the whole mutation.
-    if s != orig:
-        d = os.path.dirname(os.path.abspath(binder)) or "."
-        mode = os.stat(binder).st_mode
-        fd, tmp = tempfile.mkstemp(dir=d, prefix=".ratify.", suffix=".tmp")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                fh.write(s)
-                fh.flush()
-                os.fsync(fh.fileno())
-            os.chmod(tmp, stat.S_IMODE(mode))
-            os.replace(tmp, binder)
-        except BaseException:
-            if os.path.exists(tmp):
-                os.unlink(tmp)
-            raise
+    # spc-297: single-write atomicity. The dated journal entry + status flip
+    # (parked → queued) + `updated` bump + ledger entry land in ONE
+    # `commit_transaction` (merged with the pending-settle already in `s`),
+    # called inside this dir lock. ratify is NOT non-blocking: a prepare/commit
+    # failure must not claim a ratification it did not do (exit 1).
+    TICKET_ID = ""
+    m_tid = re.match(r'^(tkt-[1-9][0-9]*)', os.path.basename(os.path.dirname(binder)))
+    if m_tid:
+        TICKET_ID = m_tid.group(1)
+    rc, nt, ledentry = _ta.prepare_commit_text(
+        s, TICKET_ID, "queued", "human", "decision ratification",
+        journal_entry=entry)
+    if rc != 0:
+        raise SystemExit(1)
+    rc2 = _ta.commit_transaction(binder, nt, ledentry)
+    if rc2 != 0:
+        raise SystemExit(1)
 finally:
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
@@ -282,27 +284,13 @@ finally:
         os.close(lock_fd)
 PY
 
-# --- Atomic transition (spc-270 A1.3): route the parked → queued flip through
-# `transition-api.py commit` so the dated journal entry + status flip + `updated`
-# bump + ledger entry land in ONE atomic transaction (A1.1/A1.2). ratify is NOT
-# non-blocking: a commit failure must not claim a ratification it did not do.
-STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-ENTRY="- $DECISION (ratified $STAMP)"
-TICKET_ID=$(printf '%s' "$BINDER_NAME" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMIT_OUT=$(python3 "$SCRIPT_DIR/transition-api.py" commit "${TICKET_ID:-tkt-0}" queued human \
-  "decision ratification" --from parked --append-journal "$ENTRY" --binder "$BINDER" 2>&1) || {
-  echo "Error: ratify transition commit failed (parked → queued); binder not flipped:" >&2
-  printf '%s\n' "$COMMIT_OUT" >&2
-  exit 1
-}
-
 # --- Single git commit (pending settle + journal + status flip together) -----
-# Stage the binder (mutated by commit, and by the python pending settle when
-# --pending) plus the per-ticket ledger (F2: committed so CI replays it); then
-# one commit. Unrelated pre-staged paths were already refused above, so the
-# pathspec commit cannot sneak in foreign index entries.
+# The python wrote the binder (pending settle + the prepared journal/status/
+# updated flip + ledger) in one transaction. Stage the binder + per-ticket
+# ledger (F2: committed so CI replays it); then one commit. Unrelated
+# pre-staged paths were already refused above.
 git -C "$BINDER_REPO_ROOT" add -- "$RELATIVE_BINDER"
+TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
 LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
 LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-tkt-0}.jsonl"
 RELATIVE_LEDGER=".lattice/.transition-ledger/${TICKET_ID:-tkt-0}.jsonl"

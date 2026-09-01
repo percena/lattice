@@ -171,10 +171,14 @@ STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 EXTEND_MODE=$($EXTEND_BUDGET && echo "extend" || echo "no-extend")
 BINDER_ROWS_LIB="$(resolve_script_dir "${BASH_SOURCE[0]}")/lib"
 STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$STAMP_MODE" "$EXTEND_MODE" "$EXTEND_REASON" "$NOTE" <<'PY'
-import datetime, sys, re, os, stat, fcntl
+import datetime, sys, re, os, stat, fcntl, importlib.util
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import status_vocab
+# spc-297: import transition-api for in-lock single-write atomicity.
+_ta_path = os.path.join(os.environ["BINDER_ROWS_LIB"], "..", "transition-api.py")
+_ta_spec = importlib.util.spec_from_file_location("transition_api", _ta_path)
+_ta = importlib.util.module_from_spec(_ta_spec); _ta_spec.loader.exec_module(_ta)
 
 binder, mode, extend_mode, extend_reason, note = sys.argv[1:6]
 dry_run = mode == "dry-run"
@@ -238,27 +242,25 @@ if status_vocab.is_terminal(prior):
 stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 note_suffix = f" — brief: {note}" if note else ""
 
-# A1.3 (spc-270): the pr-open → rework status flip + the Decision-journal
-# trace + the `updated` bump + the ledger entry are routed through
-# `transition-api.py commit` (bash, below) in ONE atomic transaction. The
-# python only writes the fix_cycles field here (the cap/round counter) and
-# emits @@TRANSITION_FROM + @@JOURNAL_B64 so bash can drive the commit. The
-# rework → rework escape (no real status flip — rework→rework is not a legal
-# edge, so `commit` cannot fire) keeps the original single write: fix_cycles
-# bump + journal trace, no commit. A crash before `commit` on a pr-open path
-# leaves fix_cycles bumped but status unchanged; a re-run re-evaluates and
-# may over-count — this fails SAFE (over-count → cap-hit → deep-review,
-# human), the conservative failure mode.
-def emit_transition(reason, owner, journal_text):
-    """Emit @@TRANSITION_FROM:<prior>|<reason>|<owner>@@ + @@JOURNAL_B64:<b64>@@
-    for bash → commit. pr-open → rework is the only emit path (prior is
-    pr-open at every emit site). No emit in dry-run (commit would mutate)."""
-    if dry_run:
-        return
-    import base64
-    print(f"@@TRANSITION_FROM:pr-open|{reason}|{owner}@@")
-    if journal_text:
-        print(f"@@JOURNAL_B64:{base64.b64encode(journal_text.encode()).decode()}@@")
+# spc-297: single-write atomicity. The pr-open → rework status flip +
+# Decision-journal trace + `updated` + ledger land in ONE `commit_transaction`
+# merged with the fix_cycles field already in `s`, called inside this dir lock
+# (cures the double-increment-on-crash regression — fix_cycles + status flip
+# are now one transaction, not two writes). The rework → rework escape (no
+# real status flip — rework→rework is not a legal edge) keeps the original
+# single in-python write: fix_cycles bump + journal trace, no
+# prepare/commit_transaction.
+flip_journal = None   # set by pr-open paths → drives prepare_commit_text
+flip_owner = "system"
+flip_reason = "review-hold"
+
+def set_flip(reason, owner, journal_text):
+    """Record the flip params for the post-dispatch prepare_commit_text call
+    (pr-open → rework only). No-op effect in dry-run (no commit_transaction)."""
+    global flip_journal, flip_owner, flip_reason
+    flip_reason = reason
+    flip_owner = owner
+    flip_journal = journal_text
 
 def bump_fix_cycles():
     """Bump fc_val and write the fix_cycles row (in-place bump or insert after
@@ -285,7 +287,7 @@ def write_cap_hit():
         f"To authorize one more cycle: --extend-budget --reason "
         f"\"<operator-adjudicated rationale>\"{note_suffix}"
     )
-    emit_transition("review-hold (cap-hit)", "system", entry)
+    set_flip("review-hold (cap-hit)", "system", entry)
 
 # --- escape: operator authorizes one more cycle (human, double-confirm) ------
 def write_escape():
@@ -298,11 +300,11 @@ def write_escape():
         f"[operator-adjudicated — ADR-007 §5b; no agent self-adjudication]{note_suffix}"
     )
     if prior == "pr-open":
-        # real flip → commit writes journal + status + updated + ledger
-        emit_transition("review-hold (extend-budget)", "human", entry)
+        # real flip → prepare_commit_text + commit_transaction (single write)
+        set_flip("review-hold (extend-budget)", "human", entry)
     else:
         # rework → rework (no legal edge): single-write fix_cycles + journal,
-        # no commit (no status flip to record).
+        # no prepare/commit (no status flip to record).
         s = append_journal_trace(s, entry)
 
 # --- normal bump: within cap -----------------------------------------------
@@ -313,7 +315,7 @@ def write_normal():
         f"- {stamp} — fix cycle {fc_val}: `{prior}` → rework "
         f"(fix_cycles {fc_val}; cap ≤{CAP}; ADR-004 §5){note_suffix}"
     )
-    emit_transition("review-hold", "system", entry)
+    set_flip("review-hold", "system", entry)
 
 # --- dispatch -------------------------------------------------------------
 # Legal sources for the pr-open → rework transition: `pr-open` (the default),
@@ -362,8 +364,33 @@ else:
     )
     sys.exit(1)
 
-# --- atomic write ---------------------------------------------------------
-if s != orig and not dry_run:
+# --- single-write atomic transaction (spc-297) ---------------------------
+TICKET_ID = ""
+m_tid = re.match(r'^(tkt-[1-9][0-9]*)', os.path.basename(os.path.dirname(binder)))
+if m_tid:
+    TICKET_ID = m_tid.group(1)
+if dry_run:
+    pass  # no write; DRY-RUN message below
+elif flip_journal is not None:
+    # pr-open → rework: prepare_commit_text merges the status flip + journal +
+    # updated into `s` (which already carries the fix_cycles bump/hold), then
+    # commit_transaction writes binder + ledger atomically (single write — no
+    # double-increment-on-crash window).
+    rc, nt, ledentry = _ta.prepare_commit_text(
+        s, TICKET_ID, "rework", flip_owner, flip_reason,
+        journal_entry=flip_journal)
+    if rc != 0:
+        print("bump-fix-cycle: WARN — transition refused (non-blocking; "
+              "validator will catch); fix_cycles written but status not "
+              "flipped", file=sys.stderr)
+    else:
+        rc2 = _ta.commit_transaction(binder, nt, ledentry)
+        if rc2 != 0:
+            print("bump-fix-cycle: WARN — transaction failed (non-blocking; "
+                  "validator will catch)", file=sys.stderr)
+elif s != orig:
+    # rework → rework escape (fix_cycles + journal, no status flip) — write `s`
+    # directly (no ledger; rework→rework is not a recorded edge).
     import tempfile
     d = os.path.dirname(os.path.abspath(binder)) or "."
     fmode = os.stat(binder).st_mode
@@ -379,6 +406,7 @@ if s != orig and not dry_run:
         if os.path.exists(tmp):
             os.unlink(tmp)
         raise
+# else: cap-hit-idempotent (rework at cap, no extend) → no mutation.
 
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
@@ -422,37 +450,13 @@ else:
 PY
 )
 
-# Preserve human output; strip the @@ IPC lines (review F6).
-printf '%s\n' "$STAMP_OUT" | grep -vE '^@@(TRANSITION_FROM|JOURNAL_B64):' || true
+# Preserve human output (strip the internal `committed:` line).
+printf '%s\n' "$STAMP_OUT" | grep -vE '^committed:' || true
 
-# --- Atomic pr-open → rework transition (spc-270 A1.3): route the flip
-# through `commit` so status + journal trace + updated + ledger land in ONE
-# transaction. The python emits @@TRANSITION_FROM:pr-open|<reason>|<owner>@@
-# + @@JOURNAL_B64:<b64>@@ only on a real pr-open → rework flip (normal /
-# cap-hit / escape). The rework → rework escape (no real flip) and the
-# cap-hit-idempotent (no mutation) emit nothing → no commit. A failed commit
-# is non-blocking (decision-policy: never strand a review-hold); the
-# validator catches binder/ledger drift on the next run.
-TRANSITION_LINE=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
-if [[ -n "$TRANSITION_LINE" ]]; then
-  TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
-  PRIOR_STATUS="${TRANSITION_LINE%%|*}"
-  REST="${TRANSITION_LINE#*|}"
-  BFC_REASON="${REST%%|*}"
-  BFC_OWNER="${REST##*|}"
-  JOURNAL_B64=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@JOURNAL_B64:\(.*\)@@$/\1/p')
-  SCRIPT_DIR="$(resolve_script_dir "${BASH_SOURCE[0]}")"
-  COMMIT_ARGS=(commit "${TICKET_ID:-unknown}" rework "${BFC_OWNER:-system}" "${BFC_REASON:-review-hold}"
-    --from "$PRIOR_STATUS" --binder "$BINDER")
-  if [[ -n "$JOURNAL_B64" ]]; then
-    JOURNAL_TEXT=$(printf '%s' "$JOURNAL_B64" | base64 -d 2>/dev/null || true)
-    [[ -n "$JOURNAL_TEXT" ]] && COMMIT_ARGS+=(--append-journal "$JOURNAL_TEXT")
-  fi
-  python3 "$SCRIPT_DIR/transition-api.py" "${COMMIT_ARGS[@]}" \
-    || echo "bump-fix-cycle: WARN — transition commit failed (non-blocking; validator will catch)" >&2
-  LATTICE_HOME_DIR="$(dirname "$(dirname "$(dirname "$BINDER")")")"
-  LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
-  [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
-fi
+# Stage the per-ticket ledger for commit (F2). commit_transaction wrote it.
+TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+LATTICE_HOME_DIR="$(dirname "$(dirname "$(dirname "$BINDER")")")"
+LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
+[[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
 
 exit 0
