@@ -21,7 +21,10 @@
 #               permission prompt, which is not this hook's job, and "ask"
 #               would force prompts on already-allowlisted commands.
 #   strict   -> exit 2 + advice on stderr (fed to the model, blocks the call).
-# Fail OPEN on ambiguity: every failure mode must resolve to exit 0.
+# Default is strict (governance hardening, spc-145 follow-up). Override to
+# advisory for one shell: export LATTICE_HOOK_MODE=advisory
+# Fail CLOSED on missing python3 in strict mode (guardrail must not go inert).
+# Fail OPEN on other ambiguity: every other failure mode must resolve to exit 0.
 
 _INTERCEPT_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INTERCEPT_STRIP_HELPER="${_INTERCEPT_LIB_DIR}/../../scripts/strip-quoted-and-heredocs.py"
@@ -36,8 +39,8 @@ intercept_gh_pr_main() {
 
     hook_data=$(cat)
 
-    hook_mode=$(printf '%s' "${LATTICE_HOOK_MODE:-advisory}" | tr '[:upper:]' '[:lower:]')
-    case "$hook_mode" in advisory|strict) ;; *) hook_mode="advisory" ;; esac
+    hook_mode=$(printf '%s' "${LATTICE_HOOK_MODE:-strict}" | tr '[:upper:]' '[:lower:]')
+    case "$hook_mode" in advisory|strict) ;; *) hook_mode="strict" ;; esac
 
     # Cheap pre-filter (advisory mode only): if "gh" appears nowhere in the
     # raw hook JSON, bail before spawning jq/python3. JSON \u escapes can
@@ -74,14 +77,28 @@ intercept_gh_pr_main() {
     fi
 
     # python3 absent: the strip / classifier / skill-active checks below all
-    # fail-open, so the gh-pr guardrail is inert. Emit a ONE-TIME stdout JSON
-    # advisory (stderr is discarded on exit 0, so stdout is the only path that
-    # reaches the model). Never block — fail-open even in strict mode
-    # (spc-212 A3/D3). Gate on the command containing "gh" so the advisory
-    # does not fire on unrelated Bash calls (strict mode skips the *gh*
-    # pre-filter at line 47).
+    # depend on it. In strict mode, FAIL CLOSED (exit 2) — the guardrail must
+    # not silently go inert when the user expects enforcement. In advisory mode,
+    # emit a ONE-TIME stdout JSON advisory and allow (fail-open). Gate on the
+    # command containing "gh" so the advisory does not fire on unrelated Bash
+    # calls (strict mode skips the *gh* pre-filter at line 47).
     if ! command -v python3 >/dev/null 2>&1 && [[ "$command" == *gh* ]]; then
-        jq -cn --arg ctx "Lattice gh-pr guardrail is INERT: python3 is not installed, so the create-pr/finish-work skill-marker check is skipped (fail-open). Strict-mode protections are inactive until python3 is installed (see ensure-python3.sh)." \
+        if [[ "$hook_mode" == "strict" ]]; then
+            cat >&2 <<'EOF'
+lattice: gh guardrail cannot verify skill activation — python3 is not installed.
+
+  Strict-mode protections require python3 for skill-marker checks. Without it,
+  bare gh pr create/merge/issue create cannot be distinguished from
+  skill-routed calls, so the guardrail FAILS CLOSED (block) in strict mode.
+
+  To proceed, either:
+    1. Install python3 (see ensure-python3.sh), OR
+    2. Set LATTICE_HOOK_MODE=advisory for this session (nudge-only), OR
+    3. Route through the skill: /create-pr, /finish-work, or /create-tickets
+EOF
+            exit 2
+        fi
+        jq -cn --arg ctx "Lattice gh-pr guardrail is INERT: python3 is not installed, so the create-pr/finish-work/create-tickets skill-marker check is skipped (fail-open). Strict-mode protections are inactive until python3 is installed (see ensure-python3.sh)." \
             --arg msg "lattice: gh-pr guardrail degraded (python3 missing); protections inactive" \
             '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$ctx},systemMessage:$msg}' \
             2>/dev/null || true
@@ -100,7 +117,7 @@ intercept_gh_pr_main() {
     # the strip helper removes quoted payloads upstream; see the detector
     # docstring's "Accepted limitation". Strict mode guards direct commands.
     # Missing/broken classifier follows the hook's fail-open contract.
-    if [[ ! "${INTERCEPT_GH_PR_VERB:-}" =~ ^(create|merge)$ ]] || \
+    if [[ ! "${INTERCEPT_GH_PR_VERB:-}" =~ ^(create|merge|issue-create)$ ]] || \
        ! printf '%s' "$cleaned_command" | python3 "$INTERCEPT_GH_PR_HELPER" "$INTERCEPT_GH_PR_VERB" 2>/dev/null; then
         exit 0
     fi
@@ -199,8 +216,13 @@ EOF
         fi
     fi
 
-    advice="${INTERCEPT_ADVICE}
-Hook mode: ${hook_mode} (set LATTICE_HOOK_MODE=strict to enforce the skill marker)."
+    if [[ "$hook_mode" == "strict" ]]; then
+        advice="${INTERCEPT_ADVICE}
+Hook mode: strict (default; set LATTICE_HOOK_MODE=advisory to nudge-only)."
+    else
+        advice="${INTERCEPT_ADVICE}
+Hook mode: advisory (set LATTICE_HOOK_MODE=strict to enforce the skill marker)."
+    fi
 
     if [[ "$hook_mode" == "strict" ]]; then
         printf '%s\n' "$advice" >&2

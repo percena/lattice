@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Best-effort detector for direct `gh [global flags] pr [flags] VERB` calls.
+"""Best-effort detector for direct `gh [global flags] pr [flags] VERB` and
+`gh [global flags] issue create` calls.
 
 Input is already stripped of quoted strings and heredoc bodies by the hook's
 normalizer. This is intentionally a lightweight GitHub CLI classifier, not a
-shell parser. When a region contains a valid `gh pr` mutation behind an unknown
-command prefix, it fails closed instead of assuming the prefix only prints
-text. The small safe list below preserves common prose/search commands.
+shell parser. When a region contains a valid `gh pr`/`gh issue` mutation
+behind an unknown command prefix, it fails closed instead of assuming the
+prefix only prints text. The small safe list below preserves common
+prose/search commands.
 
 The scan is FORWARD, per command region, because that is the only way to tell
 an invocation from a word that merely spells "gh":
 
     gh pr create                 -> invocation
+    gh issue create              -> invocation (verb=issue-create)
     sudo -u me gh pr create      -> invocation (wrapper)
     >out.txt gh pr create        -> invocation (leading redirection)
     echo gh pr create            -> argument text, NOT an invocation
@@ -224,11 +227,22 @@ def is_gh_pr_verb(items: list[str], index: int, verb: str) -> bool:
     if index >= len(items) or os.path.basename(items[index]) != "gh":
         return False
     cursor, ok = skip_flags(items, index + 1)
-    if not ok or cursor >= len(items) or items[cursor] != "pr":
+    if not ok or cursor >= len(items):
         return False
-    cursor, ok = skip_flags(items, cursor + 1)
-    if not ok or cursor >= len(items) or items[cursor] != verb:
-        return False
+    if verb == "issue-create":
+        # Match `gh issue create`
+        if items[cursor] != "issue":
+            return False
+        cursor, ok = skip_flags(items, cursor + 1)
+        if not ok or cursor >= len(items) or items[cursor] != "create":
+            return False
+    else:
+        # Match `gh pr <verb>`
+        if items[cursor] != "pr":
+            return False
+        cursor, ok = skip_flags(items, cursor + 1)
+        if not ok or cursor >= len(items) or items[cursor] != verb:
+            return False
     return not has_terminal_flag(items, cursor + 1)
 
 
@@ -267,7 +281,7 @@ def contains(command: str, verb: str) -> bool:
 
 
 def main() -> int:
-    if len(sys.argv) != 2 or sys.argv[1] not in {"create", "merge"}:
+    if len(sys.argv) != 2 or sys.argv[1] not in {"create", "merge", "issue-create"}:
         return 2
     return 0 if contains(sys.stdin.read(), sys.argv[1]) else 1
 

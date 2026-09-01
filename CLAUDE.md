@@ -28,3 +28,28 @@ assert-shippable-cwd.sh --allow-base-write --reason "user-authorized: <why>"
 ```
 
 Full policy: `skills/start-work/references/policy.md`.
+
+## Workflow pipeline is mandatory (hard prohibition)
+
+All code delivery MUST go through the skill pipeline:
+
+  create-spec → create-tickets → start-work → create-pr → finish-work
+
+This is a **hard prohibition**, not a recommendation. Violation = STOP and
+surface to the user. Do not rationalize a bypass with engineering pragmatism
+(coupling, efficiency, "just a quick fix") — if you feel justified to
+deviate, STOP and ask first.
+
+- **No manual `gh issue create`** — the hook blocks it unless create-tickets
+  is active. Use `/create-tickets`.
+- **No manual `gh pr create`** — the hook blocks it unless create-pr is
+  active. Use `/create-pr`.
+- **No manual `gh pr merge`** — the hook blocks it unless finish-work is
+  active. Use `/finish-work`.
+- **No ad-hoc branches** — L1 blocks `git checkout -b` in the main clone.
+  Use `/start-work` to get a bound sibling worktree.
+- **If coupling makes per-ticket worktree impractical** → use `batch-work`
+  skill, or ASK the user first. Do not silently open a serial single-branch.
+
+The hooks default to `strict` (block). To temporarily override for one shell:
+`export LATTICE_HOOK_MODE=advisory` (nudge-only, does not block).
