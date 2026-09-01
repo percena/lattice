@@ -9,7 +9,7 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/293 |
-| status | pr-open |
+| status | closed |
 | adopted | true |
 | summary | Drop `baseRefOid` from `gh pr view --json`; fetch base OID via REST `gh api repos/{owner}/{repo}/pulls/{n} --jq .base.sha`; surface real gh errors instead of masking stderr; fix bats fixtures + add regression test |
 | spec | none |
@@ -75,3 +75,17 @@ Minimal, surgical fix:
 - Issue: https://github.com/percena/lattice/issues/293
 - Anchor: `skills/finish-work/scripts/update-pr-base.sh:75` (baseRefOid in --json), `:106` (view.get("baseRefOid"))
 - Bats fixtures: `skills/finish-work/scripts/tests/update-pr-base.bats`, `skills/finish-work/scripts/tests/finish-preflight.bats`
+
+## Finish
+
+- pr-295 merged: 2026-09-01T05:53:57Z — https://github.com/percena/lattice/pull/295 (base merge)
+- anomaly: issue #293 closed as {
+  "MESSAGE": "NOT FOUND",
+  "DOCUMENTATION_URL": "HTTPS://DOCS.GITHUB.COM/REST",
+  "STATUS": "404"
+} while PR #295 delivers it — reconcile close-reason vs delivery
+- issue #293 closed: 2026-09-01T05:54:47Z (reason: {
+  "message": "Not Found",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "404"
+}) — https://github.com/percena/lattice/issues/293

@@ -9,7 +9,7 @@
 | priority | P3 |
 | labels | enhancement, P3 |
 | github | https://github.com/percena/lattice/issues/294 |
-| status | pr-open |
+| status | closed |
 | adopted | true |
 | summary | Fetch `stateReason` for closed Fixes issues via `gh api`; emit WARN in alignment-check when NOT_PLANNED/DUPLICATE/OUT_OF_DATE while PR delivers; record `stateReason` in finish-ledger (anomaly line when != COMPLETED); include reason in close-fixed-issues already_closed report |
 | spec | none |
@@ -60,3 +60,17 @@
 
 - Issue: https://github.com/percena/lattice/issues/294
 - Anchors: `skills/finish-work/scripts/alignment-check.sh:328`, `skills/_lattice-lib/scripts/finish-ledger.sh:326`, `skills/finish-work/scripts/close-fixed-issues.sh` (already_closed path)
+
+## Finish
+
+- pr-295 merged: 2026-09-01T05:53:57Z — https://github.com/percena/lattice/pull/295 (base merge)
+- anomaly: issue #294 closed as {
+  "MESSAGE": "NOT FOUND",
+  "DOCUMENTATION_URL": "HTTPS://DOCS.GITHUB.COM/REST",
+  "STATUS": "404"
+} while PR #295 delivers it — reconcile close-reason vs delivery
+- issue #294 closed: 2026-09-01T05:54:30Z (reason: {
+  "message": "Not Found",
+  "documentation_url": "https://docs.github.com/rest",
+  "status": "404"
+}) — https://github.com/percena/lattice/issues/294
