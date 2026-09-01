@@ -164,7 +164,7 @@ claude plugin marketplace add percena/lattice
 claude plugin install lattice@percena
 ```
 
-Hooks advise on bare `gh pr create` / `gh pr merge` on Claude only; set `LATTICE_HOOK_MODE=strict` to opt into marker-based blocking. Skills remain correct without hooks (Codex).
+Hooks block bare `gh pr create` / `gh pr merge` / `gh issue create` on Claude only (strict default); set `LATTICE_HOOK_MODE=advisory` for nudge-only. Skills remain correct without hooks (Codex).
 
 ### Org roll-out (Claude Code)
 
@@ -312,11 +312,11 @@ Two legitimate installs — pick consciously. **Dogfood for this monorepo stays 
 
 | Track | Install | Profile | When |
 | --- | --- | --- | --- |
-| **Team (default)** | Full portable pack **+** Claude plugin `lattice@percena` | `strict` | Shared repos, parallel tickets, advisory intercepts; teams may opt into strict hook blocking |
+| **Team (default)** | Full portable pack **+** Claude plugin `lattice@percena` | `strict` | Shared repos, parallel tickets; strict hook blocking on by default |
 | **Expert / strong-model solo** | Portable skills only (or plugins disabled); optional quality side-paths | often `light` | Solo speed; trusts model path choice while preserving authority, identity, destructive safety, and verification truth |
 
 **What stays hard on both tracks:** no silent PR from the live default branch, real GH identity for `spc-N`, destructive-action safety, and finish-work honesty when binders apply. Worktree/bind choices are defaults with evidence-bearing escapes.
-**What team plugins add:** PreToolUse intercepts advise on bare `gh pr create`/`merge`; `LATTICE_HOOK_MODE=strict` opts into marker-based blocking (fail-open on ambiguity).
+**What team plugins add:** PreToolUse intercepts block bare `gh pr create`/`merge`/`issue create` (strict default); `LATTICE_HOOK_MODE=advisory` opts into nudge-only (fail-open on ambiguity, including `python3` missing — spc-212).
 **What light relaxes:** shippable `--mode branch` without policy shame; Acceptance open-on-Fixes → WARN not HARD.
 
 See also [Profiles](#profiles-strict--light).

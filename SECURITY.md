@@ -33,7 +33,7 @@ Lattice ships **shell scripts**, **agent skill instructions**, and optional **Cl
 | --- | --- |
 | Credential leakage via scripts (tokens on argv, logs) | Compromised third-party agent host or model provider |
 | Path traversal / unsafe write outside intended `.lattice/` or worktree roots when using shipped scripts as designed | Malicious skill prompts the operator deliberately installs from elsewhere |
-| Hook bypass that falsely authorizes bare `gh pr merge` in **strict** mode | Default **advisory** hooks that only warn (not a security boundary by design) |
+| Hook bypass that falsely authorizes bare `gh pr merge` in **strict** mode | Strict hooks block by default, but are not a security boundary by design (fail-open on ambiguity / `python3` missing — spc-212) |
 | Supply-chain issues in this repo’s published packaging metadata | Consumer application vulnerabilities unrelated to Lattice |
 
 Security quality for **PR change-sets** in consumer work is guided by optional side-path skills; those skills are advice, not a merge gate.

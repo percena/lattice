@@ -31,17 +31,17 @@ payload_for_command() {
     '{tool_name:"Bash",session_id:$session_id,tool_input:{command:$command}}'
 }
 
-@test "advisory is the product default and allows bare gh pr create with guidance" {
+@test "advisory mode allows bare gh pr create with guidance" {
   run run_advisory_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}"
   [ "$status" -eq 0 ]
-  printf '%s\n' "$output" | grep -qF "recommended path"
+  printf '%s\n' "$output" | grep -qF "required path"
   printf '%s\n' "$output" | grep -qF "Hook mode: advisory"
 }
 
-@test "unknown hook mode degrades to advisory" {
+@test "unknown hook mode degrades to strict" {
   run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}' | LATTICE_HOOK_MODE=unexpected '$HOOK_SCRIPT' 2>&1"
-  [ "$status" -eq 0 ]
-  printf '%s\n' "$output" | grep -qF "Hook mode: advisory"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "Hook mode: strict"
 }
 
 # ============================================================

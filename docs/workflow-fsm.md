@@ -174,8 +174,8 @@ The "night states never reach merged" invariant holds on the scripted path, but 
 | Call path | Guarantee strength | Mechanism |
 | --- | --- | --- |
 | Scripted `finish-work` | **Hard gate (fail-closed)** | `.lattice/.batch-work-active` marker blocks merge unless binder/lineage checks pass |
-| Strict Claude PreToolUse hook (`LATTICE_HOOK_MODE=strict`) | **Defense-in-depth** | re-checks the marker/skill contract on top of the scripted gate; does not replace it |
-| Advisory mode (`LATTICE_HOOK_MODE=advisory`, default) | **Detection only** | emits a nudge to the model; does not block |
+| Strict Claude PreToolUse hook (`LATTICE_HOOK_MODE=strict`, default) | **Defense-in-depth** | re-checks the marker/skill contract on top of the scripted gate; does not replace it |
+| Advisory mode (`LATTICE_HOOK_MODE=advisory`) | **Detection only** | emits a nudge to the model; does not block |
 | Plugin uninstalled / bare `gh` / other agents | **Detection only** | no hook in the path; the scripted gate still applies if `finish-work` is used, but a raw `gh pr merge` bypasses it |
 | `python3` missing | **Strict fail-opens** | the hook degrades to an advisory nudge; strict protections are inactive until `python3` is installed (`ensure-python3.sh`) |
 

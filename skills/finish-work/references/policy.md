@@ -91,7 +91,7 @@ Green checks ≠ ready to land. Before `gh pr merge`:
 
 Load: `gh issue view` for each linked issue; binder under `.lattice/tickets/tkt-N-*/` (flat; closed binders stay in place); Spec/Review paths cited on PR or issue.
 
-**Hooks (Claude-only):** optional lattice plugin advises on bare `gh pr merge`; `LATTICE_HOOK_MODE=strict` opts into marker-based blocking. Skills remain correct without hooks (Codex).
+**Hooks (Claude-only):** lattice plugin blocks bare `gh pr merge` by default (strict); `LATTICE_HOOK_MODE=advisory` opts into nudge-only. Skills remain correct without hooks (Codex).
 
 ## Lineage (best-effort, after merge)
 
