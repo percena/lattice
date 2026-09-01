@@ -60,3 +60,6 @@
 ## Notes
 
 - Root-caused during PR #313 finish (tkt-307..310). The spc-277/tkt-278 working-tree drift seen there was parallel operator activity (user M1n9X committed 638184d + ran finish-ledger on dev in parallel), NOT this bug — verified stamp-pr-open.sh / transition-api.py / finish-ledger.sh all scope to the single `--binder` + its own ledger.
+- NOTICED: `skills/_lattice-lib/scripts/stamp-pr-open.sh` (~line 506) and `bump-fix-cycle.sh` (~line 460) carry the SAME staging bug this ticket fixes for finish-ledger.sh (write binder via commit_transaction/os.replace but stage only the JSONL, never `git add` the binder). Out-of-paths (2026-09-01) — follow-up ticket, not this agent's detour.
+- NOTICED: `finish-ledger.sh` gh api `state_reason` fetch (line ~351) is single-shot with no retry; a first-run failure means no `(reason: ...)` recorded AND the anomaly detector (line ~498, `state_reason and state_reason != "completed"`) short-circuits to False, silently missing a close-reason contradiction. Deeper root cause; out-of-paths (2026-09-01) — separate ticket.
+- NOTICED: no bats test exercises the new idempotency guard or the `git add "$BINDER"` staging line (2026-09-01). Existing 50 tests + manual validator cover regression risk; a focused test with a gh api mock is a follow-up.

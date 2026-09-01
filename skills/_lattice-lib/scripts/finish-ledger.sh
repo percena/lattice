@@ -521,17 +521,21 @@ else:
         # refresh issue line if issue info present
         if issue_line:
             iss_pat = re.compile(rf'^- issue #{re.escape(issue_m)}.*$', re.MULTILINE) if issue_m else None
-            if iss_pat and iss_pat.search(body):
-                # tkt-317 idempotency guard: a transient state_reason fetch
-                # failure makes reason_suffix empty on a re-run; do NOT clobber
-                # an already-recorded ` (reason: ...)` from a prior successful
-                # fetch. Only replace when the fresh line carries a reason (data
-                # improvement) or the existing line had none.
+            iss_m = iss_pat.search(body) if iss_pat else None
+            if iss_m:
+                # tkt-317 idempotency: a transient state_reason fetch failure makes
+                # reason_suffix empty on a re-run. Always replace the line (so
+                # closed_at / URL / not-closed state stay current); only the reason
+                # suffix is PRESERVED from the existing line when the fresh fetch
+                # lost it (never inject a reason into a "not closed" line).
+                existing_match = iss_m.group(0)
                 fresh_has_reason = " (reason:" in issue_line
-                existing_match = iss_pat.search(body).group(0)
                 existing_has_reason = " (reason:" in existing_match
-                if fresh_has_reason or not existing_has_reason:
-                    body = iss_pat.sub(issue_line.lstrip("\n"), body)
+                if not fresh_has_reason and existing_has_reason and "not closed" not in issue_line:
+                    m_reason = re.search(r' (\(reason: [^)]*\))', existing_match)
+                    if m_reason:
+                        issue_line = issue_line.replace(' — ', f'{m_reason.group(1)} — ', 1)
+                body = iss_pat.sub(issue_line.lstrip("\n"), body)
             else:
                 body = body.rstrip() + issue_line + "\n"
     else:
@@ -628,6 +632,10 @@ TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/
 LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
 LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
 [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
-git add "$BINDER" 2>/dev/null || true
+# tkt-317: stage the binder README too (previously only the JSONL was staged).
+# Surface a staging failure rather than silently masking it — a gitignored
+# .lattice (ADR-011 fresh-customer-repo) or a held index lock would otherwise
+# leave the binder write uncommitted, re-introducing the dirty-tree bug.
+git add "$BINDER" 2>/dev/null || echo "finish-ledger: WARNING — could not stage binder $BINDER (gitignored? index lock?); commit may miss it" >&2
 
 exit 0

@@ -468,7 +468,7 @@ For each layer L0..Lk, for each PR in the layer (binder-id order), run the **sin
 6. `gh pr merge <N> --squash --delete-branch` (or `gh pr close <N>` under `--close`). After: `verify-mutation.sh --pr <N>` (verify-after-mutate). Failed/empty probe → **failure** (halt).
 7. **After merge:** `close-fixed-issues.sh --pr <N> --expected-closing-ids <approved-set>` (required). Changed set → fail closed → **failure** (halt).
 8. `cleanup-workspace.sh --branch <HEAD> --pr <N>` (required). `ok:false` or remote residual → **failure** (halt, fix residual).
-9. `finish-ledger.sh --pr <N> --issue <closing_M> --binder <path>` on the merge base. Stamps `pr-open → closed` + `## Finish` ledger line.
+9. `finish-ledger.sh --pr <N> --issue <closing_M> --binder <path>` on the merge base, once per closing binder. Stamps `pr-open → closed` + `## Finish` ledger line; the helper writes + stages the binder + its `.transition-ledger/<tkt>.jsonl` (does **not** commit/push itself). After the per-binder loop, the flow commits + pushes the base once (`git commit` + `git push origin <base>`). **Halt-on-failure:** if finish-ledger fails on binder k of N, do **not** commit the partial staged set — resolve and re-run.
 
 **On success:** record `ok` + merged PR URL + mergedAt; add PR to the `merged-ok` set (used by dependents' retarget check).
 
