@@ -7,9 +7,9 @@
 | slug | problem-audit-matrix |
 | adopted | true |
 | kind | bug |
-| status | pr-open |
+| status | closed |
 | created | 2026-09-01T00:00:00Z |
-| updated | 2026-09-01T00:00:00Z |
+| updated | 2026-09-01T09:29:07Z |
 | ship | one-PR (batch #307–#310, primary tkt-307) |
 | paths | `skills/create-review/SKILL.md`, `skills/create-review/references/policy.md`, `skills/create-review/references/templates/review.md` |
 
@@ -31,3 +31,8 @@ create-review's Problem Audit audits validity/info-sufficiency/hidden-issues but
 
 - [x] Problem Audit checklist includes the existing-solution-meets-goal question.
 - [x] Decision-support (option-comparing) reviews require a multi-dimensional comparison matrix.
+
+## Finish
+
+- pr-313 merged: 2026-09-01T09:27:58Z — https://github.com/percena/lattice/pull/313 (base merge)
+- issue #309 closed: 2026-09-01T09:28:31Z — https://github.com/percena/lattice/issues/309

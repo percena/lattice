@@ -7,9 +7,9 @@
 | slug | direction-confirm-gate |
 | adopted | true |
 | kind | bug |
-| status | pr-open |
+| status | closed |
 | created | 2026-09-01T00:00:00Z |
-| updated | 2026-09-01T00:00:00Z |
+| updated | 2026-09-01T09:29:04Z |
 | ship | one-PR (primary of batch #307–#310) |
 | paths | `skills/create-adr/SKILL.md`, `skills/create-adr/references/policy.md`, `skills/create-adr/references/templates/adr.md` |
 
@@ -38,3 +38,8 @@
 
 - Shipped in one PR with tkt-308 (same files), tkt-309 (create-review), tkt-310 (start-work).
 - Bug-class, no Reproduction Steps in issue → Phase 0c note: cannot reproduce without steps; policy/template gap is the brief.
+
+## Finish
+
+- pr-313 merged: 2026-09-01T09:27:58Z — https://github.com/percena/lattice/pull/313 (base merge)
+- issue #307 closed: 2026-09-01T09:28:24Z (reason: completed) — https://github.com/percena/lattice/issues/307

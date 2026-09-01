@@ -7,9 +7,9 @@
 | slug | direction-field |
 | adopted | true |
 | kind | bug |
-| status | pr-open |
+| status | closed |
 | created | 2026-09-01T00:00:00Z |
-| updated | 2026-09-01T00:00:00Z |
+| updated | 2026-09-01T09:29:09Z |
 | ship | one-PR (batch #307–#310, primary tkt-307) |
 | paths | `skills/start-work/SKILL.md` |
 
@@ -29,3 +29,8 @@ start-work's COMMITTED card records Why/In/Out/Acceptance/mode/workspace/ship bu
 
 - [x] COMMITTED card includes a Direction-confirmed-via field.
 - [x] `assumed` triggers a batch-confirm before EXECUTE (not a silent proceed).
+
+## Finish
+
+- pr-313 merged: 2026-09-01T09:27:58Z — https://github.com/percena/lattice/pull/313 (base merge)
+- issue #310 closed: 2026-09-01T09:28:34Z — https://github.com/percena/lattice/issues/310
