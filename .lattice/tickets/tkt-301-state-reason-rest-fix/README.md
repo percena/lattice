@@ -19,7 +19,7 @@
 | **primary_ticket** | tkt-301 (this issue) |
 | **related_tickets** | tkt-302 (co-delivered — GHE URL + reason_map) |
 | **worktree_bind** | tkt-301-state-reason-rest-fix |
-| prs | (pending), pr-303 — https://github.com/percena/lattice/pull/303 |
+| prs | pr-303 — https://github.com/percena/lattice/pull/303 |
 
 ## Acceptance
 

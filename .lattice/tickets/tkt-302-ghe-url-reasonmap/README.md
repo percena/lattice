@@ -19,7 +19,7 @@
 | **primary_ticket** | tkt-302 (this issue) |
 | **related_tickets** | tkt-301 (co-delivered — state_reason REST call fix) |
 | **worktree_bind** | tkt-301-state-reason-rest-fix |
-| prs | (pending), pr-303 — https://github.com/percena/lattice/pull/303 |
+| prs | pr-303 — https://github.com/percena/lattice/pull/303 |
 
 ## Acceptance
 

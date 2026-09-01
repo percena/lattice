@@ -22,7 +22,7 @@
 | **related_tickets** | tkt-294 (co-delivered in same PR — close-reason awareness) |
 | **worktree_bind** | tkt-293-finish-work-baserefoid-closereason |
 | worktree | sibling …/lattice.worktrees/tkt-293-finish-work-baserefoid-closereason/ |
-| prs | (pending), pr-295 — https://github.com/percena/lattice/pull/295 |
+| prs | pr-295 — https://github.com/percena/lattice/pull/295 |
 
 ## Acceptance (this slice)
 
