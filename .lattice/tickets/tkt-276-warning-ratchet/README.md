@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/276 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-08-31T10:07:37Z |
+| updated | 2026-09-01T15:48:27Z |
 | adopted | false |
 | summary | Enforce distinct repeated warnings, fail-closed baseline loading, base comparison, only-decrease and migration deadlines. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-276-warning-ratchet` |
 | worktree | sibling `…/lattice.worktrees/tkt-276-warning-ratchet/` |
-| prs | (none) |
+| prs | pr-322 — https://github.com/percena/lattice/pull/322 |
 
 ## Acceptance (this slice)
 
@@ -86,4 +86,6 @@ This ticket owns ratchet and migration logic only; runtime evidence parsing belo
 
 ## Finish
 
-- (none yet)
+
+- pr-322 merged: 2026-09-01T15:47:17Z — https://github.com/percena/lattice/pull/322 (base merge)
+- issue #276 closed: 2026-09-01T15:47:59Z (reason: completed) — https://github.com/percena/lattice/issues/276
