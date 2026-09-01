@@ -117,10 +117,10 @@ EOF
   printf '%s\n' "$output" | grep -qF '"oid": "abc1234"'
   # tkt-A in settled_tickets
   assert_settled "$output" "tkt-A"
-  # the ok flip recorded a pr-open ledger entry (consumes tkt-255)
-  [ -f "$LATTICE_HOME/.transition-ledger/tkt-A.jsonl" ]
-  grep -qF '"from":"in-progress"' "$LATTICE_HOME/.transition-ledger/tkt-A.jsonl"
-  grep -qF '"to":"pr-open"' "$LATTICE_HOME/.transition-ledger/tkt-A.jsonl"
+  # tkt-298: the coordinator no longer duplicates the ok→pr-open flip — the
+  # worker's create-pr (stamp-pr-open) owns it. No ledger entry is written by
+  # the coordinator for an ok node (single source of truth; no discontinuity).
+  [ ! -f "$LATTICE_HOME/.transition-ledger/tkt-A.jsonl" ]
 }
 
 @test "record-node unknown fail-closes binder to stuck via transition-api (tkt-255)" {
@@ -128,6 +128,20 @@ EOF
   python3 "$COORD" record-spawn --batch-id "b4" --ticket "tkt-U" --layer 0 --wave 0 \
     --pid 3333 --worktree "/p/u" --brief-file "/b/u" --timebox 5 \
     --lattice-home "$LATTICE_HOME" >/dev/null
+  # tkt-298: the worker crashed/timed out before create-pr, so its binder is
+  # still in-progress (start-work stamped it). The coordinator is the sole
+  # recorder → it flips the binder to stuck via `commit` (binder + ledger
+  # atomic). Create the in-progress binder the worker would have stamped.
+  UDIR="$LATTICE_HOME/tickets/tkt-U-demo"
+  mkdir -p "$UDIR"
+  cat >"$UDIR/README.md" <<MD
+# tkt-U — demo
+
+| Field | Value |
+| --- | --- |
+| status | in-progress |
+| wait_reason | (none) |
+MD
   python3 "$COORD" record-node --batch-id "b4" --ticket "tkt-U" --status unknown \
     --pid 3333 --failure-class unknown --reason "PID disappeared" \
     --transition-api "$TAPI" --lattice-home "$LATTICE_HOME" >/dev/null
@@ -136,6 +150,9 @@ EOF
   grep -qF '"from":"in-progress"' "$ledger"
   grep -qF '"to":"stuck"' "$ledger"
   grep -qF '"trace":"wait_reason: unblock"' "$ledger"
+  # tkt-298: commit flipped the binder atomically with the ledger (snapshot ok)
+  grep -q '| status | stuck |' "$UDIR/README.md"
+  grep -q '| wait_reason | unblock |' "$UDIR/README.md"
 }
 
 @test "advance-cursor moves the resume point" {
@@ -289,6 +306,12 @@ EOF
   m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
   mkdir -p "$wt"; printf 'x\n' >"$brief"
   printf 'tkt-W\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  # tkt-298: the coordinator flips the binder to stuck via `commit` (needs the
+  # in-progress binder the worker's start-work would have stamped; the
+  # fast_helper here sleeps instead of running start-work, so create it).
+  WDIR="$LATTICE_HOME/tickets/tkt-W-demo"
+  mkdir -p "$WDIR"
+  printf '# tkt-W\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$WDIR/README.md"
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
