@@ -8,12 +8,12 @@
 | adopted | false |
 | kind | bug |
 | priority | P2 |
-| status | in-progress |
+| status | pr-open |
 | github | https://github.com/percena/lattice/issues/317 |
 | paths | `skills/_lattice-lib/scripts/finish-ledger.sh`, `skills/finish-work/SKILL.md` |
 | ship | one-PR |
 | created | 2026-09-01T12:48:52Z |
-| updated | 2026-09-01T12:48:52Z |
+| updated | 2026-09-01T12:50:51Z |
 
 ## Why
 
@@ -34,11 +34,11 @@
 
 ## Acceptance (from issue)
 
-- [ ] finish-ledger.sh stages the binder README (`git add <binder>`) alongside the transition-ledger JSONL; duplicate trailing `exit 0` removed.
-- [ ] finish-work/SKILL.md step 10 corrected: finish-ledger.sh writes + stages; the finish-work flow commits + pushes once after the per-binder loop (no overclaim).
-- [ ] finish-work short path has an explicit commit + push step after the finish-ledger loop.
-- [ ] Re-running finish-ledger.sh on an already-stamped binder does not re-dirty committed lines (reason refinement is a no-op when a reason is already present).
-- [ ] One fresh finish-work cycle (local or observed) lands clean with no manual `git add`/`git commit`/`git push` intervention.
+- [x] finish-ledger.sh stages the binder README (`git add <binder>`) alongside the transition-ledger JSONL; duplicate trailing `exit 0` removed.
+- [x] finish-work/SKILL.md step 10 corrected: finish-ledger.sh writes + stages; the finish-work flow commits + pushes once after the per-binder loop (no overclaim).
+- [x] finish-work short path has an explicit commit + push step after the finish-ledger loop.
+- [x] Re-running finish-ledger.sh on an already-stamped binder does not re-dirty committed lines (reason refinement is a no-op when a reason is already present).
+- [x] One fresh finish-work cycle (local or observed) lands clean with no manual `git add`/`git commit`/`git push` intervention.
 
 ## Approach
 
