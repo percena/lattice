@@ -13,6 +13,11 @@ setup() {
   # finish-ledger rewrites this file in place, so it refuses paths outside a
   # repo's .lattice/ tree — stage it exactly where the workflow puts it.
   REPO="$TEST_DIR/repo"
+  # tkt-299 follow-up: finish-ledger's close flip routes through commit_transaction
+  # (which writes the ledger via LATTICE_HOME). Export the tmp repo home so the
+  # tkt-7.jsonl ledger lands in the per-test tmp repo, not the real repo home
+  # (no residue; the validator stays clean locally).
+  export LATTICE_HOME="$REPO/.lattice"
   BINDER_DIR="$REPO/.lattice/tickets/tkt-7-demo"
   mkdir -p "$BINDER_DIR"
   git -C "$REPO" init -q -b main
