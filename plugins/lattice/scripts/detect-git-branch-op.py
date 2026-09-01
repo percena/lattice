@@ -163,7 +163,12 @@ def _scan_region(region):
             if t.startswith("-"):
                 j += 1
                 continue
-            # first non-flag positional = branch (switch) or path
+            # first non-flag positional = branch (switch) or path. But a later
+            # `--` means this is a file restore from <treeish>, not a switch
+            # (tkt-324: `git checkout <treeish> -- <path>` was misclassified
+            # as a switch → blocked legitimate file restores).
+            if "--" in rest[j + 1:]:
+                return {"op": "none", "target": None, "cwd_override": cwd_override}
             return {"op": "switch", "target": t, "cwd_override": cwd_override}
         return {"op": "none", "target": None, "cwd_override": cwd_override}
 
@@ -186,6 +191,9 @@ def _scan_region(region):
     if sub == "branch":
         # git branch <name> → create. git branch (no arg) / -a / -d <name> /
         # --list → none. -m/-M <old> <new> is a rename, not drift-create; none.
+        # tkt-324: -f/--force is NOT in the none-set — `git branch -f <name>`
+        # force-creates a branch (drift); skip it as a regular flag so the
+        # name is reached → op=create. (-f before -d still hits -d → none.)
         j = 0
         while j < len(rest):
             t = rest[j]
@@ -194,7 +202,7 @@ def _scan_region(region):
                      "-v", "-vv", "--verbose", "--no-color", "--column",
                      "--sort", "-t", "--track", "--set-upstream",
                      "--unset-upstream", "--contains", "--merged",
-                     "--no-merged", "--points-at", "-f", "--force"):
+                     "--no-merged", "--points-at"):
                 return {"op": "none", "target": None, "cwd_override": cwd_override}
             if t.startswith("-"):
                 j += 1

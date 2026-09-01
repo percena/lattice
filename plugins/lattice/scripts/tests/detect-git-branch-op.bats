@@ -109,3 +109,21 @@ assert_op() {  # <command> <expected-op> [expected-target]
 @test "sudo git checkout -b foo is create" {
   assert_op 'sudo git checkout -b foo' create foo
 }
+
+# --- tkt-324: force-create + file-restore classification ---
+
+@test "tkt-324: git branch -f <name> is create (force-create is drift)" {
+  assert_op 'git branch -f feature-x' create feature-x
+}
+
+@test "tkt-324: git branch --force <name> is create" {
+  assert_op 'git branch --force feature-x' create feature-x
+}
+
+@test "tkt-324: git checkout <treeish> -- <path> is none (file restore, not switch)" {
+  assert_op 'git checkout feature-x -- docs/foo.md' none
+}
+
+@test "tkt-324: git branch -f -d <name> is none (force-delete, not drift-create)" {
+  assert_op 'git branch -f -d feature-x' none
+}
