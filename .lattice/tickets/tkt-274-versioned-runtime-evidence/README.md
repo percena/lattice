@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/274 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-08-31T10:07:37Z |
+| updated | 2026-09-01T13:52:30Z |
 | adopted | false |
 | summary | Validate versioned story/result identity, freshness, assertions, screenshots, round-trip and leftovers for pass evidence. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-274-versioned-runtime-evidence` |
 | worktree | sibling `…/lattice.worktrees/tkt-274-versioned-runtime-evidence/` |
-| prs | (none) |
+| prs | pr-320 — https://github.com/percena/lattice/pull/320 |
 
 ## Acceptance (this slice)
 
@@ -86,4 +86,6 @@ This ticket owns evidence parsing only. Warning identity/baseline behavior belon
 
 ## Finish
 
-- (none yet)
+
+- pr-320 merged: 2026-09-01T13:51:25Z — https://github.com/percena/lattice/pull/320 (base merge)
+- issue #274 closed: 2026-09-01T13:51:51Z (reason: completed) — https://github.com/percena/lattice/issues/274
