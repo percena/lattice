@@ -115,6 +115,8 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | --- | --- | --- |
 | queued → in-progress | batch-work spawn / start-work bind | system |
 | queued → deferred | fuse-halt / blocked-by-failure stamps `deferred`+reason at trip time (ADR-004 amd tkt-136 Option B); or deliberate human deschedule | system / human |
+| in-progress → deferred | spec-supersede trip-time sweep stamps a superseded Spec's in-flight child `deferred`+`spec-superseded` (tkt-190); or fuse-halt / deliberate deschedule of in-flight work | system / human |
+| deferred → deferred (reason-supersede) | a spec-supersede sweep re-stamps an already-`deferred` binder, superseding its prior `wait_reason` with `spec-superseded` (status self-loop, wait_reason change — analogous to the `pr-open → pr-open` rebase-void self-loop) | system |
 | deferred → queued | re-scheduled into a later batch | human |
 | in-progress → pr-open | `create-pr` opens the PR | agent |
 | in-progress → parked | irreversible / cross-contract decision, unattended → park & pivot | agent |

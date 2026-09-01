@@ -22,11 +22,13 @@ Exit codes:
 Usage:
   python3 transition-api.py commit <ticket-id> <to> <owner> <reason> \
       [--from <expected>] [--wait-reason <r>] [--force-side-state-reason <text>] \
-      [--trace <text>] [--binder <path>] [--dry-run]
+      [--trace <text>] [--append-journal <text>] [--binder <path>] [--dry-run]
       # Atomic binder-bound transition (spc-270 A1.1): locks the binder dir,
       # reads the real prior status, validates the edge + escape + coupled
       # wait_reason, then rewrites status/wait_reason/updated AND appends one
-      # ledger entry in one transaction. Canonical writers route here.
+      # ledger entry in one transaction. Canonical writers route here (A1.3).
+      # --append-journal writes a structured Decision-journal bullet in the SAME
+      # transaction (a crash before commit leaves no trace → no duplicate).
   python3 transition-api.py record <ticket-id> <from> <to> <owner> <reason> \
       [--force-side-state-reason <text>] [--trace <text>] [--dry-run]
       # Ledger-only primitive (no binder mutation); kept for non-canonical /
@@ -167,6 +169,62 @@ def _rewrite_field(text: str, name: str, value: str) -> str:
     return pat.sub(lambda m: f"| {name} | {value} |", text, count=1)
 
 
+def _append_journal_trace(text: str, entry: str) -> str:
+    """Append one dated bullet to `## Decision journal`, creating the section
+    if absent (mirrors the append_journal_trace embedded in each writer's
+    python heredoc). Used by `commit --append-journal` so a writer's structured
+    trace lands in the SAME atomic transaction as the status flip + ledger
+    (spc-270 A1.3): a crash before `commit` leaves no journal entry, so a
+    re-run appends it exactly once (no duplicate-trace regression). Returns
+    text unchanged when `entry` is empty/None."""
+    if not entry:
+        return text
+    m_hdr = re.search(r"^## Decision journal[ \t]*\n", text, re.MULTILINE)
+    if m_hdr:
+        body_start = m_hdr.end()
+        tail = text[body_start:]
+        bnd = re.search(r"\n## ", tail)
+        body = tail[: bnd.start()] if bnd else tail
+        trailing = tail[bnd.start():] if bnd else ""
+        stripped = body.strip("\n")
+        new_body = (stripped + "\n" + entry + "\n") if stripped else (entry + "\n")
+        return text[:body_start] + "\n" + new_body + trailing
+    # No journal section: insert one before the first standard tail section,
+    # else at EOF (keeps the binder well-formed).
+    anchor = re.search(
+        r"\n(## (?:Notes|References|Lineage|Finish|Pending decisions|Attempts)\b)",
+        text,
+    )
+    block = f"\n## Decision journal\n\n{entry}\n"
+    if anchor:
+        return text[: anchor.start()] + block + text[anchor.start():]
+    return text.rstrip("\n") + "\n" + block
+
+
+def _ensure_wait_reason_row(text: str, value: str) -> str:
+    """Insert a `| wait_reason | <value> |` row after the status row when the
+    binder lacks one (spc-270 A1.3). _rewrite_field is a no-op when the row is
+    absent (lazy migration), so a deferred/stuck flip with --wait-reason on a
+    minimal binder would ship without the coupled wait_reason and the validator
+    would flag it. Mirror the status row's pipe count so the table stays
+    well-formed: a 3-col status row gets a 3-col insert (value + description),
+    a 2-col row gets a 2-col insert. Returns text unchanged when a wait_reason
+    row is already present or no status row exists."""
+    if re.search(r"(?m)^\| wait_reason \|", text):
+        return text
+    m_status = re.search(r"(?m)^(.*?\|\s*status\s*\|.*\|.*)$", text)
+    if not m_status:
+        return text
+    status_line = m_status.group(0)
+    pipe_count = status_line.count("|")
+    if pipe_count >= 4:
+        new_row = f"| wait_reason | {value} | ({value}) |"
+    else:
+        new_row = f"| wait_reason | {value} |"
+    end = m_status.end()
+    return text[:end] + "\n" + new_row + text[end:]
+
+
 def _validate_coupled_wait_reason(to: str, wait_reason: str | None) -> tuple[bool, str]:
     """Coupled-field policy (spc-270 A1.1): a status that carries an external
     signal requires a wait_reason from its reason vocabulary; any other status
@@ -200,7 +258,8 @@ def cmd_commit(args: list) -> int:
         print("usage: transition-api.py commit <ticket-id> <to> <owner> "
               "<reason> [--from <expected>] [--wait-reason <r>] "
               "[--force-side-state-reason <text>] [--trace <text>] "
-              "[--binder <path>] [--dry-run]", file=sys.stderr)
+              "[--append-journal <text>] [--binder <path>] [--dry-run]",
+              file=sys.stderr)
         return 3
     ticket, to, owner, reason = args[:4]
     rest = args[4:]
@@ -208,6 +267,7 @@ def cmd_commit(args: list) -> int:
     wait_reason = None
     force_reason = None
     trace_override = None
+    journal_entry = None
     binder_override = None
     dry = False
     i = 0
@@ -221,6 +281,8 @@ def cmd_commit(args: list) -> int:
             force_reason = rest[i + 1]; i += 2
         elif a == "--trace" and i + 1 < len(rest):
             trace_override = rest[i + 1]; i += 2
+        elif a == "--append-journal" and i + 1 < len(rest):
+            journal_entry = rest[i + 1]; i += 2
         elif a == "--binder" and i + 1 < len(rest):
             binder_override = rest[i + 1]; i += 2
         elif a == "--dry-run":
@@ -244,7 +306,7 @@ def cmd_commit(args: list) -> int:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
         return _commit_locked(binder, ticket, to, owner, reason,
                               expected_from, wait_reason, force_reason,
-                              trace_override, dry)
+                              trace_override, journal_entry, dry)
     except OSError as exc:
         print(f"commit: cannot lock binder directory {lock_dir}: {exc}",
               file=sys.stderr)
@@ -260,7 +322,7 @@ def cmd_commit(args: list) -> int:
 def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
                    expected_from: str | None, wait_reason: str | None,
                    force_reason: str | None, trace_override: str | None,
-                   dry: bool) -> int:
+                   journal_entry: str | None, dry: bool) -> int:
     """Run the read-validate-write transaction under the caller's dir lock."""
     orig = binder.read_text(encoding="utf-8")
     prior = _read_field(orig, "status")
@@ -306,12 +368,24 @@ def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
         print(json.dumps(entry, indent=2))
         return 0
 
-    # 2. Build the new binder snapshot (status + wait_reason + updated).
+    # 2. Build the new binder snapshot (status + wait_reason + updated +
+    #    optional Decision journal trace). The journal append is in-transaction
+    #    so a crash before the atomic rename leaves neither the status flip nor
+    #    the trace (A1.3: no duplicate trace on re-run).
     new_text = _rewrite_field(orig, "status", to)
     resolved_wait_reason = wait_reason if wait_reason else "(none)"
     new_text = _rewrite_field(new_text, "wait_reason", resolved_wait_reason)
+    # A side-state/deferred transition with --wait-reason on a binder that
+    # PREDATES the wait_reason row would leave the row absent (lazy migration:
+    # _rewrite_field is a no-op then) — but a deferred/stuck binder MUST carry
+    # its coupled wait_reason or the validator flags it. Insert the row after
+    # the status row when --wait-reason is given and the row is absent, so
+    # spec-supersede's trip-time stamp on a minimal binder is well-formed.
+    if wait_reason:
+        new_text = _ensure_wait_reason_row(new_text, resolved_wait_reason)
     updated_stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     new_text = binder_rows.stamp_updated(new_text, updated_stamp)
+    new_text = _append_journal_trace(new_text, journal_entry or "")
 
     # 3. Transaction: write binder temp -> append ledger -> atomic rename.
     #    Failure ordering (A1.2 fail-close): a ledger-append or rename failure
@@ -323,6 +397,13 @@ def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
     tmp = binder.with_suffix(".README.md.tmp")
     try:
         tmp.write_text(new_text, encoding="utf-8")
+        # Preserve the original binder mode so a binder stamped -rw-r----- by a
+        # writer is not relaxed to the umask default on the atomic rename
+        # (tkt-271 A1.3: writers delegate the write to `commit`).
+        try:
+            os.chmod(tmp, os.stat(binder).st_mode & 0o777)
+        except OSError:
+            pass
         # Append ledger first; if it fails, discard the temp and leave the
         # binder untouched with no ledger record.
         _append_ledger_locked(lp, entry)

@@ -76,6 +76,47 @@ setup() {
   grep -q "illegal_transition_edge" <<<"$output"
 }
 
+# ---------------------------------------------------------------------------
+# spc-270 A1.5: the validator's inline replay enforces the three continuity
+# invariants (identity / continuity / snapshot) so CI catches ledger↔binder
+# drift — the finish-ledger close-without-ledger-entry class — not just edge
+# legality. These mirror transition-api replay-ledger tests 19-22 but exercise
+# the validator's own replay path.
+# ---------------------------------------------------------------------------
+
+@test "validator flags snapshot mismatch: ledger final to != binder status" {
+  B=$(make_binder tkt-30)   # binder stays queued
+  python3 "$API" record tkt-30 queued in-progress system spawn >/dev/null
+  run python3 "$VALIDATOR" --home "$LATTICE_HOME"
+  [ "$status" -eq 1 ]
+  grep -qF "transition_ledger_snapshot_mismatch" <<<"$output"
+}
+
+@test "validator flags discontinuity: entry.from != prior entry.to" {
+  printf '%s\n%s\n' \
+    '{"ts":"2026-08-31T00:00:00Z","ticket":"tkt-31","from":"queued","to":"in-progress","owner":"system","reason":"spawn","force_side_state_reason":null}' \
+    '{"ts":"2026-08-31T00:00:01Z","ticket":"tkt-31","from":"parked","to":"queued","owner":"human","reason":"x","force_side_state_reason":null}' \
+    > "$LATTICE_HOME/.transition-ledger/tkt-31.jsonl"
+  run python3 "$VALIDATOR" --home "$LATTICE_HOME"
+  [ "$status" -eq 1 ]
+  grep -qF "transition_ledger_discontinuity" <<<"$output"
+}
+
+@test "validator flags identity mismatch: entry ticket != ledger file ticket" {
+  printf '%s\n' '{"ts":"2026-08-31T00:00:00Z","ticket":"tkt-999","from":"queued","to":"in-progress","owner":"system","reason":"spawn","force_side_state_reason":null}' \
+    > "$LATTICE_HOME/.transition-ledger/tkt-32.jsonl"
+  run python3 "$VALIDATOR" --home "$LATTICE_HOME"
+  [ "$status" -eq 1 ]
+  grep -qF "transition_ledger_identity_mismatch" <<<"$output"
+}
+
+@test "validator passes a clean chain whose final snapshot matches the binder" {
+  B=$(make_binder tkt-33)
+  python3 "$API" commit tkt-33 in-progress system spawn >/dev/null
+  run python3 "$VALIDATOR" --home "$LATTICE_HOME"
+  [ "$status" -eq 0 ]
+}
+
 # --- spc-270 A1.1: atomic binder-bound `commit` ---------------------------
 
 # Minimal binder with the field-table rows the writers ship. Returns the path.
@@ -101,8 +142,10 @@ MD
   [ "$status" -eq 0 ]
   grep -q '| status | in-progress |' "$B"
   grep -q '| wait_reason | (none) |' "$B"
-  # updated stamp bumped off the seed value.
-  grep -qE '\| updated \| 2026-08-3[12]T[0-9:]+Z \|' "$B"
+  # updated stamp bumped off the seed value (any real ISO-8601 UTC stamp
+  # that is not the seed 2026-08-31T00:00:00Z).
+  grep -qE '\| updated \| 20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z \|' "$B"
+  if grep -qF '| updated | 2026-08-31T00:00:00Z |' "$B"; then false; fi
   grep -q '"from":"queued"' "$LATTICE_HOME/.transition-ledger/tkt-10.jsonl"
   grep -q '"to":"in-progress"' "$LATTICE_HOME/.transition-ledger/tkt-10.jsonl"
 }

@@ -170,7 +170,7 @@ fi
 STAMP_MODE=$($DRY_RUN && echo "dry-run" || echo "write")
 EXTEND_MODE=$($EXTEND_BUDGET && echo "extend" || echo "no-extend")
 BINDER_ROWS_LIB="$(resolve_script_dir "${BASH_SOURCE[0]}")/lib"
-BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$STAMP_MODE" "$EXTEND_MODE" "$EXTEND_REASON" "$NOTE" <<'PY'
+STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$STAMP_MODE" "$EXTEND_MODE" "$EXTEND_REASON" "$NOTE" <<'PY'
 import datetime, sys, re, os, stat, fcntl
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
@@ -238,12 +238,45 @@ if status_vocab.is_terminal(prior):
 stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 note_suffix = f" — brief: {note}" if note else ""
 
+# A1.3 (spc-270): the pr-open → rework status flip + the Decision-journal
+# trace + the `updated` bump + the ledger entry are routed through
+# `transition-api.py commit` (bash, below) in ONE atomic transaction. The
+# python only writes the fix_cycles field here (the cap/round counter) and
+# emits @@TRANSITION_FROM + @@JOURNAL_B64 so bash can drive the commit. The
+# rework → rework escape (no real status flip — rework→rework is not a legal
+# edge, so `commit` cannot fire) keeps the original single write: fix_cycles
+# bump + journal trace, no commit. A crash before `commit` on a pr-open path
+# leaves fix_cycles bumped but status unchanged; a re-run re-evaluates and
+# may over-count — this fails SAFE (over-count → cap-hit → deep-review,
+# human), the conservative failure mode.
+def emit_transition(reason, owner, journal_text):
+    """Emit @@TRANSITION_FROM:<prior>|<reason>|<owner>@@ + @@JOURNAL_B64:<b64>@@
+    for bash → commit. pr-open → rework is the only emit path (prior is
+    pr-open at every emit site). No emit in dry-run (commit would mutate)."""
+    if dry_run:
+        return
+    import base64
+    print(f"@@TRANSITION_FROM:pr-open|{reason}|{owner}@@")
+    if journal_text:
+        print(f"@@JOURNAL_B64:{base64.b64encode(journal_text.encode()).decode()}@@")
+
+def bump_fix_cycles():
+    """Bump fc_val and write the fix_cycles row (in-place bump or insert after
+    the status row for lazy migration)."""
+    global s, fc_val
+    fc_val = fc_val + 1
+    if has_fc_row:
+        s = fc_row.sub(rf'\1 {fc_val} \3', s, count=1)
+    else:
+        s = status_row.sub(
+            lambda mm: mm.group(0) + f"\n| fix_cycles | {fc_val} |", s, count=1)
+
 # --- cap-hit: third rework requested (fix_cycles at CAP, prior == pr-open) ---
-# The binder transitions to rework (the findings are real), but fix_cycles
-# holds at CAP and a CAP-HIT trace forces deep-review before any further fix
-# cycle. No auto-retry (spc-186 A6 cap-exit).
+# The binder flips to rework (the findings are real), but fix_cycles HOLDS at
+# CAP and a CAP-HIT trace forces deep-review before any further fix cycle. No
+# auto-retry (spc-186 A6 cap-exit). fix_cycles is not written here (holds);
+# the flip + CAP-HIT trace go through commit.
 def write_cap_hit():
-    global s
     entry = (
         f"- {stamp} — CAP-HIT: fix_cycles at cap ({CAP}); third rework requested "
         f"from `{prior}` → rework. Binder holds at fix_cycles {CAP} and the "
@@ -252,45 +285,35 @@ def write_cap_hit():
         f"To authorize one more cycle: --extend-budget --reason "
         f"\"<operator-adjudicated rationale>\"{note_suffix}"
     )
-    s = append_journal_trace(s, entry)
-    if prior != "rework":
-        s = status_row.sub(r'\1 rework \3', s, count=1)
+    emit_transition("review-hold (cap-hit)", "system", entry)
 
 # --- escape: operator authorizes one more cycle (human, double-confirm) ------
 def write_escape():
     global s, fc_val
-    fc_val = fc_val + 1
+    bump_fix_cycles()
     entry = (
         f"- {stamp} — ESCAPE: fix_cycles bumped to {fc_val} (past cap {CAP}) "
         f"under operator-adjudicated --extend-budget on a `{prior}` → rework "
         f"transition (reason: {extend_reason}) "
         f"[operator-adjudicated — ADR-007 §5b; no agent self-adjudication]{note_suffix}"
     )
-    s = append_journal_trace(s, entry)
-    if not has_fc_row:
-        # lazy migration: insert the fix_cycles row right after the status row
-        s = status_row.sub(
-            lambda mm: mm.group(0) + f"\n| fix_cycles | {fc_val} |", s, count=1)
+    if prior == "pr-open":
+        # real flip → commit writes journal + status + updated + ledger
+        emit_transition("review-hold (extend-budget)", "human", entry)
     else:
-        s = fc_row.sub(rf'\1 {fc_val} \3', s, count=1)
-    if prior != "rework":
-        s = status_row.sub(r'\1 rework \3', s, count=1)
+        # rework → rework (no legal edge): single-write fix_cycles + journal,
+        # no commit (no status flip to record).
+        s = append_journal_trace(s, entry)
 
 # --- normal bump: within cap -----------------------------------------------
 def write_normal():
-    global s, fc_val
-    fc_val = fc_val + 1
+    global fc_val
+    bump_fix_cycles()
     entry = (
         f"- {stamp} — fix cycle {fc_val}: `{prior}` → rework "
         f"(fix_cycles {fc_val}; cap ≤{CAP}; ADR-004 §5){note_suffix}"
     )
-    s = append_journal_trace(s, entry)
-    if not has_fc_row:
-        s = status_row.sub(
-            lambda mm: mm.group(0) + f"\n| fix_cycles | {fc_val} |", s, count=1)
-    else:
-        s = fc_row.sub(rf'\1 {fc_val} \3', s, count=1)
-    s = status_row.sub(r'\1 rework \3', s, count=1)
+    emit_transition("review-hold", "system", entry)
 
 # --- dispatch -------------------------------------------------------------
 # Legal sources for the pr-open → rework transition: `pr-open` (the default),
@@ -388,14 +411,48 @@ else:
         f"{prior} → rework)"
     )
 
-if outcome == "cap-hit-idempotent":
-    print(msg)
-elif s == orig:
-    print("bump-fix-cycle: no change (idempotent)")
-elif dry_run:
+# A1.3: cap-hit (pr-open) no longer mutates the binder in-python (commit does
+# the flip + trace), so s == orig there — but it is NOT an idempotent no-op.
+# Only cap-hit-idempotent (rework at cap, no extend) is a true no-op. So the
+# message is outcome-driven, not s==orig-driven.
+if dry_run:
     print(f"bump-fix-cycle: DRY-RUN — would {msg}")
 else:
     print(msg)
 PY
+)
+
+# Preserve human output; strip the @@ IPC lines (review F6).
+printf '%s\n' "$STAMP_OUT" | grep -vE '^@@(TRANSITION_FROM|JOURNAL_B64):' || true
+
+# --- Atomic pr-open → rework transition (spc-270 A1.3): route the flip
+# through `commit` so status + journal trace + updated + ledger land in ONE
+# transaction. The python emits @@TRANSITION_FROM:pr-open|<reason>|<owner>@@
+# + @@JOURNAL_B64:<b64>@@ only on a real pr-open → rework flip (normal /
+# cap-hit / escape). The rework → rework escape (no real flip) and the
+# cap-hit-idempotent (no mutation) emit nothing → no commit. A failed commit
+# is non-blocking (decision-policy: never strand a review-hold); the
+# validator catches binder/ledger drift on the next run.
+TRANSITION_LINE=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@TRANSITION_FROM:\(.*\)@@$/\1/p')
+if [[ -n "$TRANSITION_LINE" ]]; then
+  TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
+  PRIOR_STATUS="${TRANSITION_LINE%%|*}"
+  REST="${TRANSITION_LINE#*|}"
+  BFC_REASON="${REST%%|*}"
+  BFC_OWNER="${REST##*|}"
+  JOURNAL_B64=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^@@JOURNAL_B64:\(.*\)@@$/\1/p')
+  SCRIPT_DIR="$(resolve_script_dir "${BASH_SOURCE[0]}")"
+  COMMIT_ARGS=(commit "${TICKET_ID:-unknown}" rework "${BFC_OWNER:-system}" "${BFC_REASON:-review-hold}"
+    --from "$PRIOR_STATUS" --binder "$BINDER")
+  if [[ -n "$JOURNAL_B64" ]]; then
+    JOURNAL_TEXT=$(printf '%s' "$JOURNAL_B64" | base64 -d 2>/dev/null || true)
+    [[ -n "$JOURNAL_TEXT" ]] && COMMIT_ARGS+=(--append-journal "$JOURNAL_TEXT")
+  fi
+  python3 "$SCRIPT_DIR/transition-api.py" "${COMMIT_ARGS[@]}" \
+    || echo "bump-fix-cycle: WARN — transition commit failed (non-blocking; validator will catch)" >&2
+  LATTICE_HOME_DIR="$(dirname "$(dirname "$(dirname "$BINDER")")")"
+  LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
+  [[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
+fi
 
 exit 0
