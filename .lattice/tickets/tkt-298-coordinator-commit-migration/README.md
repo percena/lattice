@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug |
 | github | https://github.com/percena/lattice/issues/298 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-01T10:50:00Z |
-| updated | 2026-09-01T10:50:00Z |
+| updated | 2026-09-01T07:49:36Z |
 | adopted | true |
 | summary | Coordinator flips stuck via commit (binder+ledger atomic); drops the duplicate ok flip (stamp-pr-open owns it). |
 | spec | (none — follow-up) |
@@ -26,7 +26,7 @@
 | **primary_ticket** | tkt-298 (this issue) |
 | **related_tickets** | tkt-271 (surfaced) |
 | **worktree_bind** | `tkt-298-coordinator-commit-migration` |
-| prs | (none) |
+| prs | pr-305 — https://github.com/percena/lattice/pull/305 |
 
 ## Acceptance (this slice)
 
@@ -42,6 +42,7 @@ The worker (spawned agent) stops at `create-pr` → `stamp-pr-open` already flip
 ## Decision journal
 
 - 2026-09-01 — ok flip dropped (stamp-pr-open owns it; the worker stops at create-pr so the binder is already pr-open when the coordinator settles an ok node). unknown/timeout → commit (sole recorder for crashed workers). Reversible+local.
+- 2026-09-01T07:49:36Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #305) [WARN — signal logged, not silently lost]
 
 ## Lineage
 
