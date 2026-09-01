@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/275 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-08-31T10:07:37Z |
+| updated | 2026-09-01T15:25:19Z |
 | adopted | false |
 | summary | Persist and resume the real batch/finish DAG without stale-state regression, lost attempts, or model inference. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-275-recoverable-coordinator-wiring` |
 | worktree | sibling `…/lattice.worktrees/tkt-275-recoverable-coordinator-wiring/` |
-| prs | (none) |
+| prs | pr-321 — https://github.com/percena/lattice/pull/321 |
 
 ## Acceptance (this slice)
 
@@ -90,4 +90,6 @@ This ticket may update batch/finish orchestration prose but must not redefine tr
 
 ## Finish
 
-- (none yet)
+
+- pr-321 merged: 2026-09-01T15:24:19Z — https://github.com/percena/lattice/pull/321 (base merge)
+- issue #275 closed: 2026-09-01T15:24:49Z (reason: completed) — https://github.com/percena/lattice/issues/275
