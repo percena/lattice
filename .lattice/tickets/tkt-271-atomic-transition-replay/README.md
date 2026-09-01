@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/271 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-08-31T10:07:37Z |
-| updated | 2026-09-01T03:05:18Z |
+| updated | 2026-09-01T03:12:43Z |
 | adopted | false |
 | summary | Atomically mutate binder state and ledger through one guarded transition API; replay real continuity and final snapshot. |
 | spec | spc-270 — workflow proof closure follow-up (path: ../../specs/spc-270-workflow-proof-closure-followup.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-271-atomic-transition-replay` |
 | worktree | sibling `…/lattice.worktrees/tkt-271-atomic-transition-replay/` |
-| prs | (none) |
+| prs | pr-296 — https://github.com/percena/lattice/pull/296 |
 
 ## Acceptance (this slice)
 
