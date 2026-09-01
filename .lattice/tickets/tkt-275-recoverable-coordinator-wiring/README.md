@@ -71,6 +71,10 @@ This ticket may update batch/finish orchestration prose but must not redefine tr
 - Spec: `spc-270`
 - Prior delivery: `tkt-258`
 
+- NOTICED: skills/_lattice-lib/scripts/finish-ledger.sh — commit_transaction IO failure swallowed as warn+exit0 (out-of-paths, 2026-09-01); related to the finish-ledger cancel-entry bug.
+- NOTICED: plugins/lattice/scripts/detect-git-branch-op.py — `git branch -f` force-create classified op=none (strict-profile bypass); `git checkout <treeish> -- <path>` file-restore misclassified as branch-switch (out-of-paths, 2026-09-01).
+- NOTICED: skills/finish-work/scripts/update-pr-base.sh — base-OID REST fetch omits --hostname (GHE host gap, #311 follow-up; out-of-paths, 2026-09-01).
+
 ## Lineage
 
 - Parent spec: **spc-270**
