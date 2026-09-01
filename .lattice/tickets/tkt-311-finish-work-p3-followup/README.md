@@ -19,7 +19,7 @@
 | **primary_ticket** | tkt-311 (this issue) |
 | **related_tickets** | tkt-293 (baseRefOid fix), tkt-294 (close-reason awareness), tkt-301 (state_reason REST fix), tkt-302 (GHE URL parsing) |
 | worktree_bind | tkt-311-finish-work-p3-followup |
-| prs | (pending) |
+| prs | (none…) |
 | created | 2026-09-01T07:40:00Z |
 | updated | 2026-09-01T07:40:00Z |
 

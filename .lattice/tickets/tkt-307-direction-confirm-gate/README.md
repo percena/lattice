@@ -8,6 +8,8 @@
 | adopted | true |
 | kind | bug |
 | status | pr-open |
+| created | 2026-09-01T00:00:00Z |
+| updated | 2026-09-01T00:00:00Z |
 | ship | one-PR (primary of batch #307–#310) |
 | paths | `skills/create-adr/SKILL.md`, `skills/create-adr/references/policy.md`, `skills/create-adr/references/templates/adr.md` |
 

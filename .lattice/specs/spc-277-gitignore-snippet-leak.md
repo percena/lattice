@@ -19,8 +19,8 @@ superseded_by: null
 # Spec: Eliminate .lattice/gitignore.snippet leak into consumer active branches
 
 > **TL;DR:** `lattice-init.sh` materializes `.lattice/gitignore.snippet` every run; its self-ignore line only works after the block is merged into `.gitignore`, so partial/older/direct-call consumer repos see it as an untracked file in `git status`. Stop persisting the file — keep the block inline, write `.gitignore` directly, echo to stdout for manual merge.
-> **Kind:** feat · **Status:** locked · **Mode:** M · **Priority:** P1
-> **Path:** spc-277 → tkt-… → pr-…
+> **Kind:** feat · **Status:** done · **Mode:** M · **Priority:** P1
+> **Path:** spc-277 → tkt-278 → pr-280
 
 ## Why
 
@@ -53,12 +53,12 @@ Unacceptable hygiene: every consumer repo can hit this; the file must never appe
 
 ## Acceptance
 
-- [ ] **A1** `lattice-init.sh` never creates `.lattice/gitignore.snippet` on any code path (with/without `--write-gitignore`).
-- [ ] **A2** `--write-gitignore` writes the Lattice ignore block directly from inline content to `.gitignore`, idempotent (marker present → no double-append; no transient file touched).
-- [ ] **A3** Running `lattice-init.sh` without `--write-gitignore` produces no untracked file; the block is echoed to stdout for manual merge.
-- [ ] **A4** One-shot migration: a pre-existing stray `.lattice/gitignore.snippet` (from an old run) is removed on the next `lattice-init.sh` run.
-- [ ] **A5** `lattice-init.bats` updated: asserts `.lattice/gitignore.snippet` does **not** exist and (with `--write-gitignore`) the block is in `.gitignore`; existing suite green.
-- [ ] **A6** This repo's `.gitignore` dead rule `.lattice/gitignore.snippet` removed (or confirmed harmless-and-removed).
+- [x] **A1** `lattice-init.sh` never creates `.lattice/gitignore.snippet` on any code path (with/without `--write-gitignore`).
+- [x] **A2** `--write-gitignore` writes the Lattice ignore block directly from inline content to `.gitignore`, idempotent (marker present → no double-append; no transient file touched).
+- [x] **A3** Running `lattice-init.sh` without `--write-gitignore` produces no untracked file; the block is echoed to stdout for manual merge.
+- [x] **A4** One-shot migration: a pre-existing stray `.lattice/gitignore.snippet` (from an old run) is removed on the next `lattice-init.sh` run.
+- [x] **A5** `lattice-init.bats` updated: asserts `.lattice/gitignore.snippet` does **not** exist and (with `--write-gitignore`) the block is in `.gitignore`; existing suite green.
+- [x] **A6** This repo's `.gitignore` dead rule `.lattice/gitignore.snippet` removed (or confirmed harmless-and-removed).
 
 ## Non-goals
 
@@ -86,6 +86,6 @@ Unacceptable hygiene: every consumer repo can hit this; the file must never appe
 
 ## Links / bloodline (L0)
 
-- Tickets: (pending split — `tkt-N`)
-- PRs: (pending — prefer GitHub `Fixes`)
+- Tickets: tkt-278
+- PRs: pr-280 (+ pr-281 CI guard)
 - Reviews: (none)

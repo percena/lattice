@@ -8,6 +8,8 @@
 | adopted | true |
 | kind | bug |
 | status | pr-open |
+| created | 2026-09-01T00:00:00Z |
+| updated | 2026-09-01T00:00:00Z |
 | ship | one-PR (batch #307–#310, primary tkt-307) |
 | paths | `skills/start-work/SKILL.md` |
 
