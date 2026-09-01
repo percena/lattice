@@ -79,13 +79,4 @@ Minimal, surgical fix:
 ## Finish
 
 - pr-295 merged: 2026-09-01T05:53:57Z — https://github.com/percena/lattice/pull/295 (base merge)
-- anomaly: issue #293 closed as {
-  "MESSAGE": "NOT FOUND",
-  "DOCUMENTATION_URL": "HTTPS://DOCS.GITHUB.COM/REST",
-  "STATUS": "404"
-} while PR #295 delivers it — reconcile close-reason vs delivery
-- issue #293 closed: 2026-09-01T05:54:47Z (reason: {
-  "message": "Not Found",
-  "documentation_url": "https://docs.github.com/rest",
-  "status": "404"
-}) — https://github.com/percena/lattice/issues/293
+- issue #293 closed: 2026-09-01T05:54:47Z (reason: completed) — https://github.com/percena/lattice/issues/293

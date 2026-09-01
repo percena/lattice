@@ -226,6 +226,8 @@ def reason_map(value):
         if "=" in item:
             k, v = item.split("=", 1)
             if k.strip().isdigit():
+                # Discard null/literal-empty values (tkt-302 defense-in-depth).
+                v = v if v not in ("null", "") else "unknown"
                 result[int(k)] = v
     return result
 
@@ -367,11 +369,19 @@ print("ISSUE_EPIC="+("true" if "epic" in names else "false"))
     # gh issue view --json field on all gh versions; use REST.
     close_reason=""
     if [[ -n "$PR_URL" ]]; then
-      repo_base=$(printf '%s' "$PR_URL" | sed -E 's#https?://[^/]+/([^/]+/[^/]+)/pull/.*#\1#')
+      # Match last two path segments before /pull/ — handles both standard
+      # GitHub and GHE path-prefixed URLs (tkt-302).
+      repo_base=$(printf '%s' "$PR_URL" | sed -E 's#https?://[^/]+/(.+)/pull/.*#\1#' | awk -F/ '{print $(NF-1)"/"$NF}')
       if [[ -n "$repo_base" ]]; then
         if ! close_reason=$("$GH_BIN" api "repos/${repo_base}/issues/${id}" --jq '.state_reason' 2>/dev/null); then
+          close_reason=""
           echo "close-fixed-issues: WARNING — cannot fetch state_reason for issue #$id (REST API failed)" >&2
         fi
+        # Defense-in-depth: discard null or error-body output (tkt-301).
+        case "$close_reason" in
+          completed|not_planned|reopened|duplicate|out_of_date) ;;
+          *) close_reason="" ;;
+        esac
       fi
     fi
     if [[ -n "$close_reason" ]]; then
