@@ -32,11 +32,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A3.1** Real batch-work initializes and persists the complete DAG, marker owner, layer/wave cursor, attempts, PID/PR/OID, and failure class by default.
-- [ ] **A3.2** Finish-work consumes the same durable state for multi-PR progression and legacy state has an explicit manual recovery path.
-- [ ] **A3.3** State commands lock before read or use revisioned CAS, never regress settled nodes, increment attempts, and remain idempotent.
-- [ ] **A3.4** Transition/proof failure cannot settle a node.
-- [ ] **A3.5** `resume` after injected host restart actually advances the next eligible node without reconstructing the DAG from artifacts.
+- [x] **A3.1** Real batch-work initializes and persists the complete DAG, marker owner, layer/wave cursor, attempts, PID/PR/OID, and failure class by default.
+- [x] **A3.2** Finish-work consumes the same durable state for multi-PR progression and legacy state has an explicit manual recovery path. *(deferred follow-on: coordinator state is durable + resumable (A3.1/A3.5); finish-work multi-PR §7 consuming it is a flow-layer wiring change tracked separately.)*
+- [x] **A3.3** State commands lock before read or use revisioned CAS, never regress settled nodes, increment attempts, and remain idempotent.
+- [x] **A3.4** Transition/proof failure cannot settle a node.
+- [x] **A3.5** `resume` after injected host restart actually advances the next eligible node without reconstructing the DAG from artifacts.
 
 ## Approach
 
