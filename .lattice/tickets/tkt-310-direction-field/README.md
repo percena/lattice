@@ -7,7 +7,7 @@
 | slug | direction-field |
 | adopted | true |
 | kind | bug |
-| status | in-progress |
+| status | pr-open |
 | ship | one-PR (batch #307–#310, primary tkt-307) |
 | paths | `skills/start-work/SKILL.md` |
 

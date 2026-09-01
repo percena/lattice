@@ -7,7 +7,7 @@
 | slug | problem-audit-matrix |
 | adopted | true |
 | kind | bug |
-| status | in-progress |
+| status | pr-open |
 | ship | one-PR (batch #307–#310, primary tkt-307) |
 | paths | `skills/create-review/SKILL.md`, `skills/create-review/references/policy.md`, `skills/create-review/references/templates/review.md` |
 

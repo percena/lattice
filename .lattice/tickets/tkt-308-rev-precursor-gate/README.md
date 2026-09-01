@@ -7,7 +7,7 @@
 | slug | rev-precursor-gate |
 | adopted | true |
 | kind | bug |
-| status | in-progress |
+| status | pr-open |
 | ship | one-PR (batch #307–#310, primary tkt-307) |
 | paths | `skills/create-adr/SKILL.md`, `skills/create-adr/references/policy.md` |
 

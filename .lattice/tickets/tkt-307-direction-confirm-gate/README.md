@@ -7,7 +7,7 @@
 | slug | status-quo-goal |
 | adopted | true |
 | kind | bug |
-| status | in-progress |
+| status | pr-open |
 | ship | one-PR (primary of batch #307–#310) |
 | paths | `skills/create-adr/SKILL.md`, `skills/create-adr/references/policy.md`, `skills/create-adr/references/templates/adr.md` |
 
