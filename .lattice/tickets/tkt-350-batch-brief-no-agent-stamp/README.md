@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug,P2 |
 | github | https://github.com/percena/lattice/issues/350 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:33:16Z |
-| updated | 2026-09-02T04:19:01Z |
+| updated | 2026-09-02T04:36:56Z |
 | adopted | false |
 | summary | batch-work spawn brief still instructs agents to stamp in-progress by prose; the bind stamps it since tkt-339 and a second commit is refused. |
 | spec | none |

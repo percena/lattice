@@ -9,11 +9,11 @@
 | priority | P3 |
 | labels | bug,P3 |
 | github | https://github.com/percena/lattice/issues/353 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:54:10Z |
-| updated | 2026-09-02T04:19:01Z |
+| updated | 2026-09-02T04:36:56Z |
 | adopted | false |
 | summary | Four bats cases depend on host environment (root ignores chmod-000; claude on PATH) and are red on the dogfood host, green in CI. |
 | spec | none |
