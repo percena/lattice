@@ -589,6 +589,7 @@ if m_tid:
     TICKET_ID = m_tid.group(1)
 do_flip = flip_close and prior_status and not status_vocab.is_terminal(prior_status)
 written = False
+flip_happened = False
 if do_flip:
     rc, nt, entry = _ta.prepare_commit_text(s, TICKET_ID, "closed", "human",
                                             close_reason)
@@ -610,6 +611,7 @@ if do_flip:
             f"proceed to cleanup/merge. (tkt-323)"
         )
     written = True
+    flip_happened = True
 elif s != orig:
     # no status flip but ## Finish/prs mutated (e.g. re-stamp, already closed)
     # — write `s` directly (no ledger).
@@ -630,6 +632,10 @@ elif s != orig:
             os.unlink(tmp)
         raise
 print("finish-ledger: stamped" if written else "finish-ledger: no change (idempotent)")
+# tkt-360 A1: machine-readable flip signal so the bash staging guard knows a
+# ledger entry was appended (vs. a no-flip ## Finish re-stamp, which writes no
+# ledger). Grep'd out of human output below alongside `committed:`.
+print(f"flip: {1 if flip_happened else 0}")
 try:
     fcntl.flock(lock_fd, fcntl.LOCK_UN)
 finally:
@@ -637,8 +643,9 @@ finally:
 PY
 )
 
-# Human output (strip the internal `committed:` line from commit_transaction).
-printf '%s\n' "$STAMP_OUT" | grep -vE '^committed:'
+# Human output (strip the internal `committed:` and `flip:` lines from
+# commit_transaction / the flip signal).
+printf '%s\n' "$STAMP_OUT" | grep -vE '^(committed:|flip:)'
 
 # Stage the per-ticket ledger for commit (F2). commit_transaction wrote it.
 # Also stage the binder README itself so the caller's single `git commit` captures
@@ -657,5 +664,29 @@ BINDER_REPO_ROOT=$(git -C "$(dirname "$BINDER")" rev-parse --show-toplevel 2>/de
 # .lattice (ADR-011 fresh-customer-repo) or a held index lock would otherwise
 # leave the binder write uncommitted, re-introducing the dirty-tree bug.
 git -C "${BINDER_REPO_ROOT:-.}" add -- "$BINDER" 2>/dev/null || echo "finish-ledger: WARNING — could not stage binder $BINDER (gitignored? index lock?); commit may miss it" >&2
+
+# tkt-360 A1: a status flip appends a ledger entry — assert it actually reached
+# the git index. A silent staging drop (gitignored .transition-ledger/, held index
+# lock, foreign cwd) is exactly how tkt-356/tkt-357 shipped a flipped binder with
+# no ledger commit, turning dev artifacts CI red (transition_ledger_snapshot_mismatch).
+# Fail closed with the recovery command — never a silent WARNING.
+FLIP_HAPPENED=$(printf '%s\n' "$STAMP_OUT" | sed -n 's/^flip: //p')
+if [[ "$FLIP_HAPPENED" == "1" ]]; then
+  if [[ -z "$BINDER_REPO_ROOT" ]]; then
+    echo "Error: finish-ledger flipped the status but the binder is not in a git repo; cannot assert the ledger $LEDGER_FILE is staged (tkt-360 A1)" >&2
+    echo "  recovery: initialize git at the binder root, or run finish-ledger from inside a repo" >&2
+    exit 1
+  fi
+  # Repo-relative ledger path for index comparison (git normalizes to this).
+  LEDGER_REL="${LEDGER_FILE#"$BINDER_REPO_ROOT"/}"
+  [[ "$LEDGER_REL" == "$LEDGER_FILE" ]] && LEDGER_REL=".lattice/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
+  if ! git -C "$BINDER_REPO_ROOT" diff --cached --name-only --full-index 2>/dev/null | grep -Fxq -- "$LEDGER_REL"; then
+    echo "Error: finish-ledger flipped the status to closed but the ledger $LEDGER_REL is NOT staged (tkt-360 A1)" >&2
+    echo "  the binder status flip MUST land in the same commit as the ledger entry, or dev artifacts CI goes red (transition_ledger_snapshot_mismatch)" >&2
+    echo "  common cause: .transition-ledger/ is gitignored, or a held git index lock, or finish-ledger ran from a foreign cwd" >&2
+    echo "  recovery: git -C \"$BINDER_REPO_ROOT\" add -- \"$LEDGER_REL\" && re-run finish-ledger, OR commit the staged binder + ledger together" >&2
+    exit 1
+  fi
+fi
 
 exit 0
