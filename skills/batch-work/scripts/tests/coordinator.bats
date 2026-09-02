@@ -369,6 +369,9 @@ EOF
   [ "$status" -eq 0 ]
   [ -f "$LATTICE_HOME/.coordinator/default-on-1.json" ]
   # --coordinator WITHOUT --batch-id → legacy no-state (no failure; just no persistence)
+  # The first run fail-closed tkt-D to stuck; the legacy path's record_stuck
+  # needs in-progress again (stuck → stuck is not an edge), so reset the binder.
+  printf '# tkt-D\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| updated | 2026-09-01T00:00:00Z |\n' >"$DDIR/README.md"
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf2" \
