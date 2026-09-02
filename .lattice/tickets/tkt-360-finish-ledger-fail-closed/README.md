@@ -32,9 +32,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** After staging, finish-ledger verifies `git diff --cached --name-only` contains the ledger path when a flip happened; otherwise exits non-zero with the recovery command (never a silent WARNING).
-- [ ] **A2** A helper `finish-commit.sh` (or a documented one-liner in SKILL step 10) commits the staged set and fails if `git status --porcelain .lattice` is non-empty afterwards — the "index clean" assertion becomes a command, not prose.
-- [ ] **A3** bats: flip + ledger not stageable (e.g. ledger path gitignored) → non-zero.
+- [x] **A1** After staging, finish-ledger verifies `git diff --cached --name-only` contains the ledger path when a flip happened; otherwise exits non-zero with the recovery command (never a silent WARNING).
+- [x] **A2** A helper `finish-commit.sh` (or a documented one-liner in SKILL step 10) commits the staged set and fails if `git status --porcelain .lattice` is non-empty afterwards — the "index clean" assertion becomes a command, not prose.
+- [x] **A3** bats: flip + ledger not stageable (e.g. ledger path gitignored) → non-zero.
 
 ## Approach
 
