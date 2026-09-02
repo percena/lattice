@@ -249,11 +249,15 @@ done
 # legitimately non-executable (sourced libs, transition-api.py, verify-
 # mutation.sh) — those are never named as direct executables in a SKILL.md,
 # so they are not flagged. Uses `test -x` (filesystem mode) so it works in
-# both real repos and fixture trees.
+# both real repos and fixture trees. Handles cross-skill references (e.g.
+# `../_lattice-lib/scripts/stamp-pr-open.sh` in create-pr/SKILL.md) by
+# resolving the full relative path from the SKILL's own directory (review F1).
 while IFS= read -r skill_md; do
   skill_dir="$(cd "$(dirname "$skill_md")" && pwd)"
-  # Grep for script-path references: scripts/name.sh or scripts/name.py
-  scripts_refs=$(grep -oE 'scripts/[a-zA-Z0-9_/.-]+\.(sh|py)' "$skill_md" 2>/dev/null | sort -u || true)
+  # Grep for full script-path references: capture any path ending in
+  # scripts/<name>.sh or scripts/<name>.py, including cross-skill refs
+  # like ../_lattice-lib/scripts/name.sh and bare scripts/name.sh
+  scripts_refs=$(grep -oE '(?:\.\./)?(?:[a-zA-Z0-9_/.-]*/)?scripts/[a-zA-Z0-9_/.-]+\.(sh|py)' "$skill_md" 2>/dev/null | sort -u || true)
   for ref in $scripts_refs; do
     resolved=$(cd "$skill_dir" 2>/dev/null && realpath -q "$ref" 2>/dev/null || true)
     [[ -n "$resolved" && -f "$resolved" ]] || continue
