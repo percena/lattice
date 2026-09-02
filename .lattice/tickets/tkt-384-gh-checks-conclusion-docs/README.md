@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/384 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
