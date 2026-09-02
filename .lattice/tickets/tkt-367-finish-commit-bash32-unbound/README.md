@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/367 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T06:37:24Z |
-| updated | 2026-09-02T06:40:25Z |
+| updated | 2026-09-02T06:48:20Z |
 | adopted | false |
 | summary | finish-commit.sh bash-3.2 unbound-variable on empty GIT_DIR_ARGS under set -u (tkt-360 A2 dogfood) |
 | spec | (none — follow-up to tkt-360) |
@@ -92,4 +92,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-368 merged: 2026-09-02T06:47:32Z — https://github.com/percena/lattice/pull/368 (base merge)
+- issue #367 closed: 2026-09-02T06:47:53Z (reason: completed) — https://github.com/percena/lattice/issues/367
