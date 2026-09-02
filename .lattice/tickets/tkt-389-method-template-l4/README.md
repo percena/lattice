@@ -32,8 +32,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2** method.md gains ## L4 synthesis section: root-cause hypothesis (4 patterns), curve-bending formula, structural-vs-tactical diagnosis.
-- [ ] **A3** lineage-audit.md template gains ## Weak-spot topology + ## Optimization recommendations after ## Findings. Bounded: ≤5 hotspots + ≤3 recommendations.
+- [x] **A2** method.md gains ## L4 synthesis section: root-cause hypothesis (4 patterns), curve-bending formula, structural-vs-tactical diagnosis.
+- [x] **A3** lineage-audit.md template gains ## Weak-spot topology + ## Optimization recommendations after ## Findings. Bounded: ≤5 hotspots + ≤3 recommendations.
 
 ## Approach
 

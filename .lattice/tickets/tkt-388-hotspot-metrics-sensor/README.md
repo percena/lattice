@@ -32,8 +32,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** hotspot-metrics.sh computes hotspot_clusters, fix_class_histogram, ticket_genealogy, cross_audit_recurrence, noticed_feedback per spc-387 A1 contract.
-- [ ] **A4** Bats: planted-drift tests + dry run on this repo (terminal-stamp = #1, 54% fix share, ≥3 cross-audit revs, status-flip > 0).
+- [x] **A1** hotspot-metrics.sh computes hotspot_clusters, fix_class_histogram, ticket_genealogy, cross_audit_recurrence, noticed_feedback per spc-387 A1 contract.
+- [x] **A4** Bats: planted-drift tests + dry run on this repo (terminal-stamp = #1, 54% fix share, ≥3 cross-audit revs, status-flip > 0).
 
 ## Approach
 
