@@ -9,11 +9,11 @@
 | priority | P3 |
 | labels | bug,P3 |
 | github | https://github.com/percena/lattice/issues/353 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:54:10Z |
-| updated | 2026-09-02T04:36:56Z |
+| updated | 2026-09-02T04:54:14Z |
 | adopted | false |
 | summary | Four bats cases depend on host environment (root ignores chmod-000; claude on PATH) and are red on the dogfood host, green in CI. |
 | spec | none |
@@ -21,7 +21,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-353 (this issue) |
 | worktree_bind | tkt-353-env-dependent-bats |
-| prs | (none) |
+| prs | pr-355 — https://github.com/percena/lattice/pull/355 |
 
 ## Acceptance
 
@@ -49,4 +49,6 @@ See GitHub issue #353 body.
 
 ## Finish
 
-- (none yet)
+
+- pr-355 merged: 2026-09-02T04:53:10Z — https://github.com/percena/lattice/pull/355 (base merge)
+- issue #353 closed: 2026-09-02T04:53:49Z (reason: completed) — https://github.com/percena/lattice/issues/353

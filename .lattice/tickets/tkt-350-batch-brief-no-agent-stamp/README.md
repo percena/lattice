@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug,P2 |
 | github | https://github.com/percena/lattice/issues/350 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:33:16Z |
-| updated | 2026-09-02T04:36:56Z |
+| updated | 2026-09-02T04:54:10Z |
 | adopted | false |
 | summary | batch-work spawn brief still instructs agents to stamp in-progress by prose; the bind stamps it since tkt-339 and a second commit is refused. |
 | spec | none |
@@ -21,7 +21,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-350 (this issue) |
 | worktree_bind | tkt-350-batch-brief-no-agent-stamp |
-| prs | (none) |
+| prs | pr-355 — https://github.com/percena/lattice/pull/355 |
 
 ## Acceptance
 
@@ -49,4 +49,6 @@ See GitHub issue #350 body (A1).
 
 ## Finish
 
-- (none yet)
+
+- pr-355 merged: 2026-09-02T04:53:10Z — https://github.com/percena/lattice/pull/355 (base merge)
+- issue #350 closed: 2026-09-02T04:53:41Z (reason: completed) — https://github.com/percena/lattice/issues/350
