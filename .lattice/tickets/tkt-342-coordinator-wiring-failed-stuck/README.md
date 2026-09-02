@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/342 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:34:54Z |
+| updated | 2026-09-02T02:51:31Z |
 | adopted | false |
 | summary | batch-work coordinator wired by default (--batch-id), failed fail-closes to stuck, marker --create + barrier heartbeat, ADR-011 amended. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-342-coordinator-wiring-failed-stuck |
 | worktree | sibling `…/lattice.worktrees/tkt-342-coordinator-wiring-failed-stuck/` |
-| prs | (none) |
+| prs | pr-347 — https://github.com/percena/lattice/pull/347 |
 
 ## Acceptance (this slice)
 
