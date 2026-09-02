@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/370 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T07:39:02Z |
+| updated | 2026-09-02T07:47:00Z |
 | adopted | false |
 | summary | lineage-metrics.sh + lib/lineage_metrics.py: L1 running-data metrics with schema-versioned JSON snapshot and delta vs previous. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -86,4 +86,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-375 merged: 2026-09-02T07:46:43Z — https://github.com/percena/lattice/pull/375 (base merge)
+- issue #370 closed: 2026-09-02T07:46:52Z (reason: completed) — https://github.com/percena/lattice/issues/370
