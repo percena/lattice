@@ -140,6 +140,14 @@ if [[ ! -f "$LATTICE/config.yaml" ]]; then
 # batch_timebox_M: 60        # mode M
 # batch_timebox_C: 120       # mode C
 # batch_fuse_threshold: 50   # layer failed+stuck percentage that trips the fuse
+# verify-features runtime bounds (spc-104; verify-features SKILL.md INVARIANT 4 —
+# bounded passes stop and report rather than running open-ended). Absent = defaults:
+# verify_features_crawl_pages: 20   # max same-origin pages mined per inventory crawl
+# verify_features_stories_per_wave: 12  # max stories executed per wave
+# verify_features_wave_max: 2          # max waves per invocation
+# verify_features_flaky_retry: 1       # max retries on a flaky story before blocked
+# e2e_env: []  # allowlist of origins where safe/destructive mutations may run
+#              # (verify-features mutation policy; empty = read-only default)
 profile: ${PROFILE}
 EOF
   CREATED_CONFIG=true

@@ -38,9 +38,12 @@ EOF
 }
 
 build_green_tree() {
-  local user_facing="start-work create-spec create-review create-tickets create-pr finish-work batch-work run-e2e verify-features generate-wiki review-code review-production create-adr review-delivery review-lineage"
-  local lifecycle="start-work create-spec create-review create-tickets create-pr finish-work"
-  local name
+  # tkt-411: derive the user-facing catalog from the single source
+  # (tools/validate-skills.sh USER_FACING[]) instead of hand-duplicating it
+  # here, so a newly added skill no longer breaks this fixture silently.
+  local user_facing lifecycle name
+  user_facing="$(bash "$VALIDATE" --list-user-facing)"
+  lifecycle="start-work create-spec create-review create-tickets create-pr finish-work"
   for name in $user_facing _lattice-lib; do
     mkdir -p "$LATTICE_SKILLS_DIR/$name"
     write_skill_md "$LATTICE_SKILLS_DIR/$name/SKILL.md"
