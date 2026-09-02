@@ -1,0 +1,22 @@
+# retired-paths.txt — fixed-string deny-list for the `retired-paths-absent` probe.
+# One phrase per line (grep -F, matched anywhere on a line of skills/**/*.md +
+# docs/**/*.md); an optional TAB-separated second field narrows the scope to
+# space-separated directories (default: `skills docs`). Lines starting with `#`
+# are comments. Every entry names the drift class it retires.
+#
+# rev-20260902-015425Z F4 (c): the batch-work marker moved to the out-of-repo
+# state home (ADR-011 / spc-282 A1); "MAIN clone `.lattice/`" is stale prose.
+MAIN clone `.lattice/`
+# rev-20260902-015425Z F4 (a): finish-work must prove a merge with
+# `verify-main-chain.sh --stage merge`; `verify-mutation.sh --pr` rejects MERGED
+# by default (rev-20260831 F4). Scoped to finish-work — batch-work's in-wave
+# `verify-mutation.sh --pr <N> --expected-oid` probe of an OPEN PR is legitimate.
+verify-mutation.sh --pr	skills/finish-work
+# tkt-338 / tkt-341 NOTICED: `conclusion` is not a `gh pr checks --json` field
+# (gh 2.92) — the phrase names a request that fails on every run.
+name,state,conclusion,link
+# tkt-339 NOTICED / tkt-350 (docs-truth.bats): the bind stamps `in-progress`;
+# spawn briefs must not instruct agents to stamp it by hand (L3 hook refuses).
+stamp the binder field-table status: in-progress
+agents stamp it per their brief
+stamping instruction (`in-progress` on start
