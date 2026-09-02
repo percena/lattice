@@ -4,14 +4,14 @@ id: spc-416
 slug: post-merge-ledger-stamping
 title: Post-merge ledger stamping — belt-and-suspenders (simplified local stamp + GHA safety net)
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Replace the 732-line bash+Python hybrid finish-ledger.sh with a pure-Python finish-stamp.py (Layer 1, no CI dependency) backed by a GHA safety net (Layer 2). Eliminates the bash/Python boundary that caused 9+ recurring transition_ledger_snapshot_mismatch failures."
 created: 2026-09-02
 updated: 2026-09-02
 tickets: [tkt-418, tkt-419]
-prs: []
+prs: [pr-420, pr-421]
 reviews: []
 supersedes: [spc-398 A4]
 superseded_by: null
@@ -67,14 +67,14 @@ ADR-012 §5 already recorded the direction: "Post-merge bookkeeping is event-dri
 
 ## Acceptance
 
-- [ ] **A1** `finish-stamp.py` stamps binder + ledger in a single Python process — no bash/Python boundary, no `commit_transaction`, no `FLIP_HAPPENED`, no bash fallback, no `|| true`
-- [ ] **A2** `finish-stamp.py` resolves the correct transition edge from the binder's actual prior status (`pr-open→closed` for normal merges, `in-progress→closed` for direct jumps, `queued→closed` for skipped lifecycle) — no hardcoded edge
-- [ ] **A3** `finish-stamp.py` is idempotent — no-op (exit 0, no duplicate ledger entry, nothing staged) when binder is already `closed` and ledger is consistent
-- [ ] **A4** `finish-stamp.py` detects and repairs ledger discontinuity (Mode C) — when the ledger's last `to` ≠ binder's prior `status`, inserts the missing intermediate edge before stamping `→closed`, producing a continuous ledger
-- [ ] **A5** `finish-stamp.py` staging fails LOUD — exit non-zero when the ledger cannot be staged (gitignored, held index lock, foreign cwd) — no `|| true` swallowing
-- [ ] **A6** GHA on `pull_request: closed` (merged) verifies the local stamp landed and repairs missing ledger entries (Mode C safety net) — runs on the merged dev branch, commits as `github-actions[bot]`
-- [ ] **A7** `finish-work` SKILL.md step 11 updated to run `finish-stamp.py` (replaces `finish-ledger.sh` invocation)
-- [ ] **A8** `finish-ledger.sh` delegates to `finish-stamp.py` (legacy entrypoint, backward-compatible — existing skill references still work)
+- [x] **A1** `finish-stamp.py` stamps binder + ledger in a single Python process — no bash/Python boundary, no `commit_transaction`, no `FLIP_HAPPENED`, no bash fallback, no `|| true`
+- [x] **A2** `finish-stamp.py` resolves the correct transition edge from the binder's actual prior status (`pr-open→closed` for normal merges, `in-progress→closed` for direct jumps, `queued→closed` for skipped lifecycle) — no hardcoded edge
+- [x] **A3** `finish-stamp.py` is idempotent — no-op (exit 0, no duplicate ledger entry, nothing staged) when binder is already `closed` and ledger is consistent
+- [x] **A4** `finish-stamp.py` detects and repairs ledger discontinuity (Mode C) — when the ledger's last `to` ≠ binder's prior `status`, inserts the missing intermediate edge before stamping `→closed`, producing a continuous ledger
+- [x] **A5** `finish-stamp.py` staging fails LOUD — exit non-zero when the ledger cannot be staged (gitignored, held index lock, foreign cwd) — no `|| true` swallowing
+- [x] **A6** GHA on `pull_request: closed` (merged) verifies the local stamp landed and repairs missing ledger entries (Mode C safety net) — runs on the merged dev branch, commits as `github-actions[bot]`
+- [x] **A7** `finish-work` SKILL.md step 11 updated to run `finish-stamp.py` (replaces `finish-ledger.sh` invocation)
+- [x] **A8** `finish-ledger.sh` delegates to `finish-stamp.py` (legacy entrypoint, backward-compatible — existing skill references still work)
 - [ ] **A9** `finish-stamp.bats` test suite covers all 5 dry-run scenarios: normal (pr-open→closed), direct jump (in-progress→closed), idempotent (already closed → no-op), Mode C repair (missing edge → insert + stamp), staging failure (gitignored → exit non-zero)
 - [ ] **A10** No more `transition_ledger_snapshot_mismatch` on newly merged tickets after implementation — CI stays green on `.lattice/` pushes
 
