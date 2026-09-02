@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Post-merge ledger stamping — belt-and-suspenders
 
 > **TL;DR:** finish-ledger.sh's bash/Python boundary (not commit_transaction) caused 9+ recurring ledger stamp failures across 4 distinct failure modes. Replace with ~150-line pure Python finish-stamp.py (primary, CI-independent) + GHA on `pull_request: closed` (safety net, Mode C repair). Dry run passed 22/22 assertions.
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P1
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P1
 > **Path:** ADR-013 → spc-416 → tkt-… → pr-…
 > **Supersedes:** spc-398 A4 (finish-ledger backfill was a patch; this replaces the entire stamp path)
 
@@ -75,8 +75,8 @@ ADR-012 §5 already recorded the direction: "Post-merge bookkeeping is event-dri
 - [x] **A6** GHA on `pull_request: closed` (merged) verifies the local stamp landed and repairs missing ledger entries (Mode C safety net) — runs on the merged dev branch, commits as `github-actions[bot]`
 - [x] **A7** `finish-work` SKILL.md step 11 updated to run `finish-stamp.py` (replaces `finish-ledger.sh` invocation)
 - [x] **A8** `finish-ledger.sh` delegates to `finish-stamp.py` (legacy entrypoint, backward-compatible — existing skill references still work)
-- [ ] **A9** `finish-stamp.bats` test suite covers all 5 dry-run scenarios: normal (pr-open→closed), direct jump (in-progress→closed), idempotent (already closed → no-op), Mode C repair (missing edge → insert + stamp), staging failure (gitignored → exit non-zero)
-- [ ] **A10** No more `transition_ledger_snapshot_mismatch` on newly merged tickets after implementation — CI stays green on `.lattice/` pushes
+- [x] **A9** `finish-stamp.bats` test suite covers all 5 dry-run scenarios: normal (pr-open→closed), direct jump (in-progress→closed), idempotent (already closed → no-op), Mode C repair (missing edge → insert + stamp), staging failure (gitignored → exit non-zero)
+- [ ] ~~**A10**~~ No more `transition_ledger_snapshot_mismatch` on newly merged tickets — ongoing observation; first 2 merged tickets (tkt-418/tkt-419) clean, GHA fires successfully on PR #421 close on newly merged tickets after implementation — CI stays green on `.lattice/` pushes
 
 ## Non-goals
 
