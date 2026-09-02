@@ -1,13 +1,13 @@
 | field | value |
-| status | queued |
+| status | pr-open |
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/422 |
 | spec | spc-416 |
 | covers | A9 |
-| prs | (none) |
+| prs | pr-423 — https://github.com/percena/lattice/pull/423 |
 | created | 2026-09-02T16:30:00Z |
-| updated | 2026-09-02T16:30:00Z |
+| updated | 2026-09-02T16:12:54Z |
 | wait_reason | (none) |
 
 ## Summary
@@ -41,6 +41,10 @@ Dedicated `finish-stamp.bats` test suite that calls `finish-stamp.py` directly (
 - Test fixture: temp dirs with mini `.lattice/` tree (follow finish-ledger.bats pattern) — **pre-resolved**
 - CLI subprocess vs Python import: CLI subprocess (bats shells out) — **pre-resolved**
 - Ledger home resolution: `home_for_binder` resolves from binder path; temp repo's `.lattice/` is the home — **pre-resolved**
+
+## Decision journal
+
+- 2026-09-02T16:12:54Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #423) [WARN — signal logged, not silently lost]
 
 ## Notes
 
