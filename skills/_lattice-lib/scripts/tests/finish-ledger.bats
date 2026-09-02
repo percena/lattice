@@ -816,3 +816,45 @@ EOF
   printf '%s\n' "$output" | grep -qF "FAILED"
   chmod 755 "$BINDER_DIR"  # restore so teardown can rm
 }
+
+# --- spc-337 A1/A2: ledger from the binder home; direct-jump anomaly ---------
+
+@test "spc-337 A1: finish-ledger run from a foreign cwd (LATTICE_HOME unset) stages the ledger under the binder home" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | pr-open |#' "$BINDER"; rm -f "$BINDER.bak"
+  OTHER="$TEST_DIR/elsewhere"; mkdir -p "$OTHER"
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  run env -u LATTICE_HOME bash -c "cd '$OTHER' && bash '$FL' --pr 12 --issue 7 --binder '$BINDER' --repo percena/lattice --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z"
+  [ "$status" -eq 0 ]
+  [ -s "$REPO/.lattice/.transition-ledger/tkt-7.jsonl" ]
+  grep -q '"from":"pr-open"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+  [ ! -e "$OTHER/.lattice" ]
+  # staged in the binder's repo, not the foreign cwd
+  git -C "$REPO" diff --cached --name-only | grep -q '.transition-ledger/tkt-7.jsonl'
+}
+
+@test "spc-337 A2: a merge observed from queued journals a direct-jump anomaly and metric direct-jump" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | queued |#' "$BINDER"; rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  grep -q '^- anomaly: direct jump — prior status `queued`' "$BINDER"
+  grep -q '"metric":"direct-jump"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+  grep -q '"reason":"merge"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+  # idempotent re-run: one anomaly line
+  bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+  [ "$(grep -c '^- anomaly:' "$BINDER")" -eq 1 ]
+}
+
+@test "spc-337 A2: a merge from pr-open journals no anomaly (the honest path)" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | pr-open |#' "$BINDER"; rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  if grep -q '^- anomaly:' "$BINDER"; then false; fi
+  grep -q '"metric":"merge-count"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+}

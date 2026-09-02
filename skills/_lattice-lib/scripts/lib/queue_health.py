@@ -36,6 +36,8 @@ This module is dependency-free so consumer repos can vendor it alone.
 from __future__ import annotations
 
 import datetime
+import glob
+import json
 import os
 import re
 import sys
@@ -178,6 +180,14 @@ def scan_binders(
     side_states: List[Dict[str, object]] = []
     pr_open: List[Dict[str, object]] = []
     scanned = 0
+    # spc-337 A1 / ADR-012 §4 — ledger coverage is the conformance sensor:
+    # terminal binders without a per-ticket transition ledger, and the number
+    # of direct-jump terminal edges (queued|in-progress → closed on a merge).
+    ledger_dir = os.path.join(os.path.dirname(os.path.abspath(tickets_dir)), ".transition-ledger")
+    terminal = 0
+    terminal_with_ledger = 0
+    missing_ledger: List[str] = []
+    direct_jumps = 0
 
     for tkt_id, binder_path in _find_binders(tickets_dir):
         scanned += 1
@@ -190,6 +200,16 @@ def scan_binders(
         status = fields.get("status", "").strip()
         updated_raw = fields.get("updated", "").strip()
         wait_reason = fields.get("wait_reason", "").strip()
+
+        if status == "closed":
+            terminal += 1
+            lp = os.path.join(ledger_dir, f"{tkt_id}.jsonl")
+            legacy = glob.glob(os.path.join(ledger_dir, f"{tkt_id}-*.jsonl"))
+            if os.path.isfile(lp) or legacy:
+                terminal_with_ledger += 1
+                direct_jumps += _count_direct_jumps(lp if os.path.isfile(lp) else legacy[0])
+            else:
+                missing_ledger.append(tkt_id)
 
         if status in WATER_LEVEL_STATES:
             age = None
@@ -233,7 +253,39 @@ def scan_binders(
         "pr_open": pr_open,
         "side_state_total": len(side_states),
         "scanned": scanned,
+        "ledger_coverage": {
+            "terminal": terminal,
+            "with_ledger": terminal_with_ledger,
+            "missing": sorted(missing_ledger),
+            "direct_jumps": direct_jumps,
+        },
     }
+
+
+def _count_direct_jumps(ledger_path: str) -> int:
+    """Count ledger entries whose metric is `direct-jump` (a merge observed
+    from queued/in-progress — the intermediate stamps were skipped; spc-337 A2).
+    Malformed lines are ignored (the validator owns malformed-ledger errors)."""
+    n = 0
+    try:
+        with open(ledger_path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    continue
+                if e.get("metric") == "direct-jump" or (
+                    e.get("to") == "closed"
+                    and e.get("from") in ("queued", "in-progress")
+                    and "merge" in str(e.get("reason", ""))
+                ):
+                    n += 1
+    except OSError:
+        pass
+    return n
 
 
 def format_banner(data: Dict[str, object], thresholds: Dict[str, int]) -> str:
@@ -333,8 +385,23 @@ def format_section(data: Dict[str, object], thresholds: Dict[str, int]) -> str:
     else:
         lines.append("No pr-open binders.")
     lines.append("")
+    # Ledger coverage (spc-337 A1 / ADR-012 §4) — conformance sensor.
+    cov = data.get("ledger_coverage") or {}
+    if cov:
+        t = int(cov.get("terminal", 0)); w = int(cov.get("with_ledger", 0))
+        missing = list(cov.get("missing") or [])
+        dj = int(cov.get("direct_jumps", 0))
+        pct = f" ({100.0 * w / t:.0f}%)" if t else ""
+        lines.append(f"### Ledger coverage — {w}/{t} terminal binders with a transition ledger{pct} · direct jumps: {dj}")
+        if missing:
+            shown = ", ".join(missing[:10]) + (f" … (+{len(missing) - 10})" if len(missing) > 10 else "")
+            lines.append(f"Missing ledger: {shown} — legacy binders are baselined; a post-cutoff miss is a validator error (`closed_without_ledger`).")
+        else:
+            lines.append("Every terminal binder carries a ledger.")
+        lines.append("")
     lines.append(
         "_Source: binder `updated` (tkt-191) for age; `gh pr view` createdAt "
-        "fallback for pr-open binders predating the row (lazy migration)._"
+        "fallback for pr-open binders predating the row (lazy migration); "
+        "`.transition-ledger/*.jsonl` for coverage and direct jumps (spc-337)._"
     )
     return "\n".join(lines)

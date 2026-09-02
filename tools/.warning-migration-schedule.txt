@@ -5,3 +5,6 @@
 # Add a line when a warning code is committed to become a hard error.
 # Example forward commitment (commented — not yet active):
 # legacy_open_status	2
+# spc-337 A1: legacy ledger-coverage misses are ratchet-exempt today; when the
+# legacy set is backfilled or accepted, lift the exemption and commit here:
+# closed_without_ledger_legacy	2

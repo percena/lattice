@@ -469,13 +469,20 @@ else:
     entry_line += " (base merge)" if merged else ""
     entry_pat = re.compile(rf'^- pr-{re.escape(pr_n)} (?:merged:|closed without merge).*$', re.MULTILINE)
 
-# Anomaly: a MERGED PR observed from a non-`pr-open` working state (parked /
-# stuck / deferred) is unexpected provenance — external merge truth still wins
-# (the binder flips to closed below), but the anomaly is recorded as ledger
-# context rather than silently rewritten as a clean merge.
+# Anomaly: a MERGED PR observed from a non-`pr-open` working state is
+# unexpected provenance — external merge truth still wins (the binder flips to
+# closed below), but the anomaly is recorded as ledger context rather than
+# silently rewritten as a clean merge. Two classes (spc-337 A2 / ADR-012 §3):
+#   side state (parked / stuck / deferred / rework): merged while parked;
+#   direct jump (queued / in-progress): the in-progress / pr-open stamps were
+#   skipped — the ledger edge carries metric `direct-jump` and this line makes
+#   the skipped lifecycle visible in the binder itself.
 anomaly_line = ""
-if (not cancel) and merged and prior_status in {"parked", "stuck", "deferred"}:
+if (not cancel) and merged and prior_status in {"parked", "stuck", "deferred", "rework"}:
     anomaly_line = f"\n- anomaly: prior status `{prior_status}` before terminal merge — external truth preserved"
+elif (not cancel) and merged and prior_status in {"queued", "in-progress"}:
+    anomaly_line = (f"\n- anomaly: direct jump — prior status `{prior_status}` before terminal merge; "
+                    f"in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)")
 
 issue_line = ""
 if issue_m and closed_at and issue_closed == "true":
@@ -552,9 +559,11 @@ else:
 #    the status flip + `updated` + ledger land in ONE `commit_transaction`
 #    merged with the ## Finish body + prs row already in `s` (called inside
 #    this dir lock). The prior is the REAL on-disk status (captured above);
-#    prepare_commit_text's edge_for resolves pr-open→closed (merge) or
-#    any→closed (cancel). Idempotent re-runs (status already closed) do not
-#    flip — the nonterminal-only guard skips them.
+#    prepare_commit_text's edge_for resolves the explicit terminal edge for
+#    the prior status (pr-open→closed merge; queued|in-progress→closed
+#    direct-jump; side-state→closed cancel/anomaly — spc-337 A2, no wildcard).
+#    Idempotent re-runs (status already closed) do not flip — the
+#    nonterminal-only guard skips them.
 
 # 3. prs table row: canonical `pr-N — URL`, comma-joined for multiples —
 # grammar single-sourced in lib/binder_rows.py (tkt-91). Placeholder variants
@@ -638,11 +647,15 @@ printf '%s\n' "$STAMP_OUT" | grep -vE '^committed:'
 TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
 LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
 LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
-[[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
+# spc-337 A1: stage in the BINDER's repository, not the caller's cwd — a
+# finish run from a foreign cwd used to `git add` against the wrong index
+# (or no repo at all) and silently drop the ledger (tkt-335).
+BINDER_REPO_ROOT=$(git -C "$(dirname "$BINDER")" rev-parse --show-toplevel 2>/dev/null || true)
+[[ -f "$LEDGER_FILE" ]] && git -C "${BINDER_REPO_ROOT:-.}" add -- "$LEDGER_FILE" 2>/dev/null || true
 # tkt-317: stage the binder README too (previously only the JSONL was staged).
 # Surface a staging failure rather than silently masking it — a gitignored
 # .lattice (ADR-011 fresh-customer-repo) or a held index lock would otherwise
 # leave the binder write uncommitted, re-introducing the dirty-tree bug.
-git add "$BINDER" 2>/dev/null || echo "finish-ledger: WARNING — could not stage binder $BINDER (gitignored? index lock?); commit may miss it" >&2
+git -C "${BINDER_REPO_ROOT:-.}" add -- "$BINDER" 2>/dev/null || echo "finish-ledger: WARNING — could not stage binder $BINDER (gitignored? index lock?); commit may miss it" >&2
 
 exit 0
