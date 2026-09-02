@@ -442,3 +442,68 @@ print(json.dumps({"trace": t}))
   echo "$result" | jq -r '.trace' | grep -qF "authorizer=human-at-merge-time"
   echo "$result" | jq -r '.trace' | grep -qF "ADR-007 §5a"
 }
+
+@test "classifier: inline and block forms produce identical pattern sets (tkt-327)" {
+  CLASSIFY_LIB="$SCRIPT_DIR/lib"
+  # Two config files with the SAME logical content, one inline, one block-form.
+  # Both must REPLACE the default billing list (not append), so the resulting
+  # pattern sets must be identical.
+  INLINE_CFG="$TEST_DIR/inline.yaml"
+  BLOCK_CFG="$TEST_DIR/block.yaml"
+  printf 'ci_gate:\n  infra_patterns:\n    billing: ["my-pattern"]\n' >"$INLINE_CFG"
+  printf 'ci_gate:\n  infra_patterns:\n    billing:\n      - "my-pattern"\n' >"$BLOCK_CFG"
+  cp "$INLINE_CFG" "$LATTICE_HOME/config.yaml"
+  inline_result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
+import os, sys, json
+sys.path.insert(0, os.environ["CI_GATE_LIB"])
+import ci_failure_classify as clf
+p = clf.load_config_patterns("'"$LATTICE_HOME"'")
+print(json.dumps(sorted(p.get("billing", []))))
+')
+  cp "$BLOCK_CFG" "$LATTICE_HOME/config.yaml"
+  block_result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
+import os, sys, json
+sys.path.insert(0, os.environ["CI_GATE_LIB"])
+import ci_failure_classify as clf
+p = clf.load_config_patterns("'"$LATTICE_HOME"'")
+print(json.dumps(sorted(p.get("billing", []))))
+')
+  [ "$inline_result" = "$block_result" ]
+  echo "$inline_result" | jq -e '. == ["my-pattern"]'
+}
+
+@test "classifier: block form replaces (not appends) default patterns (tkt-327)" {
+  CLASSIFY_LIB="$SCRIPT_DIR/lib"
+  # Block-form billing with a custom pattern must NOT keep default substrings
+  # like 'quota' — it REPLACES the default list, not appends to it.
+  printf 'ci_gate:\n  infra_patterns:\n    billing:\n      - "my-custom-billing"\n' >"$LATTICE_HOME/config.yaml"
+  result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
+import os, sys, json
+sys.path.insert(0, os.environ["CI_GATE_LIB"])
+import ci_failure_classify as clf
+p = clf.load_config_patterns("'"$LATTICE_HOME"'")
+print(json.dumps(sorted(p.get("billing", []))))
+')
+  # Must contain the custom pattern
+  echo "$result" | jq -e 'any(. == "my-custom-billing")'
+  # Must NOT contain any default patterns (replace, not append)
+  echo "$result" | jq -e 'all(. != "quota")'
+  echo "$result" | jq -e 'all(. != "billing")'
+  echo "$result" | jq -e 'length == 1'
+}
+
+@test "classifier: inline form replaces default patterns (tkt-327)" {
+  CLASSIFY_LIB="$SCRIPT_DIR/lib"
+  # Inline-form billing with a custom pattern must NOT keep defaults either.
+  printf 'ci_gate:\n  infra_patterns:\n    billing: ["my-inline-pattern"]\n' >"$LATTICE_HOME/config.yaml"
+  result=$(CI_GATE_LIB="$CLASSIFY_LIB" python3 -c '
+import os, sys, json
+sys.path.insert(0, os.environ["CI_GATE_LIB"])
+import ci_failure_classify as clf
+p = clf.load_config_patterns("'"$LATTICE_HOME"'")
+print(json.dumps(sorted(p.get("billing", []))))
+')
+  echo "$result" | jq -e 'any(. == "my-inline-pattern")'
+  echo "$result" | jq -e 'all(. != "quota")'
+  echo "$result" | jq -e 'length == 1'
+}

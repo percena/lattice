@@ -111,6 +111,8 @@ def load_config_patterns(home_dir: Optional[str] = None) -> Dict[str, List[str]]
         return patterns
     # Minimal parser: find ci_gate: infra_patterns: block and collect list items.
     # Supports both inline `[a, b]` and block `- a` / `- "a"` forms.
+    # Both forms REPLACE the default pattern list for the category (tkt-327):
+    # a user-configured category fully overrides DEFAULT_PATTERNS for that key.
     in_ci_gate = False
     in_patterns = False
     current_cat = None
@@ -151,7 +153,11 @@ def load_config_patterns(home_dir: Optional[str] = None) -> Dict[str, List[str]]
         cat_block = re.match(r"^\s{4}(\w+)\s*:\s*$", stripped)
         if cat_block:
             current_cat = cat_block.group(1)
-            patterns.setdefault(current_cat, [])
+            # REPLACE default list (not append) — same override semantics as
+            # the inline form `category: [a, b]` (tkt-327). Without this reset,
+            # block-form items silently append to DEFAULT_PATTERNS, broadening
+            # infra-class waivers beyond intent (e.g. 'quota' stays live).
+            patterns[current_cat] = []
             continue
         list_item = re.match(r"^\s{6,}-\s+(.+)\s*$", stripped)
         if list_item and current_cat:
