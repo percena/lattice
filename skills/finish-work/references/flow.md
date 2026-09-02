@@ -42,7 +42,7 @@ Record: `PR_N`, `HEAD_BRANCH`, `BASE`, `URL`, optional `TKT_ID`.
 
 - Draft → do not merge until ready.
 - Checks: report failing/pending; stop unless user overrides.
-- **CI merge gate (machine-enforced, spc-186 A6/A8, ADR-007 §5a).** Run `ci-gate-check.sh --pr <N> --evidence "<local test output>" [--binder <path>]`. It fetches `gh pr checks <N> --json name,state,conclusion,link`, classifies each non-green check as infra-class (billing/quota/rate-limit/timeout/empty-step flake/runner-infra) or real via config-tunable patterns (`.lattice/config.yaml` ci_gate:) + log inspection, and:
+- **CI merge gate (machine-enforced, spc-186 A6/A8, ADR-007 §5a).** Run `ci-gate-check.sh --pr <N> --evidence "<local test output>" [--binder <path>]`. It fetches `gh pr checks <N> --json name,state,link`, classifies each non-green check as infra-class (billing/quota/rate-limit/timeout/empty-step flake/runner-infra) or real via config-tunable patterns (`.lattice/config.yaml` ci_gate:) + log inspection, and:
   - **Infra-only red + local evidence present** → pass with auto-stamped waiver (trace: `rule_id=ci-gate`, `authorizer=human-at-merge-time`). This is a **compiled corner case** (ADR-007 §5a) — the rule defines the legitimate path, NOT an exception requiring human adjudication.
   - **Real/unknown failures** → HARD block (exit 1). This IS the red line.
   - **Pending** → block (wait for CI to finish).

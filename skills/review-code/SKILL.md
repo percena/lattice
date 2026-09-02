@@ -119,7 +119,7 @@ Run CI/CD, syntax/lint, docs-sync, and interface-impact checks on the change set
 **Release-boundary merge review only:** additionally run `bash tools/ci-local.sh --release-check` as a first-class axis (the ADR-005 version-increment gate). Partition the diff into subsystem slices (validator/scripts/CI/hooks/routing/skills/docs) and tier risk by file class (`.lattice/**` + `docs/`/ADRs = low-risk bulk skim; `tools/`, `skills/**/scripts/`, `plugins/lattice/hooks/`, `.github/workflows/` = high-risk logic) — do not deep-review each binder. Carry a coarser **release-blocking vs ship-as-is** finding bar.
 
 **CI/CD** (`references/ci-check.md`):
-- PR mode: `gh pr checks <PR_N> --json name,state,conclusion,link`
+- PR mode: `gh pr checks <PR_N> --json name,state,link`
 - Branch mode: `gh run list --branch <branch> --limit 10 --json databaseId,status,conclusion,name,event`
 - For failures: `gh run view <databaseId> --log-failed | head -50` — extract failing step + error
 - No `gh` or no workflows → one line "no CI runs available", not a finding

@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/384 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T11:54:34Z |
 | adopted | false |
 | summary | drop conclusion from documented gh pr checks --json field list (3 doc lines) |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,12 +28,12 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-384-gh-checks-conclusion-docs |
 | worktree | sibling `…/<repo>.worktrees/tkt-384-gh-checks-conclusion-docs/` |
-| prs | (none) |
+| prs | pr-396 — https://github.com/percena/lattice/pull/396 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** No doc line in `skills/` or `docs/` references `name,state,conclusion,link` (grep clean — excluding `retired-paths.txt` which documents the retired field, and `ci-gate-check.bats` which tests for its absence).
-- [ ] **A2** `retired-paths-absent` probe passes (no `med` fail row for this class).
+- [x] **A1** No doc line in `skills/` or `docs/` references `name,state,conclusion,link` (grep clean — excluding `retired-paths.txt` which documents the retired field, and `ci-gate-check.bats` which tests for its absence).
+- [x] **A2** `retired-paths-absent` probe passes (no `med` fail row for this class).
 
 ## Approach
 
