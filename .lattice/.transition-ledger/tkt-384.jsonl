@@ -1,1 +1,2 @@
 {"ts":"2026-09-02T11:54:02Z","ticket":"tkt-384","from":"queued","to":"in-progress","owner":"agent","reason":"start-work: drop conclusion from docs","guard":"start-work bind / batch-work spawn","escape_used":false,"force_side_state_reason":null,"trace":"status stamp","metric":"water-level"}
+{"ts":"2026-09-02T11:54:34Z","ticket":"tkt-384","from":"in-progress","to":"pr-open","owner":"agent","reason":"create-pr opens the PR","guard":"create-pr opens the PR","escape_used":false,"force_side_state_reason":null,"trace":"pr-open stamp","metric":"pr-open-count"}
