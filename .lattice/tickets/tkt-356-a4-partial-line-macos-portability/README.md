@@ -49,6 +49,8 @@ Touch-set: `plugins/lattice/hooks/intercept-shippable-write.sh`, `plugins/lattic
 
 ## Notes
 
+- NOTICED: .lattice/.transition-ledger/tkt-357.jsonl — finish-ledger.sh stamped binder closed but did not append pr-open→closed ledger entry (transition_ledger_snapshot_mismatch); recorded the missing transition to unblock CI (out-of-paths, 2026-09-02)
+
 - Filed as a post-spc-337 soak follow-up; surfaced by the dogfood cycle on 2026-09-02 (CI green on dev, local red on macOS darwin).
 - Root-cause class: same as #353 (host-environment-dependent bats), different root cause (BSD vs GNU sed/grep in partial-line simulation).
 
