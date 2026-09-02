@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/335 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:00:00Z |
-| updated | 2026-09-02T02:00:00Z |
+| updated | 2026-09-02T02:12:56Z |
 | adopted | false |
 | summary | finish-ledger flip_close predicate prevents status→closed on merged PRs with linked issue |
 | spec | none |
@@ -21,7 +21,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-335 (this issue) |
 | worktree_bind | tkt-335-finish-ledger-flip-close-predicate |
-| prs | (none) |
+| prs | pr-336 — https://github.com/percena/lattice/pull/336 |
 
 ## Acceptance
 
@@ -74,4 +74,6 @@ Touch-set:
 
 ## Finish
 
-- (none yet)
+
+- pr-336 merged: 2026-09-02T02:12:07Z — https://github.com/percena/lattice/pull/336 (base merge)
+- issue #335 closed: 2026-09-02T02:12:24Z — https://github.com/percena/lattice/issues/335
