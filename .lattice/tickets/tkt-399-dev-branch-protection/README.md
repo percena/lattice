@@ -65,3 +65,5 @@ See spc-398 for approach details.
 ## Finish
 
 - (none yet)
+
+- settings change: gh api PUT branches/dev/protection (required_status_checks=[bats,lattice-artifacts], strict=true, enforce_admins=true)
