@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/372 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T08:24:29Z |
+| updated | 2026-09-02T08:26:51Z |
 | adopted | false |
 | summary | SKILL.md + method/taxonomy/template: the three-layer mining protocol, verify-then-report, insight ranking, rev output with a Proposed-tickets table. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
