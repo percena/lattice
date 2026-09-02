@@ -152,18 +152,48 @@ fi
 # first `| status | <value> |` cell, cell value trimmed; an empty cell counts
 # as "no status row".
 # ---------------------------------------------------------------------------
+# tkt-356: _status_cell, _status_row_count, and the partial-line edit simulation
+# use Python instead of sed/grep/bash-substitution.  Bash 3.2 (macOS) treats `|`
+# as extglob alternation in ${var/"$old"/"$new"} even when quoted, corrupting
+# the simulated result; BSD sed/grep -E also differ from GNU in edge cases.
+# Python is portable, already a hook dependency (jq + python3).  The -c code uses
+# single-quote delimiters so the double-quoted regex strings are safe from shell
+# expansion; stdin is the text, argv carries substitution arguments.
+
 _status_cell() {  # <text> -> first status cell value on stdout ("" when none)
   local v
-  v=$(printf '%s\n' "$1" \
-      | sed -n -E 's/^\| *status *\| *([^|]*[^| ]) *\|.*$/\1/p' 2>/dev/null) || v=""
+  v=$(printf '%s' "$1" | python3 -c '
+import sys, re
+STATUS_CELL_RE = re.compile(r"^\| *status *\| *([^|]*[^| ]) *\|.*$")
+for line in sys.stdin.read().split("\n"):
+    m = STATUS_CELL_RE.match(line)
+    if m:
+        print(m.group(1).strip())
+        break
+' 2>/dev/null) || v=""
   printf '%s' "${v%%$'\n'*}"
 }
 
 _status_row_count() {  # <text> -> number of status rows on stdout
   local n
-  n=$(printf '%s\n' "$1" \
-      | grep -c -E '^\| *status *\| *[^|]*[^| ] *\|' 2>/dev/null) || n="${n:-0}"
+  n=$(printf '%s' "$1" | python3 -c '
+import sys, re
+STATUS_ROW_RE = re.compile(r"^\| *status *\| *[^|]*[^| ] *\|")
+print(sum(1 for line in sys.stdin.read().split("\n") if STATUS_ROW_RE.match(line)))
+' 2>/dev/null) || n="0"
   printf '%s' "${n:-0}"
+}
+
+# Simulate a bash string substitution (first-occurrence or replace_all) without
+# bash 3.2 glob-alternation corruption on `|`.  <disk> <old> <new> <replace_all>.
+_simulate_substitution() {
+  printf '%s' "$1" | python3 -c '
+import sys
+disk = sys.stdin.read()
+old, new, replace_all = sys.argv[1], sys.argv[2], sys.argv[3]
+count = -1 if replace_all == "true" else 1
+sys.stdout.write(disk.replace(old, new, count) if old else disk)
+' "$2" "$3" "${4:-false}" 2>/dev/null
 }
 
 _status_row_guard() {
@@ -205,11 +235,7 @@ _status_row_guard() {
         disk=$(cat "$abs_path" 2>/dev/null) || return 0
         [[ "$disk" == *"$old"* ]] || return 0
         replace_all=$(printf '%s' "$hook_data" | jq -r '.tool_input.replace_all // false' 2>/dev/null) || replace_all=false
-        if [[ "$replace_all" == "true" ]]; then
-          result="${disk//"$old"/"$new"}"
-        else
-          result="${disk/"$old"/"$new"}"
-        fi
+        result=$(_simulate_substitution "$disk" "$old" "$new" "$replace_all")
         disk_status=$(_status_cell "$disk")
         [[ -n "$disk_status" ]] || return 0   # legacy binder without the row
         result_status=$(_status_cell "$result")

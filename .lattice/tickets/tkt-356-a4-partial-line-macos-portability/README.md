@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug,P2 |
 | github | https://github.com/percena/lattice/issues/356 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T05:19:22Z |
-| updated | 2026-09-02T05:19:22Z |
+| updated | 2026-09-02T05:45:29Z |
 | adopted | false |
 | summary | A4 partial-line status-row simulation breaks on macOS (BSD sed/grep); test 7/11 red locally, green in CI. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -24,14 +24,14 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-356 (this issue) |
 | worktree_bind | tkt-357-done-flip (binder creation pass; implementation gets its own tree) |
-| prs | (none) |
+| prs | pr-359 — https://github.com/percena/lattice/pull/359 |
 
 ## Acceptance (this slice)
 
-- [ ] test 7 passes on macOS — deny partial-line status change with correct message.
-- [ ] test 11 passes on macOS — allow partial-line edit leaving status value intact.
-- [ ] `bats plugins/lattice/scripts/tests/intercept-shippable-write-status-row.bats` all-green on macOS darwin.
-- [ ] CI stays green (no regression on Linux).
+- [x] test 7 passes on macOS — deny partial-line status change with correct message.
+- [x] test 11 passes on macOS — allow partial-line edit leaving status value intact.
+- [x] `bats plugins/lattice/scripts/tests/intercept-shippable-write-status-row.bats` all-green on macOS darwin.
+- [x] CI stays green (no regression on Linux).
 
 ## Approach
 
@@ -48,6 +48,8 @@ Touch-set: `plugins/lattice/hooks/intercept-shippable-write.sh`, `plugins/lattic
 ## Decision journal
 
 ## Notes
+
+- NOTICED: .lattice/.transition-ledger/tkt-357.jsonl — finish-ledger.sh stamped binder closed but did not append pr-open→closed ledger entry (transition_ledger_snapshot_mismatch); recorded the missing transition to unblock CI (out-of-paths, 2026-09-02)
 
 - Filed as a post-spc-337 soak follow-up; surfaced by the dogfood cycle on 2026-09-02 (CI green on dev, local red on macOS darwin).
 - Root-cause class: same as #353 (host-environment-dependent bats), different root cause (BSD vs GNU sed/grep in partial-line simulation).

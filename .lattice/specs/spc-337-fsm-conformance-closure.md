@@ -10,7 +10,7 @@ summary: "Move every M2 status stamp into the script step the ticket already pas
 created: 2026-09-02
 updated: 2026-09-02
 tickets: [tkt-338, tkt-339, tkt-340, tkt-341, tkt-342, tkt-349, tkt-350, tkt-352, tkt-353, tkt-356, tkt-357]
-prs: [pr-343, pr-344, pr-345, pr-346, pr-347, pr-348, pr-354, pr-355, pr-358]
+prs: [pr-343, pr-344, pr-345, pr-346, pr-347, pr-348, pr-354, pr-355, pr-358, pr-359]
 reviews: [rev-20260902-015425Z]
 supersedes: []
 superseded_by: null
