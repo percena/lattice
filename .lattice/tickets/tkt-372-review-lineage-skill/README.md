@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/372 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T07:21:07Z |
+| updated | 2026-09-02T07:59:39Z |
 | adopted | false |
 | summary | SKILL.md + method/taxonomy/template: the three-layer mining protocol, verify-then-report, insight ranking, rev output with a Proposed-tickets table. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -31,7 +31,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A3** — see GitHub issue #372 and Spec spc-369 A3.
+- [x] **A3** — see GitHub issue #372 and Spec spc-369 A3. Evidence: `skills/review-lineage/SKILL.md` (167 lines, anatomy footers, `agents: claude-code,codex`, `domain: quality-side-path`) + `references/{method,insight-taxonomy}.md` + `references/templates/lineage-audit.md`; dry run → `.lattice/reviews/rev-20260902-080545Z-lineage-audit-baseline.md` (kind audit, `spawn_tickets`, Proposed-tickets table in create-tickets §2 column shape); `tools/validate-skills.sh` OK, `validate-lattice-artifacts.py` exit 0 (0 errors).
 
 ## Approach
 
@@ -47,13 +47,28 @@
 
 ## Decision journal
 
+- **Dry-run rev committed as the first baseline** — binder must-ask default ("commit it as the first baseline; it is a real audit") applied unattended; `.lattice/reviews/rev-20260902-080545Z-lineage-audit-baseline.md` + snapshot `.lattice/reviews/metrics/lineage-20260902-080132Z.json` are in this PR. Source: binder `## Anticipated decisions`; `create-review` rule 8 (Review-only write); spc-369 D3 (committed baseline). Operator may drop the two files at merge if they prefer PR-body evidence only.
+- **Proposed-tickets column shape = `create-tickets` §2 columns verbatim, then `kind | priority | why` appended** (`| # | title | covers | paths (approx) | blocked_by | parallel_group | solo-merge | kind | priority | why |`). The A3 acceptance says the table "parses into create-tickets' section-2 batch without edits", so the seven §2 columns come first and unchanged; the issue body's title/kind/priority/covers/paths/blocked_by set is a superset satisfied by the three extra trailing columns. Source: spc-369 A3; `skills/create-tickets/references/flow.md` §2; issue #372 Scope.
+- **`--gh` input maps to `reconcile-state.sh --binder <path>` per named binder, not a whole-tree flag** — the script has no `--gh` option (`reconcile-state.sh --help`: `--binder` required). SKILL documents the real contract and keeps the audit offline by default. Source: spc-369 Out of scope ("optional sensor"); `skills/_lattice-lib/scripts/reconcile-state.sh` usage.
+- **Validator invoked as `tools/validate-lattice-artifacts.py` when present, else skipped with a note** — no vendored copy exists under `_lattice-lib/scripts/`; `review-delivery/references/axes.md:55` uses the same path. Source: `ls skills/_lattice-lib/scripts/`; spc-369 D5 (reuse, no second validator).
+- **Comparison matrix included in the lineage template and the baseline rev** — `create-review` rule 1b / `audit-recipe.md` Composition require it for `kind: audit`; the ticket's template list omitted it. Source: `skills/create-review/SKILL.md` rule 1b.
+- **Findings order = impact then decidability; F6 carried as a needs-decision row inside `spawn_tickets`** rather than a second outcome (create-review rule 2: exactly one outcome). Source: `references/method.md` rubric; ADR-007 §3.
+- **Spec `spc-369` `reviews:` list not edited** — `.lattice/specs/` is outside this ticket's `paths`; the rev carries `related_specs: [spc-369, spc-337]` so the L0 edge exists from the review side. Left for finish-work / tkt-373 to add `rev-20260902-080545Z` to the Spec. Source: binder `paths`; create-review rule 4.
+
 ## Pending decisions
 
 (none)
 
 ## Attempts
 
+- (none — single pass; sensors ran first try: metrics 0.9 s, probes 0.7 s)
+
 ## Notes
+
+- NOTICED: skills/_lattice-lib/scripts/reconcile-state.sh — spc-369 Out-of-scope and the tkt-372 brief describe an optional `reconcile-state.sh --gh` sensor, but the script only accepts `--binder <path> [--repo] [--json]`; the SKILL documents the per-binder form (out-of-paths, 2026-09-02)
+- NOTICED: skills/review-lineage/scripts/claim-probes.sh — `--json` truncates the `evidence` field the same way `--md` does (200 chars + `…`), so a consumer that wants the full drift list must re-run the probe one-liner; an `--evidence-full` flag or untruncated JSON would let Step 2 skip the re-run (out-of-paths, 2026-09-02)
+- NOTICED: skills/review-lineage/scripts/lineage-metrics.sh — usage line says `--since <ref|ISO|Nd>` but the L3 archaeology commands in method.md need the git-native form (`--since='30 days ago'`); `_since_to_args` converts `Nd` internally, fine, but a `--print-git-args` (or documenting the conversion) would keep the SKILL's git commands and the sensor's window identical (out-of-paths, 2026-09-02)
+- NOTICED: docs/adr/011-consumer-repo-footprint-hygiene.md:74 — Verification bullet "a fresh-clone simulation test … lands in the test suite" names no bats file; `adr-verification-refs-resolve` cannot probe an unnamed test, so the claim is unguarded (rev-20260902-080545Z Appendix A1) (out-of-paths, 2026-09-02)
 
 ## References
 
