@@ -1,5 +1,5 @@
 | field | value |
-| status | pr-open |
+| status | closed |
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/422 |
@@ -7,7 +7,7 @@
 | covers | A9 |
 | prs | pr-423 — https://github.com/percena/lattice/pull/423 |
 | created | 2026-09-02T16:30:00Z |
-| updated | 2026-09-02T16:12:54Z |
+| updated | 2026-09-02T16:39:22Z |
 | wait_reason | (none) |
 
 ## Summary
@@ -51,3 +51,8 @@ Dedicated `finish-stamp.bats` test suite that calls `finish-stamp.py` directly (
 - Blocked by nothing — finish-stamp.py is shipped (tkt-418, PR #420) + A3-fixed (tkt-419, PR #421).
 - Existing finish-ledger.bats tests 29-58 exercise finish-stamp.py indirectly; this suite tests it in isolation.
 - A3 idempotency fix (tkt-419) is specifically verified by scenario 3.
+
+## Finish
+
+- pr-423 merged: 2026-09-02T16:38:05Z — https://github.com/percena/lattice/pull/423 (base merge)
+- issue #422 closed: 2026-09-02T16:38:32Z (reason: completed) — https://github.com/percena/lattice/issues/422
