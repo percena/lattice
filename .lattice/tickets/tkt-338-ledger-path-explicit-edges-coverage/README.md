@@ -61,6 +61,7 @@ See GitHub issue #338 for the full slice text; Spec ids owned by this slice:
 - 2026-09-02 tkt-325/326/327/335 (created 2026-09-02, post-cutoff, no ledger) backfilled with one `queued → closed` `record` entry each, trace `backfill 2026-09-02 (spc-337 A1)`, metric `direct-jump` — precedent: the spc-270 dev-base backfill (source: spc-337 D4; ledger records what was observed, binders untouched).
 - 2026-09-02 ledger-home resolution: binder-derived home wins over `LATTICE_HOME`; env stays the fallback for binder-less callers (`record`, `replay`) (source: spc-337 A1 / binder Approach step 1).
 - 2026-09-02 co-located lock fallback anchored to the ledger home too, and the three `git add` staging sites use `git -C <binder repo>` — the fault test from a foreign cwd exposed both (source: agent-judgment, ticket-local).
+- 2026-09-02T02:54:30Z — batch-merge-gate escape authorized (spc-186 A1, ADR-007 §5b). rule_id=batch-merge-gate; reason="user-authorized: operator sign-off 2026-09-02 for the spc-337 pipeline — batch W1 PRs are reviewed and merged by the host in this session (marker removed once for the merge window)"; authorizer=operator; marker_removed=<state-home>/.batch-work-active; ts=2026-09-02T02:54:30Z
 
 ## Pending decisions
 
