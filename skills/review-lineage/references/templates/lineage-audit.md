@@ -71,7 +71,7 @@ Why this run (cadence / post-soak / operator ask), the home + window mined, and 
 
 ## Proposed tickets (create-tickets §2 batch shape, extended with kind · priority · why)
 
-<!-- Columns 1–7 are exactly `create-tickets/references/flow.md` §2 "Proposed tickets"; kind/priority/why are appended so the operator can file without re-deriving. `covers` = the Finding id(s) this row repairs. Every row pairs repair with its guard (audit-recipe §6). -->
+<!-- Columns 1–7 are exactly `create-tickets/references/flow.md` §2 "Proposed tickets"; kind/priority/why are appended so the operator can file without re-deriving. `covers` = the Finding id(s) this row repairs. `blocked_by` follows create-tickets grammar (`policy.md`): `none` or a REAL GitHub issue `#N` — never a row number; ordering between drafts ("after draft 1") goes in `why`, and the operator fills `#N` once the earlier draft is filed. Every row pairs repair with its guard (audit-recipe §6). -->
 
 | # | title | covers | paths (approx) | blocked_by | parallel_group | solo-merge | kind | priority | why |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

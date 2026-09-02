@@ -73,7 +73,8 @@ PH=$(lattice_default_home || echo "${LATTICE_HOME:-.lattice}")
 OUT=$(mktemp -d)
 bash "$SKILL_ROOT/scripts/lineage-metrics.sh" --home "$PH" --since "${SINCE:-30d}" --md > "$OUT/metrics.md"   # L1: writes $PH/reviews/metrics/lineage-<UTC>.json + prints the delta
 bash "$SKILL_ROOT/scripts/claim-probes.sh"    --home "$PH" --md > "$OUT/probes.md"                            # L2: always exit 0; fail rows are candidates, not findings
-[[ -f tools/validate-lattice-artifacts.py ]] && python3 tools/validate-lattice-artifacts.py > "$OUT/validator.txt" 2>&1 || true
+TOP=$(git rev-parse --show-toplevel 2>/dev/null || pwd); V="$TOP/tools/validate-lattice-artifacts.py"
+if [[ -f "$V" ]]; then python3 "$V" > "$OUT/validator.txt" 2>&1 || true; else echo "validator: skipped (not found: $V)" | tee "$OUT/validator.txt"; fi
 ```
 
 Nonzero exit from a sensor (other than the validator's warning exit) = stop and report; do not hand-compute the metric it failed to produce. With `--gh`, run `bash "$LIB/reconcile-state.sh" --binder <path> --json` for each binder a candidate finding names (Step 2), never for the whole tree.
@@ -84,7 +85,7 @@ Read the shape of the window, not individual commits: base-branch commit mix (PR
 
 ### 2. Claim reconciliation (`audit-recipe.md` §4)
 
-For **every** `fail` probe row: re-run the probe's command yourself (the `--md` evidence cell is truncated to 200 chars), read the code at the exact promise, and decide whether the doc or the tool is wrong — disagreement is a finding whichever side is right. Then **sample** claims no probe covers: ≥ 3 `Verification:` bullets from ADRs and ≥ 3 checked `A*` boxes from `done` Specs, executed against the tree (run the named test, open the named script at the named line). Record what you executed in Method.
+For **every** `fail` probe row: re-run the probe's command from the registry yourself — the evidence cell (`--md` and `--json`) is truncated to 200 chars and usually shows only the first instance; **never cite a truncated cell** — read the code at the exact promise, and decide whether the doc or the tool is wrong — disagreement is a finding whichever side is right. Then **sample** claims no probe covers: ≥ 3 `Verification:` bullets from ADRs and ≥ 3 checked `A*` boxes from `done` Specs, executed against the tree (run the named test, open the named script at the named line). Record what you executed in Method.
 
 ### 3. Clustering + ranking (`audit-recipe.md` §6, ADR-007 §3)
 
