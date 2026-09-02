@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/372 |
-| status | pr-open |
-| fix_cycles | 0 |
+| status | rework |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T08:16:23Z |
+| updated | 2026-09-02T08:24:05Z |
 | adopted | false |
 | summary | SKILL.md + method/taxonomy/template: the three-layer mining protocol, verify-then-report, insight ranking, rev output with a Proposed-tickets table. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -54,6 +54,7 @@
 - **Comparison matrix included in the lineage template and the baseline rev** — `create-review` rule 1b / `audit-recipe.md` Composition require it for `kind: audit`; the ticket's template list omitted it. Source: `skills/create-review/SKILL.md` rule 1b.
 - **Findings order = impact then decidability; F6 carried as a needs-decision row inside `spawn_tickets`** rather than a second outcome (create-review rule 2: exactly one outcome). Source: `references/method.md` rubric; ADR-007 §3.
 - **Spec `spc-369` `reviews:` list not edited** — `.lattice/specs/` is outside this ticket's `paths`; the rev carries `related_specs: [spc-369, spc-337]` so the L0 edge exists from the review side. Left for finish-work / tkt-373 to add `rev-20260902-080545Z` to the Spec. Source: binder `paths`; create-review rule 4.
+- 2026-09-02T08:24:05Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: review Hold (PR #377): M1 MED — F4 evidence undercounts (3 retired-path hits, not 1: also review-code/SKILL.md:122 and review-code/references/ci-check.md:14; probe evidence truncates at 200 chars — Step 2 must re-run the probe command); ticket 4 must cover all three files. M2 MED — Proposed-tickets blocked_by '#1' collides with the GH-issue grammar (policy.md:108 blocked_by = none | #N issue); use none + prose. M3 LOW — 4 citations do not reproduce (grep list 9 not 10 / regex misses d17e1ca, includes wrong hashes; 356.jsonl added by e160dc6 not 5fc6b63; ensure-workspace.sh:670 not :669; fix( count 84 not 88). M4 LOW — ticket 3 mode lint overbroad (scope to SKILL-named entry points). M5 LOW — SKILL.md:76 cwd-relative validator call silently no-ops; print a skipped note.
 
 ## Pending decisions
 
