@@ -21,7 +21,7 @@ Dedicated `finish-stamp.bats` test suite that calls `finish-stamp.py` directly (
 
 ## Acceptance
 
-- [ ] A9: finish-stamp.bats covers all 5 dry-run scenarios:
+- [x] A9: finish-stamp.bats covers all 5 dry-run scenarios:
   1. Normal (pr-open→closed) — status flips, ledger has pr-open→closed
   2. Direct jump (in-progress→closed) — status flips, ledger has in-progress→closed, anomaly line
   3. Idempotent (already closed → no-op) — no change, nothing staged, exit 0
