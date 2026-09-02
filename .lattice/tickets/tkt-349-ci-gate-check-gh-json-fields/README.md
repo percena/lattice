@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/349 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:33:16Z |
-| updated | 2026-09-02T04:02:52Z |
+| updated | 2026-09-02T04:10:07Z |
 | adopted | false |
 | summary | ci-gate-check.sh asks gh pr checks for a 'conclusion' JSON field that gh 2.9x lacks; the hard CI gate exits 2 on every run. |
 | spec | none |
@@ -55,4 +55,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-354 merged: 2026-09-02T04:09:50Z — https://github.com/percena/lattice/pull/354 (base merge)
+- issue #349 closed: 2026-09-02T04:09:59Z (reason: completed) — https://github.com/percena/lattice/issues/349
