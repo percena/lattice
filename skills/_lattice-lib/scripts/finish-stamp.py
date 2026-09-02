@@ -1,36 +1,43 @@
 #!/usr/bin/env python3
 """finish-stamp.py — simplified local stamp (ADR-013 Option E+ Layer 1).
 
-Replaces the 732-line bash+Python hybrid finish-ledger.sh with ~80 lines of
-pure Python. Key design decisions (proven by dry run):
+Replaces the 732-line bash+Python hybrid finish-ledger.sh heredoc + bash staging
+with pure Python. Key design decisions (proven by 22/22 dry-run assertions):
   - No commit_transaction (binder write = temp→rename, ledger = record CLI)
   - No FLIP_HAPPENED (staging assertion in same Python process)
-  - No || true (subprocess.run with check=True)
+  - No || true (subprocess.run checked, fail loud)
   - No hardcoded edge (reads actual prior status from binder)
-  - Idempotent (no-op if already closed)
+  - Idempotent (no-op if already closed + ledger consistent)
   - Mode C repair: checks ledger continuity before stamping
+  - Cancel path supported (--cancel --reason)
 
-DRY RUN PROTOTYPE — do not ship yet. Proves the design works.
+Called by finish-ledger.sh AFTER the front-end resolves gh dates, PR state,
+repo identity, and binder path security. This script does the write + stage.
 """
-import sys, os, re, json, subprocess, tempfile, stat, datetime, shutil
+import sys, os, re, json, subprocess, tempfile, stat, datetime, fcntl
 
 def main():
     import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument("--pr", type=int)
+    p = argparse.ArgumentParser(description="Stamp a merged/cancelled ticket binder to closed.")
     p.add_argument("--binder", required=True)
+    p.add_argument("--pr", type=int, default=None)
     p.add_argument("--merged-at", default="")
     p.add_argument("--closed-at", default="")
-    p.add_argument("--issue", type=int)
+    p.add_argument("--issue", type=int, default=None)
     p.add_argument("--pr-state", default="MERGED")
     p.add_argument("--pr-url", default="")
-    p.add_argument("--reason", default="merge")
-    p.add_argument("--home", default="")
+    p.add_argument("--reason", default="")
+    p.add_argument("--cancel", action="store_true")
+    p.add_argument("--state-reason", default="")
+    p.add_argument("--issue-base", default="")
     args = p.parse_args()
+
+    cancel = args.cancel
+    reason = args.reason or ("cancel" if cancel else "merge")
 
     binder_path = os.path.realpath(args.binder)
     if not os.path.isfile(binder_path):
-        print(f"finish-stamp: no binder at {binder_path} — skip", file=sys.stderr)
+        print(f"finish-stamp: no binder at {binder_path} — skip (ticket-only flow)", file=sys.stderr)
         return 0
 
     # Resolve library path
@@ -47,54 +54,73 @@ def main():
 
     # Resolve lattice home from binder path
     # .lattice/tickets/tkt-N-slug/README.md → .lattice
-    b = binder_path
-    home = None
-    if os.path.basename(b) == "README.md":
-        parent = os.path.dirname(b)
-        if os.path.basename(os.path.dirname(parent)) == "tickets":
-            home = os.path.dirname(os.path.dirname(parent))
+    home = ta.home_for_binder(binder_path)
     if not home:
         home = os.environ.get("LATTICE_HOME", ".lattice")
 
-    # Read binder
-    text = open(binder_path, encoding="utf-8").read()
-    status_match = re.search(r'\|\s*status\s*\|\s*(\S+)\s*\|', text)
-    if not status_match:
-        print("finish-stamp: ERROR — binder has no | status | row", file=sys.stderr)
-        return 1
-    prior_status = status_match.group(1)
-
-    # Idempotent: already closed + ledger last to=closed → no-op
+    # Ticket ID from directory name
     ticket_id = ""
     m_tid = re.match(r'^(tkt-[1-9][0-9]*)', os.path.basename(os.path.dirname(binder_path)))
     if m_tid:
         ticket_id = m_tid.group(1)
     ledger_path = ta.ledger_path(ticket_id, home)
 
-    if status_vocab.is_terminal(prior_status):
-        # Already closed — check ledger consistency
+    # Take exclusive dir lock (same as the old heredoc — two finish sessions
+    # stamping sibling PRs would otherwise both read old content and the second
+    # rename would drop the first PR's line).
+    lock_dir = os.path.dirname(os.path.abspath(binder_path)) or "."
+    lock_fd = os.open(lock_dir, os.O_RDONLY)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+    except OSError as exc:
+        os.close(lock_fd)
+        print(f"finish-stamp: ERROR — cannot lock binder directory: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        return _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
+                            binder_rows, status_vocab, args, cancel, reason)
+    finally:
         try:
-            lines = ledger_path.read_text(encoding="utf-8").strip().splitlines()
-            last_to = json.loads(lines[-1]).get("to", "") if lines else ""
-        except (OSError, ValueError):
-            last_to = ""
-        if last_to == "closed":
-            print(f"finish-stamp: no change (idempotent — {ticket_id} already closed)")
-            return 0
-        # Binder says closed but ledger doesn't — repair
-        print(f"finish-stamp: WARNING — binder closed but ledger last to={last_to!r}; repairing", file=sys.stderr)
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        except OSError:
+            pass
+        os.close(lock_fd)
+
+
+def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
+                 binder_rows, status_vocab, args, cancel, reason):
+    # Read binder INSIDE the lock
+    text = open(binder_path, encoding="utf-8").read()
+    orig = text
+
+    status_match = re.search(r'\|\s*status\s*\|\s*(\S+)\s*\|', text)
+    if not status_match:
+        print("finish-stamp: ERROR — binder has no | status | row", file=sys.stderr)
+        return 1
+    prior_status = status_match.group(1)
+
+    merged = (not cancel) and args.pr_state == "MERGED"
+    already_closed = status_vocab.is_terminal(prior_status)
+    # flip_close: only flip to closed when there's terminal evidence
+    # (cancel, OR merged PR, OR closing issue actually closed). A CLOSED PR
+    # without a closing issue is NOT terminal — the ## Finish body is updated
+    # but the status stays non-terminal (tkt-179 A3, finish-work SKILL.md).
+    issue_closed = bool(args.issue and args.closed_at)
+    flip_close = cancel or merged or issue_closed
 
     # --- Mode C repair: check ledger continuity ---
-    # If the ledger's last `to` != the binder's prior status, the intermediate
-    # edge was lost in squash merge. Insert the missing edge before stamping.
+    # Only when NOT already closed (we're about to flip). Skip when ledger's
+    # last `to` is terminal (closed→rework is illegal — data inconsistency,
+    # not a missing intermediate edge).
     try:
         lines = ledger_path.read_text(encoding="utf-8").strip().splitlines() if ledger_path.exists() else []
         ledger_last_to = json.loads(lines[-1]).get("to", "") if lines else ""
     except (OSError, ValueError):
         ledger_last_to = ""
 
-    if ledger_last_to and ledger_last_to != prior_status:
-        # Missing intermediate edge — insert it
+    if (not already_closed) and ledger_last_to and ledger_last_to != prior_status \
+       and not status_vocab.is_terminal(ledger_last_to):
         print(f"finish-stamp: Mode C repair — ledger last to={ledger_last_to!r} but binder status={prior_status!r}; inserting missing edge", file=sys.stderr)
         rc = subprocess.run([
             sys.executable, ta_path, "record", ticket_id,
@@ -106,67 +132,151 @@ def main():
             return 1
         print(f"finish-stamp: Mode C repaired — inserted {ledger_last_to}→{prior_status}")
 
-    # --- Write binder ---
-    updated_stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    new_text = text
-
-    # status → closed
-    new_text = re.sub(r'(\|\s*status\s*\|\s*)\S+(\s*\|)', r'\1closed\2', new_text, count=1)
-    # updated stamp
-    new_text = binder_rows.stamp_updated(new_text, updated_stamp)
-
-    # ## Finish body
-    entry_line = f"- pr-{args.pr} merged: {args.merged_at}"
-    if args.pr_url:
-        entry_line += f" — {args.pr_url}"
-    if args.pr_state == "MERGED":
-        entry_line += " (base merge)"
-    finish_section = re.search(r'(^## Finish\s*\n)(.*?)(?=\n## |\Z)', new_text, re.DOTALL | re.MULTILINE)
-    if not finish_section:
-        new_text = new_text.rstrip() + f"\n\n## Finish\n\n{entry_line}\n"
+    # --- Build ## Finish entry line ---
+    if cancel:
+        entry_line = f"- cancelled: {args.reason}"
+        if args.closed_at:
+            entry_line += f" — {args.closed_at}"
+        elif args.issue:
+            entry_line += f" — closedAt: unavailable (issue #{args.issue} CLOSED but closedAt null)"
+        entry_pat = re.compile(r'^- cancelled: .*$', re.MULTILINE)
     else:
-        head, body = finish_section.group(1), finish_section.group(2)
-        body = re.sub(r'^- \(none yet\)\s*\n?', '', body, flags=re.MULTILINE)
-        body = re.sub(rf'^- pr-{args.pr} .*$', '', body, flags=re.MULTILINE)
-        body = re.sub(r'\n{3,}', '\n\n', body).rstrip()
-        body = (body + "\n" if body else "") + entry_line + "\n"
-        new_text = new_text[:finish_section.start()] + head + body + new_text[finish_section.end():]
+        if merged:
+            entry_line = f"- pr-{args.pr} merged: {args.merged_at}"
+        else:
+            entry_line = f"- pr-{args.pr} closed without merge"
+        if args.pr_url:
+            entry_line += f" — {args.pr_url}"
+        if merged:
+            entry_line += " (base merge)"
+        entry_pat = re.compile(rf'^- pr-{re.escape(str(args.pr))} (?:merged:|closed without merge).*$', re.MULTILINE)
 
-    # prs row
-    if args.pr_url:
+    # --- Anomaly lines (ADR-012 §3: direct jump / side state) ---
+    anomaly_line = ""
+    if (not cancel) and merged and prior_status in {"parked", "stuck", "deferred", "rework"}:
+        anomaly_line = f"\n- anomaly: prior status `{prior_status}` before terminal merge — external truth preserved"
+    elif (not cancel) and merged and prior_status in {"queued", "in-progress"}:
+        anomaly_line = (f"\n- anomaly: direct jump — prior status `{prior_status}` before terminal merge; "
+                        f"in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)")
+
+    # --- Issue line ---
+    issue_line = ""
+    if args.issue and args.closed_at:
+        base = ""
+        if args.pr_url:
+            base = args.pr_url.split("/pull/")[0]
+        elif args.issue_base:
+            base = args.issue_base
+        reason_suffix = f" (reason: {args.state_reason})" if args.state_reason else ""
+        if base:
+            issue_line = f"\n- issue #{args.issue} closed: {args.closed_at}{reason_suffix} — {base}/issues/{args.issue}"
+        else:
+            issue_line = f"\n- issue #{args.issue} closed: {args.closed_at}{reason_suffix} — https://github.com/<org>/<repo>/issues/{args.issue}"
+    elif args.issue and not cancel and not args.closed_at:
+        issue_line = f"\n- issue #{args.issue}: not closed (closed-without-merge? status recorded without mergedAt claim)"
+
+    # Issue close-reason anomaly
+    if (not cancel) and args.issue and args.state_reason and args.state_reason != "completed":
+        anomaly_line += f"\n- anomaly: issue #{args.issue} closed as {args.state_reason.upper()} while PR #{args.pr} delivers it — reconcile close-reason vs delivery"
+
+    # --- Update ## Finish section ---
+    m = re.search(r'(^## Finish\s*\n)(.*?)(?=\n## |\Z)', text, re.DOTALL | re.MULTILINE)
+    if not m:
+        text = text.rstrip() + "\n\n## Finish\n\n" + entry_line + anomaly_line + issue_line + "\n"
+    else:
+        head, body = m.group(1), m.group(2)
+        if entry_pat.search(body):
+            body = entry_pat.sub(entry_line, body)
+            if anomaly_line:
+                anom_pat = re.compile(r'^- anomaly: .*$', re.MULTILINE)
+                body = anom_pat.sub('', body)
+                body = re.sub(r'\n{3,}', '\n\n', body).rstrip()
+                body = body + anomaly_line + "\n" if body else anomaly_line + "\n"
+            if issue_line:
+                iss_pat = re.compile(rf'^- issue #{re.escape(str(args.issue))}.*$', re.MULTILINE) if args.issue else None
+                iss_m = iss_pat.search(body) if iss_pat else None
+                if iss_m:
+                    body = iss_pat.sub(issue_line.lstrip("\n"), body)
+                else:
+                    body = body.rstrip() + issue_line + "\n"
+        else:
+            body = re.sub(r'^- \(none yet\)\s*\n?', '', body, flags=re.MULTILINE)
+            body = body.rstrip()
+            if body:
+                body = body + "\n" + entry_line + anomaly_line + issue_line + "\n"
+            else:
+                body = "\n" + entry_line + anomaly_line + issue_line + "\n"
+        text = text[:m.start()] + head + body + text[m.end():]
+
+    # --- status → closed (only when flip_close: cancel, merged, or issue closed) ---
+    should_flip = flip_close and not already_closed
+    if should_flip:
+        text = re.sub(r'(\|\s*status\s*\|\s*)\S+(\s*\|)', r'\1closed\2', text, count=1)
+
+    # --- updated stamp ---
+    updated_stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    text = binder_rows.stamp_updated(text, updated_stamp)
+
+    # --- prs row (not for cancel — no PR) ---
+    if args.pr_url and not cancel:
         prs_row_re = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
-        prs_match = prs_row_re.search(new_text)
+        prs_match = prs_row_re.search(text)
         if prs_match:
             merged_row = binder_rows.merge_row(prs_match.group(2), args.pr, args.pr_url)
-            new_text = prs_row_re.sub(lambda m: f"{m.group(1)} {merged_row} {m.group(3)}", new_text, count=1)
+            text = prs_row_re.sub(lambda m: f"{m.group(1)} {merged_row} {m.group(3)}", text, count=1)
 
-    # Atomic write: temp → rename
-    d = os.path.dirname(binder_path) or "."
-    mode = os.stat(binder_path).st_mode
-    fd, tmp = tempfile.mkstemp(dir=d, prefix=".finish-stamp.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(new_text)
-            fh.flush()
-            os.fsync(fh.fileno())
-        os.chmod(tmp, stat.S_IMODE(mode))
-        os.replace(tmp, binder_path)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise
-    print(f"finish-stamp: stamped binder ({ticket_id}: {prior_status} → closed)")
+    # --- Determine what changed ---
+    written = text != orig
+    # flip_happened = a real status flip (non-terminal → closed) — controls ledger
+    flip_happened = should_flip and written
 
-    # --- Append ledger via record CLI (proven reliable) ---
-    rc = subprocess.run([
-        sys.executable, ta_path, "record", ticket_id,
-        prior_status, "closed", "human", args.reason,
-        "--home", home
-    ], capture_output=True, text=True)
-    if rc.returncode != 0:
-        print(f"finish-stamp: ERROR — record CLI failed (rc={rc.returncode}): {rc.stderr}", file=sys.stderr)
-        return 1
-    print(f"finish-stamp: recorded ledger entry ({prior_status} → closed)")
+    # Check if ledger needs repair (binder closed but ledger missing to=closed)
+    ledger_needs_repair = False
+    if already_closed and not flip_happened:
+        try:
+            lines = ledger_path.read_text(encoding="utf-8").strip().splitlines()
+            last_to = json.loads(lines[-1]).get("to", "") if lines else ""
+            if last_to != "closed":
+                ledger_needs_repair = True
+        except (OSError, ValueError):
+            ledger_needs_repair = True
+
+    if not written and not ledger_needs_repair:
+        print(f"finish-stamp: no change (idempotent — {ticket_id} already closed)")
+        return 0
+
+    # --- Atomic write: temp → rename (only if text changed) ---
+    if written:
+        d = os.path.dirname(binder_path) or "."
+        mode = os.stat(binder_path).st_mode
+        fd, tmp = tempfile.mkstemp(dir=d, prefix=".finish-stamp.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(text)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.chmod(tmp, stat.S_IMODE(mode))
+            os.replace(tmp, binder_path)
+        except BaseException:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            raise
+
+    print(f"finish-stamp: stamped" if written else "finish-stamp: no change (idempotent)")
+    print(f"flip: {1 if flip_happened else 0}")
+
+    # --- Append ledger via record CLI (only on actual flip or repair) ---
+    if flip_happened or ledger_needs_repair:
+        record_from = prior_status if flip_happened else (ledger_last_to or prior_status)
+        rc = subprocess.run([
+            sys.executable, ta_path, "record", ticket_id,
+            record_from, "closed", "human", reason,
+            "--home", home
+        ], capture_output=True, text=True)
+        if rc.returncode != 0:
+            print(f"finish-stamp: ERROR — record CLI failed (rc={rc.returncode}): {rc.stderr}", file=sys.stderr)
+            return 1
+        print(f"finish-stamp: recorded ledger entry ({record_from} → closed)")
 
     # --- Stage both files (NO || true — fail loud) ---
     repo_root = subprocess.run(
@@ -180,33 +290,41 @@ def main():
     ledger_rel = str(ledger_path).replace(repo_root + "/", "")
     if ledger_rel == str(ledger_path):
         ledger_rel = f".lattice/.transition-ledger/{ticket_id}.jsonl"
+    binder_rel = binder_path.replace(repo_root + "/", "")
 
-    for path in [binder_path, str(ledger_path)]:
+    # Stage binder if written, ledger if flip or repair
+    paths_to_stage = []
+    if written:
+        paths_to_stage.append(binder_path)
+    if flip_happened or ledger_needs_repair:
+        paths_to_stage.append(str(ledger_path))
+
+    for path in paths_to_stage:
         result = subprocess.run(["git", "-C", repo_root, "add", "--", path],
                                 capture_output=True, text=True)
         if result.returncode != 0:
             print(f"finish-stamp: ERROR — git add failed for {path}: {result.stderr}", file=sys.stderr)
             return 1
 
-    # --- Verify staging (fail loud — no FLIP_HAPPENED) ---
+    # --- Verify staging (fail loud — no FLIP_HAPPENED variable propagation) ---
     staged = subprocess.run(
         ["git", "-C", repo_root, "diff", "--cached", "--name-only"],
         capture_output=True, text=True
     ).stdout.strip().splitlines()
     staged_set = set(staged)
 
-    binder_rel = binder_path.replace(repo_root + "/", "")
-    if binder_rel not in staged_set:
+    if written and binder_rel not in staged_set:
         print(f"finish-stamp: ERROR — binder {binder_rel} NOT staged after git add", file=sys.stderr)
         return 1
-    if ledger_rel not in staged_set:
+    if (flip_happened or ledger_needs_repair) and ledger_rel not in staged_set:
         print(f"finish-stamp: ERROR — ledger {ledger_rel} NOT staged after git add", file=sys.stderr)
         print(f"  common cause: .transition-ledger/ is gitignored, or held index lock", file=sys.stderr)
         return 1
 
-    print(f"finish-stamp: staged binder + ledger ({ticket_id})")
-    print(f"flip: 1")
+    if written or flip_happened or ledger_needs_repair:
+        print(f"finish-stamp: staged binder + ledger ({ticket_id})")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
