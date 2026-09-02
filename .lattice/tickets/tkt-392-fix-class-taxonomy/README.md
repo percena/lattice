@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/392 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T10:05:00Z |
-| updated | 2026-09-02T10:05:00Z |
+| updated | 2026-09-02T10:40:32Z |
 | adopted | false |
 | summary | hotspot-metrics fix_class taxonomy: add 8 new classes to reduce "other" from 66% to <15% |
 | spec | (none — ticket-only follow-up to tkt-388) |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-392-fix-class-taxonomy |
 | worktree | sibling `…/<repo>.worktrees/tkt-392-fix-class-taxonomy/` |
-| prs | (none) |
+| prs | pr-393 — https://github.com/percena/lattice/pull/393 |
 
 ## Acceptance (this slice)
 
@@ -60,6 +60,10 @@ Add 8 bats test cases — one per new class, each with a representative subject 
 - regex pattern breadth — agent-decides: patterns seeded from dry-run analysis; tune if false-positives appear.
 - class ordering — pre-resolved: new classes before "other" catch-all; existing classes (status-flip etc.) stay first since they're more specific.
 - "still-other" threshold — pre-resolved: <15% is the target; 12/89 = 13.5% is acceptable.
+
+## Decision journal
+
+- 2026-09-02T10:40:32Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #393) [WARN — signal logged, not silently lost]
 
 ## Notes
 
