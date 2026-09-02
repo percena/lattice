@@ -129,9 +129,40 @@ sys.path.insert(0, str(lib_dir))
 import ci_failure_classify as clf
 
 def gh_run(args):
-    """Run gh; return (returncode, stdout). stderr suppressed."""
-    p = subprocess.run(["gh", *args], text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    return p.returncode, (p.stdout or "")
+    """Run gh; return (returncode, stdout, stderr)."""
+    p = subprocess.run(["gh", *args], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return p.returncode, (p.stdout or ""), (p.stderr or "")
+
+
+def normalize_check(c):
+    """tkt-349: gh >= 2.6x exposes `state` (the conclusion for completed runs:
+    SUCCESS / FAILURE / TIMED_OUT / CANCELLED / STARTUP_FAILURE / SKIPPED /
+    NEUTRAL, or a pending state) + `bucket` (pass|fail|pending|skipping|cancel);
+    `conclusion` is NOT a field. The classifier (ci_failure_classify) keys on
+    state FAILURE + conclusion, so derive the legacy pair when absent. Older
+    payloads (or test fixtures) that already carry `conclusion` pass through."""
+    if not isinstance(c, dict):
+        return c
+    if "conclusion" in c:
+        return c
+    bucket = (c.get("bucket") or "").lower()
+    st = (c.get("state") or "").upper()
+    # A completed-red conclusion wins over the bucket: gh 2.9x files
+    # STARTUP_FAILURE under bucket `pending` (its default branch), which would
+    # otherwise hide the canonical ADR-007 §5a infra-waiver case behind a
+    # never-resolving "pending" block (review of PR #354).
+    if st in ("FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED", "ERROR"):
+        c["conclusion"] = st; c["state"] = "FAILURE"
+    elif bucket == "pending" or st in ("PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"):
+        c["state"] = "PENDING"; c["conclusion"] = ""
+    elif bucket == "pass" or st in ("SUCCESS", "NEUTRAL", "SKIPPED"):
+        c["conclusion"] = st or "SUCCESS"
+    else:
+        # fail / cancel / anything else completed-red: keep the precise
+        # conclusion (TIMED_OUT, CANCELLED, STARTUP_FAILURE, FAILURE …) and
+        # present state=FAILURE so the classifier treats it as a red.
+        c["conclusion"] = st or "FAILURE"; c["state"] = "FAILURE"
+    return c
 
 # --- Fetch the checks rollup ---
 # Distinguish three cases (M2 fix): (1) gh exits non-zero → cannot load →
@@ -139,9 +170,15 @@ def gh_run(args):
 # all-green PASS (no checks = green); (3) non-empty output that fails to
 # parse as JSON → malformed → exit 2. A valid `[]` on a no-CI repo is green;
 # only malformed JSON is an error.
-rc, raw = gh_run(["pr", "checks", pr, "--json", "name,state,conclusion,link"])
+rc, raw, err = gh_run(["pr", "checks", pr, "--json", "name,state,bucket,link"])
 if rc != 0:
-    msg = f"cannot load gh pr checks for PR #{pr} (gh auth? PR not found? gh exit {rc})"
+    if "Unknown JSON field" in err:
+        # tkt-349: a field-list mismatch with the installed gh is a script/CLI
+        # contract error, not an auth/PR problem — say so (still fail-closed).
+        msg = (f"gh pr checks --json field mismatch for this gh version ({err.strip().splitlines()[0]}); "
+               f"the CI gate cannot load the rollup — upgrade gh or fix the field list in ci-gate-check.sh (tkt-349)")
+    else:
+        msg = f"cannot load gh pr checks for PR #{pr} (gh auth? PR not found? gh exit {rc}{': ' + err.strip().splitlines()[0] if err.strip() else ''})"
     if as_json:
         print(json.dumps({"ok": False, "error": msg}, indent=2))
     else:
@@ -164,6 +201,7 @@ else:
         sys.exit(2)
     if not isinstance(checks, list):
         checks = []
+    checks = [normalize_check(c) for c in checks]
 
 # --- Load config patterns ---
 patterns = clf.load_config_patterns(str(home))
