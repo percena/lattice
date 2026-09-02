@@ -183,7 +183,9 @@ update.
 Claude Code safety net: the plugin's PostToolUse hook
 (`plugins/lattice/hooks/auto-stamp-pr-open.sh`) runs the same idempotent
 `stamp-pr-open.sh` after any successful `gh pr create` (fail-open, advisory on
-error). Both may run; the second call changes nothing. The script step is the
+error) — only from a tree whose current branch equals the PR head branch
+(`--head` in the command, else `gh pr view`); any mismatch is reported as
+"did NOT stamp". Both may run; the second call changes nothing. The script step is the
 portable writer for non-Claude agents.
 
 Marker lifecycle: the batch-work marker (`.batch-work-active`) lives in the
