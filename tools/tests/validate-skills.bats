@@ -198,3 +198,31 @@ EOF
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF "consumer-root skill script executable fallback"
 }
+
+@test "tkt-383: mode lint catches SKILL-named script at 100644" {
+  # Plant a non-executable script referenced in a SKILL.md.
+  mkdir -p "$LATTICE_SKILLS_DIR/start-work/scripts"
+  cat >"$LATTICE_SKILLS_DIR/start-work/scripts/planted.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "planted"
+EOF
+  chmod 644 "$LATTICE_SKILLS_DIR/start-work/scripts/planted.sh"
+  printf '\nRun `scripts/planted.sh` for setup.\n' >>"$LATTICE_SKILLS_DIR/start-work/SKILL.md"
+  run bash "$VALIDATE"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "not executable"
+  printf '%s\n' "$output" | grep -qF "planted.sh"
+}
+
+@test "tkt-383: executable SKILL-named script passes mode lint" {
+  mkdir -p "$LATTICE_SKILLS_DIR/start-work/scripts"
+  cat >"$LATTICE_SKILLS_DIR/start-work/scripts/clean.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "clean"
+EOF
+  chmod 755 "$LATTICE_SKILLS_DIR/start-work/scripts/clean.sh"
+  printf '\nRun `scripts/clean.sh` for setup.\n' >>"$LATTICE_SKILLS_DIR/start-work/SKILL.md"
+  run bash "$VALIDATE"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "validate-skills: OK"
+}
