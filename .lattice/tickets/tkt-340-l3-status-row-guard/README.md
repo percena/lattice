@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/340 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:57:55Z |
+| updated | 2026-09-02T03:03:38Z |
 | adopted | false |
 | summary | L3 Write/Edit hook denies edits that change a ticket binder's status row and names transition-api.py commit. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -101,4 +101,6 @@ See GitHub issue #340 for the full slice text; Spec ids owned by this slice:
 
 ## Finish
 
-- (none yet)
+
+- pr-344 merged: 2026-09-02T03:03:22Z — https://github.com/percena/lattice/pull/344 (base merge)
+- issue #340 closed: 2026-09-02T03:03:30Z (reason: completed) — https://github.com/percena/lattice/issues/340
