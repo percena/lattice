@@ -66,5 +66,5 @@ PY
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "routing: start-work: positives="
   printf '%s\n' "$output" | grep -qF "routing: review-delivery: positives="
-  [ "$(printf '%s\n' "$output" | grep -c '^routing: .*: positives=')" -eq 14 ]
+  [ "$(printf '%s\n' "$output" | grep -c '^routing: .*: positives=')" -eq 15 ]
 }

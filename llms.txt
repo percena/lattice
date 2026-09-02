@@ -2,7 +2,7 @@
 
 > Lattice is an open-source toolkit of portable Agent Skills and optional Claude Code hooks for structured GitHub delivery. It is packaged and tested for Claude Code and Codex; consumer repositories keep `.lattice/` binders while GitHub Issues and PRs remain delivery records. [Source](README.md)
 
-Fourteen user-facing skills ship in one pack. The six lifecycle skills form the delivery loop; the rest are optional companions and side-paths that never create Lattice lineage artifacts. `_lattice-lib` is the required internal install-unit: it ships with the full pack but is neither user-invocable nor a slash command — the lifecycle six plus `batch-work`, `create-adr`, `review-delivery`, and `verify-features` co-install it; `review-code`, `review-production`, `run-e2e`, and `generate-wiki` do not depend on it. [The loop](README.md#the-loop) · [Skill reference](README.md#skills)
+Fifteen user-facing skills ship in one pack. The six lifecycle skills form the delivery loop; the rest are optional companions and side-paths that never create Lattice lineage artifacts. `_lattice-lib` is the required internal install-unit: it ships with the full pack but is neither user-invocable nor a slash command — the lifecycle six plus `batch-work`, `create-adr`, `review-delivery`, `review-lineage`, and `verify-features` co-install it; `review-code`, `review-production`, `run-e2e`, and `generate-wiki` do not depend on it. [The loop](README.md#the-loop) · [Skill reference](README.md#skills)
 
 ## Skills
 
@@ -19,6 +19,7 @@ Fourteen user-facing skills ship in one pack. The six lifecycle skills form the 
 - [review-code](skills/review-code/SKILL.md): Optional PR-scoped code review — material correctness/regression findings with recommended solutions.
 - [review-production](skills/review-production/SKILL.md): Optional PR-scoped production-readiness review (security, performance, test coverage, ship/rollback).
 - [review-delivery](skills/review-delivery/SKILL.md): Artifact-only chain review of a delivered ticket set → ranked morning digest; never merges, never a merge gate.
+- [review-lineage](skills/review-lineage/SKILL.md): Periodic lineage mining — metrics snapshot + delta, claim–implementation probes, history → verified insights + ticket drafts in a `rev-`; never files issues, never merges.
 - [generate-wiki](skills/generate-wiki/SKILL.md): Generate a navigable root `wiki/` of pure Markdown and optional `llms.txt`; standalone doc tool.
 
 ## Docs

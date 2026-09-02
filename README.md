@@ -82,12 +82,13 @@ Advanced install (org roll-out, private forks, local dev, refresh) → [docs/get
 | [`finish-work`](./skills/finish-work/) | Update base, alignment-check, default-on mini-review scan, merge, cleanup | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | Shared scripts backing the above (co-install, not a slash entry) | — |
 
-Not part of the delivery loop — six tiers, none create lineage nodes:
+Not part of the delivery loop — seven tiers, none create lineage nodes:
 
 | Tier | Skill(s) | Notes |
 | --- | --- | --- |
 | PR-scoped quality side-paths | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | Optional, before/after `/create-pr`; no `_lattice-lib` |
 | Chain-review side-path | [`review-delivery`](./skills/review-delivery/) | Artifact-only review of a delivered ticket set (Spec A* fidelity, cross-PR coherence, decision queue, per-PR findings) → ranked morning digest with per-axis attestation; co-installs `_lattice-lib`; never merges, never a merge gate |
+| Lineage-mining side-path | [`review-lineage`](./skills/review-lineage/) | Periodic audit of what the repo actually delivered — running data (`lineage-metrics.sh` snapshot + delta), claim–implementation probes (`claim-probes.sh`), history — verified against the tree, clustered by root cause, ranked → `rev-` with insights + ticket drafts for `create-tickets`; co-installs `_lattice-lib`; never files issues, never merges |
 | E2e reference pattern | [`run-e2e`](./skills/run-e2e/) | Heredoc JS story pattern for ego-browser; one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
 | Runtime verification side-path | [`verify-features`](./skills/verify-features/) | Full-feature bug hunt against `.lattice/feature-map.md` — lineage-mined oracles (Spec A* = expected behavior), bounded e2e waves on `run-e2e` stories, bugs filed as tickets with repro steps; co-installs `_lattice-lib`; never fixes, never merges |
 | Standalone doc tool | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`; anytime; no `_lattice-lib` |

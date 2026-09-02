@@ -89,6 +89,10 @@ operator-stated preference (mid-session utterance)
    → written to .lattice/preferences.md AT UTTERANCE TIME by the active skill
      (Capture duty, decision-policy.md — provenance `operator-stated`; pr-88)
    → superseded with a date (never deleted)
+
+lineage insight (review-lineage, periodic: metrics delta + probes + history)
+   → rev- (kind audit) with ranked insights + ticket drafts (spc-369)
+   → human ratifies → preference entry | ADR | create-tickets draft (or needs_decision)
 ```
 
 The ×2-promotion path is for journal-derived candidates; an explicit operator directive takes the direct edge — the agent writes it immediately with provenance and confirms in one line. Spec/ADR always outrank preferences.
@@ -151,6 +155,7 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | proposal → preferences entry | human accepts | human |
 | operator utterance → preferences entry | **Capture duty** — durable operator-stated preference written at utterance time, provenance `operator-stated` (decision-policy.md, pr-88) | agent |
 | preferences entry → superseded | replaced with a dated supersede (never deleted) | human |
+| lineage insight → preference / ADR / ticket proposal | `review-lineage` mines running data, claims and history into a `rev-` with insights + ticket drafts; the human ratifies each into a preference entry, an ADR, or a `create-tickets` batch (spc-369 D2 — the skill never files or merges) | agent → human |
 
 ---
 
