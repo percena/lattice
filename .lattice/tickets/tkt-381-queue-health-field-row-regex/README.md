@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/381 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T10:03:21Z |
+| updated | 2026-09-02T11:31:10Z |
 | adopted | false |
 | summary | queue_health field-row regex reads 3-column rows + validator guard |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -86,4 +86,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-391 merged: 2026-09-02T11:30:14Z — https://github.com/percena/lattice/pull/391 (base merge)
+- issue #381 closed: 2026-09-02T11:30:46Z — https://github.com/percena/lattice/issues/381
