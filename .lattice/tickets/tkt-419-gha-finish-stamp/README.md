@@ -1,12 +1,12 @@
 | field | value |
-| status | in-progress |
+| status | pr-open |
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/419 |
 | spec | spc-416 |
 | covers | A6 |
-| prs | (none) |
-| updated | 2026-09-02T19:30:00Z |
+| prs | pr-421 — https://github.com/percena/lattice/pull/421 |
+| updated | 2026-09-02T15:49:47Z |
 | wait_reason | (none) |
 
 ## Summary
