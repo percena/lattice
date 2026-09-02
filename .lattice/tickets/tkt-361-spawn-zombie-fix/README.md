@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/361 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T09:18:04Z |
+| updated | 2026-09-02T09:24:49Z |
 | adopted | true |
 | summary | Fix is_alive() zombie detection + test outcome-based assertion |
 | spec | none (post-spc-337 leftover audit) |
@@ -47,3 +47,8 @@
 
 - GitHub issue body is SoT for long prose
 - Worktree policy: one tree ↔ one PR; spc|tkt open binds
+
+## Finish
+
+- pr-380 merged: 2026-09-02T09:23:43Z — https://github.com/percena/lattice/pull/380 (base merge)
+- issue #361 closed: 2026-09-02T09:24:08Z (reason: completed) — https://github.com/percena/lattice/issues/361

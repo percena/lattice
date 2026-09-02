@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/363 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T09:18:13Z |
+| updated | 2026-09-02T09:24:55Z |
 | adopted | true |
 | summary | Derive ticket id via ^tkt-\d+ from stem; backfill tkt-257 pr-open→closed |
 | spec | none (post-spc-337 leftover audit) |
@@ -43,3 +43,8 @@ Added `re.match(r'^(tkt-\d+|spc-\d+)', stem)` in both `transition-api.py cmd_rep
 
 - GitHub issue body is SoT for long prose
 - Worktree policy: one tree ↔ one PR; spc|tkt open binds
+
+## Finish
+
+- pr-380 merged: 2026-09-02T09:23:43Z — https://github.com/percena/lattice/pull/380 (base merge)
+- issue #363 closed: 2026-09-02T09:24:16Z (reason: completed) — https://github.com/percena/lattice/issues/363

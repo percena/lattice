@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | docs, P3 |
 | github | https://github.com/percena/lattice/issues/362 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T09:18:08Z |
+| updated | 2026-09-02T09:24:52Z |
 | adopted | true |
 | summary | Fix 5 docs residue items from spc-337 reviews |
 | spec | none (post-spc-337 leftover audit) |
@@ -46,3 +46,8 @@ Direct prose edits: added L1/L3/PostToolUse rows + Event column to hooks table; 
 
 - GitHub issue body is SoT for long prose
 - Worktree policy: one tree ↔ one PR; spc|tkt open binds
+
+## Finish
+
+- pr-380 merged: 2026-09-02T09:23:43Z — https://github.com/percena/lattice/pull/380 (base merge)
+- issue #362 closed: 2026-09-02T09:24:12Z (reason: completed) — https://github.com/percena/lattice/issues/362
