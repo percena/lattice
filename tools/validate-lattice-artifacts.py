@@ -1976,7 +1976,13 @@ def main(argv: list[str] | None = None) -> int:
     # PR-vs-base-baseline comparison (artifacts.yml, spc-270 A6.3) would
     # otherwise refuse the very PR that introduces the check. Lifting the
     # exemption is the documented migration step (.warning-migration-schedule).
-    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0", "closed_without_ledger_legacy"}
+    # PR-vs-base-baseline comparison (artifacts.yml, spc-270 A6.3) would
+    # otherwise refuse the very PR that introduces the check. Lifting the
+    # exemption is the documented migration step (.warning-migration-schedule).
+    # tkt-381: binder_row_extra_columns follows the same pattern — 2 legacy
+    # binders (tkt-121, tkt-257) carry stray columns; the base baseline
+    # doesn't know this code. Lifting the exemption is a forward commitment.
+    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0", "closed_without_ledger_legacy", "binder_row_extra_columns"}
 
     def _is_baselined(w: dict[str, str]) -> bool:
         # A6.1: a warning is baselined if its exact 3-col sig matches OR the
