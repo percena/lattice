@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/342 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 2 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T03:10:58Z |
+| updated | 2026-09-02T03:26:03Z |
 | adopted | false |
 | summary | batch-work coordinator wired by default (--batch-id), failed fail-closes to stuck, marker --create + barrier heartbeat, ADR-011 amended. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -102,4 +102,6 @@ See GitHub issue #342 for the full slice text; Spec ids owned by this slice:
 
 ## Finish
 
-- (none yet)
+
+- pr-347 merged: 2026-09-02T03:25:45Z — https://github.com/percena/lattice/pull/347 (base merge)
+- issue #342 closed: 2026-09-02T03:25:55Z (reason: completed) — https://github.com/percena/lattice/issues/342
