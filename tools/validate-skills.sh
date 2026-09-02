@@ -63,6 +63,14 @@ need_heading() {
   fi
 }
 
+# Single-source accessor for the user-facing catalog (tkt-411): bats fixtures
+# and other consumers read this instead of hand-duplicating the list. Must run
+# BEFORE the validation side-effects below so it exits cleanly with no ERR.
+if [[ "${1:-}" == "--list-user-facing" ]]; then
+  printf '%s\n' "${USER_FACING[@]}"
+  exit 0
+fi
+
 for name in "${USER_FACING[@]}"; do
   f="${SKILLS_DIR}/${name}/SKILL.md"
   if [[ ! -f "$f" ]]; then

@@ -18,6 +18,10 @@ setup_file() {
   export REGISTRY="$REPO_ROOT/skills/review-lineage/references/probes.md"
   export FIX="$REPO_ROOT/skills/review-lineage/scripts/tests/fixtures/probes"
   export BUILTINS="skill-scripts-exist hooks-json-files-exist validator-codes-cited-exist retired-paths-absent adr-verification-refs-resolve spec-done-acceptance-cites-evidence fsm-doc-edges-subset-of-schema"
+  # tkt-412: spec-done-acceptance-cites-evidence is opt-in in the live digest
+  # (evidence lives in binders/PRs by convention); the test suite opts in so the
+  # strict audit still runs against the planted/clean fixtures.
+  export LATTICE_PROBE_STRICT_EVIDENCE=1
 }
 
 setup() {

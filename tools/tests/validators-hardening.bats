@@ -66,5 +66,8 @@ PY
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "routing: start-work: positives="
   printf '%s\n' "$output" | grep -qF "routing: review-delivery: positives="
-  [ "$(printf '%s\n' "$output" | grep -c '^routing: .*: positives=')" -eq 15 ]
+  # tkt-411: derive the expected catalog size from the single source
+  # (tools/validate-skills.sh USER_FACING[]) instead of hard-coding 15.
+  expected="$(bash "$REPO_ROOT/tools/validate-skills.sh" --list-user-facing | wc -l | tr -d ' ')"
+  [ "$(printf '%s\n' "$output" | grep -c '^routing: .*: positives=')" -eq "$expected" ]
 }
