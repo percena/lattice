@@ -35,11 +35,13 @@ BASE=""
 SNAP_DIR=""
 MODE="md"
 WRITE_SNAPSHOT=true
+CREATED_AFTER=""
 
 usage() {
   cat >&2 <<'EOF'
 Usage: lineage-metrics.sh [--home <path>] [--since <ref|ISO|Nd>] [--base <branch>]
                           [--snapshot-dir <dir>] [--json|--md] [--no-snapshot]
+                          [--created-after <YYYY-MM-DD>]
 EOF
   exit 2
 }
@@ -50,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --since) [[ $# -ge 2 ]] || usage; SINCE="$2"; shift 2 ;;
     --base) [[ $# -ge 2 ]] || usage; BASE="$2"; shift 2 ;;
     --snapshot-dir) [[ $# -ge 2 ]] || usage; SNAP_DIR="$2"; shift 2 ;;
+    --created-after) [[ $# -ge 2 ]] || usage; CREATED_AFTER="$2"; shift 2 ;;
     --json) MODE="json"; shift ;;
     --md) MODE="md"; shift ;;
     --no-snapshot) WRITE_SNAPSHOT=false; shift ;;
@@ -107,6 +110,7 @@ export LM_MODE="$MODE"
 export LM_WRITE="$WRITE_SNAPSHOT"
 export LM_LIB="$LIB/lib"
 export LM_SELF_LIB="$SCRIPT_DIR/lib"
+export LM_CREATED_AFTER="$CREATED_AFTER"
 
 python3 - <<'PY'
 import json, os, sys
@@ -122,8 +126,9 @@ base = os.environ.get("LM_BASE") or None
 snap_dir = os.environ["LM_SNAP_DIR"]
 mode = os.environ["LM_MODE"]
 write = os.environ.get("LM_WRITE", "true") == "true"
+created_after = os.environ.get("LM_CREATED_AFTER") or None
 
-cur = lm.collect(home, repo_root=root, since=since, base_branch=base)
+cur = lm.collect(home, repo_root=root, since=since, base_branch=base, created_after=created_after)
 prev = lm.load_previous(snap_dir)
 d = lm.delta(cur, prev)
 snapshot_file = lm.write_snapshot(snap_dir, cur) if write else None

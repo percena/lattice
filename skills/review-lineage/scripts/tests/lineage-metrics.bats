@@ -432,3 +432,51 @@ PY
   run grep -nF '="skills/_lattice-lib/scripts/' "$LM"
   [ "$status" -ne 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# tkt-385: fix_recurrence + coverage_post_ratchet
+# ---------------------------------------------------------------------------
+
+@test "tkt-385 A1: fix_recurrence counts files with ≥2 fix( commits in the window" {
+  # Make a repo with two fix( commits touching the same file
+  REPO="$TEST_DIR/repo"
+  mkdir -p "$REPO"
+  git -C "$REPO" init -q
+  git -C "$REPO" checkout -q -b main 2>/dev/null || true
+  local g=(git -C "$REPO" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false)
+  echo "v1" > "$REPO/buggy.py"
+  "${g[@]}" add -A && "${g[@]}" commit -q -m "feat: init"
+  echo "v2" > "$REPO/buggy.py"
+  "${g[@]}" add -A && "${g[@]}" commit -q -m "fix(tkt-1): first fix"
+  echo "v3" > "$REPO/buggy.py"
+  "${g[@]}" add -A && "${g[@]}" commit -q -m "fix(tkt-2): second fix to same file"
+  python3 - "$QH_LIB" "$LM_LIB" "$REPO" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[2])
+import lineage_metrics as lm
+g = lm.git_metrics(sys.argv[3], base_branch="main", since="365d")
+fr = g["fix_recurrence"]
+assert fr["files_count"] >= 1, fr
+assert any("buggy.py" in f for f in fr["files"]), fr
+assert "fix(tkt-" in fr["subject_classes"] or "fix(" in fr["subject_classes"], fr
+PY
+}
+
+@test "tkt-385 A2: coverage_post_ratchet excludes pre-cutoff binders" {
+  python3 - "$QH_LIB" "$LM_LIB" "$HOME_DIR" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1]); sys.path.insert(0, sys.argv[2])
+import lineage_metrics as lm
+# The fixture has 3 closed binders (tkt-1, tkt-2, tkt-3).
+# With a far-future cutoff, none qualify → 0/0.
+cur = lm.collect(sys.argv[3], repo_root="/nonexistent", created_after="2099-01-01")
+cpr = cur["coverage_post_ratchet"]
+assert cpr["terminal"] == 0 and cpr["with_ledger"] == 0, cpr
+# With a past cutoff, all closed binders qualify.
+cur2 = lm.collect(sys.argv[3], repo_root="/nonexistent", created_after="2020-01-01")
+cpr2 = cur2["coverage_post_ratchet"]
+# The fixture binders may or may not have created rows; check structure.
+assert "with_ledger" in cpr2 and "terminal" in cpr2 and "pct" in cpr2, cpr2
+assert cpr2["created_after"] == "2020-01-01", cpr2
+PY
+}
