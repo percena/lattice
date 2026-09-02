@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/367 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T06:37:24Z |
-| updated | 2026-09-02T06:37:24Z |
+| updated | 2026-09-02T06:40:25Z |
 | adopted | false |
 | summary | finish-commit.sh bash-3.2 unbound-variable on empty GIT_DIR_ARGS under set -u (tkt-360 A2 dogfood) |
 | spec | (none — follow-up to tkt-360) |
@@ -28,7 +28,7 @@
 | **related_tickets** | tkt-360 (the A2 deliverable this fixes) |
 | **worktree_bind** | tkt-367-finish-commit-bash32-unbound |
 | worktree | sibling `…/lattice.worktrees/tkt-367-finish-commit-bash32-unbound/` |
-| prs | (none) |
+| prs | pr-368 — https://github.com/percena/lattice/pull/368 |
 
 ## Acceptance (this slice)
 
@@ -51,6 +51,7 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-02T06:40:25Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #368) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
