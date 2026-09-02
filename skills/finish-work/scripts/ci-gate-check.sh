@@ -147,7 +147,13 @@ def normalize_check(c):
         return c
     bucket = (c.get("bucket") or "").lower()
     st = (c.get("state") or "").upper()
-    if bucket == "pending" or st in ("PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"):
+    # A completed-red conclusion wins over the bucket: gh 2.9x files
+    # STARTUP_FAILURE under bucket `pending` (its default branch), which would
+    # otherwise hide the canonical ADR-007 §5a infra-waiver case behind a
+    # never-resolving "pending" block (review of PR #354).
+    if st in ("FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED", "ERROR"):
+        c["conclusion"] = st; c["state"] = "FAILURE"
+    elif bucket == "pending" or st in ("PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED", "EXPECTED"):
         c["state"] = "PENDING"; c["conclusion"] = ""
     elif bucket == "pass" or st in ("SUCCESS", "NEUTRAL", "SKIPPED"):
         c["conclusion"] = st or "SUCCESS"

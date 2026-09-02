@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/349 |
-| status | pr-open |
-| fix_cycles | 0 |
+| status | in-progress |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:33:16Z |
-| updated | 2026-09-02T03:55:08Z |
+| updated | 2026-09-02T04:02:49Z |
 | adopted | false |
 | summary | ci-gate-check.sh asks gh pr checks for a 'conclusion' JSON field that gh 2.9x lacks; the hard CI gate exits 2 on every run. |
 | spec | none |
@@ -40,6 +40,8 @@
 
 - 2026-09-02 normalization keeps `conclusion` when a payload already carries it (older gh / existing fixtures) and derives it otherwise; pending detected via `bucket == pending` OR a pending-ish `state`, so both gh generations classify identically (source: agent-judgment, ticket-local).
 - 2026-09-02 verified live on gh 2.92.0 against PR #351: `ok=True checks_total=1` (was exit 2 on every run before).
+- 2026-09-02T04:02:39Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: review (PR #354) MEDIUM: gh 2.92 buckets STARTUP_FAILURE as pending; normalize_check tests bucket==pending first, so the canonical infra-waiver case blocks as 'pending' forever. Check red conclusions (STARTUP_FAILURE, FAILURE, TIMED_OUT, CANCELLED, ACTION_REQUIRED) before the pending test; add bats.
+- 2026-09-02 review cycle 1 (PR #354 MEDIUM): red conclusions (incl. STARTUP_FAILURE, which gh 2.9x buckets as pending) are normalized before the pending test so the §5a infra waiver stays reachable; bats added (source: review finding, ticket-local).
 
 ## Notes
 

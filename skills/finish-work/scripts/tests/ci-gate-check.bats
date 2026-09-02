@@ -566,3 +566,12 @@ EOF
 @test "tkt-349: the gate never requests the retired conclusion field" {
   if grep -qE 'json", *"name,state,conclusion' skills/finish-work/scripts/ci-gate-check.sh 2>/dev/null || grep -q 'name,state,conclusion,link' "$GATE_SCRIPT"; then false; fi
 }
+
+@test "tkt-349 (review cycle 1): gh 2.92 files STARTUP_FAILURE under bucket pending — still classified infra (waiver), not pending" {
+  setup_gh_stub '[{"bucket":"pending","link":"https://github.com/o/r/actions/runs/9/job/10","name":"ci","state":"STARTUP_FAILURE"}]' \
+    'The job was not started because recent account payments have failed or your spending limit needs to be increased'
+  run bash "$GATE_SCRIPT" --pr 12 --home "$LATTICE_HOME" --json --evidence "bats: 10 ok"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"waiver_stamped": true'
+  if printf '%s\n' "$output" | grep -qF '"block_reason": "pending"'; then false; fi
+}
