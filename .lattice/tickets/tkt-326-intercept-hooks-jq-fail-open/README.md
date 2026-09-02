@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug,P2 |
 | github | https://github.com/percena/lattice/issues/326 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T00:00:00Z |
+| updated | 2026-09-02T01:31:08Z |
 | adopted | false |
 | summary | jq on empty/partial output triggers set -e block (not fail-open) in both intercept hooks |
 | spec | none |
@@ -21,7 +21,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-326 (this issue) |
 | worktree_bind | tkt-326-intercept-hooks-jq-fail-open |
-| prs | (none…) · pr-331 — https://github.com/percena/lattice/pull/331 |
+| prs | pr-331 — https://github.com/percena/lattice/pull/331 |
 
 ## Acceptance
 
