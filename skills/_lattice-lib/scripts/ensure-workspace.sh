@@ -19,6 +19,7 @@
 #   --base <ref>           base branch/ref (default: config, GitHub, origin/HEAD, common refs)
 #   --path <worktree-path> override worktree path
 #   --type <kind>          optional type prefix (feat, fix, chore, docs, …)
+#   --no-stamp             skip the queued → in-progress binder stamp (see below)
 # Bind is the default for every shippable mode (worktree and branch):
 #   use --bind tkt|spc|spec --id <id> --slug <slug>
 #   or --branch that already matches tkt-<id>-* / spc-<n>-* (optional <type>/ prefix)
@@ -32,6 +33,17 @@
 # Why sibling (not <repo>/.worktrees): avoids nested worktrees, double-indexing of the
 # monorepo, and "recursive directory" pain when creating trees from an existing worktree.
 # Override with WORKTREE_ROOT if you prefer in-repo .worktrees (gitignored).
+#
+# Path-point stamp (spc-337 A3 / ADR-012 §1): a successful `--bind tkt --id N`
+# is the step every ticket passes through on its way to work, so it is the
+# writer of the `queued → in-progress` edge. When exactly one
+# <lattice_home>/tickets/tkt-N-*/README.md exists and its `| status |` is
+# `queued`, the bind commits the edge through transition-api.py (owner
+# `system`, reason `spawn`; ledger lands in the binder's own home). Any other
+# status (in-progress on a re-bind, pr-open, rework, parked, stuck, deferred,
+# closed) is left untouched; no binder → no-op; `--no-stamp` opts out; a stamp
+# failure warns on stderr and the bind still exits 0. The JSON reports
+# `stamped_in_progress`.
 #
 # stdout: single JSON object on success
 set -euo pipefail
@@ -67,6 +79,7 @@ BIND_ID=""
 SLUG=""
 ALLOW_UNBOUND=false
 ESCAPE_REASON=""
+NO_STAMP=false
 
 usage() {
   cat >&2 <<'EOF'
@@ -76,6 +89,7 @@ Usage:
 
 Options: --base <ref>  --path <worktree-path>  --type <kind>
          --allow-unbound --reason <why/equivalent evidence>
+         --no-stamp  (skip the queued → in-progress binder stamp on tkt bind)
 
 Bind (default): --bind tkt|spc|spec --id <id> --slug <slug>
   or --branch matching tkt-<id>-* / spc-<n>-* (optional <type>/ prefix).
@@ -98,6 +112,7 @@ while [[ $# -gt 0 ]]; do
     --type) TYPE_PREFIX="${2:-}"; shift 2 ;;
     --allow-unbound) ALLOW_UNBOUND=true; shift ;;
     --reason) ESCAPE_REASON="${2:-}"; shift 2 ;;
+    --no-stamp) NO_STAMP=true; shift ;;
     -h|--help) usage ;;
     *) echo "Unknown arg: $1" >&2; usage ;;
   esac
@@ -620,6 +635,52 @@ elif [[ "$ENSURE_PROFILE" == "strict" && "$MODE" == "branch" ]]; then
   echo "ensure-workspace: profile=strict — --mode branch is user escape hatch; default remains worktree" >&2
 fi
 
+# --- Path-point stamp: queued → in-progress (spc-337 A3 / ADR-012 §1) ---------
+# The bind is the writer of this edge. Runs AFTER the workspace exists and
+# BEFORE the JSON is emitted so the result is reportable. Never changes the
+# exit code: a stamp failure is a stderr warning, the bind already succeeded.
+STAMPED_IN_PROGRESS=false
+stamp_in_progress() {
+  local id="$1" home="$2"
+  local api="$SCRIPT_DIR_ENSURE/transition-api.py"
+  local binder="" d n=0 status
+  [[ -d "$home/tickets" ]] || return 0
+  # tkt-<id>-* matches the id segment exactly (the trailing dash stops
+  # tkt-3- from matching tkt-33-…). Exactly one directory, else no-op.
+  for d in "$home/tickets/tkt-${id}-"*/; do
+    [[ -d "$d" ]] || continue
+    n=$((n + 1))
+    binder="${d%/}/README.md"
+  done
+  if [[ "$n" -ne 1 || ! -f "$binder" ]]; then
+    return 0
+  fi
+  status=$(grep -m1 -E '^\| status \|' "$binder" 2>/dev/null \
+    | awk -F'|' '{ v=$3; gsub(/^[ \t]+|[ \t]+$/, "", v); print v }' || true)
+  # Only the queued → in-progress edge belongs to the bind. A re-bind sees
+  # in-progress (no-op, idempotent); pr-open / rework / parked / stuck /
+  # deferred / closed hold state other path points own — untouched.
+  [[ "$status" == "queued" ]] || return 0
+  if [[ ! -f "$api" ]]; then
+    echo "ensure-workspace: WARNING — transition-api.py missing beside this script; queued → in-progress not stamped for tkt-$id" >&2
+    return 0
+  fi
+  # stdout is reserved for the JSON contract: route the API's "committed:"
+  # line to stderr.
+  if python3 "$api" commit "tkt-$id" in-progress system spawn --binder "$binder" >&2; then
+    STAMPED_IN_PROGRESS=true
+  else
+    echo "ensure-workspace: WARNING — queued → in-progress stamp FAILED for tkt-$id (bind succeeded; binder: $binder)." >&2
+    echo "  Re-run the transition: python3 $(printf '%q' "$api") commit tkt-$id in-progress system spawn --binder $(printf '%q' "$binder")" >&2
+  fi
+}
+if [[ "$BIND" == "tkt" && "$NO_STAMP" == false ]]; then
+  stamp_in_progress "$BIND_ID" "$LATTICE_HOME"
+elif [[ "$BIND" == "tkt" ]]; then
+  echo "ensure-workspace: --no-stamp — queued → in-progress stamp skipped for tkt-$BIND_ID" >&2
+fi
+export ENSURE_STAMPED_IN_PROGRESS="$STAMPED_IN_PROGRESS"
+
 # Agent-facing hint: shippable writes must use this path (cwd / -C / working_directory).
 if [[ "$MODE" == "worktree" ]]; then
   echo "ensure-workspace: use worktree path for all shippable Write/Edit/git/gh:" >&2
@@ -653,5 +714,6 @@ print(json.dumps({
   "profile": os.environ.get("ENSURE_PROFILE") or "strict",
   "bound": os.environ.get("ENSURE_BOUND") == "true",
   "escape_reason": os.environ.get("ENSURE_ESCAPE_REASON") or None,
+  "stamped_in_progress": os.environ.get("ENSURE_STAMPED_IN_PROGRESS") == "true",
 }))
 PY

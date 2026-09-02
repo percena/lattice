@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/339 |
-| status | queued |
-| fix_cycles | 0 |
+| status | pr-open |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:29:15Z |
+| updated | 2026-09-02T03:36:10Z |
 | adopted | false |
 | summary | ensure-workspace --bind stamps queued→in-progress; create-pr post-open script + PostToolUse hook stamp pr-open; morning-triage edges as transition-api commands. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -28,13 +28,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-339-path-point-writers |
 | worktree | sibling `…/lattice.worktrees/tkt-339-path-point-writers/` |
-| prs | (none) |
+| prs | pr-348 — https://github.com/percena/lattice/pull/348 |
 
 ## Acceptance (this slice)
 
 See GitHub issue #339 for the full slice text; Spec ids owned by this slice:
 
-- [ ] **A3** Bind a queued binder → one `queued → in-progress` entry; re-bind → none; pr-open untouched; `--no-stamp`; no binder → no-op. `after-pr-open.sh` chains verify + stamp and is what create-pr names. `auto-stamp-pr-open.sh` PostToolUse stamps after successful `gh pr create`, idempotent. morning-triage.md uses commands.
+- [x] **A3** Bind a queued binder → one `queued → in-progress` entry; re-bind → none; pr-open untouched; `--no-stamp`; no binder → no-op. `after-pr-open.sh` chains verify + stamp and is what create-pr names. `auto-stamp-pr-open.sh` PostToolUse stamps after successful `gh pr create`, idempotent. morning-triage.md uses commands.
 
 ## Approach
 
@@ -54,6 +54,15 @@ See GitHub issue #339 for the full slice text; Spec ids owned by this slice:
 
 <!-- Append-only during execution. -->
 
+- 2026-09-02 — **JSON field name** `stamped_in_progress` (bool; false on no-op/skip/failure). Source: binder Anticipated decisions (agent-decides); no other JSON field or exit code changed.
+- 2026-09-02 — **Stamp home = the bind's resolved `lattice_home`** (worktree `.lattice` by default; an explicit `LATTICE_HOME` env is honoured, same as the JSON `lattice_home` field). Source: spc-337 A3 "binder under the worktree's Lattice home" + ensure-workspace's existing `LATTICE_HOME` contract; ticket-local, reversible.
+- 2026-09-02 — **Stamp only on `--bind tkt`** (not on a pre-formed `--branch tkt-N-*`): the id is the spec-named input; pre-formed branches keep prior behaviour. Source: spc-337 A3 wording. Reversible follow-up if start-work resumes need it.
+- 2026-09-02 — **`after-pr-open.sh --repo` defaults to origin** (`remote.origin.url` → owner/name, same parse as check-pr-context.sh) because `verify-main-chain --stage pr` requires `--repo`; `--expected-head`/`--expected-body-file`/`--binder`/`--check-all` pass through. Source: verify-main-chain usage + create-pr §4.1.
+- 2026-09-02 — **PostToolUse hook also emits `hookSpecificOutput.additionalContext` on stdout** (stamped / failed) besides the stderr advisory, since stderr on exit 0 is not shown to the model (intercept-gh-pr-common.sh delivery contract). Exit is always 0. Source: spc-337 A3 "fail-open, advisory on error".
+- 2026-09-02 — **Hook stamp is bound to the PR head branch** (review cycle 1, M1): `--head` from the command wins over `gh pr view` (no network, no ambiguity); an unknown head is treated as "cannot prove" → not stamped rather than "probably fine". A `cd` prefix is honoured only when the resolved path exists (else payload cwd). Source: review of pr-348 M1; fail-open contract unchanged (always exit 0).
+- 2026-09-02 — **Hook passes `--repo <owner/name>` parsed from the PR URL** to stamp-pr-open (the PR's own repo, not a guessed origin). Source: stamp-pr-open `--repo` contract.
+- 2026-09-02T03:31:49Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: review Hold (PR #348): M1 MEDIUM — auto-stamp-pr-open.sh resolves toplevel from payload cwd and stamp-pr-open picks the binder from the current branch, never checking the PR's headRefName: a 'cd ../tkt-11-x && gh pr create' from worktree tkt-10 stamps tkt-10's binder; from the main clone on dev the stamp is skipped yet additionalContext says 'stamped'. Fix: fetch headRefName, refuse when ≠ current branch (or parse --head), honest skip wording; one bats each. M2 (batch-work brief still says stamp in-progress by prose) → follow-up ticket, out of paths.
+
 ## Pending decisions
 
 (none)
@@ -62,7 +71,13 @@ See GitHub issue #339 for the full slice text; Spec ids owned by this slice:
 
 <!-- Fallback ledger (ADR-004 §5). -->
 
+- 2026-09-02 — **fix cycle 1 / M1** (review of pr-348). Believed cause: `auto-stamp-pr-open.sh` resolved the toplevel from the payload `cwd` and let `stamp-pr-open.sh` pick the binder from `git branch --show-current`, never proving that tree is the PR's head — a `cd ../tkt-11-x && gh pr create` from a tkt-10 session stamped tkt-10's binder with tkt-11's PR (a), and a main-clone-on-`dev` session got a "stamped" context on a no-binder skip (b). What differs now: the hook resolves the tree from a leading `cd` prefix (else payload cwd), takes the PR head from `--head` in the command (else `gh pr view --json headRefName`, fail-open), stamps only when `git -C <toplevel> branch --show-current` equals that head, and words every non-stamp outcome (mismatch, unknown head, no-binder skip) as "did NOT stamp". Bats: mismatch, `cd ../other` match/mismatch, main clone on dev, no-binder skip, gh failure.
+
 ## Notes
+
+- NOTICED: `skills/batch-work/references/flow.md:134` and `skills/batch-work/SKILL.md:96` still brief spawned agents to "stamp the binder status in-progress on start" by prose. With this slice the bind already commits `queued → in-progress`; a second `commit … in-progress` is refused (no `in-progress → in-progress` edge) and a hand edit is refused by the L3 hook. The brief text should say "the bind stamped it" (batch-work paths — not widened here).
+- NOTICED: hook double-stamp idempotency is asserted through the recording shim (two calls, same PR); the real no-op-on-second-call behaviour is stamp-pr-open's own contract/suite (unchanged, spc-337 non-goal).
+- NOTICED: `skills/create-pr/SKILL.md` Short path step 2 already resolves `$SKILL_ROOT`; after-pr-open.sh resolves `_lattice-lib` relative to its own install dir (`resolve-lattice-lib.sh`), so it also works when invoked by absolute path outside the skill flow.
 
 ## References
 

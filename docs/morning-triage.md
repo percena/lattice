@@ -54,9 +54,11 @@ A ticket that hit fallback bounds stamps `status: stuck` + `wait_reason` (`unblo
 
 | `wait_reason` | Disposition | Action | Next state |
 | --- | --- | --- | --- |
-| `unblock` | Answer the question / fix the env | Stamp `queued` (re-queue into a later batch) | `stuck → queued` |
+| `unblock` | Answer the question / fix the env | `python3 skills/_lattice-lib/scripts/transition-api.py commit tkt-N queued human unblock --binder .lattice/tickets/tkt-N-*/README.md` (re-queue into a later batch; resets `wait_reason`, appends the ledger entry) | `stuck → queued` |
 | `re-scope` | Scope escape = planning defect | Revise Spec/ticket via `create-spec` / `create-tickets` | `stuck → M1` (Spec revision) |
-| (either) | Cancel the ticket | Stamp `closed` without merge via `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> \| --issue M) --binder <path>` (no PR row, no `mergedAt`; requires human reason + firm close time or a gh-verified CLOSED issue) | `any → closed` |
+| (either) | Cancel the ticket | `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> \| --issue M) --binder <path>` — closes without merge (no PR row, no `mergedAt`; requires human reason + firm close time or a gh-verified CLOSED issue) | `stuck → closed` (explicit cancel edge) |
+
+The edges are **commands, not file edits** (ADR-012 §1): the L3 PreToolUse hook (tkt-340) refuses any Edit/Write that changes a binder's `| status |` row and names the transition command instead. Run the command from the checkout that holds the binder; the ledger lands in that binder's own `.lattice/.transition-ledger/tkt-N.jsonl` (ADR-012 §4).
 
 Never silently retry a `stuck` ticket — the Attempts ledger and caps carry across sessions (`fallback-policy.md`). A `stuck` ticket with a complete ledger and one well-formed question is a first-class deliverable (ADR-004 §5).
 
@@ -66,10 +68,12 @@ Skill: `start-work` (`skills/start-work/SKILL.md:87-90` — stuck resume enumera
 
 Since tkt-137 (ADR-004 Amendment, Option B), batch-work stamps `deferred` + a reason (`fuse-halt` / `blocked-by-failure`) **at trip time** — the SoT already says "not schedulable" (`workflow-fsm.md` §1 fuse edge). Since tkt-190 (spc-186 A3), spec-supersede stamps a superseded Spec's still-active child binders `deferred` + `spec-superseded` **at supersede time** (generalizing the trip-time principle — the work is obsolete the moment the Spec is superseded, not at land-time drift). The morning step is therefore a *review* of the deferred set, not a stamping pass:
 
-- **Re-schedule** → flip `deferred → queued` (human transition, `workflow-fsm.md` §2 M2 table).
-- **Transient fuse** (broken base, env failure) → fix the root cause, flip `deferred → queued`, re-run the batch.
-- **Abandoned** → cancel via `finish-ledger.sh --cancel` (Step 3 table).
-- **Spec-superseded** → re-plan under the superseding `spc-N` (re-point `spec:` / `covers:`, flip `deferred → queued`) or cancel via `finish-ledger.sh --cancel`. Side-state children (parked / stuck / rework) and `pr-open` children are NOT auto-stamped (they hold an external signal or an open PR) — disposition them under the superseding Spec manually.
+- **Re-schedule** → `python3 skills/_lattice-lib/scripts/transition-api.py commit tkt-N queued human reschedule --binder .lattice/tickets/tkt-N-*/README.md` (human transition `deferred → queued`, `workflow-fsm.md` §2 M2 table).
+- **Transient fuse** (broken base, env failure) → fix the root cause, run the same `commit tkt-N queued human reschedule --binder …` command, re-run the batch.
+- **Abandoned** → cancel via `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> | --issue M) --binder <path>` (Step 3 table; explicit `deferred → closed` cancel edge).
+- **Spec-superseded** → re-plan under the superseding `spc-N` (re-point `spec:` / `covers:`, then `commit tkt-N queued human reschedule --binder …`) or cancel via `finish-ledger.sh --cancel`. Side-state children (parked / stuck / rework) and `pr-open` children are NOT auto-stamped (they hold an external signal or an open PR) — disposition them under the superseding Spec manually.
+
+As in Step 3, these are commands, not file edits — the L3 hook refuses a hand edit of the `| status |` row.
 
 Skill: `batch-work` (`skills/batch-work/SKILL.md` — binder `status` invariant: fuse-halted and blocked-by-failure tickets stamp `deferred` at trip time). `spec-supersede.sh` (`_lattice-lib/scripts/` — stamps child binders at supersede time; invoked from `create-spec`'s supersede path).
 
