@@ -221,7 +221,12 @@ EOF
   python3 "$COORD" load-dag --batch-id "cursor-1" --layers-json "$lj" --lattice-home "$LATTICE_HOME" >/dev/null
   # A + B settle; C still pending. Cursor stays at layer 0 wave 0 (C is in the
   # same wave). resume must list ONLY tkt-C as pending.
+  # spc-337 A6 (tkt-342): `failed` now fail-closes the binder to stuck BEFORE
+  # settle (same as unknown|timeout), so each failed node needs the
+  # in-progress binder its worker's start-work would have stamped.
   for t in tkt-A tkt-B; do
+    mkdir -p "$LATTICE_HOME/tickets/$t-demo"
+    printf '# %s\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' "$t" >"$LATTICE_HOME/tickets/$t-demo/README.md"
     python3 "$COORD" record-spawn --batch-id "cursor-1" --ticket "$t" --layer 0 --wave 0 \
       --pid 5000 --worktree "/p" --brief-file "/b" --timebox 5 \
       --lattice-home "$LATTICE_HOME" >/dev/null
@@ -350,6 +355,12 @@ EOF
   m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
   mkdir -p "$wt"; printf 'x\n' >"$brief"
   printf 'tkt-D\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  # spc-337 A6 (review cycle 2): the fast helper leaves tkt-D `unknown`, and
+  # the spine's unknown→stuck commit needs the in-progress binder the worker
+  # would have stamped — without it the transition is refused and the wave
+  # (correctly) exits non-ok. This test is about wiring, so give it the binder.
+  DDIR="$LATTICE_HOME/tickets/tkt-D-demo"; mkdir -p "$DDIR"
+  printf '# tkt-D\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| updated | 2026-09-01T00:00:00Z |\n' >"$DDIR/README.md"
   # --batch-id alone (no --coordinator) → coordinator default-on (state persisted)
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
@@ -358,6 +369,9 @@ EOF
   [ "$status" -eq 0 ]
   [ -f "$LATTICE_HOME/.coordinator/default-on-1.json" ]
   # --coordinator WITHOUT --batch-id → legacy no-state (no failure; just no persistence)
+  # The first run fail-closed tkt-D to stuck; the legacy path's record_stuck
+  # needs in-progress again (stuck → stuck is not an edge), so reset the binder.
+  printf '# tkt-D\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| updated | 2026-09-01T00:00:00Z |\n' >"$DDIR/README.md"
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf2" \
@@ -455,4 +469,64 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF '"next_node"'
   printf '%s\n' "$output" | grep -qF 'tkt-N1'  # first eligible = next_node
+}
+
+# --- spc-337 A6: `failed` fail-closes to stuck before settle (tkt-342) ---
+
+@test "A6: record-node failed fail-closes binder to stuck + wait_reason: unblock (fault test)" {
+  # Fault: the worker ran, then crashed (exit!=0) or claimed a phantom PR
+  # after start-work stamped in-progress. The coordinator must flip the
+  # binder to stuck BEFORE settling — the binder may never keep reading
+  # "active work" for a dead worker (FSM-2b; rev-20260902-015425Z F5).
+  python3 "$COORD" init --batch-id "a6-failed" --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id "a6-failed" --ticket "tkt-F6" --layer 0 --wave 0 \
+    --pid 4444 --worktree "/p/f" --brief-file "/b/f" --timebox 5 \
+    --lattice-home "$LATTICE_HOME" >/dev/null
+  FDIR="$LATTICE_HOME/tickets/tkt-F6-demo"
+  mkdir -p "$FDIR"
+  printf '# tkt-F6\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$FDIR/README.md"
+  run python3 "$COORD" record-node --batch-id "a6-failed" --ticket "tkt-F6" --status failed \
+    --pid 4444 --failure-class failed --reason "worker exit=1 (non-zero)" \
+    --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -eq 0 ]
+  grep -q '| status | stuck |' "$FDIR/README.md"
+  grep -q '| wait_reason | unblock |' "$FDIR/README.md"
+  ledger="$LATTICE_HOME/.transition-ledger/tkt-F6.jsonl"
+  [ -f "$ledger" ]
+  grep -qF '"from":"in-progress"' "$ledger"
+  grep -qF '"to":"stuck"' "$ledger"
+  grep -qF '"trace":"wait_reason: unblock"' "$ledger"
+  # Settled with failure_class failed (the node IS settled once stuck landed).
+  run python3 "$COORD" status --batch-id "a6-failed" --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF '"failure_class": "failed"'
+  assert_settled "$output" "tkt-F6"
+}
+
+@test "A6: record-node failed with a REFUSED transition does NOT settle (transition_failed, rc!=0)" {
+  # No binder → transition-api commit cannot flip anything → the node must
+  # stay unsettled exactly as unknown|timeout do (A3.4 parity for failed).
+  python3 "$COORD" init --batch-id "a6-refused" --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id "a6-refused" --ticket "tkt-NF" --layer 0 --wave 0 \
+    --pid 4545 --worktree "/p" --brief-file "/b" --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  run python3 "$COORD" record-node --batch-id "a6-refused" --ticket "tkt-NF" --status failed \
+    --pid 4545 --failure-class failed --reason "crash" --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -ne 0 ]
+  run python3 "$COORD" status --batch-id "a6-refused" --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF "transition_failed"
+  printf '%s' "$output" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if 'tkt-NF' not in d.get('settled_tickets',[]) else 1)"
+  run python3 "$COORD" resume --batch-id "a6-refused" --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF 'tkt-NF'
+}
+
+@test "A6: record-node failed with a binder in the WRONG from-state (closed) is refused, binder untouched" {
+  python3 "$COORD" init --batch-id "a6-cont" --lattice-home "$LATTICE_HOME" >/dev/null
+  python3 "$COORD" record-spawn --batch-id "a6-cont" --ticket "tkt-CL" --layer 0 --wave 0 \
+    --pid 4646 --worktree "/p" --brief-file "/b" --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  CDIR="$LATTICE_HOME/tickets/tkt-CL-demo"
+  mkdir -p "$CDIR"
+  printf '# tkt-CL\n\n| Field | Value |\n| --- | --- |\n| status | closed |\n| wait_reason | (none) |\n' >"$CDIR/README.md"
+  run python3 "$COORD" record-node --batch-id "a6-cont" --ticket "tkt-CL" --status failed \
+    --pid 4646 --failure-class failed --reason "crash" --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -ne 0 ]
+  grep -q '| status | closed |' "$CDIR/README.md"
 }
