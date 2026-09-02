@@ -102,10 +102,17 @@ if [[ -z "$HOME_DIR" ]]; then
   ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   HOME_DIR="$ROOT/.lattice"
 fi
-HOME_DIR="$(cd "$(dirname "$HOME_DIR")" 2>/dev/null && pwd -P)/$(basename "$HOME_DIR")"
-
-# Repo root = the directory holding the lattice home (a fixture repo passes
-# --home <fixture>/.lattice; a real checkout resolves to its toplevel).
+# The home's parent IS the repo root (a fixture repo passes --home
+# <fixture>/.lattice; a real checkout resolves to its toplevel). A parent that
+# does not exist must never fall through to `/` and produce vacuous passes:
+# fail loud (stderr), keep exit 0, and mark every probe `skip` with the reason.
+HOME_ERROR=""
+if HOME_PARENT="$(cd "$(dirname "$HOME_DIR")" 2>/dev/null && pwd -P)"; then
+  HOME_DIR="$HOME_PARENT/$(basename "$HOME_DIR")"
+else
+  HOME_ERROR="error: --home parent not found: $(dirname "$HOME_DIR")"
+  echo "$HOME_ERROR" >&2
+fi
 REPO_ROOT="$(dirname "$HOME_DIR")"
 
 [[ -n "$REGISTRY" ]] || REGISTRY="$SCRIPT_DIR/../references/probes.md"
@@ -122,6 +129,7 @@ if [[ -z "$OVERLAY" && -f "$HOME_DIR/lineage-probes.tsv" ]]; then
 fi
 
 export CP_HOME="$HOME_DIR"
+export CP_HOME_ERROR="$HOME_ERROR"
 export CP_REPO_ROOT="$REPO_ROOT"
 export CP_REGISTRY="$REGISTRY"
 export CP_OVERLAY="$OVERLAY"
@@ -139,6 +147,8 @@ overlay = os.environ.get("CP_OVERLAY", "")
 only = [s.strip() for s in os.environ.get("CP_ONLY", "").split(",") if s.strip()]
 mode = os.environ["CP_MODE"]
 timeout = int(os.environ["CP_TIMEOUT"])
+home_error = os.environ.get("CP_HOME_ERROR", "")
+degraded = []  # non-fatal load problems, reported and then ignored
 
 COLUMNS = ("id", "claim", "probe", "expect", "severity")
 SEVERITIES = ("high", "med", "low")
@@ -174,7 +184,7 @@ def parse_registry(path):
     Returns (rows, malformed) — malformed rows carry a reason."""
     rows, malformed = [], []
     in_table, header_seen = False, False
-    with open(path, encoding="utf-8") as fh:
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for n, raw in enumerate(fh, 1):
             line = raw.rstrip("\n")
             if not line.startswith("|"):
@@ -201,7 +211,7 @@ def parse_registry(path):
 
 def parse_overlay(path):
     rows, malformed = [], []
-    with open(path, encoding="utf-8") as fh:
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for n, raw in enumerate(fh, 1):
             line = raw.rstrip("\n")
             if not line.strip() or line.lstrip().startswith("#"):
@@ -301,15 +311,30 @@ def run_probe(row):
     return "fail", rc, evidence_of(out, err, f"no match for /{pat}/") or "empty stdout", ms
 
 
+def unwrap(rows):
+    """Registry cells are conventionally backticked; overlay cells may be."""
+    for r in rows:
+        for k in ("id", "probe", "expect", "severity"):
+            r[k] = strip_code(r[k])
+    return rows
+
+
 # --- load + merge -----------------------------------------------------------
-rows, malformed = parse_registry(registry)
-for r in rows:
-    r["probe"] = strip_code(r["probe"])
-    r["expect"] = strip_code(r["expect"])
-    r["severity"] = strip_code(r["severity"])
-    r["id"] = strip_code(r["id"])
+# A sensor never tracebacks: an unreadable registry/overlay is reported as a
+# degraded line and ignored (exit stays 0).
+try:
+    rows, malformed = parse_registry(registry)
+except OSError as e:
+    rows, malformed = [], []
+    degraded.append(f"registry unreadable: {registry} ({e.strerror or e}) (ignored)")
+unwrap(rows)
 if overlay:
-    orows, omal = parse_overlay(overlay)
+    try:
+        orows, omal = parse_overlay(overlay)
+    except OSError as e:
+        orows, omal = [], []
+        degraded.append(f"overlay unreadable: {overlay} ({e.strerror or e}) (ignored)")
+    unwrap(orows)
     malformed.extend(omal)
     by_id = {r["id"]: i for i, r in enumerate(rows)}
     for o in orows:
@@ -323,7 +348,7 @@ results = []
 for r in rows:
     if only and r["id"] not in only:
         continue
-    reason = validate(r)
+    reason = home_error or validate(r)
     if reason:
         results.append({"id": r["id"] or "(no id)", "claim": r["claim"], "status": "skip",
                         "severity": r["severity"] if r["severity"] in SEVERITIES else "low",
@@ -353,10 +378,15 @@ if mode == "json":
         "schema": 1, "repo_root": repo_root, "lattice_home": home, "registry": registry,
         "overlay": overlay or None, "timeout_s": timeout, "probes": results,
         "summary": summary, "summary_line": summary_line,
+        "degraded": ([home_error] if home_error else []) + degraded,
     }, indent=2, ensure_ascii=False))
 else:
     def md(s):
         return str(s).replace("|", "\\|")
+    for line in degraded:
+        print(f"claim-probes: {line}")
+    if home_error:
+        print(f"claim-probes: {home_error}")
     print("| probe | status | severity | evidence |")
     print("| --- | --- | --- | --- |")
     for r in results:

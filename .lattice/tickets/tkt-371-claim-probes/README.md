@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/371 |
-| status | rework |
+| status | in-progress |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T07:47:14Z |
+| updated | 2026-09-02T07:47:33Z |
 | adopted | false |
 | summary | claim-probes.sh + references/probes.md registry: executable claim–implementation probes seeded from the spc-337 drift classes, per-repo overlay, planted-drift tests. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -57,6 +57,7 @@
 - 2026-09-02 — **`spec-done-acceptance-cites-evidence` inspects the `- [x] **A<n>**` bullet plus its indented continuation lines, case-insensitive**, one output line per Spec listing the A ids. A first-line-only rule flagged every wrapped bullet (spc-226). Source: ticket A2 wording ("else list the A* ids"); `ci` matched as a whole word so "ci-local" counts and "specific" does not.
 - 2026-09-02 — **`tools/validate-skills.sh` registration failure → `review-lineage` added to its `EXEMPT` list + `plugins/lattice/skills/review-lineage` symlink** (2 out-of-paths touches, no placeholder SKILL.md). The brief pre-authorised a placeholder SKILL.md if validate-skills failed, but the actual failure is "skills/review-lineage not registered" + "missing plugin symlink" — a SKILL.md alone does not fix it, and full registration (USER_FACING + anatomy SKILL.md + both manifests' keywords + plugin README) is tkt-372/373's declared scope. The EXEMPT line names the tickets that lift it. tkt-370 hits the same wall and must land the identical two touches (or rebase onto this). Source: brief fallback clause + fallback-policy scope-escape rule (smallest reversible touch, reported); see Pending decisions.
 - 2026-09-02T07:47:14Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: review Hold (PR #376): M1 MED — explicit --overlay to a missing/non-UTF-8 file raises a python traceback and exits 1, breaking the always-exit-0 sensor contract (parse_overlay open() :204; set -e :29). M2 LOW — --home with a nonexistent parent resolves REPO_ROOT to / (cd fails silently :105) → vacuous passes. M3 LOW — overlay probe cells are not backtick-unwrapped (strip_code applies to registry rows only). Also: spec-done-acceptance-cites-evidence demoted to severity low (rule stricter than the Spec convention). Rebase onto dev: tools/validate-skills.sh EXEMPT line conflicts with the tkt-370 line already on dev — keep dev's line.
+- 2026-09-02 — **Fix cycle 1 (review of pr-376, M1–M3 + severity):** registry/overlay loads wrapped (`errors="replace"`, `OSError` → `claim-probes: overlay unreadable: … (ignored)` degraded line, JSON `degraded[]`), exit stays 0; `--home` with a missing parent no longer resolves `REPO_ROOT` to `/` — `error: --home parent not found` on stderr + every probe `skip` with that reason (loud, exit 0, no vacuous pass); `strip_code` applied to overlay cells (documented); `spec-done-acceptance-cites-evidence` demoted to `low` with the claim column noting the rule is stricter than the current Spec convention (evidence lives in binders/PRs). Merged `origin/dev` (pr-375 / tkt-370 landed the same EXEMPT line + symlink; kept dev's line). Source: review findings (coordinator brief); sensor contract header + spc-369 A2 "always exit 0".
 
 ## Pending decisions
 

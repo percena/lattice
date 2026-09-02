@@ -119,6 +119,7 @@ assert d["summary"] == {"pass": 7, "fail": 0, "skip": 0}, d["summary"]
 assert d["summary_line"] == "claim-probes: 7 pass, 0 fail, 0 skip"
 assert d["lattice_home"] == sys.argv[1], d["lattice_home"]
 assert d["overlay"] is None
+assert d["degraded"] == [], d["degraded"]
 ids = [p["id"] for p in d["probes"]]
 assert len(ids) == 7 and len(set(ids)) == 7, ids
 for p in d["probes"]:
@@ -361,6 +362,81 @@ ROWS
   run bash "$CP" --home "$HOME_DIR" --registry "$TEST_DIR/nope.md" --json
   [ "$status" -eq 0 ]
   grep -q '"degraded": *"registry not found' <<<"$output"
+}
+
+# ---------------------------------------------------------------------------
+# review cycle 1 (pr-376): a sensor never tracebacks, never passes vacuously
+# ---------------------------------------------------------------------------
+
+@test "M1: an explicit --overlay that does not exist is reported degraded and ignored; exit 0" {
+  run bash "$CP" --home "$HOME_DIR" --overlay /nonexistent/lineage-probes.tsv --md
+  [ "$status" -eq 0 ]
+  grep -q '^claim-probes: overlay unreadable: /nonexistent/lineage-probes.tsv (.*) (ignored)$' <<<"$output"
+  grep -qx 'claim-probes: 7 pass, 0 fail, 0 skip' <<<"$output"
+  if grep -q 'Traceback' <<<"$output"; then false; fi
+  run bash "$CP" --home "$HOME_DIR" --overlay /nonexistent/lineage-probes.tsv --json
+  [ "$status" -eq 0 ]
+  CP_OUT="$output" python3 - <<'PY'
+import json, os
+d = json.loads(os.environ["CP_OUT"])
+assert len(d["degraded"]) == 1 and d["degraded"][0].startswith("overlay unreadable: /nonexistent/"), d["degraded"]
+assert d["summary"] == {"pass": 7, "fail": 0, "skip": 0}, d["summary"]
+PY
+}
+
+@test "M1: non-UTF-8 bytes in the overlay or registry never traceback; readable rows still run" {
+  printf 'bin-ok\tbytes beside it\techo ok\tregex:^ok$\tlow\n\xff\xfe\x00 garbage\n' >"$HOME_DIR/lineage-probes.tsv"
+  run bash "$CP" --home "$HOME_DIR" --md
+  [ "$status" -eq 0 ]
+  grep -q '^| bin-ok | pass | low |  |$' <<<"$output"
+  grep -q '^| overlay-row-2 | skip | low | malformed overlay row (line 2): 1 fields, expected 5 |$' <<<"$output"
+  if grep -q 'Traceback' <<<"$output"; then false; fi
+  rm -f "$HOME_DIR/lineage-probes.tsv"
+  { printf '| id | claim (where) | probe | expect | severity |\n| --- | --- | --- | --- | --- |\n'
+    printf '| `bin-reg` | \xff\xfe bytes in the claim | `echo ok` | `regex:^ok$` | low |\n'; } >"$TEST_DIR/bin.md"
+  run bash "$CP" --home "$HOME_DIR" --registry "$TEST_DIR/bin.md" --md
+  [ "$status" -eq 0 ]
+  grep -q '^| bin-reg | pass | low |  |$' <<<"$output"
+  grep -qx 'claim-probes: 1 pass, 0 fail, 0 skip' <<<"$output"
+}
+
+@test "M2: --home whose parent does not exist fails loud (stderr), exits 0, and skips every probe" {
+  run bash "$CP" --home /no/such/parent/.lattice --md
+  [ "$status" -eq 0 ]
+  grep -qx 'error: --home parent not found: /no/such/parent' <<<"$output"
+  grep -qx 'claim-probes: 0 pass, 0 fail, 7 skip' <<<"$output"
+  for id in $BUILTINS; do
+    grep -qE "^\| $id \| skip \| (high|med|low) \| error: --home parent not found: /no/such/parent \|$" <<<"$output"
+  done
+  # bats `run` merges stderr; drop the stderr line inside a subshell so $output is JSON only
+  run bash -c "bash \"$CP\" --home /no/such/parent/.lattice --json 2>/dev/null"
+  [ "$status" -eq 0 ]
+  CP_OUT="$output" python3 - <<'PY'
+import json, os
+d = json.loads(os.environ["CP_OUT"])
+assert d["degraded"] == ["error: --home parent not found: /no/such/parent"], d["degraded"]
+assert d["summary"] == {"pass": 0, "fail": 0, "skip": 7}, d["summary"]
+assert d["repo_root"] != "/", d["repo_root"]
+PY
+}
+
+@test "M3: overlay cells wrapped in backticks are unwrapped like registry cells" {
+  printf '`bt-probe`\tbackticked overlay cells\t`echo ok`\t`regex:^ok$`\t`low`\n' >"$HOME_DIR/lineage-probes.tsv"
+  run bash "$CP" --home "$HOME_DIR" --json
+  [ "$status" -eq 0 ]
+  CP_OUT="$output" python3 - <<'PY'
+import json, os
+d = json.loads(os.environ["CP_OUT"])
+by = {p["id"]: p for p in d["probes"]}
+assert by["bt-probe"]["status"] == "pass", by["bt-probe"]
+assert by["bt-probe"]["expect"] == "regex:^ok$" and by["bt-probe"]["severity"] == "low", by["bt-probe"]
+PY
+}
+
+@test "spec-done-acceptance-cites-evidence ships at severity low (stricter than the Spec convention)" {
+  run bash "$CP" --home "$HOME_DIR" --only spec-done-acceptance-cites-evidence --md
+  [ "$status" -eq 0 ]
+  grep -q '^| spec-done-acceptance-cites-evidence | pass | low |  |$' <<<"$output"
 }
 
 @test "usage errors exit 2" {
