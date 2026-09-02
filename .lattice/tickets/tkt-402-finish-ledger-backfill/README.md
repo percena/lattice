@@ -14,7 +14,7 @@
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T12:00:00Z |
-| updated | 2026-09-02T12:25:13Z |
+| updated | 2026-09-02T12:28:26Z |
 | adopted | false |
 | summary | finish-ledger: append pr-open→closed transition entry (recurring snapshot mismatch fix) |
 | spec | spc-398 |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-402-finish-ledger-backfill |
 | worktree | sibling `…/<repo>.worktrees/tkt-402-finish-ledger-backfill/` |
-| prs | pr-404 — https://github.com/percena/lattice/pull/404 |
+| prs | pr-404 — https://github.com/percena/lattice/pull/404, pr-405 — https://github.com/percena/lattice/pull/405 |
 
 ## Acceptance (this slice)
 
@@ -66,4 +66,6 @@ See spc-398 for approach details.
 
 
 - pr-404 merged: 2026-09-02T12:24:46Z — https://github.com/percena/lattice/pull/404 (base merge)
+- issue #402 closed: 2026-09-02T12:25:06Z — https://github.com/percena/lattice/issues/402
+- pr-405 merged: 2026-09-02T12:28:05Z — https://github.com/percena/lattice/pull/405 (base merge)
 - issue #402 closed: 2026-09-02T12:25:06Z — https://github.com/percena/lattice/issues/402
