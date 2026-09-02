@@ -249,12 +249,17 @@ def git_metrics(repo_root: str, base_branch: Optional[str] = None, since: Option
     pr_merges: subject ends with `(#N)` (squash-merge suffix); direct_commits:
     everything else (pushed straight to base); finish_stamps: subject starts
     with `finish(` (bookkeeping stamps — a subset of direct commits).
+
+    tkt-385: also computes fix_recurrence — files with ≥2 `fix(` commits in
+    the window, keyed by file path, plus a subject-class breakdown
+    (fix(tkt- / fix( / flip / backfill).
     """
     since = since or DEFAULT_SINCE
     out: Dict[str, Any] = {
         "available": False, "base": base_branch or "", "since": since, "error": None,
         "commits_total": 0, "pr_merges": 0, "direct_commits": 0, "finish_stamps": 0,
         "direct_ratio": 0.0,
+        "fix_recurrence": {"files": [], "subject_classes": {}},
     }
     if not repo_root or _git(repo_root, "rev-parse", "--is-inside-work-tree") is None:
         out["error"] = "not a git repository: %s" % repo_root
@@ -271,6 +276,53 @@ def git_metrics(repo_root: str, base_branch: Optional[str] = None, since: Option
     subjects = [s for s in log.splitlines() if s.strip()]
     pr = sum(1 for s in subjects if _PR_SUFFIX_RE.search(s))
     fin = sum(1 for s in subjects if s.startswith("finish("))
+
+    # tkt-385: fix_recurrence — files with ≥2 fix( commits in the window
+    # Use a unique separator to distinguish subjects from file paths.
+    fix_log = _git(repo_root, "log", "--name-only", "--format=@@SUBJ@@%s", *_since_to_args(since, base), "--")
+    fix_file_counts: Dict[str, int] = {}
+    fix_subject_classes: Dict[str, int] = {"fix(tkt-": 0, "fix(": 0, "flip": 0, "backfill": 0}
+    if fix_log:
+        current_subject = ""
+        current_files: List[str] = []
+        for line in fix_log.splitlines():
+            line = line.strip()
+            if line.startswith("@@SUBJ@@"):
+                # Process previous entry
+                if current_subject:
+                    if current_subject.startswith("fix(tkt-"):
+                        fix_subject_classes["fix(tkt-"] += 1
+                    elif current_subject.startswith("fix("):
+                        fix_subject_classes["fix("] += 1
+                    elif current_subject.startswith("flip"):
+                        fix_subject_classes["flip"] += 1
+                    elif current_subject.startswith("backfill"):
+                        fix_subject_classes["backfill"] += 1
+                    if current_subject.startswith(("fix(", "flip", "backfill")):
+                        for f in current_files:
+                            if f:
+                                fix_file_counts[f] = fix_file_counts.get(f, 0) + 1
+                current_subject = line[len("@@SUBJ@@"):]
+                current_files = []
+            elif line and not line.startswith("@@SUBJ@@"):
+                current_files.append(line)
+        # Handle last entry
+        if current_subject:
+            if current_subject.startswith("fix(tkt-"):
+                fix_subject_classes["fix(tkt-"] += 1
+            elif current_subject.startswith("fix("):
+                fix_subject_classes["fix("] += 1
+            elif current_subject.startswith("flip"):
+                fix_subject_classes["flip"] += 1
+            elif current_subject.startswith("backfill"):
+                fix_subject_classes["backfill"] += 1
+            if current_subject.startswith(("fix(", "flip", "backfill")):
+                for f in current_files:
+                    if f:
+                        fix_file_counts[f] = fix_file_counts.get(f, 0) + 1
+
+    recurring_files = sorted(f for f, c in fix_file_counts.items() if c >= 2)
+
     out.update({
         "available": True,
         "commits_total": len(subjects),
@@ -278,6 +330,11 @@ def git_metrics(repo_root: str, base_branch: Optional[str] = None, since: Option
         "direct_commits": len(subjects) - pr,
         "finish_stamps": fin,
         "direct_ratio": round((len(subjects) - pr) / len(subjects), 3) if subjects else 0.0,
+        "fix_recurrence": {
+            "files": recurring_files[:50],
+            "files_count": len(recurring_files),
+            "subject_classes": {k: v for k, v in fix_subject_classes.items() if v > 0},
+        },
     })
     return out
 
@@ -292,11 +349,16 @@ def collect(
     since: Optional[str] = None,
     base_branch: Optional[str] = None,
     now: Optional[datetime.datetime] = None,
+    created_after: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Compute every A1 metric from `<home>` (+ git at `repo_root`).
 
     Returns a JSON-serialisable dict with `schema: 1` and `generated_at`. All
     numeric leaves are delta-able (see `delta`); lists carry the evidence.
+
+    tkt-385: when `created_after` is set (YYYY-MM-DD), computes
+    `coverage_post_ratchet` — ledger coverage on binders created on/after
+    that date (the ADR-012 §4 ratchet cutoff).
     """
     now = now or _now_utc()
     home = os.path.abspath(home)
@@ -429,6 +491,28 @@ def collect(
     except ValueError:
         home_rel = os.path.basename(home)
 
+    # tkt-385: coverage_post_ratchet — ledger coverage on binders created
+    # on/after the cutoff date (ADR-012 §4). Binders without a `created`
+    # row or created before the cutoff are excluded.
+    cov_post: Dict[str, Any] = {"with_ledger": 0, "terminal": 0, "pct": 0.0, "created_after": created_after or ""}
+    if created_after:
+        for tkt_id, _, text, fields in binders:
+            created_raw = fields.get("created", "").strip()
+            if not created_raw:
+                continue  # no created row — pre-cutoff, excluded
+            # Compare date prefixes (YYYY-MM-DD is enough for the cutoff)
+            if created_raw[:10] < created_after:
+                continue  # pre-cutoff, excluded
+            status = fields.get("status", "").strip()
+            if status != "closed":
+                continue  # not terminal
+            cov_post["terminal"] += 1
+            lp = os.path.join(ledger_dir, tkt_id + ".jsonl")
+            has_ledger = os.path.isfile(lp) or bool(glob.glob(os.path.join(ledger_dir, tkt_id + "-*.jsonl")))
+            if has_ledger:
+                cov_post["with_ledger"] += 1
+        cov_post["pct"] = _pct(int(cov_post["with_ledger"]), int(cov_post["terminal"]))
+
     return {
         "schema": SCHEMA,
         "generated_at": _iso(now),
@@ -457,6 +541,7 @@ def collect(
         "noticed": {"count": len(noticed_items), "items": noticed_items},
         "escape_traces": {"total": len(escape_items), "by_rule": dict(sorted(escape_by_rule.items())), "items": escape_items},
         "git": git,
+        "coverage_post_ratchet": cov_post,
         "specs": {
             "total": len(spec_files),
             "by_status": dict(sorted(spec_status_hist.items())),
@@ -628,6 +713,12 @@ def render_md(cur: Dict[str, Any], d: Optional[Dict[str, Any]] = None) -> str:
         ("  PR merges (`(#N)` suffix)", str(g["pr_merges"]), "git.pr_merges"),
         ("  Direct commits (no PR suffix)", "%s (%s%%)" % (g["direct_commits"], _fmt_num(round(100 * g["direct_ratio"], 1))), "git.direct_commits"),
         ("  `finish(` stamps", str(g["finish_stamps"]), "git.finish_stamps"),
+        ("  `fix(` recurring files (≥2 in window)", str(g.get("fix_recurrence", {}).get("files_count", 0)), "git.fix_recurrence.files_count"),
+        ("Post-ratchet coverage (created after cutoff)", "%s/%s (%s%%)" % (
+            cur.get("coverage_post_ratchet", {}).get("with_ledger", 0),
+            cur.get("coverage_post_ratchet", {}).get("terminal", 0),
+            _fmt_num(cur.get("coverage_post_ratchet", {}).get("pct", 0.0)),
+        ), "coverage_post_ratchet.with_ledger"),
         ("Specs done with open A*", str(sp["done_with_open_acceptance_count"]), "specs.done_with_open_acceptance_count"),
         ("Specs with `prs` ≠ child binder PR union", str(sp["prs_mismatch_count"]), "specs.prs_mismatch_count"),
         ("  of which a child PR is missing from the Spec", str(sp["prs_missing_in_spec_count"]), "specs.prs_missing_in_spec_count"),
@@ -638,6 +729,23 @@ def render_md(cur: Dict[str, Any], d: Optional[Dict[str, Any]] = None) -> str:
     if not g.get("available"):
         L.append("_git metrics unavailable: %s_" % (g.get("error") or "unknown"))
         L.append("")
+
+    # tkt-385: fix_recurrence detail
+    fr = g.get("fix_recurrence", {})
+    if fr.get("files"):
+        L.append("### Fix recurrence — files with ≥2 `fix(` commits")
+        L.append("")
+        L.append("| File | Δ |")
+        L.append("| --- | --- |")
+        for f in fr["files"][:10]:
+            L.append("| `%s` | %s |" % (_clip(f, 80), _dcell(d, "git.fix_recurrence.files_count")))
+        if len(fr["files"]) > 10:
+            L.append("| … (+%d more) | |" % (len(fr["files"]) - 10))
+        L.append("")
+        if fr.get("subject_classes"):
+            classes = ", ".join("`%s` %s" % (k, v) for k, v in fr["subject_classes"].items())
+            L.append("Subject classes: %s" % classes)
+            L.append("")
 
     L.append("### Status histogram")
     L.append("")
