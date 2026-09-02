@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/388 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:31:00Z |
-| updated | 2026-09-02T09:47:06Z |
+| updated | 2026-09-02T09:57:53Z |
 | adopted | false |
 | summary | hotspot-metrics.sh sensor + bats (spc-387 A1+A4) |
 | spec | spc-387 — weak-spot topology + optimization recommendations |
@@ -55,4 +55,6 @@ Python lib `hotspot_metrics.py` (parallel to `lineage_metrics.py`) + bash wrappe
 
 ## Finish
 
-- (none yet)
+
+- pr-390 merged: 2026-09-02T09:56:14Z — https://github.com/percena/lattice/pull/390 (base merge)
+- issue #388 closed: 2026-09-02T09:56:53Z (reason: completed) — https://github.com/percena/lattice/issues/388

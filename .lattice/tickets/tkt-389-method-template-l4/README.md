@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/389 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:31:00Z |
-| updated | 2026-09-02T09:47:08Z |
+| updated | 2026-09-02T09:57:55Z |
 | adopted | false |
 | summary | method.md L4 extension + template topology/recommendations (spc-387 A2+A3) |
 | spec | spc-387 — weak-spot topology + optimization recommendations |
@@ -50,4 +50,6 @@ Append L4 section to method.md (root-cause patterns: multi-writer disagreement, 
 
 ## Finish
 
-- (none yet)
+
+- pr-390 merged: 2026-09-02T09:56:14Z — https://github.com/percena/lattice/pull/390 (base merge)
+- issue #389 closed: 2026-09-02T09:56:57Z (reason: completed) — https://github.com/percena/lattice/issues/389
