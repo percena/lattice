@@ -52,7 +52,7 @@ PY
   [[ -x "$HM" ]] || skip "script not executable"
   run bash "$HM" --no-snapshot --md 2>&1
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Hotspot metrics"* || "$output" == *"Total fix()"* ]]
+  printf '%s\n' "$output" | grep -qE 'Hotspot metrics|Total fix\(\)'
 }
 
 @test "hotspot-metrics.sh --json produces valid JSON" {
