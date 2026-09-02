@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/384 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T11:54:34Z |
+| updated | 2026-09-02T12:01:29Z |
 | adopted | false |
 | summary | drop conclusion from documented gh pr checks --json field list (3 doc lines) |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -82,4 +82,6 @@ Three one-line fixes: `skills/finish-work/references/flow.md:45` — drop `concl
 
 ## Finish
 
-- (none yet)
+
+- pr-396 merged: 2026-09-02T12:01:03Z — https://github.com/percena/lattice/pull/396 (base merge)
+- issue #384 closed: 2026-09-02T12:01:22Z — https://github.com/percena/lattice/issues/384
