@@ -112,6 +112,26 @@ MD
   [ "$status" -eq 0 ]
   grep -q "pr-12 merged" "$BINDER"
   grep -qi "not closed" "$BINDER"
+  # tkt-335: a merged PR is terminal evidence on its own — status must flip
+  # to closed even when the linked issue cannot be verified closed (race/gh flake).
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+@test "tkt-335: merged PR + un-verifiable issue still flips status to closed" {
+  # Regression: flip_close predicate previously gated the status→closed flip on
+  # linked-issue verification (issue_closed == "true" or not issue_m). Since
+  # finish-work always passes --issue, a race/gh-flake/rate-limit left
+  # flip_close=False — terminal Finish ledger stamped but status stayed 'open',
+  # triggering finish_without_terminal_status validator error.
+  write_fresh_binder
+  run bash "$FL" --pr 42 --issue 99 --binder "$BINDER" --pr-state MERGED \
+    --merged-at 2026-08-15T12:00:00Z
+  [ "$status" -eq 0 ]
+  grep -q "pr-42 merged: 2026-08-15T12:00:00Z" "$BINDER"
+  # The issue note should still appear (gh could not verify closure)
+  grep -qi "not closed" "$BINDER"
+  # CRITICAL: status must flip to closed because merged is terminal evidence
+  grep -qE '\| status \| closed \|' "$BINDER"
 }
 
 @test "closed-without-merge records status and never claims mergedAt" {
@@ -223,7 +243,9 @@ MD
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
   grep -qi "not closed" "$BINDER"
   if grep -q "closed: null" "$BINDER"; then false; fi
-  grep -qE '\| status \| open \|' "$BINDER"
+  # tkt-335: a merged PR is terminal evidence — status flips to closed
+  # even when the linked issue's closedAt is null (not yet propagated).
+  grep -qE '\| status \| closed \|' "$BINDER"
 }
 
 @test "binder keeps its mode and leaves no temp residue after an atomic rewrite" {

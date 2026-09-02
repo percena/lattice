@@ -572,7 +572,7 @@ if m_prs:
         merged_row = binder_rows.merge_row(m_prs.group(2), pr_n, pr_url)
         s = prs_row.sub(lambda mm: f"{mm.group(1)} {merged_row} {mm.group(3)}", s, count=1)
 
-flip_close = cancel or issue_closed == "true" or (not issue_m and merged)
+flip_close = cancel or merged or issue_closed == "true"
 close_reason = "merge" if (merged and not cancel) else "cancel"
 TICKET_ID = ""
 m_tid = re.match(r'^(tkt-[1-9][0-9]*)', os.path.basename(os.path.dirname(binder)))
