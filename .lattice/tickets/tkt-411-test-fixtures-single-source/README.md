@@ -11,6 +11,8 @@
 | labels | enhancement, P3 |
 | github | https://github.com/percena/lattice/issues/411 |
 | status | pr-open |
+| created | 2026-09-02T12:30:00Z |
+| updated | 2026-09-02T13:10:00Z |
 | adopted | true |
 | summary | derive USER_FACING list + catalog size in bats fixtures from tools/validate-skills.sh single source |
 | spec | none |

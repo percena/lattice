@@ -11,6 +11,8 @@
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/409 |
 | status | pr-open |
+| created | 2026-09-02T12:30:00Z |
+| updated | 2026-09-02T13:10:00Z |
 | adopted | true |
 | summary | document e2e_env allowlist + verify-features wave/crawl/flaky bounds in the config.yaml template |
 | spec | none |

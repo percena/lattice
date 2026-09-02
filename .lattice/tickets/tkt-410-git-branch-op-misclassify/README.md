@@ -11,6 +11,8 @@
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/410 |
 | status | closed |
+| created | 2026-09-02T12:30:00Z |
+| updated | 2026-09-02T13:45:38Z |
 | adopted | true |
 | summary | wont-fix: both misclassifications were fixed by tkt-324 and are locked by regression tests |
 | spec | none |
@@ -23,7 +25,7 @@
 | **related_tickets** | tkt-324 (the fix), tkt-409/411/412 (batch siblings) |
 | **worktree_bind** | tkt-409-noticed-drain-fixes |
 | worktree | sibling …/lattice.worktrees/tkt-409-noticed-drain-fixes/ |
-| prs | none (closed as already-fixed) |
+| prs | (none — closed as already-fixed; tkt-324) |
 
 ## Acceptance (this slice)
 
@@ -66,4 +68,6 @@ Post-fix (current dev, 2026-09-02):
 
 ## Finish
 
-- closed: 2026-09-02 — wont-fix (already fixed by tkt-324; regression tests exist)
+
+- cancelled: wont-fix: already fixed by tkt-324; regression tests exist at detect-git-branch-op.bats:115-128
+- issue #410 closed: 2026-09-02T13:17:58Z (reason: completed) — https://github.com/percena/lattice/issues/410
