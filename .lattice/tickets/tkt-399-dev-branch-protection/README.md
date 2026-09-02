@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-399-dev-branch-protection |
 | worktree | sibling `…/<repo>.worktrees/tkt-399-dev-branch-protection/` |
-| prs | (settings — no PR; gh api branch protection) |
+| prs | (none — settings change via gh api, no PR) |
 
 ## Acceptance (this slice)
 
