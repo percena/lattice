@@ -338,7 +338,13 @@ else
       "local bats (${installed_bats_ver:-unknown}) != CI pin v$BATS_PIN — suites still run, but local results may not predict GitHub CI"
   fi
   if [ "$FAST" -eq 1 ]; then
-    skip_step "bats (all suites)" "--fast"
+    # tkt-401: --fast still runs the quick assertion guard (<1s on 75 files)
+    # to catch banned [[ ]] forms that would fail CI test 910. The full bats
+    # suites are skipped (slow), but the guard is always run.
+    if [ -f "$ROOT/tools/check-bats-assertions.py" ]; then
+      run_step "bats-assertion-guard (--fast)" python3 "$ROOT/tools/check-bats-assertions.py"
+    fi
+    skip_step "bats (all suites)" "--fast (assertion guard ran above)"
   else
     # lattice-scripts.yml discovery, verbatim. Portable read (no mapfile, which
     # is bash 4+ — macOS default /bin/bash is 3.2 and lacks it).
