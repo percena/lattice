@@ -1474,6 +1474,47 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             ),
                         }
                     )
+        # tkt-381: binder field-table data rows should not carry more cells
+        # than the header declares. A stray extra column (e.g.
+        # `| status | closed | 2026-… |` in a 2-column table) caused the
+        # queue_health parser to read `closed | 2026-…` as the value (fixed
+        # in the parser, but the row itself is drift — ADR-012 §7 front-matter
+        # migration will re-row these). Warning-level: legacy binders with stray
+        # columns are baselined, not re-rowed here. Escaped pipes (`\|`) in
+        # values are not counted as column separators. Header and separator
+        # rows are skipped by content, not index (tkt-381 review F5/F6).
+        _tb_lines = _tb.splitlines()
+        _declared_cols = 0
+        if _tb_lines:
+            # Header row: count all cells (including empty) between outer pipes.
+            _hdr_raw = [c.strip() for c in re.split(r'(?<!\\)\|', _tb_lines[0].strip().strip("|"))]
+            _declared_cols = len(_hdr_raw)
+        for _row in _tb_lines:
+            _cells_raw = [c.strip() for c in re.split(r'(?<!\\)\|', _row.strip().strip("|"))]
+            # Skip separator rows (---|---) by content.
+            if _cells_raw and all(re.fullmatch(r'-+:?', c) for c in _cells_raw if c):
+                continue
+            # Skip header rows by content (first cell is 'Field').
+            if _cells_raw and _cells_raw[0].lower() == 'field':
+                continue
+            # Count ALL cells (including empty) vs declared column count.
+            # Not filtering empty cells: `| wait_reason | | 2026-… |` has
+            # 3 cells (empty value + stray column) — must be flagged (F5).
+            if _declared_cols and len(_cells_raw) > _declared_cols:
+                findings.append(
+                    {
+                        "code": "binder_row_extra_columns",
+                        "level": "warning",
+                        "path": str(path),
+                        "detail": (
+                            f"field-table row has a stray extra column: "
+                            f"{_row.strip()!r} — table declares "
+                            f"{_declared_cols} column(s); row has "
+                            f"{len(_cells_raw)} (ADR-012 §7 front-matter migration)"
+                        ),
+                    }
+                )
+                break  # one warning per binder is enough for triage
         if st in STATUS_TERMINAL and not has_finish_ledger(text):
             findings.append(
                 {
@@ -1935,7 +1976,13 @@ def main(argv: list[str] | None = None) -> int:
     # PR-vs-base-baseline comparison (artifacts.yml, spc-270 A6.3) would
     # otherwise refuse the very PR that introduces the check. Lifting the
     # exemption is the documented migration step (.warning-migration-schedule).
-    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0", "closed_without_ledger_legacy"}
+    # PR-vs-base-baseline comparison (artifacts.yml, spc-270 A6.3) would
+    # otherwise refuse the very PR that introduces the check. Lifting the
+    # exemption is the documented migration step (.warning-migration-schedule).
+    # tkt-381: binder_row_extra_columns follows the same pattern — 2 legacy
+    # binders (tkt-121, tkt-257) carry stray columns; the base baseline
+    # doesn't know this code. Lifting the exemption is a forward commitment.
+    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0", "closed_without_ledger_legacy", "binder_row_extra_columns"}
 
     def _is_baselined(w: dict[str, str]) -> bool:
         # A6.1: a warning is baselined if its exact 3-col sig matches OR the

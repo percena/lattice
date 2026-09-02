@@ -55,8 +55,15 @@ DEFAULT_THRESHOLDS: Dict[str, int] = {
     "side_state_total": 5,     # parked+stuck+deferred count beyond this flagged
 }
 
-# Field-table row regex: `| field | value |` → captures field name + value.
-_FIELD_ROW_RE = re.compile(r"^\|\s*(?P<field>[A-Za-z_]+)\s*\|\s*(?P<value>.*?)\s*\|\s*$")
+# Field-table row parsing: a column-aware tokenizer replaces the old regex.
+# tkt-381: the old `.*?` captured `closed | 2026-…` for 3-column rows (inflating
+# coverage denominators); `[^|]*?` fixed that but truncated values containing
+# literal/escaped pipes (tkt-257 summary, tkt-143 summary). The new approach
+# splits on unescaped pipes (`(?<!\\)\|`), takes cell[0] as field and cell[1]
+# as value, and scopes to the first table block (consecutive |-prefixed lines)
+# so body tables cannot shadow the binder card. Escaped pipes (`\|`) stay in
+# the value — they are markdown-escaped, not column separators.
+_PIPE_SPLIT_RE = re.compile(r'(?<!\\)\|')
 
 # PR number extraction from the binder `prs` row: first `pr-N` token.
 _PR_NUM_RE = re.compile(r"\bpr-([1-9][0-9]*)\b")
@@ -102,12 +109,27 @@ def load_thresholds(home_dir: Optional[str] = None) -> Dict[str, int]:
 
 
 def _parse_field_rows(text: str) -> Dict[str, str]:
-    """Parse binder field-table rows into a {field: value} dict."""
+    """Parse binder field-table rows into a {field: value} dict.
+
+    Scoped to the first table block (consecutive |-prefixed lines) so body
+    tables (Acceptance examples, Notes) cannot shadow the binder card
+    (tkt-381 review F4). Splits on unescaped pipes only — escaped pipes
+    (``\\|``) are part of the value, not column separators (tkt-381 review F1).
+    """
     rows: Dict[str, str] = {}
+    in_table = False
     for line in text.splitlines():
-        m = _FIELD_ROW_RE.match(line)
-        if m:
-            rows[m.group("field")] = m.group("value").strip()
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            in_table = True
+            cells = [c.strip() for c in _PIPE_SPLIT_RE.split(stripped.strip("|"))]
+            # A field row: first cell is a field name (letters/underscores).
+            # This also skips separator rows (`---`) and empty rows.
+            if cells and re.fullmatch(r"[A-Za-z_]+", cells[0]):
+                if len(cells) >= 2:
+                    rows[cells[0]] = cells[1].strip()
+        elif in_table:
+            break  # end of first table block
     return rows
 
 

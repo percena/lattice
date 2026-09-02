@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/381 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T10:03:21Z |
 | adopted | false |
 | summary | queue_health field-row regex reads 3-column rows + validator guard |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,13 +28,13 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-381-queue-health-field-row-regex |
 | worktree | sibling `…/<repo>.worktrees/tkt-381-queue-health-field-row-regex/` |
-| prs | (none) |
+| prs | pr-391 — https://github.com/percena/lattice/pull/391 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `_FIELD_ROW_RE` reads 3-column rows: a binder row `| status | closed | ` parses as value `closed`.
-- [ ] **A2** Validator emits `binder_row_extra_columns` warning for rows with a stray 3rd column.
-- [ ] **A3** Bats fixture: planted 3-column binder asserts `closed` (not `closed |`); existing 2-column rows still pass.
+- [x] **A1** `_FIELD_ROW_RE` reads 3-column rows: a binder row `| status | closed | ` parses as value `closed`.
+- [x] **A2** Validator emits `binder_row_extra_columns` warning for rows with a stray 3rd column.
+- [x] **A3** Bats fixture: planted 3-column binder asserts `closed` (not `closed |`); existing 2-column rows still pass.
 
 ## Approach
 
@@ -49,6 +49,9 @@
 - fixture placement — agent-decides: `skills/_lattice-lib/scripts/tests/` (codebase convention; `binder_rows.py` tests live there).
 
 ## Decision journal
+
+- 2026-09-02 — Column-aware tokenizer replaces `_FIELD_ROW_RE` regex. Initial approach `[^|]*?` fixed 3-column rows but truncated values containing literal/escaped pipes (tkt-257 summary `ok|failed`, tkt-143 `int\|str`). Switched to split-on-unescaped-pipe tokenizer: `re.split(r'(?<!\\)\|', line)` takes cell[0] as field, cell[1] as value. Scoped to first table block (consecutive `|`-prefixed lines) so body tables cannot shadow the binder card (review F4). Source: 2 — code review findings F1+F4. reversible, ticket-local.
+- 2026-09-02 — Reconciles tkt-370 Decision journal line 50. tkt-370 decided to keep `_parse_field_rows` unchanged so 3-column binders surface as malformed histogram keys (`closed |`). This ticket's fix (tkt-381 acceptance A1) changes the parser to read the correct value, and the drift now surfaces via the `binder_row_extra_columns` validator warning instead of malformed histogram data — a dedicated warning is a stronger sensor than a malformed key. Source: 5 — tkt-381 acceptance A1+A2 supersede the tkt-370 observation-time decision. reversible, cross-contract (tkt-370 histogram).
 
 ## Pending decisions
 

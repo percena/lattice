@@ -662,6 +662,18 @@ print('A6.1: 2 distinct new_warnings (real validator)')
   printf '%s\n' "$output" | grep -qF '"count": 1'
 }
 
+# --- tkt-381: binder field-table rows with a stray 3rd column -------------
+
+@test "tkt-381: binder row with a stray 3rd column warns binder_row_extra_columns" {
+  # tkt-74-extra-col: status row carries a 3rd column (`| status | queued | 2026-… |`).
+  # Warning-level (15 legacy binders carry these; baselined, not re-rowed here).
+  run python3 "$VAL" --home "$FIX/extra-columns" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF binder_row_extra_columns
+  printf '%s\n' "$output" | grep -qF tkt-74-extra-col
+}
+
 @test "spc-337 A2: the any->closed wildcard is gone from the vendored table; explicit terminal edges replay clean" {
   run python3 - "$VAL" <<'PY'
 import importlib.util, sys

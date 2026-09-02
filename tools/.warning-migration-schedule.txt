@@ -8,3 +8,7 @@
 # spc-337 A1: legacy ledger-coverage misses are ratchet-exempt today; when the
 # legacy set is backfilled or accepted, lift the exemption and commit here:
 # closed_without_ledger_legacy	2
+# tkt-381: legacy binder field-table rows with stray extra columns are
+# ratchet-exempt today; when the legacy set is re-rowed or accepted, lift
+# the exemption and commit here:
+# binder_row_extra_columns	2
