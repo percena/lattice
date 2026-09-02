@@ -10,7 +10,7 @@ priority: P1
 summary: "Replace the 732-line bash+Python hybrid finish-ledger.sh with a pure-Python finish-stamp.py (Layer 1, no CI dependency) backed by a GHA safety net (Layer 2). Eliminates the bash/Python boundary that caused 9+ recurring transition_ledger_snapshot_mismatch failures."
 created: 2026-09-02
 updated: 2026-09-02
-tickets: [tkt-418, tkt-419]
+tickets: [tkt-418, tkt-419, tkt-422]
 prs: [pr-420, pr-421]
 reviews: []
 supersedes: [spc-398 A4]
