@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/341 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:29:15Z |
+| updated | 2026-09-02T02:34:19Z |
 | adopted | false |
 | summary | finish-work prose repaired: multi-PR merge verifier, marker location, ci-gate-check in short path, explicit base-tip capture; docs-truth bats. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -34,7 +34,7 @@
 
 See GitHub issue #341 for the full slice text; Spec ids owned by this slice:
 
-- [ ] **A5** flow.md §7 uses `verify-main-chain.sh --stage merge`; SKILL.md names the state-home marker location; `ci-gate-check.sh` in short path + checklist; base-tip capture explicit; `docs-truth.bats` asserts all four.
+- [x] **A5** flow.md §7 uses `verify-main-chain.sh --stage merge`; SKILL.md names the state-home marker location; `ci-gate-check.sh` in short path + checklist; base-tip capture explicit; `docs-truth.bats` asserts all four.
 
 ## Approach
 
@@ -53,6 +53,11 @@ See GitHub issue #341 for the full slice text; Spec ids owned by this slice:
 
 <!-- Append-only during execution. -->
 
+- 2026-09-02 — Short path renumbered 7→12: the base-tip capture is its own numbered step 7 (`BASE_TIP=$(git ls-remote origin "refs/heads/<BASE>" | cut -f1)`), merge+proof is step 8; internal refs updated (`step 9`→`step 10` in the Finish-ledger step; flow.md §7 `steps 3–11`→`3–12`). Source: spc-337 A5 "one explicit command in the short path"; reversible, ticket-local.
+- 2026-09-02 — `docs-truth.bats` lives at `skills/finish-work/tests/` (binder `paths` / issue #341 verbatim) although sibling script suites sit under `scripts/tests/`; the file is prose-only (no script under test), so the top-level `tests/` split is defensible. Source: binder `paths` row (pre-resolved by create-tickets).
+- 2026-09-02 — flow.md §7 step 6 under `--close`: `verify-main-chain.sh --stage merge` proves MERGED + base-tip advance, which a close never produces, so the `--close` branch confirms `gh pr view <N> --json state` = `CLOSED` instead. Source: `verify-main-chain.sh --help` (stage merge contract); reversible, ticket-local.
+- 2026-09-02 — Common Rationalizations rows left untouched: none repeats the stale marker location (anticipated-decision disposition "only if they repeat it"). `ci-gate-check.sh` was also added to the SKILL `**Scripts:**` roster so the short-path reference resolves to a listed script.
+
 ## Pending decisions
 
 (none)
@@ -62,6 +67,8 @@ See GitHub issue #341 for the full slice text; Spec ids owned by this slice:
 <!-- Fallback ledger (ADR-004 §5). -->
 
 ## Notes
+
+- NOTICED: skills/finish-work/scripts/ci-gate-check.sh — on gh 2.92 it fails "cannot load gh pr checks" because it requests `--json name,state,conclusion,link` and `conclusion` is not a `gh pr checks` JSON field; the script fix is a separate ticket (out-of-paths, 2026-09-02)
 
 ## References
 

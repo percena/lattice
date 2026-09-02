@@ -446,7 +446,7 @@ Exit 0 before the marker gate and any merge.
 
 ### MARKER GATE (once)
 
-If `.lattice/.batch-work-active` is present at the repo MAIN clone `.lattice/` (single gate point):
+If the `.batch-work-active` marker is present at the out-of-repo state home — `$(bash "$LIB/lattice-state-home.sh")/.batch-work-active` (ADR-011 / spc-282 A1; single gate point, one directory shared by all sibling worktrees of a clone; `LIB` resolved as in §3.1):
 
 - `AskUserQuestion`: confirm "finish-work will remove the batch-work marker and merge N PRs in DAG order. Proceed?" (batch-id + PR count + layer summary).
 - On ack: `bash "$SKILL_ROOT/scripts/batch-merge-gate.sh" --remove --reason "user-authorized: batch-finish <batch-id>"`; paste the emitted trace line into a batch Decision-journal note.
@@ -456,7 +456,7 @@ If the marker is **absent** (no prior batch-work, or already removed): no-op; pr
 
 ### LAYER LOOP
 
-For each layer L0..Lk, for each PR in the layer (binder-id order), run the **single-PR short path (SKILL.md steps 3–11) inline**, **minus the marker-gate step** (removed once above). Each merge obeys §3.4's sequential-merge-queue rules (ci-gate before each merge, file-explicit conflict resolution `git checkout --ours`/`--theirs` per named path — `git add -A` forbidden, post-merge `grep -rn '<<<<<<<'` over touched paths). Concretely per PR:
+For each layer L0..Lk, for each PR in the layer (binder-id order), run the **single-PR short path (SKILL.md steps 3–12) inline**, **minus the marker-gate step** (removed once above). Each merge obeys §3.4's sequential-merge-queue rules (ci-gate before each merge, file-explicit conflict resolution `git checkout --ours`/`--theirs` per named path — `git add -A` forbidden, post-merge `grep -rn '<<<<<<<'` over touched paths). Concretely per PR:
 
 1. **Stacked-PR base retarget** (only when all this PR's `merge_blocked_by` deps have merged):
    - `gh pr view <N> --json baseRefName`. If `baseRefName` ≠ the resolved integration branch → `gh pr edit <N> --base <integration-branch>`.
@@ -465,7 +465,7 @@ For each layer L0..Lk, for each PR in the layer (binder-id order), run the **sin
 3. `update-pr-base.sh --pr <N>` (unless `--no-update-branch`). After layer 0 merges, layer-1 `update-pr-base` pulls layer-0's landed work → stacked diffs clean. Honor the rebase-verdict rule (`diff_changed`/`conflict` from JSON).
 4. `alignment-check.sh --pr <N>` + land-time Spec drift. HARD gap → **failure** (halt).
 5. **Mini-review** (§2.7): load PR diff, 5-axis scan. Operator `Hold` with named findings → stamp `rework` + `bump-fix-cycle.sh` → **failure** (halt, not `blocked-by-failure`; the PR needs rework). High finding default `Hold`.
-6. `gh pr merge <N> --squash --delete-branch` (or `gh pr close <N>` under `--close`). After: `verify-mutation.sh --pr <N>` (verify-after-mutate). Failed/empty probe → **failure** (halt).
+6. **Capture the base tip, merge, prove the merge (§3.1).** Before the merge: `BASE_TIP=$(git ls-remote origin "refs/heads/<base>" | cut -f1)` where `<base>` is the resolved integration branch (= this PR's `baseRefName` after step 1); empty → **failure** (halt). Then `gh pr merge <N> --squash --delete-branch` (or `gh pr close <N>` under `--close`). After a merge: `bash "$LIB/verify-main-chain.sh" --stage merge --pr <N> --expected-oid "$BASE_TIP" --repo <owner/name>` (`LIB` resolved as in §3.1) — proves MERGED **and** that the base tip advanced past `BASE_TIP`. Anything other than `verified: merge pr-<N> …` (a `FAILED:` proof, non-zero exit, or empty output) → **failure** (halt; steps 7–9 do not run for this PR). The pre-tkt-341 probe (`verify-mutation.sh` with its default OPEN expectation) misread a landed merge as failure — rev-20260831 F4; do not reintroduce it. Under `--close`: no base-tip proof applies; confirm `gh pr view <N> --json state` reports `CLOSED`, else **failure** (halt).
 7. **After merge:** `close-fixed-issues.sh --pr <N> --expected-closing-ids <approved-set>` (required). Changed set → fail closed → **failure** (halt).
 8. `cleanup-workspace.sh --branch <HEAD> --pr <N>` (required). `ok:false` or remote residual → **failure** (halt, fix residual).
 9. `finish-ledger.sh --pr <N> --issue <closing_M> --binder <path>` on the merge base, once per closing binder. Stamps `pr-open → closed` + `## Finish` ledger line; the helper writes + stages the binder + its `.transition-ledger/<tkt>.jsonl` (does **not** commit/push itself). After the per-binder loop, the flow commits + pushes the base once (`git commit` + `git push origin <base>`). **Halt-on-failure:** if finish-ledger fails on binder k of N, do **not** commit the partial staged set — resolve and re-run.
