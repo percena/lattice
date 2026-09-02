@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/338 |
-| status | pr-open |
-| fix_cycles | 0 |
+| status | in-progress |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:51:10Z |
+| updated | 2026-09-02T02:57:37Z |
 | adopted | false |
 | summary | Ledger resolved from the binder's Lattice home (not cwd), explicit terminal edges replace any→closed, closed_without_ledger coverage metric. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -62,6 +62,8 @@ See GitHub issue #338 for the full slice text; Spec ids owned by this slice:
 - 2026-09-02 ledger-home resolution: binder-derived home wins over `LATTICE_HOME`; env stays the fallback for binder-less callers (`record`, `replay`) (source: spc-337 A1 / binder Approach step 1).
 - 2026-09-02 co-located lock fallback anchored to the ledger home too, and the three `git add` staging sites use `git -C <binder repo>` — the fault test from a foreign cwd exposed both (source: agent-judgment, ticket-local).
 - 2026-09-02T02:54:30Z — batch-merge-gate escape authorized (spc-186 A1, ADR-007 §5b). rule_id=batch-merge-gate; reason="user-authorized: operator sign-off 2026-09-02 for the spc-337 pipeline — batch W1 PRs are reviewed and merged by the host in this session (marker removed once for the merge window)"; authorizer=operator; marker_removed=<state-home>/.batch-work-active; ts=2026-09-02T02:54:30Z
+- 2026-09-02T02:56:25Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: review Hold (PR #346): MEDIUM — cancel from queued/in-progress persists metric direct-jump (edge metric is per-edge; queue-health counts it). Gate the metric on reason merge (cancel → cancel-count) and require merge in _count_direct_jumps; stale 'any wildcard' comment in validator.
+- 2026-09-02 review cycle 1 (PR #346 MEDIUM): `direct-jump` metric now gated on a merge reason (`_resolve_metric`); a cancel from queued/in-progress records `cancel-count`; queue-health counts only merge direct jumps; stale wildcard comment removed. `record` still resolves from cwd (LOW, no production caller — noted, not changed) (source: review finding, ticket-local).
 
 ## Pending decisions
 

@@ -333,3 +333,11 @@ PY
   grep -q '"metric":"direct-jump"' "$LATTICE_HOME/.transition-ledger/tkt-32.jsonl"
   grep -q '"from":"queued"' "$LATTICE_HOME/.transition-ledger/tkt-32.jsonl"
 }
+
+@test "spc-337 A2 (review cycle 1): a CANCEL committed from queued is metric cancel-count, not direct-jump" {
+  B=$(make_binder tkt-33)
+  run python3 "$API" commit tkt-33 closed human cancel --binder "$B"
+  [ "$status" -eq 0 ]
+  grep -q '"metric":"cancel-count"' "$LATTICE_HOME/.transition-ledger/tkt-33.jsonl"
+  if grep -q '"metric":"direct-jump"' "$LATTICE_HOME/.transition-ledger/tkt-33.jsonl"; then false; fi
+}

@@ -277,7 +277,9 @@ def _count_direct_jumps(ledger_path: str) -> int:
                     e = json.loads(line)
                 except ValueError:
                     continue
-                if e.get("metric") == "direct-jump" or (
+                # A direct jump is a MERGE from queued/in-progress; a cancel on
+                # the same edge is not (review cycle 1 of spc-337 A2).
+                if (
                     e.get("to") == "closed"
                     and e.get("from") in ("queued", "in-progress")
                     and "merge" in str(e.get("reason", ""))

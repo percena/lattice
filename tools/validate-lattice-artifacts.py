@@ -1725,7 +1725,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             ),
                         }
                     )
-                # "any" wildcard (cancel) matches any source.
+                # no wildcard source (spc-337 A2): the pair itself must be listed
                 pair_legal = (frm, to) in LEGAL_TRANSITIONS
                 if not pair_legal:
                     findings.append(

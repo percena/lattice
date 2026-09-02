@@ -340,6 +340,17 @@ def cmd_commit(args: list) -> int:
         os.close(lock_fd)
 
 
+def _resolve_metric(edge, reason: str) -> "str | None":
+    """Per-edge metric, except that a `direct-jump` edge counts a CANCEL as
+    `cancel-count` — only a merge from queued/in-progress is a direct jump
+    (ADR-012 §3; spc-337 A2 review cycle 1)."""
+    if edge is None:
+        return None
+    if edge.metric == "direct-jump" and "merge" not in str(reason or ""):
+        return "cancel-count"
+    return edge.metric
+
+
 def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
                         reason: str, expected_from: str | None = None,
                         wait_reason: str | None = None,
@@ -399,7 +410,9 @@ def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
         "escape_used": force_reason is not None,
         "force_side_state_reason": force_reason,
         "trace": trace_override or (edge.trace if edge else None),
-        "metric": edge.metric if edge else None,
+        # spc-337 A2 (review cycle 1): `direct-jump` means a MERGE observed from
+        # queued/in-progress; a cancel on the same edge counts as a cancel.
+        "metric": _resolve_metric(edge, reason),
     }
     new_text = _rewrite_field(orig_text, "status", to)
     resolved_wait_reason = wait_reason if wait_reason else "(none)"
@@ -565,7 +578,7 @@ def cmd_record(args: list) -> int:
         "escape_used": force_reason is not None,
         "force_side_state_reason": force_reason,
         "trace": trace_override or (edge.trace if edge else None),
-        "metric": edge.metric if edge else None,
+        "metric": _resolve_metric(edge, reason),
     }
     if dry:
         print(json.dumps(entry, indent=2))
