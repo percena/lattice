@@ -1,5 +1,5 @@
 | field | value |
-| status | pr-open |
+| status | closed |
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/419 |
@@ -7,7 +7,7 @@
 | covers | A6 |
 | prs | pr-421 — https://github.com/percena/lattice/pull/421 |
 | created | 2026-09-02T13:44:22Z |
-| updated | 2026-09-02T15:49:47Z |
+| updated | 2026-09-02T16:04:29Z |
 | wait_reason | (none) |
 
 ## Summary
@@ -35,3 +35,8 @@ GHA on pull_request:closed — verifies local stamp landed, repairs Mode C (ledg
 - NOTICED: finish-stamp.bats (tkt-418 A9 test suite) is absent — #418 shipped without it. Out-of-paths (tkt-418 scope); follow-up ticket needed if test coverage is required. (out-of-paths, 2026-09-02)
 - NOTICED: finish-stamp.py A3 idempotency violated — `stamp_updated` was applied unconditionally before the `written` check, so already-closed binders always staged a timestamp bump (GHA would push noise commits). Fixed in tkt-419 because A6 (GHA safety net) requires a truly idempotent stamp (A3) to avoid noise on every `pull_request:closed`. Fix: compute `content_changed` before the updated-stamp bump; only apply `stamp_updated` when the binder content actually changed. 30/30 existing bats tests pass. (cross-ticket fix, 2026-09-02)
 - Verification: dry-run + real idempotent run against PR #420 (tkt-418, already closed) → true no-op (no staged changes, no commit). actionlint clean on finish-stamp.yml + all existing workflows.
+
+## Finish
+
+- pr-421 merged: 2026-09-02T16:02:29Z — https://github.com/percena/lattice/pull/421 (base merge)
+- issue #419 closed: 2026-09-02T16:02:51Z (reason: completed) — https://github.com/percena/lattice/issues/419
