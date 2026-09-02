@@ -89,7 +89,7 @@ Grep all `.lattice/tickets/*/README.md` for `^- NOTICED:` lines. For each line, 
 
 ## Notes (drain summary)
 
-- 42 NOTICED lines dispositioned in `rev-20260902-120000Z-noticed-drain.md`
+- 42 NOTICED lines dispositioned in `rev-20260902-120000Z-nb.md`
 - 20 resolved-by-later-work (tkt-381..384, tkt-390, tkt-402 fixed most)
 - 5 ticket → filed as #409 (config.yaml docs), #410 (detect-git-branch-op), #411 (test list duplication), #412 (Spec evidence citation)
 - 16 one-liner (noted, no action needed)
