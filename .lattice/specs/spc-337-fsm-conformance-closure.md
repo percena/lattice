@@ -3,14 +3,14 @@ id: spc-337
 slug: fsm-conformance-closure
 title: FSM conformance closure — transitions stamped by the path, ledger coverage as CI metric
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Move every M2 status stamp into the script step the ticket already passes through, refuse hand edits, make ledger coverage a CI metric, and repair the drifted finish/batch prose."
 created: 2026-09-02
 updated: 2026-09-02
-tickets: [tkt-338, tkt-339, tkt-340, tkt-341, tkt-342]
-prs: [pr-343, pr-344, pr-345, pr-346, pr-347, pr-348]
+tickets: [tkt-338, tkt-339, tkt-340, tkt-341, tkt-342, tkt-349, tkt-350, tkt-352, tkt-353, tkt-356, tkt-357]
+prs: [pr-343, pr-344, pr-345, pr-346, pr-347, pr-348, pr-354, pr-355, pr-358]
 reviews: [rev-20260902-015425Z]
 supersedes: []
 superseded_by: null
@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: FSM conformance closure
 
 > **TL;DR:** The M2 state machine models 8 states and 21 edges; this repo's 150 binders walked 5 edges and 119 of them have no ledger. This Spec makes the walked path and the modelled path converge by stamping status at the path points the agent cannot skip, refusing direct status edits, fixing the ledger-path bug, removing the `any → closed` wildcard, measuring ledger coverage in CI, and repairing the finish-work / batch-work prose that drifted from the scripts.
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P1
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P1
 > **Path:** rev-20260902-015425Z → ADR-012 → spc-337 → tkt-… → pr-…
 
 ## Why
@@ -47,12 +47,12 @@ The cause is structural, not disciplinary: the most-walked edges have no script 
 
 ## Acceptance
 
-- [ ] **A1** — **Ledger path + coverage metric.** `transition-api.py` resolves the per-ticket ledger from the binder's Lattice home (the `.lattice` directory containing the binder), never from cwd; `finish-ledger.sh`, `stamp-pr-open.sh`, `ratify.sh`, `bump-fix-cycle.sh` stage that same path. Fault test: a finish stamp run from a non-toplevel cwd lands the ledger under the binder's home and stages it. `validate-lattice-artifacts.py` emits `closed_without_ledger` for a terminal binder with no ledger file — error when the binder `created` row is ≥ `2026-09-02T00:00:00Z`, warning (baselined) otherwise. `queue-health.sh --section` prints a ledger-coverage row (`n/N terminal binders with ledger`) and a direct-jump count.
-- [ ] **A2** — **Explicit terminal edges.** `transition_table.py` has no `any → closed` edge; it lists `pr-open → closed` (merge), `queued → closed` and `in-progress → closed` (merge, `metric: direct-jump`), and cancel edges from every working state (`reason: cancel`, trace must carry a reason). `finish-ledger.sh` writes a merge from `queued`/`in-progress` with `reason: merge` (not `cancel`) and appends an `anomaly:` binder line. The vendored validator copy, `docs/workflow-fsm.md` §2, `workflow-fsm-reference.md`, and `transition-parity.bats` agree; replay of the existing 31 ledgers stays green.
-- [ ] **A3** — **Path-point writers.** `ensure-workspace.sh --bind tkt --id N` commits `queued → in-progress` through the transition API when a `queued` binder exists (idempotent on re-bind; other statuses untouched; `--no-stamp` opt-out; no binder → no-op). `create-pr` gains a scripted post-open step that chains `verify-main-chain --stage pr` and `stamp-pr-open`; the plugin gains a PostToolUse hook that runs the same stamp after a successful `gh pr create` (fail-open, advisory on error). `docs/morning-triage.md` expresses `deferred|stuck → queued` and cancel as `transition-api.py commit` commands. Fault tests: bind a queued binder → one `queued → in-progress` ledger entry; bind again → no second entry; a `pr-open` binder is not touched by bind.
-- [ ] **A4** — **Status-row guard.** `intercept-shippable-write.sh` denies a Write/Edit on `.lattice/tickets/*/README.md` whose result changes the `| status |` row value, with a message naming `transition-api.py commit`; edits to other rows/sections and creation of a new binder are allowed. Bats fault tests cover deny, allow-other-row, allow-create, and malformed input (fail-open).
-- [ ] **A5** — **finish-work prose repair.** `references/flow.md` §7 verifies each multi-PR merge with `verify-main-chain.sh --stage merge` (not `verify-mutation.sh --pr`); `SKILL.md` names the out-of-repo state-home marker location (no "MAIN clone `.lattice/`"); `ci-gate-check.sh` appears in the SKILL short path and Finish-cycle checklist; the pre-merge base tip capture is one explicit command in the short path. A docs-truth bats asserts all four.
-- [ ] **A6** — **Coordinator wired + `failed` fail-close.** `batch-work/SKILL.md` and `flow.md` invoke `run-process-wave.sh` with `--batch-id` (the marker's batch id) so the coordinator spine is active in the canonical path; `coordinator.py record-node --status failed` commits `in-progress → stuck` (`wait_reason: unblock`) before settle, same as `unknown|timeout`; the contradictory "opt-in"/"DEFAULT-ON" comments are reconciled; `batch-merge-gate.sh --create --batch-id <id>` replaces the raw `printf` in prose; the wave touches the marker mtime at each barrier (heartbeat, ADR-011 amendment). Fault test: a `failed` node leaves the binder `stuck`.
+- [x] **A1** — **Ledger path + coverage metric.** `transition-api.py` resolves the per-ticket ledger from the binder's Lattice home (the `.lattice` directory containing the binder), never from cwd; `finish-ledger.sh`, `stamp-pr-open.sh`, `ratify.sh`, `bump-fix-cycle.sh` stage that same path. Fault test: a finish stamp run from a non-toplevel cwd lands the ledger under the binder's home and stages it. `validate-lattice-artifacts.py` emits `closed_without_ledger` for a terminal binder with no ledger file — error when the binder `created` row is ≥ `2026-09-02T00:00:00Z`, warning (baselined) otherwise. `queue-health.sh --section` prints a ledger-coverage row (`n/N terminal binders with ledger`) and a direct-jump count.
+- [x] **A2** — **Explicit terminal edges.** `transition_table.py` has no `any → closed` edge; it lists `pr-open → closed` (merge), `queued → closed` and `in-progress → closed` (merge, `metric: direct-jump`), and cancel edges from every working state (`reason: cancel`, trace must carry a reason). `finish-ledger.sh` writes a merge from `queued`/`in-progress` with `reason: merge` (not `cancel`) and appends an `anomaly:` binder line. The vendored validator copy, `docs/workflow-fsm.md` §2, `workflow-fsm-reference.md`, and `transition-parity.bats` agree; replay of the existing 31 ledgers stays green.
+- [x] **A3** — **Path-point writers.** `ensure-workspace.sh --bind tkt --id N` commits `queued → in-progress` through the transition API when a `queued` binder exists (idempotent on re-bind; other statuses untouched; `--no-stamp` opt-out; no binder → no-op). `create-pr` gains a scripted post-open step that chains `verify-main-chain --stage pr` and `stamp-pr-open`; the plugin gains a PostToolUse hook that runs the same stamp after a successful `gh pr create` (fail-open, advisory on error). `docs/morning-triage.md` expresses `deferred|stuck → queued` and cancel as `transition-api.py commit` commands. Fault tests: bind a queued binder → one `queued → in-progress` ledger entry; bind again → no second entry; a `pr-open` binder is not touched by bind.
+- [x] **A4** — **Status-row guard.** `intercept-shippable-write.sh` denies a Write/Edit on `.lattice/tickets/*/README.md` whose result changes the `| status |` row value, with a message naming `transition-api.py commit`; edits to other rows/sections and creation of a new binder are allowed. Bats fault tests cover deny, allow-other-row, allow-create, and malformed input (fail-open).
+- [x] **A5** — **finish-work prose repair.** `references/flow.md` §7 verifies each multi-PR merge with `verify-main-chain.sh --stage merge` (not `verify-mutation.sh --pr`); `SKILL.md` names the out-of-repo state-home marker location (no "MAIN clone `.lattice/`"); `ci-gate-check.sh` appears in the SKILL short path and Finish-cycle checklist; the pre-merge base tip capture is one explicit command in the short path. A docs-truth bats asserts all four.
+- [x] **A6** — **Coordinator wired + `failed` fail-close.** `batch-work/SKILL.md` and `flow.md` invoke `run-process-wave.sh` with `--batch-id` (the marker's batch id) so the coordinator spine is active in the canonical path; `coordinator.py record-node --status failed` commits `in-progress → stuck` (`wait_reason: unblock`) before settle, same as `unknown|timeout`; the contradictory "opt-in"/"DEFAULT-ON" comments are reconciled; `batch-merge-gate.sh --create --batch-id <id>` replaces the raw `printf` in prose; the wave touches the marker mtime at each barrier (heartbeat, ADR-011 amendment). Fault test: a `failed` node leaves the binder `stuck`.
 
 ## Non-goals
 
@@ -95,6 +95,7 @@ Independence gates (G1): file-level disjoint touch-sets — tkt-339 owns `plugin
 ## Status history
 
 - 2026-09-02: locked (operator sign-off) → all six acceptance criteria delivered via tkt-338..342 (pr-344..348), each PR independently reviewed, fix cycles: tkt-338 ×1, tkt-340 ×1, tkt-341 ×1, tkt-342 ×2, tkt-339 ×1. Status stays `locked` until one dogfood cycle has passed (ADR-012 §6 — `done` is guarded and soaked); follow-ups filed: tkt-349 (ci-gate-check gh field), tkt-350 (batch brief prose).
+- 2026-09-02: locked → **done**. Dogfood/soak cycle passed (ADR-012 §6 done-gate): (a) all child binders closed (#338..342 CLOSED); (b) `prs` list = child PR union (pr-344..348 + follow-up pr-354, pr-355); (c) one dogfood cycle passed since last child merge — 4 follow-up bugs (#349 ci-gate-check gh JSON field, #350 batch-work prose stamp, #352 transition-api ledger-from-cwd, #353 env-dependent bats) surfaced from exercising the shipped machinery and were fixed + closed. CI all-green on dev (artifacts, lattice-scripts, plugin-hooks, lint, lint-heavy — success post pr-355 merge). Conformance metrics on real repo: `validate-lattice-artifacts.py` OK (219 `closed_without_ledger_legacy` baseline warnings, 0 errors); `queue-health.sh --section` ledger coverage 42/145 terminal binders (29%), direct jumps 10. One new local-only follow-up filed: #356 (macOS BSD sed/grep partial-line A4 env-portability — CI green, local red; same class as #353). Spec flipped to `done` via tkt-357.
 
 ## References
 
@@ -105,6 +106,6 @@ Independence gates (G1): file-level disjoint touch-sets — tkt-339 owns `plugin
 
 ## Links / bloodline (L0)
 
-- Tickets: `tkt-338`, `tkt-339`, `tkt-340`, `tkt-341`, `tkt-342` (GitHub children #338–#342, native sub-issues of #337)
-- PRs: `pr-343` (planning), `pr-346` (tkt-338), `pr-344` (tkt-340), `pr-345` (tkt-341), `pr-347` (tkt-342), `pr-348` (tkt-339)
+- Tickets: `tkt-338`, `tkt-339`, `tkt-340`, `tkt-341`, `tkt-342` (GitHub children #338–#342, native sub-issues of #337); follow-ups: `tkt-349`, `tkt-350`, `tkt-352`, `tkt-353`, `tkt-356`, `tkt-357`
+- PRs: `pr-343` (planning), `pr-346` (tkt-338), `pr-344` (tkt-340), `pr-345` (tkt-341), `pr-347` (tkt-342), `pr-348` (tkt-339); follow-up PRs: `pr-354` (tkt-349), `pr-355` (tkt-350, tkt-352, tkt-353)
 - Reviews: `rev-20260902-015425Z`
