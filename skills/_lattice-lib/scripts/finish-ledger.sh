@@ -710,9 +710,11 @@ fi
 # commit_transaction should append it via _append_ledger_locked, but
 # intermittent failures caused recurring transition_ledger_snapshot_mismatch
 # on merged tickets. This bash post-step uses the CLI record command as a
-# reliable fallback. Runs AFTER the tkt-360 A1 staging assertion (which
-# checks the file is staged, not the entry content).
-if [[ "$FLIP_HAPPENED" == "1" && -f "$LEDGER_FILE" ]]; then
+# reliable fallback. Runs unconditionally (not gated on FLIP_HAPPENED —
+# that variable doesn't propagate reliably in all contexts; the LAST_TO
+# content check is the real gate). Runs AFTER the tkt-360 A1 staging
+# assertion (which checks the file is staged, not the entry content).
+if [[ -f "$LEDGER_FILE" ]]; then
   LAST_TO=$(tail -1 "$LEDGER_FILE" 2>/dev/null | python3 -c "
 import json,sys
 try:
