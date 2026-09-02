@@ -15,6 +15,7 @@ Policy: `policy.md` · body template: `templates/pr-body.md` · progress: `templ
 - [3.55. Diff matches intent (DEFAULT)](#355-diff-matches-intent-default)
 - [3.6. Public repo safeguards (INVARIANT when PUBLIC)](#36-public-repo-safeguards-invariant-when-public)
 - [4. Create or update](#4-create-or-update)
+  - [4.1. Post-open step: proof + stamp (spc-254 A2/D5, ADR-012 §1 — INVARIANT)](#41-post-open-step-proof--stamp-spc-254-a2d5-adr-012-1--invariant)
   - [Progress comments (long-lived PRs)](#progress-comments-long-lived-prs)
   - [Media](#media)
 - [Response style (HINT)](#response-style-hint)
@@ -130,41 +131,64 @@ EOF
 )")
 # Capture the PR number + the body file used, then mutation-proof the create.
 PR_N=$(printf '%s' "$PR_URL" | grep -oE '[0-9]+$')
-# Optional GitHub Project after *new* PR only (soft-fail; no-op when unset)
-SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}"
+# Post-open step (§4.1) — verify + pr-open stamp in one call; halts on FAILED.
+SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
 [[ "$SKILL_ROOT" = /* && -f "$SKILL_ROOT/SKILL.md" ]] || { echo "Error: resolve the active SKILL.md directory to absolute LATTICE_SKILL_ROOT" >&2; exit 1; }
+bash "$SKILL_ROOT/scripts/after-pr-open.sh" --pr "$PR_N" --expected-oid "$LOCAL_HEAD" \
+  --repo "<owner/name>" --expected-base "<base>" --expected-head "<branch>" \
+  --expected-body-file "$PR_BODY_FILE"
+# Optional GitHub Project after *new* PR only (soft-fail; no-op when unset)
 RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
 [[ -f "$RESOLVE" ]] || { echo "Error: _lattice-lib is not installed beside $SKILL_ROOT" >&2; exit 1; }
 LIB=$(bash "$RESOLVE")
 bash "$LIB/github-project-add.sh" "$PR_URL" || true
-# existing: gh pr edit --body …  (do not re-run project-add on description-only updates)
+# existing: gh pr edit --body …  (do not re-run after-pr-open / project-add on description-only updates)
 # exists?: gh pr view --json number
 ```
 
-### 4.1. Mutation-proof the PR create (spc-254 A2/D5 — INVARIANT)
+### 4.1. Post-open step: proof + stamp (spc-254 A2/D5, ADR-012 §1 — INVARIANT)
 
-After `gh pr create`, prove the PR exists OPEN at the pushed HEAD OID, belongs
-to the right repo, and (when supplied) carries the intended base/head/body. A
-phantom PR opened against the wrong repo/base, or with a drifted body, is a
-real incident class (`rev-20260829-140444Z` F5). The same
-`verify-main-chain.sh --stage pr` contract is used by normal, batch, and
-delegated paths.
+After a **new** `gh pr create`, the post-open step is ONE script:
+`scripts/after-pr-open.sh`. It is the path point that writes the
+`in-progress → pr-open` edge — no prose step asks you to run `stamp-pr-open.sh`
+by hand, and the binder `status` row is never edited directly (the L3 hook
+refuses it). The script chains, in this order:
+
+1. `verify-main-chain.sh --stage pr` — prove the PR exists OPEN at the pushed
+   HEAD OID, belongs to the right repo, and (when supplied) carries the intended
+   base/head/body. A phantom PR opened against the wrong repo/base, or with a
+   drifted body, is a real incident class (`rev-20260829-140444Z` F5). Normal,
+   batch, and delegated paths share this one contract.
+2. `stamp-pr-open.sh --pr <N>` — binder `prs` row + `status: pr-open` + issue
+   acceptance sync, idempotent; no binder → skip (ticket-only flow).
 
 ```bash
 # $LOCAL_HEAD is the OID captured before the push (§3.1); $PR_BODY_FILE is the
 # heredoc body written to a temp file. --expected-base/--expected-head confirm
-# the PR targets the intended base and head branch.
-bash "$LIB/verify-main-chain.sh" --stage pr --pr "$PR_N" \
+# the PR targets the intended base and head branch. --check-all / --binder pass
+# through to the stamp.
+bash "$SKILL_ROOT/scripts/after-pr-open.sh" --pr "$PR_N" \
   --expected-oid "$LOCAL_HEAD" --repo "<owner/name>" \
   --expected-base "<base>" --expected-head "<branch>" \
   --expected-body-file "$PR_BODY_FILE"
 ```
 
-A `FAILED:` proof halts the post-open binder stamp (`stamp-pr-open.sh`) and
-the Spec/binder `prs:`/`status` write — the recovery JSON's `next_action`
-points at the right repair (`gh pr edit --base`, re-create from the right
-branch, or `--body-file`). Only after `verified: pr-…` does the flow proceed
-to `stamp-pr-open.sh` + L0 update.
+A `FAILED:` proof makes the script exit non-zero **before** the stamp — no
+binder `prs:`/`status` write, no Spec L0 write. The recovery JSON's
+`next_action` points at the right repair (`gh pr edit --base`, re-create from
+the right branch, or `--body-file`); re-run the script after the repair. Only
+after `verified: pr-…` + the stamp line does the flow proceed to the Spec L0
+update.
+
+Claude Code safety net: the plugin's PostToolUse hook
+(`plugins/lattice/hooks/auto-stamp-pr-open.sh`) runs the same idempotent
+`stamp-pr-open.sh` after any successful `gh pr create` (fail-open, advisory on
+error). Both may run; the second call changes nothing. The script step is the
+portable writer for non-Claude agents.
+
+Marker lifecycle: the batch-work marker (`.batch-work-active`) lives in the
+out-of-repo state home (ADR-011, `lattice-state-home.sh`) until finish-work
+removes it at merge; never `git add -A` a legacy in-repo copy.
 
 **Body spirit** (see `templates/pr-body.md`): Summary · Why · Scope · How · Verification (commands run only if real) · Lineage · References · optional Notes.  
 Title: Conventional Commits (`feat:` / `fix:`).  
