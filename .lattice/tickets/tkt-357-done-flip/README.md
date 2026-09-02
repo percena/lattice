@@ -9,11 +9,11 @@
 | priority | P3 |
 | labels | chore,P3 |
 | github | https://github.com/percena/lattice/issues/357 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T05:19:22Z |
-| updated | 2026-09-02T05:20:56Z |
+| updated | 2026-09-02T05:22:24Z |
 | adopted | false |
 | summary | Record spc-337 dogfood/soak conclusion, flip Spec status locked → done, close #337. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -24,7 +24,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-357 (this issue) |
 | worktree_bind | tkt-357-done-flip |
-| prs | (none) |
+| prs | pr-358 — https://github.com/percena/lattice/pull/358 |
 
 ## Acceptance (this slice)
 
