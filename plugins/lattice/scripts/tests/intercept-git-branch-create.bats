@@ -180,3 +180,28 @@ PY
   printf '%s\n' "$output" | grep -qF "enforcement hook inert"
   printf '%s\n' "$output" | grep -qF "jq"
 }
+
+# ===================== jq fail-open (tkt-326) =====================
+
+@test "fail-open: partial/malformed detector JSON exits 0 (tkt-326)" {
+  # Replace the detector with one that outputs partial/malformed JSON and
+  # exits 0 (simulates detector printing partial output before a crash).
+  # Before the fix, jq on the partial JSON aborted under set -e (block).
+  # After the fix, jq failures are non-fatal; op defaults to "none" → exit 0.
+  local det_dir
+  det_dir="$(cd "$(dirname "$HOOK_SCRIPT")/../scripts" && pwd)"
+  local real="$det_dir/detect-git-branch-op.py"
+  cp "$real" "$real.bak"
+  cat >"$real" <<'PY'
+#!/usr/bin/env python3
+import sys
+# Output partial/malformed JSON then exit 0.
+print('{"op":', end='')
+sys.exit(0)
+PY
+  chmod +x "$real"
+  run run_hook "$MAIN_ROOT" 'git checkout -b tmp'
+  cp "$real.bak" "$real"
+  rm -f "$real.bak"
+  [ "$status" -eq 0 ]
+}

@@ -150,8 +150,12 @@ else
   [[ "$assert_rc" -eq 1 ]] || exit 0   # usage/other -> fail open
 fi
 
-reason=$(printf '%s' "$assert_out" | jq -r '.reason // "unknown"' 2>/dev/null)
-branch=$(printf '%s' "$assert_out" | jq -r '.branch // ""' 2>/dev/null)
+# jq failures are non-fatal: empty assert output (e.g. cwd worktree removed
+# mid-session) or partial JSON must not abort before the remediation block
+# prints. Default reason to "unknown" when jq produces no usable value (tkt-326).
+reason=$(printf '%s' "$assert_out" | jq -r '.reason // "unknown"' 2>/dev/null || true)
+reason="${reason:-unknown}"
+branch=$(printf '%s' "$assert_out" | jq -r '.branch // ""' 2>/dev/null || true)
 cat >&2 <<EOF
 lattice: shippable write blocked — cwd is not a shippable workspace.
 

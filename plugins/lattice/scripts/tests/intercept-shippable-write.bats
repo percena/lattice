@@ -152,3 +152,29 @@ PY
   [ "$status" -eq 0 ]
   if printf '%s\n' "$output" | grep -qF "enforcement hook inert"; then false; fi
 }
+
+# ===================== jq fail-open (tkt-326) =====================
+
+@test "fail-open: empty assert output still prints remediation block (tkt-326)" {
+  # Simulate assert-shippable-cwd.sh returning rc 1 with EMPTY stdout (e.g.
+  # cwd worktree removed mid-session or assert internal error producing no
+  # JSON). Before the fix, jq on empty input aborted under set -e before the
+  # remediation block could print. After the fix, reason defaults to "unknown"
+  # and the block still prints with exit 2.
+  local fake_assert_dir="$MAIN_ROOT/skills/_lattice-lib/scripts"
+  mkdir -p "$fake_assert_dir"
+  cat >"$fake_assert_dir/assert-shippable-cwd.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+  chmod +x "$fake_assert_dir/assert-shippable-cwd.sh"
+  # Set CLAUDE_PLUGIN_ROOT to a non-existent path so candidate 1 (plugin-tree
+  # assert) is skipped; the fake assert at candidate 2 ($toplevel/skills/...)
+  # is found instead.
+  export CLAUDE_PLUGIN_ROOT=/nonexistent
+  run run_write "$MAIN_ROOT" "$MAIN_ROOT/.lattice/specs/spc-1.md"
+  unset CLAUDE_PLUGIN_ROOT
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "shippable write blocked"
+  printf '%s\n' "$output" | grep -qF "unknown"
+}
