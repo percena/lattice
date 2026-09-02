@@ -507,3 +507,62 @@ print(json.dumps(sorted(p.get("billing", []))))
   echo "$result" | jq -e 'all(. != "quota")'
   echo "$result" | jq -e 'length == 1'
 }
+
+# --- tkt-349: gh >= 2.6x payload shape (state + bucket, no `conclusion`) -----
+
+setup_gh_stub_err() {
+  # gh that rejects the --json field list the way gh 2.92 does.
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+  echo "Unknown JSON field: \"conclusion\"" >&2
+  exit 1
+fi
+exit 1
+EOF
+  chmod +x "$STUB_BIN/gh"
+  export PATH="$STUB_BIN:$PATH"
+}
+
+@test "tkt-349: gh 2.92 shape — all-green (state SUCCESS, bucket pass) passes" {
+  setup_gh_stub '[{"bucket":"pass","link":"https://github.com/o/r/actions/runs/1/job/2","name":"bats","state":"SUCCESS"},{"bucket":"pass","link":"","name":"lint","state":"SUCCESS"}]'
+  run bash "$GATE_SCRIPT" --pr 12 --home "$LATTICE_HOME" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"checks_total": 2'
+}
+
+@test "tkt-349: gh 2.92 shape — real failure (state FAILURE, bucket fail) blocks" {
+  setup_gh_stub '[{"bucket":"fail","link":"https://github.com/o/r/actions/runs/3/job/4","name":"tests","state":"FAILURE"}]' \
+    'FAIL: test_thing assertion error'
+  run bash "$GATE_SCRIPT" --pr 12 --home "$LATTICE_HOME" --json --evidence "bats: 10 ok"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"block_reason": "real_or_unknown_failures"'
+}
+
+@test "tkt-349: gh 2.92 shape — TIMED_OUT state + timeout log is infra (waiver with evidence)" {
+  setup_gh_stub '[{"bucket":"fail","link":"https://github.com/o/r/actions/runs/5/job/6","name":"slow","state":"TIMED_OUT"}]' \
+    'Error: The operation was canceled. timed out after 360 minutes'
+  run bash "$GATE_SCRIPT" --pr 12 --home "$LATTICE_HOME" --json --evidence "bats: 10 ok"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"waiver_stamped": true'
+}
+
+@test "tkt-349: gh 2.92 shape — pending bucket blocks" {
+  setup_gh_stub '[{"bucket":"pending","link":"https://github.com/o/r/actions/runs/7/job/8","name":"bats","state":"IN_PROGRESS"}]'
+  run bash "$GATE_SCRIPT" --pr 12 --home "$LATTICE_HOME" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"block_reason": "pending"'
+}
+
+@test "tkt-349: unknown --json field from gh is a distinct, actionable error (exit 2)" {
+  setup_gh_stub_err
+  run bash "$GATE_SCRIPT" --pr 12 --home "$LATTICE_HOME"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF 'field mismatch'
+  printf '%s\n' "$output" | grep -qF 'Unknown JSON field'
+}
+
+@test "tkt-349: the gate never requests the retired conclusion field" {
+  if grep -qE 'json", *"name,state,conclusion' skills/finish-work/scripts/ci-gate-check.sh 2>/dev/null || grep -q 'name,state,conclusion,link' "$GATE_SCRIPT"; then false; fi
+}

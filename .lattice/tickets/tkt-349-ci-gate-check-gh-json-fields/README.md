@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/349 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T03:33:16Z |
-| updated | 2026-09-02T03:33:16Z |
+| updated | 2026-09-02T03:52:20Z |
 | adopted | false |
 | summary | ci-gate-check.sh asks gh pr checks for a 'conclusion' JSON field that gh 2.9x lacks; the hard CI gate exits 2 on every run. |
 | spec | none |
@@ -25,7 +25,8 @@
 
 ## Acceptance
 
-See GitHub issue #349 body (A1, A2).
+- [x] **A1** rollup fetched with `name,state,bucket,link`; `normalize_check` derives the legacy state/conclusion pair from `state`+`bucket`; gh-2.92-shaped bats: all-green pass, real red block, TIMED_OUT infra waiver, pending block.
+- [x] **A2** `Unknown JSON field` from gh surfaces as a distinct 'field mismatch' error (exit 2, still fail-closed).
 
 ## Approach
 
@@ -36,6 +37,9 @@ See GitHub issue #349 body (A1, A2).
 (none — S-class)
 
 ## Decision journal
+
+- 2026-09-02 normalization keeps `conclusion` when a payload already carries it (older gh / existing fixtures) and derives it otherwise; pending detected via `bucket == pending` OR a pending-ish `state`, so both gh generations classify identically (source: agent-judgment, ticket-local).
+- 2026-09-02 verified live on gh 2.92.0 against PR #351: `ok=True checks_total=1` (was exit 2 on every run before).
 
 ## Notes
 
