@@ -80,7 +80,7 @@ npx skills add percena/lattice -g -y
 | [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、默认开启的 mini-review 扫描、合并、清理 | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | 支撑上述技能的共享脚本（共装，非 slash 入口） | — |
 
-非交付循环——分六类，均不产生血缘节点：
+非交付循环——分七类，均不产生血缘节点：
 
 | 类别 | 技能 | 说明 |
 | --- | --- | --- |

@@ -57,6 +57,8 @@
 
 ## Notes
 
+- NOTICED: skills/_lattice-lib/SKILL.md:17 and :73 — co-install roster omits review-lineage (llms.txt / plugin README now list it); out-of-paths for tkt-373 (2026-09-02)
+- NOTICED: tools/tests/validators-hardening.bats:69 — catalog size hard-coded (14 → 15); a new user-facing skill breaks CI until edited (out-of-paths, 2026-09-02)
 - NOTICED: tools/tests/validate-skills.bats:41 — USER_FACING is hand-duplicated in the bats fixture list; a new user-facing skill silently breaks the suite until both are edited (out-of-paths for the lint itself; tkt-373 edited the line, 2026-09-02)
 
 ## References

@@ -82,7 +82,7 @@ Advanced install (org roll-out, private forks, local dev, refresh) → [docs/get
 | [`finish-work`](./skills/finish-work/) | Update base, alignment-check, default-on mini-review scan, merge, cleanup | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | Shared scripts backing the above (co-install, not a slash entry) | — |
 
-Not part of the delivery loop — six tiers, none create lineage nodes:
+Not part of the delivery loop — seven tiers, none create lineage nodes:
 
 | Tier | Skill(s) | Notes |
 | --- | --- | --- |
