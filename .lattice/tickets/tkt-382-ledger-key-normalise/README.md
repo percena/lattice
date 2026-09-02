@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/382 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T11:41:50Z |
+| updated | 2026-09-02T11:43:59Z |
 | adopted | false |
 | summary | transition-api normalises ledger key to tkt-N + validator guard; fold stray ledgers |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -83,4 +83,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-394 merged: 2026-09-02T11:43:24Z — https://github.com/percena/lattice/pull/394 (base merge)
+- issue #382 closed: 2026-09-02T11:43:51Z — https://github.com/percena/lattice/issues/382
