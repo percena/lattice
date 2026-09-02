@@ -43,6 +43,8 @@ write_binder() {  # <path> <status>
   cat >"$1" <<EOF
 # tkt-7-demo
 
+> note: queued for wave W1
+
 | Field | Value |
 | --- | --- |
 | kind | feat |
@@ -94,7 +96,7 @@ assert_status_row_denied() {  # <status> <output>
 @test "edit: denies when only new_string carries a status row that differs from disk" {
   run run_edit "$WT" "$BINDER" "| fix_cycles | 0 |" $'| fix_cycles | 0 |\n| status | closed |'
   assert_status_row_denied "$status" "$output"
-  printf '%s\n' "$output" | grep -qF "(on disk)"
+  printf '%s\n' "$output" | grep -qF "(on disk, simulated edit)"
 }
 
 @test "edit: denies removing the status row (old has it, new does not)" {
@@ -119,6 +121,65 @@ assert_status_row_denied() {  # <status> <output>
   [ "$status" -eq 2 ]
   printf '%s\n' "$output" | grep -qE 'transition-api\.py commit tkt-12 <to>'
   printf '%s\n' "$output" | grep -qF "'queued' (old_string) -> 'pr-open'"
+}
+
+# ---- partial-line Edits (review cycle 1): the guard simulates the edit on disk ----
+
+@test "edit: denies partial-line status change (old_string lacks the leading pipe)" {
+  run run_edit "$WT" "$BINDER" "status | queued" "status | closed"
+  assert_status_row_denied "$status" "$output"
+  printf '%s\n' "$output" | grep -qF "'queued' (on disk, simulated edit) -> 'closed'"
+}
+
+@test "edit: denies partial-line status change spanning into the next row" {
+  run run_edit "$WT" "$BINDER" $'queued |\n| fix_cycles' $'closed |\n| fix_cycles'
+  assert_status_row_denied "$status" "$output"
+  printf '%s\n' "$output" | grep -qF "finding: status changed"
+}
+
+@test "edit: denies bare-word status change with replace_all (row is a later occurrence)" {
+  run bash -c "jq -cn --arg w '$WT' --arg f '$BINDER' \
+    '{tool_name:\"Edit\",tool_input:{file_path:\$f,old_string:\"queued\",new_string:\"closed\",replace_all:true},cwd:\$w}' \
+    | '$HOOK_SCRIPT' 2>&1"
+  assert_status_row_denied "$status" "$output"
+}
+
+@test "edit: allows bare-word replacement whose FIRST occurrence is not the status row" {
+  # Without replace_all the Edit tool replaces only the first `queued`, which
+  # is in the note line above the table; the status row is untouched.
+  run run_edit "$WT" "$BINDER" "queued" "closed"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "edit: allows a partial-line edit in the status row region that leaves the value intact" {
+  run run_edit "$WT" "$BINDER" $'queued |\n| fix_cycles | 0 |' $'queued |\n| fix_cycles | 1 |'
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "edit: denies inserting a duplicate status row (same value, second row)" {
+  run run_edit "$WT" "$BINDER" "| fix_cycles | 0 |" $'| fix_cycles | 0 |\n| status | queued |'
+  assert_status_row_denied "$status" "$output"
+  printf '%s\n' "$output" | grep -qF "duplicate status row inserted (1 -> 2 rows)"
+}
+
+@test "write: denies content carrying two status rows" {
+  local content
+  content=$(printf '| Field | Value |\n| --- | --- |\n| status | queued |\n| kind | feat |\n| status | closed |\n')
+  run run_write "$WT" "$BINDER" "$content"
+  assert_status_row_denied "$status" "$output"
+  printf '%s\n' "$output" | grep -qF "duplicate status row inserted (1 -> 2 rows)"
+}
+
+@test "edit: fail-open when old_string does not occur on disk (the Edit tool would fail anyway)" {
+  run run_edit "$WT" "$BINDER" "status | nope" "status | closed"
+  [ "$status" -eq 0 ]
+}
+
+@test "edit: fail-open on a partial-line edit when the file is missing" {
+  run run_edit "$WT" "$WT/.lattice/tickets/tkt-77-missing/README.md" "status | queued" "status | closed"
+  [ "$status" -eq 0 ]
 }
 
 # ===================== ALLOW =====================

@@ -159,47 +159,90 @@ _status_cell() {  # <text> -> first status cell value on stdout ("" when none)
   printf '%s' "${v%%$'\n'*}"
 }
 
+_status_row_count() {  # <text> -> number of status rows on stdout
+  local n
+  n=$(printf '%s\n' "$1" \
+      | grep -c -E '^\| *status *\| *[^|]*[^| ] *\|' 2>/dev/null) || n="${n:-0}"
+  printf '%s' "${n:-0}"
+}
+
 _status_row_guard() {
-  local rel dir tkt old new content new_status ref_status src lib_dir
+  local rel dir tkt old new content new_status ref_status src lib_dir replace_all
   rel=${abs_path#"$toplevel/"}
   [[ "$rel" =~ ^\.lattice/tickets/([^/]+)/README\.md$ ]] || return 0
   dir="${BASH_REMATCH[1]}"
   tkt=$(printf '%s' "$dir" | sed -E 's/^(tkt-[0-9]+).*$/\1/' 2>/dev/null || true)
   tkt="${tkt:-$dir}"
 
+  # `disk` is the current file text; `result` is what the file would hold
+  # after the tool ran. The guard compares first status cells, and also
+  # refuses a result carrying MORE status rows than the file has (a
+  # duplicate-row insert would otherwise shadow the real row).
+  local disk="" result="" disk_status="" result_status="" old_n new_n why=""
   case "$tool_name" in
     Edit)
       old=$(printf '%s' "$hook_data" | jq -r '.tool_input.old_string // empty' 2>/dev/null) || old=""
       new=$(printf '%s' "$hook_data" | jq -r '.tool_input.new_string // empty' 2>/dev/null) || new=""
       new_status=$(_status_cell "$new")
       ref_status=$(_status_cell "$old")
-      if [[ -n "$ref_status" ]]; then
+      if [[ -n "$ref_status" && -n "$new_status" ]]; then
+        # Fast path: both sides carry a complete row -> compare directly
+        # (no disk read needed; also covers a file that is not readable).
         src="old_string"
-      else
-        # Only new_string carries a status row: compare against the on-disk
-        # value (an Edit cannot create the file, so absent-on-disk -> allow).
-        [[ -n "$new_status" && -f "$abs_path" ]] || return 0
-        ref_status=$(_status_cell "$(cat "$abs_path" 2>/dev/null || true)")
-        src="on disk"
+        if [[ "$new_status" != "$ref_status" ]]; then
+          why="status changed"
+        fi
+      fi
+      if [[ -z "$why" ]]; then
+        # Partial-line edit (review cycle 1): Claude Code's Edit routinely
+        # uses a minimal old_string such as `status | queued` or
+        # `queued |\n| prs`, neither of which is a complete row. Simulate the
+        # edit on the on-disk text — first occurrence, or every occurrence
+        # when replace_all is set — and judge the RESULT. Fail open when the
+        # file is unreadable, old_string is empty, or old_string does not
+        # occur on disk (the Edit tool itself would then fail).
+        [[ -n "$old" && -f "$abs_path" ]] || return 0
+        disk=$(cat "$abs_path" 2>/dev/null) || return 0
+        [[ "$disk" == *"$old"* ]] || return 0
+        replace_all=$(printf '%s' "$hook_data" | jq -r '.tool_input.replace_all // false' 2>/dev/null) || replace_all=false
+        if [[ "$replace_all" == "true" ]]; then
+          result="${disk//"$old"/"$new"}"
+        else
+          result="${disk/"$old"/"$new"}"
+        fi
+        disk_status=$(_status_cell "$disk")
+        [[ -n "$disk_status" ]] || return 0   # legacy binder without the row
+        result_status=$(_status_cell "$result")
+        old_n=$(_status_row_count "$disk"); new_n=$(_status_row_count "$result")
+        ref_status="$disk_status"; new_status="$result_status"; src="on disk, simulated edit"
+        if [[ "$result_status" != "$disk_status" ]]; then
+          why="status changed"
+        elif [[ "$new_n" -gt "$old_n" ]]; then
+          why="duplicate status row inserted ($old_n -> $new_n rows)"
+        fi
       fi
       ;;
     Write)
       # File absent -> binder creation, allowed with any status.
       [[ -f "$abs_path" ]] || return 0
       content=$(printf '%s' "$hook_data" | jq -r '.tool_input.content // empty' 2>/dev/null) || content=""
+      disk=$(cat "$abs_path" 2>/dev/null) || return 0
+      disk_status=$(_status_cell "$disk")
+      [[ -n "$disk_status" ]] || return 0   # legacy binder without the row
       new_status=$(_status_cell "$content")
-      ref_status=$(_status_cell "$(cat "$abs_path" 2>/dev/null || true)")
-      src="on disk"
+      old_n=$(_status_row_count "$disk"); new_n=$(_status_row_count "$content")
+      ref_status="$disk_status"; src="on disk"
+      if [[ "$new_status" != "$disk_status" ]]; then
+        why="status changed"
+      elif [[ "$new_n" -gt "$old_n" ]]; then
+        why="duplicate status row inserted ($old_n -> $new_n rows)"
+      fi
       ;;
     *) return 0 ;;   # NotebookEdit etc.: no binder row semantics
   esac
 
-  # Nothing to compare against -> allow (legacy binder without the row, or
-  # the edit does not touch the row at all).
-  [[ -n "$ref_status" ]] || return 0
-  # Same value (or the row is untouched) -> allow. A removed row (new text
-  # has no status cell while the reference had one) counts as a change.
-  [[ "$new_status" != "$ref_status" ]] || return 0
+  # No finding -> allow (row untouched, same value, nothing to compare).
+  [[ -n "$why" ]] || return 0
 
   lib_dir="…/skills/_lattice-lib/scripts"
   for cand in \
@@ -218,6 +261,7 @@ lattice: ticket-binder status-row edit blocked (rule L3-status-row).
 
   target:  $file_path
   status:  '${ref_status}' ($src) -> '${new_status:-<row removed>}'
+  finding: $why
 
 ADR-012 §2: the binder \`| status |\` row is written only by the path-point
 scripts through the transition API — never by a direct Edit/Write. Edits to
