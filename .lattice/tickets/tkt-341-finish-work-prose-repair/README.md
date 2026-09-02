@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/341 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:53:36Z |
+| updated | 2026-09-02T03:04:30Z |
 | adopted | false |
 | summary | finish-work prose repaired: multi-PR merge verifier, marker location, ci-gate-check in short path, explicit base-tip capture; docs-truth bats. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -94,4 +94,6 @@ See GitHub issue #341 for the full slice text; Spec ids owned by this slice:
 
 ## Finish
 
-- (none yet)
+
+- pr-345 merged: 2026-09-02T03:04:14Z — https://github.com/percena/lattice/pull/345 (base merge)
+- issue #341 closed: 2026-09-02T03:04:22Z (reason: completed) — https://github.com/percena/lattice/issues/341
