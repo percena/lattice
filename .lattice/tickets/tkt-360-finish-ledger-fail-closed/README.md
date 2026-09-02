@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/360 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T05:59:14Z |
-| updated | 2026-09-02T06:16:57Z |
+| updated | 2026-09-02T06:34:55Z |
 | adopted | true |
 | summary | finish-ledger must fail closed when the ledger entry is not staged/committed (dev CI red twice) |
 | spec | (none — post-spc-337 leftover audit) |
@@ -95,4 +95,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-366 merged: 2026-09-02T06:33:23Z — https://github.com/percena/lattice/pull/366 (base merge)
+- issue #360 closed: 2026-09-02T06:33:55Z (reason: completed) — https://github.com/percena/lattice/issues/360
