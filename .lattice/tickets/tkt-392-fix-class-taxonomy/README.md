@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/392 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T10:05:00Z |
-| updated | 2026-09-02T10:40:32Z |
+| updated | 2026-09-02T10:44:54Z |
 | adopted | false |
 | summary | hotspot-metrics fix_class taxonomy: add 8 new classes to reduce "other" from 66% to <15% |
 | spec | (none — ticket-only follow-up to tkt-388) |
@@ -73,4 +73,6 @@ Add 8 bats test cases — one per new class, each with a representative subject 
 
 ## Finish
 
-- (none yet)
+
+- pr-393 merged: 2026-09-02T10:44:13Z — https://github.com/percena/lattice/pull/393 (base merge)
+- issue #392 closed: 2026-09-02T10:44:30Z (reason: completed) — https://github.com/percena/lattice/issues/392
