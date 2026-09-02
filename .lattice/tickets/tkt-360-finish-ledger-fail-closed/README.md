@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/360 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T05:59:14Z |
-| updated | 2026-09-02T05:59:14Z |
+| updated | 2026-09-02T06:16:57Z |
 | adopted | true |
 | summary | finish-ledger must fail closed when the ledger entry is not staged/committed (dev CI red twice) |
 | spec | (none — post-spc-337 leftover audit) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-360-finish-ledger-fail-closed |
 | worktree | sibling `…/lattice.worktrees/tkt-360-finish-ledger-fail-closed/` |
-| prs | (none) |
+| prs | pr-366 — https://github.com/percena/lattice/pull/366 |
 
 ## Acceptance (this slice)
 
@@ -54,6 +54,7 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-02T06:16:57Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #366) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
