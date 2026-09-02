@@ -575,3 +575,32 @@ EOF
   [ "$new_mtime" -gt "$old_mtime" ]
   grep -qx 'batch-id: e2e-hb' "$marker"
 }
+
+@test "A6 (review cycle 2): coordinator path — failed with a refused transition → wave exits non-ok, node unsettled, binder untouched" {
+  helper="$TEST_DIR/exit1.sh"
+  FAKE_EXIT=1 build_result_helper "$helper"
+  fake_gate="$TEST_DIR/fake-gate.sh"
+  build_fake_gate "$fake_gate"
+  export GATE_LOG="$TEST_DIR/gate.log"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-FC2\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-FC2 closed   # closed ≠ in-progress → commit refused → record-node rc≠0
+  run env FAKE_EXIT=1 GATE_LOG="$GATE_LOG" bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
+    --batch-id "fc-batch-2" --layer 0 --wave 0 --gate-script "$fake_gate"
+  [ "$status" -ne 0 ]
+  printf '%s\n' "$output" | grep -qF "coordinator: spine active batch=fc-batch-2"
+  printf '%s\n' "$output" | grep -qF "transition-failed: tkt-FC2"
+  grep -qF '| status | closed |' "$LATTICE_HOME/tickets/tkt-FC2-test/README.md"
+  # node persisted as transition_failed and NOT settled
+  python3 - "$LATTICE_HOME/.coordinator/fc-batch-2.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+nodes = [n for l in d.get("dag", []) for w in l.get("waves", []) for n in w.get("nodes", [])]
+n = next((x for x in nodes if x.get("ticket") == "tkt-FC2"), {})
+assert n.get("status") == "transition_failed", (n, nodes)
+assert "tkt-FC2" not in (d.get("settled_tickets") or []), d.get("settled_tickets")
+PY
+}

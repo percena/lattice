@@ -268,8 +268,15 @@ coord_record_node() {
   [[ -n "$pr" ]] && args+=(--pr "$pr")
   [[ -n "$oid" ]] && args+=(--oid "$oid")
   [[ -n "$reason" ]] && args+=(--reason "$reason")
-  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" "${args[@]}" >/dev/null 2>&1 \
-    || echo "warn: coordinator record-node failed for $ticket (state not persisted)" >&2
+  # spc-337 A6 review cycle 2: a record-node failure on the canonical
+  # (--batch-id) path is the coordinator's fail-closed signal — the node is
+  # NOT settled (transition_failed) — so the wave must exit machine-decidably
+  # non-ok exactly like the legacy record_stuck branch (A2.3 / A3.4). Swallowing
+  # it with a warning left rc=0 while SKILL/flow promised non-zero.
+  if ! LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" "${args[@]}" >/dev/null 2>&1; then
+    WAVE_TRANSITION_FAIL=$(( WAVE_TRANSITION_FAIL + 1 ))
+    echo "${status}-transition-failed: ${ticket} (coordinator record-node failed — node not settled; host must stamp stuck)" >&2
+  fi
 }
 
 # heartbeat_marker — touch the .batch-work-active marker's mtime at the end of

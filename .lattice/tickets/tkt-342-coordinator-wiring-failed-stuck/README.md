@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/342 |
-| status | pr-open |
-| fix_cycles | 1 |
+| status | in-progress |
+| fix_cycles | 2 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:53:53Z |
+| updated | 2026-09-02T03:10:54Z |
 | adopted | false |
 | summary | batch-work coordinator wired by default (--batch-id), failed fail-closes to stuck, marker --create + barrier heartbeat, ADR-011 amended. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -63,6 +63,8 @@ See GitHub issue #342 for the full slice text; Spec ids owned by this slice:
 - 2026-09-02 — Pre-existing reds left as-is (out of A6 scope, environmental): coordinator.bats #8 ends with `run command -v claude; [ "$status" -ne 0 ]` and spawn-ticket-process.bats "missing claude binary" — both fail on any host where `claude` is on PATH (it is here); red at baseline before this change.
 - 2026-09-02 — Agent-mode (Task) prose unchanged beyond naming the command — pre-resolved in binder Anticipated decisions #1 (spc-337 A6 scope: process-mode scripts only).
 - 2026-09-02T02:53:41Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: mini-review Hold: batch-merge-gate.bats uses bare '! grep' assertions (exempt from set -e; CI guard check-bats-assertions fails) — rewrite as 'if grep …; then false; fi'
+- 2026-09-02T03:08:23Z — fix cycle 2: `pr-open` → rework (fix_cycles 2; cap ≤2; ADR-004 §5) — brief: review Hold (PR #347) cycle 2: MEDIUM — coord_record_node swallows coordinator non-zero (run-process-wave.sh:271-272) and never bumps WAVE_TRANSITION_FAIL, so on the canonical --batch-id path a refused stuck transition leaves wave rc=0 while SKILL/flow claim non-zero. Fix: bump WAVE_TRANSITION_FAIL on record-node failure + coordinator-path exit-code bats. LOW: pr-open+failed node stays transition_failed and resume re-offers it — journal note.
+- 2026-09-02 review cycle 2 (PR #347 MEDIUM): `coord_record_node` now bumps `WAVE_TRANSITION_FAIL` when record-node fails, so the canonical `--batch-id` path exits non-ok on a refused stuck transition (A2.3/A3.4 as documented); coordinator-path fault test added. LOW noted: a `failed` node whose binder is already `pr-open` stays `transition_failed`/unsettled and `resume` re-offers it — accurate binder, triage item, resume does not drive execution (spc-337 non-goal) (source: review finding, ticket-local).
 
 ## Pending decisions
 
