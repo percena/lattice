@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | documentation, P2 |
 | github | https://github.com/percena/lattice/issues/389 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:31:00Z |
-| updated | 2026-09-02T09:31:00Z |
+| updated | 2026-09-02T09:47:08Z |
 | adopted | false |
 | summary | method.md L4 extension + template topology/recommendations (spc-387 A2+A3) |
 | spec | spc-387 — weak-spot topology + optimization recommendations |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-389-method-template-l4 |
 | worktree | sibling `…/<repo>.worktrees/tkt-389-method-template-l4/` |
-| prs | (none) |
+| prs | pr-390 — https://github.com/percena/lattice/pull/390 |
 
 ## Acceptance (this slice)
 
@@ -38,6 +38,10 @@
 ## Approach
 
 Append L4 section to method.md (root-cause patterns: multi-writer disagreement, decided-but-unimplemented ADR, format-drift escape, environment-dependence; curve-bending formula: impact = fix_commit_count × fix_class_diversity × cross_audit_recurrence_count × structural_depth; structural-vs-tactical: structural = references decided-but-unimplemented ADR). Add two sections to lineage-audit.md template after ## Findings.
+
+## Decision journal
+
+- 2026-09-02T09:47:08Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #390) [WARN — signal logged, not silently lost]
 
 ## Notes
 

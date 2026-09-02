@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/388 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:31:00Z |
-| updated | 2026-09-02T09:31:00Z |
+| updated | 2026-09-02T09:47:06Z |
 | adopted | false |
 | summary | hotspot-metrics.sh sensor + bats (spc-387 A1+A4) |
 | spec | spc-387 — weak-spot topology + optimization recommendations |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-388-hotspot-metrics-sensor |
 | worktree | sibling `…/<repo>.worktrees/tkt-388-hotspot-metrics-sensor/` |
-| prs | (none) |
+| prs | pr-390 — https://github.com/percena/lattice/pull/390 |
 
 ## Acceptance (this slice)
 
@@ -43,6 +43,10 @@ Python lib `hotspot_metrics.py` (parallel to `lineage_metrics.py`) + bash wrappe
 3. ticket_genealogy: grep revs for Proposed-tickets tables + binders for fix_cycles
 4. cross_audit_recurrence: grep rev ### F headings for finding-class keywords
 5. noticed_feedback: count NOTICED → became_ticket (in rev Proposed-tickets)
+
+## Decision journal
+
+- 2026-09-02T09:47:06Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #390) [WARN — signal logged, not silently lost]
 
 ## Notes
 
