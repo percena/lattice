@@ -10,7 +10,7 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/399 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T12:00:00Z |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-399-dev-branch-protection |
 | worktree | sibling `…/<repo>.worktrees/tkt-399-dev-branch-protection/` |
-| prs | (none) |
+| prs | (settings — no PR; gh api branch protection) |
 
 ## Acceptance (this slice)
 

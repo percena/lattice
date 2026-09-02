@@ -1,0 +1,1 @@
+{"ts":"2026-09-02T12:39:25Z","ticket":"tkt-399","from":"pr-open","to":"closed","owner":"human","reason":"merge","guard":"merge \u2014 day only; .batch-work-active marker gate | close without merge (cancel)","escape_used":false,"force_side_state_reason":null,"trace":"Finish ledger mergedAt (no mergedAt on cancel)","metric":"merge-count"}
