@@ -10,7 +10,7 @@ summary: "Move every M2 status stamp into the script step the ticket already pas
 created: 2026-09-02
 updated: 2026-09-02
 tickets: [tkt-338, tkt-339, tkt-340, tkt-341, tkt-342]
-prs: []
+prs: [pr-343, pr-344, pr-345, pr-346, pr-347, pr-348]
 reviews: [rev-20260902-015425Z]
 supersedes: []
 superseded_by: null
@@ -92,6 +92,10 @@ The cause is structural, not disciplinary: the most-walked edges have no script 
 
 Independence gates (G1): file-level disjoint touch-sets — tkt-339 owns `plugins/lattice/hooks/hooks.json` and a new hook file; tkt-340 owns only `intercept-shippable-write.sh`; tkt-341 owns finish-work SKILL/flow prose; tkt-342 owns batch-work plus `finish-work/scripts/batch-merge-gate.sh`. Ship: multi-PR, one sibling worktree per ticket.
 
+## Status history
+
+- 2026-09-02: locked (operator sign-off) → all six acceptance criteria delivered via tkt-338..342 (pr-344..348), each PR independently reviewed, fix cycles: tkt-338 ×1, tkt-340 ×1, tkt-341 ×1, tkt-342 ×2, tkt-339 ×1. Status stays `locked` until one dogfood cycle has passed (ADR-012 §6 — `done` is guarded and soaked); follow-ups filed: tkt-349 (ci-gate-check gh field), tkt-350 (batch brief prose).
+
 ## References
 
 - Review: `rev-20260902-015425Z` → `.lattice/reviews/rev-20260902-015425Z-fsm-conformance-and-path-scripting.md`
@@ -102,5 +106,5 @@ Independence gates (G1): file-level disjoint touch-sets — tkt-339 owns `plugin
 ## Links / bloodline (L0)
 
 - Tickets: `tkt-338`, `tkt-339`, `tkt-340`, `tkt-341`, `tkt-342` (GitHub children #338–#342, native sub-issues of #337)
-- PRs: (none yet)
+- PRs: `pr-343` (planning), `pr-346` (tkt-338), `pr-344` (tkt-340), `pr-345` (tkt-341), `pr-347` (tkt-342), `pr-348` (tkt-339)
 - Reviews: `rev-20260902-015425Z`
