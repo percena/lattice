@@ -120,12 +120,21 @@ emit("REPOSITORY", repo.get("nameWithOwner") or "")
 emit("DEFAULT_BRANCH", (repo.get("defaultBranchRef") or {}).get("name") or "")
 ' "$view_json" "$repo_json")"
 
+# Extract hostname from the PR URL for the --hostname flag on gh api (tkt-325,
+# mirrors the #311 fix in alignment-check.sh / close-fixed-issues.sh /
+# finish-ledger.sh). gh pr view / gh repo view resolve the host from the git
+# remote; gh api does NOT — it defaults to github.com, 404ing on GHE.
+API_HOST=""
+if [[ "$URL" =~ ^https?://([^/]+)/ ]]; then
+  API_HOST="${BASH_REMATCH[1]}"
+fi
+
 # Fetch both base branch name and base commit SHA from a single REST call so
 # the (branch, sha) pair is an atomic snapshot — no TOCTOU window between
 # gh pr view and a separate base.sha fetch (tkt-311 A2). stderr captured to
 # temp file, emitted only on failure (tkt-311 A3 — same pattern as gh pr view).
 _base_err=$(mktemp)
-base_json=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq '.base' 2>"$_base_err") || {
+base_json=$(gh api "repos/${REPOSITORY}/pulls/${PR}" ${API_HOST:+--hostname "$API_HOST"} --jq '.base' 2>"$_base_err") || {
   cat "$_base_err" >&2
   echo "Error: cannot fetch base identity for PR #$PR via REST (repos/${REPOSITORY}/pulls/${PR}) — see diagnostic above" >&2
   rm -f "$_base_err"
