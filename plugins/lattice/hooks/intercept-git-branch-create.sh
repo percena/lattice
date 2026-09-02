@@ -97,9 +97,13 @@ if [[ ! -f "$DETECTOR" ]]; then exit 0; fi
 det=$(printf '%s' "$cleaned" | python3 "$DETECTOR" 2>/dev/null) || exit 0
 [[ -n "$det" ]] || exit 0
 
-op=$(printf '%s' "$det" | jq -r '.op // "none"' 2>/dev/null)
-target=$(printf '%s' "$det" | jq -r '.target // empty' 2>/dev/null)
-cwd_override=$(printf '%s' "$det" | jq -r '.cwd_override // empty' 2>/dev/null)
+# jq failures are non-fatal: partial/malformed detector JSON must fail-open
+# (exit 0), not block. Default op to "none" so the check below exits 0
+# (tkt-326).
+op=$(printf '%s' "$det" | jq -r '.op // "none"' 2>/dev/null || true)
+op="${op:-none}"
+target=$(printf '%s' "$det" | jq -r '.target // empty' 2>/dev/null || true)
+cwd_override=$(printf '%s' "$det" | jq -r '.cwd_override // empty' 2>/dev/null || true)
 [[ "$op" != "none" ]] || exit 0
 
 # Effective directory for the location check: a `git -C <path>` override
