@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/383 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T11:52:47Z |
 | adopted | false |
 | summary | chmod +x stamp-pr-open.sh / review-context.py + mode lint for SKILL-named scripts |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,13 +28,13 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-383-skill-script-modes-lint |
 | worktree | sibling `…/<repo>.worktrees/tkt-383-skill-script-modes-lint/` |
-| prs | (none) |
+| prs | pr-395 — https://github.com/percena/lattice/pull/395 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `stamp-pr-open.sh` and `review-context.py` are `100755` in git.
-- [ ] **A2** `validate-skills.sh` mode lint catches SKILL-named scripts at `100644` (planted-drift test).
-- [ ] **A3** `skill-scripts-exist` probe passes (no `high` fail row for this class).
+- [x] **A1** `stamp-pr-open.sh` and `review-context.py` are `100755` in git.
+- [x] **A2** `validate-skills.sh` mode lint catches SKILL-named scripts at `100644` (planted-drift test).
+- [x] **A3** `skill-scripts-exist` probe passes (no `high` fail row for this class).
 
 ## Approach
 
