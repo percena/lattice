@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | bug,P2 |
 | github | https://github.com/percena/lattice/issues/356 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T05:19:22Z |
-| updated | 2026-09-02T05:19:22Z |
+| updated | 2026-09-02T05:31:44Z |
 | adopted | false |
 | summary | A4 partial-line status-row simulation breaks on macOS (BSD sed/grep); test 7/11 red locally, green in CI. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
