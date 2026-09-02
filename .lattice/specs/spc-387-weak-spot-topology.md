@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: review-lineage L4 — weak-spot topology + optimization recommendations
 
 > **TL;DR:** Add an L4 synthesis layer to the `review-lineage` skill (spc-369): a `hotspot-metrics.sh` sensor that clusters files fixed repeatedly into path-level weak spots, a method extension for root-cause + curve-bending analysis, and template sections for the topology table + optimization recommendations — so each audit answers "which path in our workflow keeps breaking and what single structural change would fix the most of it."
-> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** rev-20260902-080545Z → spc-387 → tkt-… → pr-…
 
 ## Why

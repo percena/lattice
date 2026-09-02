@@ -70,7 +70,7 @@ sys.path.insert(0, os.environ["HM_LIB"])
 import hotspot_metrics as hm
 
 assert hm._classify_fix("fix(tkt-127): flip binder status pr-open -> closed") == "status-flip"
-assert hm._classify_fix("fix(tkt-360): finish-ledger fail-closed when ledger not staged") == "other"
+assert hm._classify_fix("fix(tkt-360): finish-ledger fail-closed when ledger not staged") == "hardening"
 assert hm._classify_fix("fix(tkt-367): finish-commit.sh bash-3.2 unbound-variable on empty array") == "bash-guard"
 print("OK: fix-class classification correct")
 PY
@@ -94,5 +94,104 @@ skill, stage, ckey = hm._attrib_file("tools/validate-lattice-artifacts.py")
 assert skill == "cross-cutting", "expected cross-cutting, got %s" % skill
 
 print("OK: file attribution correct")
+PY
+}
+
+# --- Extended fix-class taxonomy (tkt-392) ---
+
+@test "fix-class: hardening (fail-closed/loud/open, guard, enforce)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(tkt-360): finish-ledger fail-closed when ledger not staged") == "hardening"
+assert hm._classify_fix("fix(tkt-326): make jq failures non-fatal (fail-open)") == "hardening"
+assert hm._classify_fix("fix: hard-enforce skill pipeline — strict hooks default") == "hardening"
+print("OK: hardening classification correct")
+PY
+}
+
+@test "fix-class: binder-format (binder format drift, prs-row, binder_rows)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(tkt-260): binder format drift caught by warning ratchet") == "binder-format"
+assert hm._classify_fix("fix(#91): prs-row grammar single-source — binder_rows lib") == "binder-format"
+print("OK: binder-format classification correct")
+PY
+}
+
+@test "fix-class: ci-infra (ci-gate, routing-eval, bats pin)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(tkt-236): ci-gate pending bypass + failure-classify over-waiver") == "ci-infra"
+assert hm._classify_fix("fix(tkt-246): pin CI bats to bats-core v1.13.0") == "ci-infra"
+print("OK: ci-infra classification correct")
+PY
+}
+
+@test "fix-class: docs-sync (stale ref, rename, TL;DR)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(spc-186): clean stale spc-187 ref in workflow-fsm.md") == "docs-sync"
+assert hm._classify_fix("fix(spc-220): align TL;DR header status to done") == "docs-sync"
+print("OK: docs-sync classification correct")
+PY
+}
+
+@test "fix-class: feature-bug (hostname, git branch, terminal cancel)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(tkt-325): add --hostname to gh api base-sha fetch") == "feature-bug"
+assert hm._classify_fix("fix(tkt-150): finish-ledger terminal cancel + full working-state vocabulary") == "feature-bug"
+print("OK: feature-bug classification correct")
+PY
+}
+
+@test "fix-class: portability (python 3.x, CJK, BSD)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(#143): binder_rows.py Python 3.9 compat") == "portability"
+assert hm._classify_fix("fix(#22): check-duplicate-work.sh CJK matching — LC_ALL=C for BSD grep") == "portability"
+print("OK: portability classification correct")
+PY
+}
+
+@test "fix-class: residue-cleanup (residue, leftover)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(tkt-299): remove committed tkt-7.jsonl residue") == "residue-cleanup"
+assert hm._classify_fix("fix(#133): finish-work train-retirement residue cleanup") == "residue-cleanup"
+print("OK: residue-cleanup classification correct")
+PY
+}
+
+@test "fix-class: review-followup (post-review, post-merge review)" {
+  python3 - <<PY
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
+import hotspot_metrics as hm
+assert hm._classify_fix("fix(tkt-216): post-review batch — 4 HIGH + 2 MEDIUM bugs") == "review-followup"
+assert hm._classify_fix("fix(tkt-179): 9 MEDIUM post-merge review fixes across ratify") == "review-followup"
+print("OK: review-followup classification correct")
 PY
 }
