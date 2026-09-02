@@ -1,0 +1,1 @@
+{"ts":"2026-09-02T10:01:47Z","ticket":"tkt-381","from":"queued","to":"in-progress","owner":"agent","reason":"start-work: implementing queue_health regex fix + validator binder_row_extra_columns","guard":"start-work bind / batch-work spawn","escape_used":false,"force_side_state_reason":null,"trace":"status stamp","metric":"water-level"}

@@ -56,7 +56,12 @@ DEFAULT_THRESHOLDS: Dict[str, int] = {
 }
 
 # Field-table row regex: `| field | value |` → captures field name + value.
-_FIELD_ROW_RE = re.compile(r"^\|\s*(?P<field>[A-Za-z_]+)\s*\|\s*(?P<value>.*?)\s*\|\s*$")
+# tkt-381: value capture is `[^|]*?` (stop at next pipe, not last) so a
+# 3-column row (`| status | closed | 2026-09-02T… |`) parses the second cell
+# only (`closed`), not `closed | 2026-09-02T…`. The trailing `.*` absorbs any
+# stray third-cell content so the row still matches; the value is the second
+# cell only.
+_FIELD_ROW_RE = re.compile(r"^\|\s*(?P<field>[A-Za-z_]+)\s*\|\s*(?P<value>[^|]*?)\s*\|.*$")
 
 # PR number extraction from the binder `prs` row: first `pr-N` token.
 _PR_NUM_RE = re.compile(r"\bpr-([1-9][0-9]*)\b")

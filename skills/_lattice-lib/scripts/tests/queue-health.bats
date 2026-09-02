@@ -400,6 +400,64 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# tkt-381: _FIELD_ROW_RE reads 3-column binder rows correctly
+# ---------------------------------------------------------------------------
+
+@test "_parse_field_rows reads 3-column row value as second cell only" {
+  python3 - "$QH_LIB" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import queue_health as qh
+# A binder with a stray 3rd column (legacy drift — 15 binders carry this).
+text = "| status | closed | 2026-09-02T09:20:35Z |"
+rows = qh._parse_field_rows(text)
+assert rows.get("status") == "closed", repr(rows.get("status"))
+PY
+}
+
+@test "_parse_field_rows still reads 2-column rows correctly" {
+  python3 - "$QH_LIB" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import queue_health as qh
+text = "| status | closed |"
+rows = qh._parse_field_rows(text)
+assert rows.get("status") == "closed", repr(rows.get("status"))
+text2 = "| status | queued |"
+rows2 = qh._parse_field_rows(text2)
+assert rows2.get("status") == "queued", repr(rows2.get("status"))
+PY
+}
+
+@test "scan_binders counts a 3-column closed binder as terminal" {
+  NOW="2026-08-29T12:00:00Z"
+  mkdir -p "$TICKETS/tkt-200-three-col"
+  cat >"$TICKETS/tkt-200-three-col/README.md" <<'EOF'
+# tkt-200-three-col
+
+| Field | Value |
+| --- | --- |
+| status | closed | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T09:20:35Z |
+| prs | (none) |
+| wait_reason | (none) |
+EOF
+  mkdir -p "$LATTICE_HOME/.transition-ledger"
+  printf '%s\n' '{"ticket":"tkt-200","from":"queued","to":"closed","reason":"merge","metric":"direct-jump"}' \
+    > "$LATTICE_HOME/.transition-ledger/tkt-200.jsonl"
+  HOME="$TICKETS" python3 - "$QH_LIB" "$NOW" <<'PY'
+import datetime, os, sys
+sys.path.insert(0, sys.argv[1])
+import queue_health as qh
+now = datetime.datetime.strptime(sys.argv[2], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+data = qh.scan_binders(os.environ["HOME"], now=now)
+cov = data["ledger_coverage"]
+assert cov["terminal"] == 1, cov  # the 3-column binder must be counted
+assert cov["with_ledger"] == 1, cov
+PY
+}
+
+# ---------------------------------------------------------------------------
 # spc-337 A1: ledger coverage + direct-jump sensor
 # ---------------------------------------------------------------------------
 

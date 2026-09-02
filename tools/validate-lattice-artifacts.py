@@ -1474,6 +1474,38 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             ),
                         }
                     )
+        # tkt-381: binder field-table data rows should not carry more cells
+        # than the header declares. A stray extra column (e.g.
+        # `| status | closed | 2026-… |` in a 2-column table) caused the
+        # queue_health parser to read `closed | 2026-…` as the value (fixed
+        # in the parser, but the row itself is drift — ADR-012 §7 front-matter
+        # migration will re-row these). Warning-level: legacy binders with stray
+        # columns are baselined, not re-rowed here. Escaped pipes (`\|`) in
+        # values are not counted as column separators.
+        _tb_lines = _tb.splitlines()
+        _declared_cols = 0
+        if _tb_lines:
+            _hdr_cells = [c.strip() for c in re.split(r'(?<!\\)\|', _tb_lines[0].strip()) if c.strip()]
+            _declared_cols = len(_hdr_cells)
+        for _ri, _row in enumerate(_tb_lines):
+            if _ri < 2:  # skip header + separator
+                continue
+            _cells = [c.strip() for c in re.split(r'(?<!\\)\|', _row.strip()) if c.strip()]
+            if _declared_cols and len(_cells) > _declared_cols:
+                findings.append(
+                    {
+                        "code": "binder_row_extra_columns",
+                        "level": "warning",
+                        "path": str(path),
+                        "detail": (
+                            f"field-table row has a stray extra column: "
+                            f"{_row.strip()!r} — table declares "
+                            f"{_declared_cols} column(s); row has "
+                            f"{len(_cells)} (ADR-012 §7 front-matter migration)"
+                        ),
+                    }
+                )
+                break  # one warning per binder is enough for triage
         if st in STATUS_TERMINAL and not has_finish_ledger(text):
             findings.append(
                 {

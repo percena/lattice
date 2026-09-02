@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/381 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T17:30:00Z |
 | adopted | false |
 | summary | queue_health field-row regex reads 3-column rows + validator guard |
 | spec | (none — spawned from rev-20260902-080545Z) |

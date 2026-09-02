@@ -224,3 +224,6 @@ closed_without_ledger_legacy	.lattice/tickets/tkt-93-dup-work-fail-loud/README.m
 closed_without_ledger_legacy	.lattice/tickets/tkt-94-registration-surfaces/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-94.jsonl (create
 closed_without_ledger_legacy	.lattice/tickets/tkt-95-docs-truth/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-95.jsonl (create
 closed_without_ledger_legacy	.lattice/tickets/tkt-96-observation-capture/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-96.jsonl (create
+# tkt-381: legacy binder field-table rows with stray extra columns (baselined).
+binder_row_extra_columns	.lattice/tickets/tkt-121-validator-hardening/README.md
+binder_row_extra_columns	.lattice/tickets/tkt-257-process-false-success-closure/README.md
