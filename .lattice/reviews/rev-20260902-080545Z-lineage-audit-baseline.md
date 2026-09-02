@@ -174,7 +174,9 @@ Recommendation: **A now, C as the already-planned later Spec** — A is a day of
 
 ### Follow-ups
 
-- [ ] Operator: go / edit rows on the Proposed-tickets table; F6 decision (or defer to the ADR-012 §6 Spec)
+- [x] Operator: go / edit rows on the Proposed-tickets table; F6 decision (or defer to the ADR-012 §6 Spec)
+  - Tickets filed 2026-09-02: #381 (F2 regex), #382 (F2 ledger key, blocked_by #381), #383 (F3 chmod+lint), #384 (F4 docs), #385 (F1/F7 sensor extensions), #386 (F5 NOTICED drain).
+  - F6 — needs_decision: what a checked Spec `A*` must cite. Decision: fold into the ADR-012 §6 follow-up Spec; keep the probe at `low`. No standalone ticket.
 - [ ] Next lineage audit after one week of soak (tkt-373 morning-triage cadence); diff against `lineage-20260902-080132Z.json` — expect coverage ▲ only via ticket 5's post-ratchet view, direct commits ▼ once ADR-012 §5 lands, fix-recurrence ▼
 
 ## Method
