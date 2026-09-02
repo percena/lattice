@@ -211,7 +211,10 @@ def _attrib_file(path: str) -> Tuple[str, str, str]:
     - skills/_lattice-lib/ → shared
     - tools/ → cross-cutting
     - docs/ → docs
-    - .lattice/ → lattice-home
+    - .lattice/ → bookkeeping
+    - .github/ → ci-cd
+    - plugins/ → plugin-bundle
+    - evals/ → evals
     cluster_key groups files that belong to the same hotspot.
     """
     for prefix, skill in _PATH_PREFIXES:
@@ -229,7 +232,7 @@ def _attrib_file(path: str) -> Tuple[str, str, str]:
             elif skill == "docs":
                 return "docs", "docs", "docs:" + path.split("/")[1] if len(path.split("/")) > 1 else "docs"
             elif skill == "ci-cd":
-                return "ci-cd", "ci-cd", "ci-cd:" + path.split("/")[2] if len(path.split("/")) > 2 else "ci-cd"
+                return "ci-cd", "ci-cd", "ci-cd:" + path.split("/")[1] if len(path.split("/")) > 1 else "ci-cd"
             elif skill == "plugin-bundle":
                 return "plugin-bundle", "plugin-bundle", "plugin-bundle"
             elif skill == "evals":

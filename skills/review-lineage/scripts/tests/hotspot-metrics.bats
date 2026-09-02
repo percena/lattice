@@ -4,36 +4,38 @@
 # Tests:
 # 1. The Python lib imports and produces all 5 metric sections.
 # 2. The bash wrapper runs and produces Markdown output.
-# 3. Planted-drift: a fixture with fix() commits produces a cluster.
-# 4. Fix-class classification: a 'flip' subject classifies as status-flip.
+# 3. The bash wrapper --json produces valid JSON.
+# 4. Fix-class classification: 'flip' subject → status-flip.
+# 5. File attribution: skills/finish-work/ → finish-work skill.
 
-load "${BATS_LIBS:-$(dirname "$BATS_TEST_DIRNAME")/_lattice-home}/test_helper.bash" 2>/dev/null || true
+setup_file() {
+  REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../../.." && pwd)"
+  export HM="$REPO_ROOT/skills/review-lineage/scripts/hotspot-metrics.sh"
+  export HM_LIB="$REPO_ROOT/skills/review-lineage/scripts/lib"
+  export QH_LIB="$REPO_ROOT/skills/_lattice-lib/scripts/lib"
+}
 
-SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")" && pwd -P)"
-SKILL_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
-LIB_SCRIPTS="$SKILL_ROOT/../../_lattice-lib/scripts"
-RESOLVE="$LIB_SCRIPTS/resolve-lattice-lib.sh"
+setup() {
+  TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hm.XXXXXX")"
+  export HM_TEST_REPO="$REPO_ROOT"
+  export HM_TEST_HOME="$REPO_ROOT/.lattice"
+}
 
-# Resolve _lattice-lib for Python import path
-if [[ -f "$RESOLVE" ]]; then
-  LATTICE_LIB="$(bash "$RESOLVE")"
-  LATTICE_LIB_PY="$LATTICE_LIB/lib"
-else
-  LATTICE_LIB_PY=""
-fi
+teardown() {
+  [[ -n "${TEST_DIR:-}" && -d "$TEST_DIR" ]] && rm -rf "$TEST_DIR"
+}
 
 @test "hotspot_metrics.py imports and produces all 5 metric sections" {
-  [[ -n "$LATTICE_LIB_PY" ]] || skip "_lattice-lib not installed"
   python3 - <<PY
 import sys, os, json
-sys.path.insert(0, "$LATTICE_LIB_PY")
-sys.path.insert(0, "$SCRIPT_DIR/lib")
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
 import hotspot_metrics as hm
 
-repo_root = os.environ.get("HM_TEST_REPO", "$SKILL_ROOT/../..")
+repo_root = os.environ["HM_TEST_REPO"]
 home = os.path.join(repo_root, ".lattice")
 if not os.path.isdir(home):
-    home = repo_root  # fallback
+    home = repo_root
 
 result = hm.collect(home, repo_root=repo_root, since="30d")
 assert "hotspot_clusters" in result, "missing hotspot_clusters"
@@ -47,27 +49,24 @@ PY
 }
 
 @test "hotspot-metrics.sh runs and produces Markdown" {
-  [[ -x "$SKILL_ROOT/scripts/hotspot-metrics.sh" ]] || skip "script not executable"
-  run bash "$SKILL_ROOT/scripts/hotspot-metrics.sh" --no-snapshot --md 2>&1
+  [[ -x "$HM" ]] || skip "script not executable"
+  run bash "$HM" --no-snapshot --md 2>&1
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Hotspot metrics"* ]] || \
-    [[ "$output" == *"Total fix()"* ]]
+  [[ "$output" == *"Hotspot metrics"* || "$output" == *"Total fix()"* ]]
 }
 
 @test "hotspot-metrics.sh --json produces valid JSON" {
-  [[ -x "$SKILL_ROOT/scripts/hotspot-metrics.sh" ]] || skip "script not executable"
-  run bash "$SKILL_ROOT/scripts/hotspot-metrics.sh" --no-snapshot --json 2>&1
+  [[ -x "$HM" ]] || skip "script not executable"
+  run bash "$HM" --no-snapshot --json 2>&1
   [ "$status" -eq 0 ]
-  echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null || \
-    echo "$output" | head -1 | grep -q '{'  # at least starts with JSON
+  echo "$output" | python3 -c "import sys,json; json.load(sys.stdin)"
 }
 
 @test "fix-class classification: 'flip' subject → status-flip" {
-  [[ -n "$LATTICE_LIB_PY" ]] || skip "_lattice-lib not installed"
   python3 - <<PY
-import sys
-sys.path.insert(0, "$LATTICE_LIB_PY")
-sys.path.insert(0, "$SCRIPT_DIR/lib")
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
 import hotspot_metrics as hm
 
 assert hm._classify_fix("fix(tkt-127): flip binder status pr-open -> closed") == "status-flip"
@@ -78,11 +77,10 @@ PY
 }
 
 @test "file attribution: skills/finish-work/ → finish-work skill" {
-  [[ -n "$LATTICE_LIB_PY" ]] || skip "_lattice-lib not installed"
   python3 - <<PY
-import sys
-sys.path.insert(0, "$LATTICE_LIB_PY")
-sys.path.insert(0, "$SCRIPT_DIR/lib")
+import sys, os
+sys.path.insert(0, os.environ["QH_LIB"])
+sys.path.insert(0, os.environ["HM_LIB"])
 import hotspot_metrics as hm
 
 skill, stage, ckey = hm._attrib_file("skills/finish-work/scripts/ci-gate-check.sh")
