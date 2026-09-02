@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/386 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T12:47:01Z |
 | adopted | false |
 | summary | drain the NOTICED backlog: disposition all lines in a rev; file ticket rows |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,13 +28,13 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-386-noticed-backlog-drain |
 | worktree | sibling `…/<repo>.worktrees/tkt-386-noticed-backlog-drain/` |
-| prs | (none) |
+| prs | pr-413 — https://github.com/percena/lattice/pull/413 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** A rev records the disposition table for all NOTICED lines (none left undispositioned).
-- [ ] **A2** `ticket` rows filed as issues (or linked to existing issues); `wontfix` rows recorded with a reason.
-- [ ] **A3** NOTICED backlog count in the next lineage-metrics snapshot shows the drain.
+- [x] **A1** A rev records the disposition table for all NOTICED lines (none left undispositioned).
+- [x] **A2** `ticket` rows filed as issues (or linked to existing issues); `wontfix` rows recorded with a reason.
+- [x] **A3** NOTICED backlog count in the next lineage-metrics snapshot shows the drain.
 
 ## Approach
 
@@ -86,3 +86,12 @@ Grep all `.lattice/tickets/*/README.md` for `^- NOTICED:` lines. For each line, 
 ## Finish
 
 - (none yet)
+
+## Notes (drain summary)
+
+- 42 NOTICED lines dispositioned in `rev-20260902-120000Z-nb.md`
+- 20 resolved-by-later-work (tkt-381..384, tkt-390, tkt-402 fixed most)
+- 5 ticket → filed as #409 (config.yaml docs), #410 (detect-git-branch-op), #411 (test list duplication), #412 (Spec evidence citation)
+- 16 one-liner (noted, no action needed)
+- 1 wontfix (chmod-000 tests fail as root — environmental)
+- Backlog drained to zero undispositioned
