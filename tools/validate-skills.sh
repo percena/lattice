@@ -182,6 +182,7 @@ done
 # consumer installs where no plugins/ tree exists.
 EXEMPT=(
   _lattice-lib # internal library install-unit (anatomy/evals exempt above)
+  review-lineage # spc-369 W0: scripts land before SKILL.md (tkt-370/371); tkt-372/373 move it to USER_FACING
 )
 PLUGIN_SKILLS_DIR="$(dirname "$SKILLS_DIR")/plugins/lattice/skills"
 for dir in "$SKILLS_DIR"/*/; do
