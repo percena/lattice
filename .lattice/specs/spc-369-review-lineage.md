@@ -10,8 +10,8 @@ summary: "A quality side-path skill that mines what the repo actually delivered 
 created: 2026-09-02
 updated: 2026-09-02
 tickets: [tkt-370, tkt-371, tkt-372, tkt-373]
-prs: []
-reviews: [rev-20260902-015425Z]
+prs: [pr-374, pr-375, pr-376, pr-377, pr-378]
+reviews: [rev-20260902-015425Z, rev-20260902-080545Z]
 supersedes: []
 superseded_by: null
 ---
@@ -86,6 +86,10 @@ None of that needed new information; it needed someone to *compute* what the art
 
 Independence gate (G0): tkt-370 and tkt-371 share only the fixtures root, split into disjoint subdirectories.
 
+## Status history
+
+- 2026-09-02: locked (operator sign-off) → A1–A4 delivered via tkt-370..373 (pr-375..378); every PR independently reviewed; fix cycles: tkt-371 ×1, tkt-372 ×1 (rev precision), tkt-370/373 ×0. The skill's dry run produced the first baseline `rev-20260902-080545Z` (7 findings, 6 ticket drafts, 1 needs-decision) — the drafts await operator confirmation before `create-tickets` (D2). Status stays `locked` until one dogfood cycle has passed (ADR-012 §6): the next weekly `review-lineage` run must read the delta against this baseline before `done`.
+
 ## References
 
 - Review: `rev-20260902-015425Z` (method section + re-verification pass)
@@ -96,5 +100,5 @@ Independence gate (G0): tkt-370 and tkt-371 share only the fixtures root, split 
 ## Links / bloodline (L0)
 
 - Tickets: `tkt-370`, `tkt-371`, `tkt-372`, `tkt-373` (GitHub children #370–#373, native sub-issues of #369)
-- PRs: (none yet)
-- Reviews: `rev-20260902-015425Z`
+- PRs: `pr-374` (planning), `pr-375` (tkt-370), `pr-376` (tkt-371), `pr-377` (tkt-372), `pr-378` (tkt-373)
+- Reviews: `rev-20260902-015425Z` (origin), `rev-20260902-080545Z` (first lineage-audit baseline, produced by the skill's own dry run)
