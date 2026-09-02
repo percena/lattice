@@ -32,9 +32,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** 8 new fix-class patterns added to `_FIX_CLASSES`, each with a planted-drift bats test
-- [ ] **A2** Dry run on this repo: fix_class "other" drops from 66% to <15%
-- [ ] **A3** No existing fix-class classification changes (status-flip, regex-drift, bash-guard, field-mismatch, atomicity still match the same commits)
+- [x] **A1** 8 new fix-class patterns added to `_FIX_CLASSES`, each with a planted-drift bats test
+- [x] **A2** Dry run on this repo: fix_class "other" drops from 66% to <15% (59 → 12 = 13.5%)
+- [x] **A3** No existing fix-class classification changes (status-flip=13, regex-drift=1, bash-guard=3, field-mismatch=4, atomicity=9 — all unchanged)
 
 ## Approach
 

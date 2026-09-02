@@ -80,6 +80,15 @@ _FIX_CLASSES: List[Tuple[str, re.Pattern]] = [
     ("bash-guard", re.compile(r"bash.*3\.2|unbound|empty.*array|set -u|\$\{ARR", re.I)),
     ("field-mismatch", re.compile(r"field|gh.*json|conclusion|state_reason|baseRef", re.I)),
     ("atomicity", re.compile(r"atomic|race|lock|transaction|commit_transaction", re.I)),
+    # Extended classes (tkt-392): seeded from dry-run analysis of 59 "other" commits.
+    ("hardening", re.compile(r"hardening|harden|fail-closed|fail-loud|fail-open|guard|proof|enforce|enforcement", re.I)),
+    ("binder-format", re.compile(r"binder.*format|prs-row|checkbox|binder-hygiene|binder.*dir|slug.*ledger|format drift|placeholder", re.I)),
+    ("ci-infra", re.compile(r"ci-gate|ci-local|routing-eval|bats.*pin|pin.*bats|assertion|CI guard|CI red|ls-remote flake|bisect", re.I)),
+    ("docs-sync", re.compile(r"docs.*residue|stale.*ref|rename|renumber|strip.*header|TL;DR.*header|conflict marker|docs sync|hygiene", re.I)),
+    ("feature-bug", re.compile(r"hostname|git branch.*force|terminal cancel|terminal.*vocab|e2e-story|batch-work.*enforcement|RAM probe|DAG intake|data-command", re.I)),
+    ("portability", re.compile(r"python 3\.[89]|LC_ALL|CJK|sed -i|mapfile|compat|BSD|IFS leak|nested-shell", re.I)),
+    ("residue-cleanup", re.compile(r"residue|cleanup|remove.*committed|strip stale|leftover", re.I)),
+    ("review-followup", re.compile(r"post-review|post-merge.*review|review.*follow|review-code findings|dev branch review", re.I)),
 ]
 
 # Finding-class signatures (keyword sets matched against ### F headings).
@@ -628,7 +637,9 @@ def render_md(cur: Dict[str, Any], d: Optional[Dict[str, Any]] = None) -> str:
     lines.append("")
     lines.append("| class | count |")
     lines.append("| --- | --- |")
-    for cls in ["status-flip", "regex-drift", "bash-guard", "field-mismatch", "atomicity", "other"]:
+    for cls in ["status-flip", "regex-drift", "bash-guard", "field-mismatch", "atomicity",
+                "hardening", "binder-format", "ci-infra", "docs-sync", "feature-bug",
+                "portability", "residue-cleanup", "review-followup", "other"]:
         lines.append("| %s | %s |" % (cls, hist.get(cls, 0)))
     lines.append("")
 
