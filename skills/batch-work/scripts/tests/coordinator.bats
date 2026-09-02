@@ -355,6 +355,12 @@ EOF
   m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
   mkdir -p "$wt"; printf 'x\n' >"$brief"
   printf 'tkt-D\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  # spc-337 A6 (review cycle 2): the fast helper leaves tkt-D `unknown`, and
+  # the spine's unknown→stuck commit needs the in-progress binder the worker
+  # would have stamped — without it the transition is refused and the wave
+  # (correctly) exits non-ok. This test is about wiring, so give it the binder.
+  DDIR="$LATTICE_HOME/tickets/tkt-D-demo"; mkdir -p "$DDIR"
+  printf '# tkt-D\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| updated | 2026-09-01T00:00:00Z |\n' >"$DDIR/README.md"
   # --batch-id alone (no --coordinator) → coordinator default-on (state persisted)
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
