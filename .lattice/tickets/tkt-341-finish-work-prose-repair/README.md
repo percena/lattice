@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/341 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:34:19Z |
+| updated | 2026-09-02T02:42:04Z |
 | adopted | false |
 | summary | finish-work prose repaired: multi-PR merge verifier, marker location, ci-gate-check in short path, explicit base-tip capture; docs-truth bats. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-341-finish-work-prose-repair |
 | worktree | sibling `…/lattice.worktrees/tkt-341-finish-work-prose-repair/` |
-| prs | (none) |
+| prs | pr-345 — https://github.com/percena/lattice/pull/345 |
 
 ## Acceptance (this slice)
 
