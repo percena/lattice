@@ -102,9 +102,9 @@ def is_side_state(status: str) -> bool:
 # stays dependency-free so consumer repos can vendor the validator alone; a
 # bats test (tools/tests/transition-parity.bats) asserts the two stay
 # parity-equal. The lib is canonical -- edit there, then mirror here.
-# Each entry is (from, to); "any" matches any source (cancel). An absent
-# (from, to) pair is an illegal edge (e.g. direct rework -> pr-open, which
-# must go rework -> in-progress -> pr-open).
+# Each entry is (from, to); there is NO wildcard source (spc-337 A2 removed
+# `any -> closed`). An absent (from, to) pair is an illegal edge (e.g. direct
+# rework -> pr-open, which must go rework -> in-progress -> pr-open).
 LEGAL_TRANSITIONS: set[tuple[str, str]] = {
     ("init", "queued"), ("queued", "in-progress"), ("queued", "pr-open"),
     ("queued", "deferred"), ("in-progress", "deferred"), ("deferred", "queued"),
@@ -112,7 +112,11 @@ LEGAL_TRANSITIONS: set[tuple[str, str]] = {
     ("in-progress", "pr-open"), ("in-progress", "parked"),
     ("in-progress", "stuck"), ("parked", "queued"), ("stuck", "queued"),
     ("pr-open", "rework"), ("rework", "in-progress"),
-    ("pr-open", "pr-open"), ("pr-open", "closed"), ("any", "closed"),
+    ("pr-open", "pr-open"), ("pr-open", "closed"),
+    # Explicit terminal edges (spc-337 A2 / ADR-012 sec.3): no wildcard source.
+    ("queued", "closed"), ("in-progress", "closed"), ("parked", "closed"),
+    ("stuck", "closed"), ("rework", "closed"), ("deferred", "closed"),
+    ("open", "closed"),  # legacy coarse status, lazy migration
     # Side-state guard (ADR-007 sec.5b): legal ONLY with operator override.
     # All four SIDE_STATES get an escape edge (review F1): omitting
     # rework/deferred left --force-side-state flips on them undetected.
@@ -194,12 +198,38 @@ LEGAL_EDGES_FULL: tuple[tuple, ...] = (
      "rebase-void",
      None, "re-review trace", "re-review-count", False),
     ("pr-open", "closed", "human",
-     "merge — day only; .batch-work-active marker gate",
-     "merge",
-     None, "Finish ledger mergedAt", "merge-count", False),
-    ("any", "closed", "human",
-     "cancel", "cancel",
-     None, "Finish ledger (no mergedAt)", "cancel-count", False),
+     "merge — day only; .batch-work-active marker gate | close without merge (cancel)",
+     "merge|cancel",
+     None, "Finish ledger mergedAt (no mergedAt on cancel)", "merge-count", False),
+    # Explicit terminal edges (spc-337 A2 / ADR-012 sec.3) — mirror of the lib.
+    ("queued", "closed", "human",
+     "merge observed from queued (direct jump; stamps skipped) | cancel",
+     "merge|cancel",
+     None, "Finish ledger (+anomaly on direct-jump merge)", "direct-jump", False),
+    ("in-progress", "closed", "human",
+     "merge observed from in-progress (direct jump; pr-open skipped) | cancel",
+     "merge|cancel",
+     None, "Finish ledger (+anomaly on direct-jump merge)", "direct-jump", False),
+    ("parked", "closed", "human",
+     "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+     "cancel",
+     None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count", False),
+    ("stuck", "closed", "human",
+     "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+     "cancel",
+     None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count", False),
+    ("rework", "closed", "human",
+     "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+     "cancel",
+     None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count", False),
+    ("deferred", "closed", "human",
+     "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+     "cancel",
+     None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count", False),
+    ("open", "closed", "human",
+     "legacy coarse status (lazy migration): merge | cancel",
+     "merge|cancel",
+     None, "Finish ledger", "legacy-close", False),
     ("parked", "pr-open", "agent",
      "ILLEGAL unless --force-side-state --reason (operator-adjudicated)",
      "force-side-state crossing",
@@ -223,6 +253,9 @@ LEGAL_EDGES_FULL: tuple[tuple, ...] = (
      "side-state-crossings", True),
 )
 TRANSITION_LEDGER_DIR = ".transition-ledger"
+# spc-337 A1 / ADR-012 sec.4: terminal binders created on/after this instant
+# must carry a transition ledger (error); earlier binders warn (baselined).
+LEDGER_COVERAGE_CUTOFF = "2026-09-02T00:00:00Z"
 SPEC_ID_RE = re.compile(r"^spc-([1-9][0-9]*)$")
 TKT_ID_RE = re.compile(r"^tkt-([1-9][0-9]*)$")
 # tkt-pending-<slug> dirs are a valid transient state before gh issue create
@@ -1449,6 +1482,48 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     "detail": f"status {st!r} but ## Finish ledger is missing or placeholder-only",
                 }
             )
+        # Ledger coverage (spc-337 A1 / ADR-012 sec.4): a terminal binder must
+        # have a per-ticket transition ledger — otherwise the status flip was a
+        # hand edit or a stamp whose ledger landed outside the repo (the cwd
+        # bug fixed in spc-337). Binders created on/after the cutoff error;
+        # legacy binders (created before it, or with no created row) warn and
+        # sit in the ratchet baseline. Legacy slug-named ledger files
+        # (`tkt-N-<slug>.jsonl`) count as coverage.
+        if st in STATUS_TERMINAL:
+            _tkt = re.match(r"^(tkt-\d+)", path.parent.name)
+            if _tkt:
+                _tid = _tkt.group(1)
+                _ldir = home / TRANSITION_LEDGER_DIR
+                _has_ledger = (_ldir / f"{_tid}.jsonl").is_file() or any(
+                    _ldir.glob(f"{_tid}-*.jsonl")
+                )
+                if not _has_ledger:
+                    _cm = CREATED_TABLE_RE.search(first_table_block(text))
+                    _created = _cm.group(1).strip() if _cm else ""
+                    _post_cutoff = bool(
+                        BINDER_TS_RE.fullmatch(_created) and _created >= LEDGER_COVERAGE_CUTOFF
+                    )
+                    findings.append(
+                        {
+                            # Post-cutoff: hard error. Pre-cutoff / undated:
+                            # `closed_without_ledger_legacy` — a lazy-migration
+                            # warning class (ratchet-exempt like
+                            # evidence_legacy_v0, and snapshotted in the
+                            # baseline so the count can only shrink).
+                            "code": "closed_without_ledger" if _post_cutoff else "closed_without_ledger_legacy",
+                            "level": "error" if _post_cutoff else "warning",
+                            "path": str(path),
+                            "detail": (
+                                f"status {st!r} but no transition ledger "
+                                f"{TRANSITION_LEDGER_DIR}/{_tid}.jsonl "
+                                f"(created {_created or 'unknown'}; "
+                                f"{'post' if _post_cutoff else 'pre'}-cutoff "
+                                f"{LEDGER_COVERAGE_CUTOFF}) — status flips go through "
+                                "transition-api.py commit (ADR-012 sec.1); legacy "
+                                "binders are baselined, never hand-rewritten"
+                            ),
+                        }
+                    )
         # Inverse of closed_without_finish: a merged OR cancel ## Finish ledger
         # is terminal evidence provable from one snapshot (tkt-151 A4), so a
         # working/legacy status contradicts the binder's own single source of
@@ -1650,10 +1725,8 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             ),
                         }
                     )
-                # "any" wildcard (cancel) matches any source.
-                pair_legal = (frm, to) in LEGAL_TRANSITIONS or (
-                    "any", to
-                ) in LEGAL_TRANSITIONS
+                # no wildcard source (spc-337 A2): the pair itself must be listed
+                pair_legal = (frm, to) in LEGAL_TRANSITIONS
                 if not pair_legal:
                     findings.append(
                         {
@@ -1850,7 +1923,13 @@ def main(argv: list[str] | None = None) -> int:
     # accepted during the v0→v1 transition) — never ratcheted fatal, so the
     # first v0 pass row in .lattice does not break CI. Exempt it only when a
     # baseline is present (ratchet mode); no baseline ⇒ no ratchet (else []).
-    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0"}
+    # spc-337 A1 / D4: closed_without_ledger_legacy marks terminal binders
+    # that predate the ledger contract (created before LEDGER_COVERAGE_CUTOFF
+    # or undated). They are baselined for the record but ratchet-exempt: the
+    # PR-vs-base-baseline comparison (artifacts.yml, spc-270 A6.3) would
+    # otherwise refuse the very PR that introduces the check. Lifting the
+    # exemption is the documented migration step (.warning-migration-schedule).
+    RATCHET_EXEMPT_CODES = {"evidence_legacy_v0", "closed_without_ledger_legacy"}
 
     def _is_baselined(w: dict[str, str]) -> bool:
         # A6.1: a warning is baselined if its exact 3-col sig matches OR the

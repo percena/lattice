@@ -18,7 +18,7 @@ which must go `rework → in-progress → pr-open`) are simply *absent* from
 `LEGAL_EDGES` — the validator flags any ledger (from, to) pair not present.
 
 Each edge carries the ADR-007 five-piece contract shape:
-  from   — source status ("init" for creation, "any" for cancel)
+  from   — source status ("init" for creation; no wildcard sources — spc-337 A2)
   to     — target status
   owner  — human | agent | system (who fires it)
   guard  — condition that must hold (the red line; None = none)
@@ -34,7 +34,7 @@ from typing import NamedTuple, Optional, Tuple
 
 
 class Transition(NamedTuple):
-    from_: str          # "init" / "any" / a status value
+    from_: str          # "init" / a status value (no wildcard sources)
     to: str             # target status value
     owner: str          # human | agent | system (| for shared)
     guard: Optional[str]
@@ -116,12 +116,48 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
                "rebase-void",
                None, "re-review trace", "re-review-count"),
     Transition("pr-open", "closed", "human",
-               "merge — day only; .batch-work-active marker gate",
-               "merge",
-               None, "Finish ledger mergedAt", "merge-count"),
-    Transition("any", "closed", "human",
-               "cancel", "cancel",
-               None, "Finish ledger (no mergedAt)", "cancel-count"),
+               "merge — day only; .batch-work-active marker gate | close without merge (cancel)",
+               "merge|cancel",
+               None, "Finish ledger mergedAt (no mergedAt on cancel)", "merge-count"),
+    # Explicit terminal edges (spc-337 A2 / ADR-012 §3). The former
+    # `any -> closed` wildcard let a merged ticket that skipped in-progress /
+    # pr-open replay as a clean "cancel"; now each source has its own edge so
+    # the ledger distinguishes merge from cancel from a skipped lifecycle.
+    #   queued|in-progress -> closed: a MERGED PR observed from a pre-PR state
+    #   (metric `direct-jump`; finish-ledger journals an `anomaly:` line) OR a
+    #   cancel (finish-ledger --cancel --reason).
+    #   parked|stuck|rework|deferred -> closed: cancel (reason required) OR a
+    #   MERGED PR from a side state (finish-ledger `anomaly:` line).
+    Transition("queued", "closed", "human",
+               "merge observed from queued (direct jump; stamps skipped) | cancel",
+               "merge|cancel",
+               None, "Finish ledger (+anomaly on direct-jump merge)", "direct-jump"),
+    Transition("in-progress", "closed", "human",
+               "merge observed from in-progress (direct jump; pr-open skipped) | cancel",
+               "merge|cancel",
+               None, "Finish ledger (+anomaly on direct-jump merge)", "direct-jump"),
+    Transition("parked", "closed", "human",
+               "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+               "cancel",
+               None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count"),
+    Transition("stuck", "closed", "human",
+               "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+               "cancel",
+               None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count"),
+    Transition("rework", "closed", "human",
+               "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+               "cancel",
+               None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count"),
+    Transition("deferred", "closed", "human",
+               "cancel (finish-ledger --cancel --reason) | merge anomaly from side state",
+               "cancel",
+               None, "Finish ledger (no mergedAt on cancel; anomaly on merge)", "cancel-count"),
+    # Legacy coarse `open` (pre-FSM binders; validator warns `legacy_open_status`)
+    # may still be closed by finish-ledger during lazy migration.
+    Transition("open", "closed", "human",
+               "legacy coarse status (lazy migration): merge | cancel",
+               "merge|cancel",
+               None, "Finish ledger", "legacy-close"),
     # Side-state guard (ADR-007 sec.5b): a pr-open stamp crossing a side
     # state is refused without an explicit operator-adjudicated --force-side-
     # state --reason override that journals a structured trace. These edges
@@ -159,30 +195,25 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
     # WITHOUT a force_side_state_reason is flagged illegal by the validator.
 )
 
-# Edge lookup keyed by (from, to). "any" matches any source for cancel.
+# Edge lookup keyed by (from, to). No wildcard sources (spc-337 A2): every
+# legal edge names its literal source, so a ledger pair is legal iff it is
+# listed here.
 _EDGE_INDEX = {(e.from_, e.to): e for e in LEGAL_EDGES}
+
+# Terminal edges that are a `direct-jump` when the PR was MERGED: the ticket
+# reached `closed` without passing pr-open (spc-337 A2). finish-ledger journals
+# an `anomaly:` line and the ledger carries metric `direct-jump`.
+DIRECT_JUMP_TERMINAL_SOURCES = frozenset({"queued", "in-progress"})
 
 
 def is_legal_edge(frm: str, to: str) -> bool:
-    """True if the (frm, to) pair is a legal transition per the schema.
-
-    `frm` may be "any" (cancel accepts any source); a literal source is also
-    matched against the "any" edge so cancel is legal from any status.
-    """
-    if (frm, to) in _EDGE_INDEX:
-        return True
-    if ("any", to) in _EDGE_INDEX:
-        return True
-    return False
+    """True if the (frm, to) pair is a legal transition per the schema."""
+    return (frm, to) in _EDGE_INDEX
 
 
 def edge_for(frm: str, to: str) -> Optional[Transition]:
-    """Return the Transition for (frm, to), preferring the literal edge over
-    the "any" wildcard. None if illegal."""
-    e = _EDGE_INDEX.get((frm, to))
-    if e is not None:
-        return e
-    return _EDGE_INDEX.get(("any", to))
+    """Return the Transition for (frm, to). None if illegal."""
+    return _EDGE_INDEX.get((frm, to))
 
 
 def requires_escape(frm: str, to: str) -> bool:
@@ -196,5 +227,4 @@ def requires_escape(frm: str, to: str) -> bool:
 
 def legal_from_status(frm: str) -> list:
     """All legal target statuses reachable from `frm`."""
-    return sorted({e.to for e in LEGAL_EDGES
-                   if e.from_ == frm or e.from_ == "any"})
+    return sorted({e.to for e in LEGAL_EDGES if e.from_ == frm})

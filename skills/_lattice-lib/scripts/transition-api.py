@@ -60,14 +60,33 @@ from lib import status_vocab as sv  # noqa: E402
 from lib import binder_rows  # noqa: E402
 
 
-def ledger_path(ticket: str) -> Path:
+def home_for_binder(binder: "Path | str | None") -> "Path | None":
+    """The Lattice home that OWNS a binder: `<home>/tickets/<tkt-dir>/README.md`
+    -> `<home>` (spc-337 A1 / ADR-012 sec.4). Returns None when the path is not
+    shaped like a binder (callers fall back to the env/cwd home)."""
+    if not binder:
+        return None
+    b = Path(binder)
+    if b.name == "README.md" and b.parent.parent.name == "tickets":
+        return b.parent.parent.parent
+    return None
+
+
+def ledger_path(ticket: str, home: "Path | str | None" = None) -> Path:
     """Per-ticket committed ledger file (spc-254 review F2): a single shared
     gitignored ledger made CI's replay a no-op (the file never existed on a
     fresh checkout). Per-ticket files under .lattice/.transition-ledger/ are
     committed alongside the binder stamp, so CI accumulates them and the
     replay enforces edge legality for real. Per-ticket avoids cross-ticket
-    merge conflicts on parallel worktrees."""
-    home = os.environ.get("LATTICE_HOME", ".lattice")
+    merge conflicts on parallel worktrees.
+
+    Resolution order (spc-337 A1): an explicit `home` (the binder's own home,
+    from `home_for_binder`) wins; else `LATTICE_HOME`; else `.lattice` under
+    the current directory. Before spc-337 the ledger was ALWAYS resolved from
+    cwd while every writer staged it from the binder path, so a stamp run from
+    a non-toplevel cwd silently lost its ledger (tkt-335)."""
+    if home is None:
+        home = os.environ.get("LATTICE_HOME", ".lattice")
     return Path(home) / ".transition-ledger" / f"{ticket}.jsonl"
 
 
@@ -115,16 +134,18 @@ def resolve_state_home() -> str:
     return home
 
 
-def lock_path(ticket: str) -> Path:
+def lock_path(ticket: str, ledger_home: "Path | str | None" = None) -> Path:
     """Flock sidecar for the per-ticket ledger. Per ADR-011 / spc-282 A2 the
     .lock lives OUT OF REPO (state home) so it does not leak; the .jsonl it
     guards stays committed in-repo. Returns a state-home path when resolvable,
-    else the legacy co-located .jsonl.lock (never deadlocks a transition)."""
+    else the legacy co-located .jsonl.lock (never deadlocks a transition).
+    `ledger_home` (spc-337 A1) is the binder's own home so the co-located
+    fallback never lands under a foreign cwd either."""
     home = resolve_state_home()
     if home:
         return Path(home) / ".transition-ledger" / f"{ticket}.lock"
     # Legacy fallback: co-located with the ledger (pre-ADR-011 behavior).
-    return ledger_path(ticket).with_suffix(".jsonl.lock")
+    return ledger_path(ticket, ledger_home).with_suffix(".jsonl.lock")
 
 
 def _binder_for_ticket(ticket: str, override: str | None = None) -> Path | None:
@@ -319,6 +340,17 @@ def cmd_commit(args: list) -> int:
         os.close(lock_fd)
 
 
+def _resolve_metric(edge, reason: str) -> "str | None":
+    """Per-edge metric, except that a `direct-jump` edge counts a CANCEL as
+    `cancel-count` — only a merge from queued/in-progress is a direct jump
+    (ADR-012 §3; spc-337 A2 review cycle 1)."""
+    if edge is None:
+        return None
+    if edge.metric == "direct-jump" and "merge" not in str(reason or ""):
+        return "cancel-count"
+    return edge.metric
+
+
 def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
                         reason: str, expected_from: str | None = None,
                         wait_reason: str | None = None,
@@ -378,7 +410,9 @@ def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
         "escape_used": force_reason is not None,
         "force_side_state_reason": force_reason,
         "trace": trace_override or (edge.trace if edge else None),
-        "metric": edge.metric if edge else None,
+        # spc-337 A2 (review cycle 1): `direct-jump` means a MERGE observed from
+        # queued/in-progress; a cancel on the same edge counts as a cancel.
+        "metric": _resolve_metric(edge, reason),
     }
     new_text = _rewrite_field(orig_text, "status", to)
     resolved_wait_reason = wait_reason if wait_reason else "(none)"
@@ -403,7 +437,10 @@ def commit_transaction(binder: Path, new_text: str, entry: dict,
     io/transaction failure."""
     binder = Path(binder)
     tk = ticket or entry.get("ticket", "")
-    lp = ledger_path(tk)
+    # spc-337 A1: the ledger lives in the binder's OWN home, never cwd — the
+    # writers stage `<binder home>/.transition-ledger/<tkt>.jsonl`, so the
+    # two must agree or the ledger is silently lost (tkt-335).
+    lp = ledger_path(tk, home_for_binder(binder))
     lp.parent.mkdir(parents=True, exist_ok=True)
     tmp = binder.with_suffix(".README.md.tmp")
     try:
@@ -456,7 +493,9 @@ def _append_ledger_locked(lp: Path, entry: dict) -> None:
     """Append one JSONL entry under the per-ticket flock (review F7). The
     binder dir lock already serializes this ticket's writers; this flock
     additionally serializes same-clone concurrent recorders across tickets."""
-    lockp = lock_path(entry["ticket"])
+    # The ledger's own home (<home>/.transition-ledger/<tkt>.jsonl -> <home>)
+    # anchors the co-located lock fallback (spc-337 A1: never a foreign cwd).
+    lockp = lock_path(entry["ticket"], lp.parent.parent)
     lockp.parent.mkdir(parents=True, exist_ok=True)
     lock_fd = os.open(str(lockp), os.O_CREAT | os.O_WRONLY, 0o644)
     try:
@@ -539,7 +578,7 @@ def cmd_record(args: list) -> int:
         "escape_used": force_reason is not None,
         "force_side_state_reason": force_reason,
         "trace": trace_override or (edge.trace if edge else None),
-        "metric": edge.metric if edge else None,
+        "metric": _resolve_metric(edge, reason),
     }
     if dry:
         print(json.dumps(entry, indent=2))

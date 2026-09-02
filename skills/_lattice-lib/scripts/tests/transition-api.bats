@@ -282,3 +282,62 @@ MD
   [ "$status" -eq 0 ]
   grep -q '0 illegal/inconsistent' <<<"$output"
 }
+
+# --- spc-337 A1: the ledger lives in the binder's OWN home, never cwd -------
+
+@test "spc-337 A1: commit from a foreign cwd with LATTICE_HOME unset lands the ledger under the binder home" {
+  B=$(make_binder tkt-31)
+  OTHER="$BATS_RUN_TMPDIR/elsewhere-31"
+  mkdir -p "$OTHER"
+  # Fault injection: the pre-spc-337 API resolved `.lattice/.transition-ledger`
+  # relative to cwd, so this exact call wrote the ledger under $OTHER/.lattice
+  # and the writer's `git add <binder home>/.transition-ledger/...` staged
+  # nothing (tkt-335). The binder path is the only home that counts.
+  run env -u LATTICE_HOME bash -c "cd '$OTHER' && python3 '$API' commit tkt-31 in-progress system spawn --binder '$B'"
+  [ "$status" -eq 0 ]
+  [ -s "$LATTICE_HOME/.transition-ledger/tkt-31.jsonl" ]
+  grep -q '"to":"in-progress"' "$LATTICE_HOME/.transition-ledger/tkt-31.jsonl"
+  [ ! -e "$OTHER/.lattice/.transition-ledger/tkt-31.jsonl" ]
+}
+
+@test "spc-337 A1: home_for_binder derives <home> from <home>/tickets/<dir>/README.md and None otherwise" {
+  run python3 - "$API" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('ta', sys.argv[1])
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+assert str(ta.home_for_binder('/x/.lattice/tickets/tkt-9-s/README.md')) == '/x/.lattice'
+assert ta.home_for_binder('/x/other/README.md') is None
+assert ta.home_for_binder(None) is None
+assert str(ta.ledger_path('tkt-9', '/x/.lattice')) == '/x/.lattice/.transition-ledger/tkt-9.jsonl'
+PY
+  [ "$status" -eq 0 ]
+}
+
+# --- spc-337 A2: explicit terminal edges, no `any -> closed` wildcard --------
+
+@test "spc-337 A2: every working state has an explicit -> closed edge; 'any' is not a source" {
+  for frm in queued in-progress parked stuck rework deferred pr-open open; do
+    run python3 "$API" legal "$frm" closed
+    [ "$status" -eq 0 ]
+  done
+  run python3 "$API" legal any closed
+  [ "$status" -ne 0 ]
+  run python3 "$API" legal closed closed
+  [ "$status" -ne 0 ]
+}
+
+@test "spc-337 A2: a merge committed from queued carries metric direct-jump" {
+  B=$(make_binder tkt-32)
+  run python3 "$API" commit tkt-32 closed human merge --binder "$B"
+  [ "$status" -eq 0 ]
+  grep -q '"metric":"direct-jump"' "$LATTICE_HOME/.transition-ledger/tkt-32.jsonl"
+  grep -q '"from":"queued"' "$LATTICE_HOME/.transition-ledger/tkt-32.jsonl"
+}
+
+@test "spc-337 A2 (review cycle 1): a CANCEL committed from queued is metric cancel-count, not direct-jump" {
+  B=$(make_binder tkt-33)
+  run python3 "$API" commit tkt-33 closed human cancel --binder "$B"
+  [ "$status" -eq 0 ]
+  grep -q '"metric":"cancel-count"' "$LATTICE_HOME/.transition-ledger/tkt-33.jsonl"
+  if grep -q '"metric":"direct-jump"' "$LATTICE_HOME/.transition-ledger/tkt-33.jsonl"; then false; fi
+}

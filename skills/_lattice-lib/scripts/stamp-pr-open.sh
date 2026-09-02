@@ -511,7 +511,9 @@ printf '%s\n' "$STAMP_OUT" | grep -vE '^committed:'
 TICKET_ID=$(basename "$(dirname "$BINDER")" | sed -n 's/^\(tkt-[1-9][0-9]*\)-.*/\1/p')
 LATTICE_HOME_DIR=$(dirname "$(dirname "$(dirname "$BINDER")")")
 LEDGER_FILE="$LATTICE_HOME_DIR/.transition-ledger/${TICKET_ID:-unknown}.jsonl"
-[[ -f "$LEDGER_FILE" ]] && git add "$LEDGER_FILE" 2>/dev/null || true
+# spc-337 A1: stage in the binder's repository, never the caller's cwd.
+BINDER_REPO_ROOT=$(git -C "$(dirname "$BINDER")" rev-parse --show-toplevel 2>/dev/null || true)
+[[ -f "$LEDGER_FILE" ]] && git -C "${BINDER_REPO_ROOT:-.}" add -- "$LEDGER_FILE" 2>/dev/null || true
 
 # --- Mirror binder-checked acceptance into the GitHub issue -------------------
 if [[ -z "$ISSUE_M" ]]; then

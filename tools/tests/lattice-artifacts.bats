@@ -645,3 +645,35 @@ print('A6.1: 2 distinct new_warnings (real validator)')
   run python3 "$VAL" --migration-version next --home "$FIX/pass"
   [ "$status" -eq 2 ]
 }
+
+# --- spc-337 A1 / ADR-012 sec.4: ledger coverage --------------------------
+
+@test "spc-337 A1: terminal binder without a ledger is an error post-cutoff, a legacy warning before/undated, clean with a ledger" {
+  run python3 "$VAL" --home "$FIX/ledger-coverage" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  # post-cutoff (created 2026-09-05) -> error code closed_without_ledger
+  printf '%s' "$output" | tr -d '\n' | grep -qE '"code": "closed_without_ledger",[^}]*"path": "[^"]*tkt-1-post-cutoff-no-ledger'
+  # pre-cutoff + undated -> closed_without_ledger_legacy (warning)
+  printf '%s' "$output" | tr -d '\n' | grep -qE '"code": "closed_without_ledger_legacy",[^}]*"level": "warning",[^}]*"path": "[^"]*tkt-2-pre-cutoff-no-ledger'
+  printf '%s' "$output" | tr -d '\n' | grep -qE '"code": "closed_without_ledger_legacy",[^}]*"level": "warning",[^}]*"path": "[^"]*tkt-3-undated-no-ledger'
+  # with a ledger -> no coverage finding at all
+  [ -z "$(printf '%s\n' "$output" | grep -F tkt-4-with-ledger)" ]
+  printf '%s\n' "$output" | grep -qF '"count": 1'
+}
+
+@test "spc-337 A2: the any->closed wildcard is gone from the vendored table; explicit terminal edges replay clean" {
+  run python3 - "$VAL" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('validator', sys.argv[1])
+v = importlib.util.module_from_spec(spec); spec.loader.exec_module(v)
+assert ("any", "closed") not in v.LEGAL_TRANSITIONS
+for frm in ("queued", "in-progress", "parked", "stuck", "rework", "deferred", "pr-open", "open"):
+    assert (frm, "closed") in v.LEGAL_TRANSITIONS, frm
+assert not any(e[0] == "any" for e in v.LEGAL_EDGES_FULL)
+PY
+  [ "$status" -eq 0 ]
+  # the fixture ledger (pr-open -> closed) + the coverage fixture replay without illegal_transition_edge
+  run python3 "$VAL" --home "$FIX/ledger-coverage" --json
+  [ -z "$(printf '%s\n' "$output" | grep -F illegal_transition_edge)" ]
+}

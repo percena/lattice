@@ -398,3 +398,33 @@ EOF
   run bash "$QH" --banner --home "$LATTICE_HOME" --no-gh
   [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# spc-337 A1: ledger coverage + direct-jump sensor
+# ---------------------------------------------------------------------------
+
+@test "scan_binders reports ledger coverage and direct jumps for terminal binders" {
+  NOW="2026-08-29T12:00:00Z"
+  write_binder tkt-1-one closed "2026-08-29T10:00:00Z" "(none)" "(none)"
+  write_binder tkt-2-two closed "2026-08-29T10:00:00Z" "(none)" "(none)"
+  write_binder tkt-3-three queued "2026-08-29T10:00:00Z" "(none)" "(none)"
+  mkdir -p "$LATTICE_HOME/.transition-ledger"
+  printf '%s\n' '{"ticket":"tkt-1","from":"queued","to":"closed","reason":"merge","metric":"direct-jump"}' \
+    > "$LATTICE_HOME/.transition-ledger/tkt-1.jsonl"
+  HOME="$TICKETS" python3 - "$QH_LIB" "$NOW" <<'PY'
+import datetime, os, sys
+sys.path.insert(0, sys.argv[1])
+import queue_health as qh
+now = datetime.datetime.strptime(sys.argv[2], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+data = qh.scan_binders(os.environ["HOME"], now=now)
+cov = data["ledger_coverage"]
+assert cov["terminal"] == 2, cov
+assert cov["with_ledger"] == 1, cov
+assert cov["missing"] == ["tkt-2"], cov
+assert cov["direct_jumps"] == 1, cov
+sec = qh.format_section(data, qh.load_thresholds())
+assert "Ledger coverage — 1/2 terminal binders" in sec, sec
+assert "direct jumps: 1" in sec, sec
+assert "tkt-2" in sec, sec
+PY
+}

@@ -62,10 +62,15 @@ stateDiagram-v2
     stuck --> [*]: re-scope → M1 (Spec/ticket revision)
     pr --> closed: human merge (day)
     stuck --> closed: cancel
+    parked --> closed: cancel
+    deferred --> closed: cancel
+    rework --> closed: cancel
+    queued --> closed: cancel / direct-jump merge (anomaly)
+    ip --> closed: cancel / direct-jump merge (anomaly)
     closed --> [*]
 ```
 
-Cancel edge: any working state → `closed` (without merge) is a valid cancel edge — the transition table (§2) is authoritative for cancel-from-any-state.
+Cancel edge: every working state has an explicit `→ closed` edge (spc-337 A2 / ADR-012 §3 — the former `any → closed` wildcard is gone). `finish-ledger.sh --cancel --reason` writes the cancel; a **merged** PR observed from `queued` / `in-progress` is a **direct jump** (metric `direct-jump`, `anomaly:` line in the binder — the in-progress/pr-open stamps were skipped), and from a side state it is a side-state anomaly. The transition table (§2) is authoritative.
 
 Fuse edge: a batch fuse halt now stamps affected tickets `deferred` + a reason (`fuse-halt`) at trip time (ADR-004 Amendment tkt-136, Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). Blocked-by-failure dependents likewise stamp `deferred` + reason `blocked-by-failure`. A watchdog-timeout/crash of an already-spawned ticket stamps `stuck` + `wait_reason: unblock` (FSM-2b, tkt-132) — the SoT reflects "needs human investigation," not "active work."
 
@@ -128,8 +133,13 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | rework → in-progress | re-enters the queue, address-review shape; `fix_cycles` row stamps the round (ADR-004 §5 cap ≤2). The path is `rework → in-progress → (implement fix) → pr-open` — there is no direct `rework → pr-open`; on push, `in-progress → pr-open` fires (the existing transition), and `fix_cycles` increments | system |
 | rework → deep-review (cap-exit) | **third rework return** — `fix_cycles` would exceed the ≤2 cap. `bump-fix-cycle.sh` holds `fix_cycles` at 2, stamps `rework`, and journals a CAP-HIT trace that FORCES the `deep-review` triage class (human) before any further fix cycle — **no auto-retry** (ADR-007 §4 five-piece hard rule; spc-186 A6). Escape: `--extend-budget --reason "<operator-adjudicated rationale>"` authorizes one more cycle (human, double-confirm; no agent self-adjudication) | human |
 | pr-open → pr-open (verdict voided) | materially changed rebase → re-review; clean rebase carries the verdict | system |
-| pr-open → closed (merged) | **merge** — day only; `finish-ledger.sh` stamps `mergedAt` | human |
-| any → closed (without merge) | **cancel** | human |
+| pr-open → closed (merged) | **merge** — day only; `finish-ledger.sh` stamps `mergedAt` (a PR closed without merge lands the same edge as a cancel, no `mergedAt`) | human |
+| queued → closed | **cancel** (`finish-ledger.sh --cancel --reason`) — or a MERGED PR observed from `queued`: **direct jump**, metric `direct-jump`, `anomaly:` line (stamps skipped; ADR-012 §3) | human |
+| in-progress → closed | **cancel** — or a MERGED PR observed from `in-progress`: **direct jump** (pr-open skipped), metric `direct-jump`, `anomaly:` line | human |
+| parked → closed | **cancel** — or merge anomaly from a side state (`anomaly:` line, external truth wins) | human |
+| stuck → closed | **cancel** — or merge anomaly from a side state | human |
+| rework → closed | **cancel** — or merge anomaly from a side state | human |
+| deferred → closed | **cancel** — or merge anomaly from a side state | human |
 
 ### M3 knowledge
 
@@ -186,5 +196,7 @@ If a future product decision requires global enforcement across every call path,
 ## 5. Where M2 state lives
 
 The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6): working states `queued | in-progress | parked | stuck | pr-open | rework | deferred`, terminal `closed` — merged vs closed-without-merge is read from the `## Finish` ledger's `mergedAt`, not from a separate status value. The vocabulary + coupled-field transition policy (side-state guard, direct-jump rules) are machine-readable and single-sourced in `skills/_lattice-lib/scripts/lib/status_vocab.py`, consumed by `reconcile-state.sh`, `finish-ledger.sh`, and `stamp-pr-open.sh`; `validate-lattice-artifacts.py` vendors a parity-checked copy so consumer repos can vendor the validator alone (tkt-189 / spc-186 A2). `stamp-pr-open.sh` refuses to overwrite a side state (`parked` / `stuck` / `rework`) with `pr-open` without an explicit `--force-side-state --reason` override that journals a structured operator-adjudicated trace (ADR-007 §5b); a direct `queued → pr-open` jump is allowed but WARN-journaled so the "started" signal is not silently lost. Legacy `open` is accepted as a coarse value during lazy migration (validator warns). State is never inferred from PR, marker, or worktree existence alone. `validate-lattice-artifacts.py` enforces this statically per snapshot — unknown status values (`invalid_ticket_status`), terminal status without a Finish ledger (`closed_without_finish`), a merged Finish ledger without terminal status (`finish_without_terminal_status`), and duplicate ticket ids (`duplicate_ticket_id`); it does not replay transition history, so edge legality between two valid snapshots is owned by the skills that perform the transitions (amendment history in ADR-004).
+
+**Ledger coverage (spc-337 A1 / ADR-012 §4):** every scripted status flip appends to `.lattice/.transition-ledger/<tkt>.jsonl`, resolved from the binder's own Lattice home (never cwd). A terminal binder without a ledger is `closed_without_ledger` — a validator error for binders created on/after `2026-09-02T00:00:00Z`, a baselined warning before. `queue-health.sh --section` reports coverage and the direct-jump count next to the ADR-007 §8 escape counts; the L3 Write/Edit hook refuses direct edits to the `status` row (ADR-012 §2).
 
 **Trip-time stamping:** fuse-halt and blocked-by-failure stamp `deferred`+reason at trip time; watchdog-timeout/abandonment stamps `stuck`+`wait_reason: unblock` (FSM-2b). The binder SoT is honest about schedulability across runs. `parked → queued` ratification is performed by `ratify.sh` (`_lattice-lib/scripts/`) — single git commit for journal entry + status flip (crash window narrowed, not eliminated). Amendment history in ADR-004.
