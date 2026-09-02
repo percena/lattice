@@ -6,7 +6,7 @@
 | spec | spc-416 |
 | covers | A1, A2, A3, A4, A5, A7, A8, A9 |
 | prs | pr-420 — https://github.com/percena/lattice/pull/420 |
-| updated | 2026-09-02T14:11:33Z |
+| updated | 2026-09-02T15:40:25Z |
 | wait_reason | (none) |
 
 ## Summary
