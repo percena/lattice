@@ -21,7 +21,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-325 (this issue) |
 | worktree_bind | tkt-325-update-pr-base-ghe-host |
-| prs | (none…) |
+| prs | (none…) · pr-330 — https://github.com/percena/lattice/pull/330 |
 
 ## Acceptance
 
@@ -47,4 +47,6 @@ See GitHub issue #325 body.
 
 ## Finish
 
-- (none yet)
+
+- pr-330 merged: 2026-09-02T01:25:53Z — https://github.com/percena/lattice/pull/330 (base merge)
+- issue #325 closed: 2026-09-02T01:26:05Z — https://github.com/percena/lattice/issues/325
