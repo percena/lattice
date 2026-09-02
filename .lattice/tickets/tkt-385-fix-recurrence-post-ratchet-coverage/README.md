@@ -59,6 +59,7 @@
 
 - Origin: `rev-20260902-080545Z` F1 (recurrence) + F7 (coverage baseline).
 - The `fix_recurrence` metric lets the next snapshot show whether ADR-012 §1–§4 bent the curve before §5 is built.
+- **L4 overlap note (2026-09-02):** `hotspot-metrics.sh` (tkt-388 / spc-387) already computes per-cluster `fix_commit_count` and `fix_class_diversity` at the path level. This ticket (#385) should focus on: (a) `--created-after` post-ratchet coverage (unique to L1, not in L4), (b) a summary `fix_recurrence` row in the L1 snapshot (total files in ≥2 fix commits — the per-file detail lives in L4). The two sensors are complementary: L1 is per-file, L4 is per-cluster.
 
 ## References
 

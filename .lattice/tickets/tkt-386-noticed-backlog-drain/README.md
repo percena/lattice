@@ -59,6 +59,7 @@ Grep all `.lattice/tickets/*/README.md` for `^- NOTICED:` lines. For each line, 
 - Origin: `rev-20260902-080545Z` F5 (lineage-audit baseline, spc-369 dry run).
 - NOTICED backlog: 17 binders, oldest 08-27, zero dispositions as of 2026-09-02.
 - The weekly cadence step in tkt-373 (morning-triage) will keep the pile from going invisible after this drain.
+- **L4 sensor data (2026-09-02):** `hotspot-metrics.sh noticed_feedback` shows 42 total NOTICED lines: 34 became_ticket (have a corresponding ticket in a rev), 8 stale_unresolved. The 8 stale lines are the specific drain scope — drain those first, then verify the count drops in the next L4 snapshot.
 
 ## References
 

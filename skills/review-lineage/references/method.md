@@ -99,3 +99,68 @@ Severity in Findings mirrors impact (`high` / `med` / `low`); order Findings by 
 | Status histogram odd keys (`closed \|`) | a parser cannot read some binders — the *rest* of the table is undercounted | fixed | `queue_health._FIELD_ROW_RE`, `binder_rows.py` |
 
 First snapshot: no delta; report absolute values and say so. Two snapshots less than a day apart mostly measure your own run; prefer weekly cadence (tkt-373 morning-triage step).
+
+## L4 — synthesis (scripted data + agent judgement; spc-387)
+
+L1–L3 find individual symptoms and rank them. L4 **synthesizes** them into
+structural weak spots and curve-bending recommendations — answering "which
+path in our workflow keeps breaking and what single structural change would
+fix the most of it."
+
+```bash
+bash "$SKILL_ROOT/scripts/hotspot-metrics.sh" --home "$PH" --since 30d --md > "$OUT/hotspot.md"
+bash "$SKILL_ROOT/scripts/hotspot-metrics.sh" --home "$PH" --since 30d --json --no-snapshot > "$OUT/hotspot.json"
+```
+
+Fields (`hotspot_metrics.py`): `hotspot_clusters{total_fix_commits, cluster_count, clusters[]}`,
+`fix_class_histogram{total, histogram{}}`, `ticket_genealogy{revs[], specs[]}`,
+`cross_audit_recurrence{<class>: {revs[], recurrence_count, trend}}`,
+`noticed_feedback{total_noticed, became_ticket, wontfix, stale_unresolved, revs_with_sweep[]}`.
+
+File→skill attribution is **auto-derived** from directory structure (spc-387
+D3): `skills/<skill>/` → that skill; `skills/_lattice-lib/` → `shared`;
+`tools/` → `cross-cutting`; `docs/` → `docs`. Skill→stage from
+`validate-skills.sh` arrays (`USER_FACING` → delivery; `QUALITY_SIDE_PATHS`
+→ review). No manual config table.
+
+### Root-cause hypothesis (4 patterns)
+
+For each hotspot cluster, generate a hypothesis from its properties:
+
+| Pattern | Signal | Example |
+| --- | --- | --- |
+| **Multi-writer disagreement** | ≥3 files in the cluster are independent writers of the same state | finish-ledger.sh + stamp-pr-open.sh + validator each stamp/validate status differently |
+| **Decided-but-unimplemented ADR** | Fix subjects reference `ADR-NNN §N` that is `Accepted` but has no implementing ticket/PR | terminal-stamp fixes reference ADR-012 §5 (bot bookkeeping) — decided, not built |
+| **Format-drift escape** | Cluster includes a parser + its input format | queue_health regex + binder table rows — 3-column rows silently mis-parsed |
+| **Environment-dependence** | Fix subjects reference `bash 3.2` / `gh` version / `root` | bats cases that pass in CI but fail on host |
+
+### Curve-bending analysis
+
+Rank hotspots by **impact** (a ranking formula, not a sensor metric —
+spc-387 D4; the sensor provides the inputs, the agent computes the formula):
+
+```
+impact = fix_commit_count × fix_class_diversity × cross_audit_recurrence_count × structural_depth
+```
+
+- `fix_commit_count`: unique fix() commits touching any file in the cluster.
+- `fix_class_diversity`: distinct fix classes in the cluster (more classes = broader failure).
+- `cross_audit_recurrence_count`: number of audits the same finding class appeared in.
+- `structural_depth`: 2 if the cluster references a decided-but-unimplemented ADR; 1 otherwise.
+
+For each hotspot, state:
+- the **hypothesized curve-bending effect** ("landing ADR-012 §5 → cluster fix_commit_count should fall from 46 to < 15")
+- the **verification metric** (what number the next snapshot's Δ should show)
+
+### Structural-vs-tactical diagnosis
+
+| Diagnosis | When | Output |
+| --- | --- | --- |
+| **Structural** | The hotspot references a decided-but-unimplemented ADR/Spec direction (the fix is to land the ADR, not to patch) | Optimization recommendation, not a ticket draft |
+| **Tactical** | Patchable — a fix-class that a validator code or probe can guard | Ticket draft (current L1–L3 behavior) |
+
+Structural hotspots produce a recommendation in `## Optimization recommendations`;
+tactical hotspots produce ticket drafts in `## Proposed tickets`. The two are
+distinct: a recommendation says "land ADR-012 §5"; a ticket says "fix this regex."
+
+Bounded: ≤5 hotspots + ≤3 recommendations (same bounded posture as Findings ≤7).
