@@ -253,3 +253,66 @@ last_json() {
   # PR_VIEW_JSON fixture must not contain baseRefOid
   grep -qv 'baseRefOid' "$PR_VIEW_JSON"
 }
+
+@test "gh api base-sha fetch passes --hostname for GHE-hosted PRs (tkt-325)" {
+  # GHE-hosted PR URL → gh api repos/.../pulls/... must receive --hostname.
+  sed 's#https://example.test/pr/6#https://ghe.example.com/acme/r/pull/6#' "$PR_VIEW_JSON" \
+    >"$PR_VIEW_JSON.tmp" && mv "$PR_VIEW_JSON.tmp" "$PR_VIEW_JSON"
+  # Replace stub to capture the gh api call's full args
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"--json id,number"*) cat "$PR_VIEW_JSON" ;;
+  *"--json mergeable,mergeStateStatus,headRefOid"*) cat "$PR_VIEW2_JSON" ;;
+  *"--json nameWithOwner,defaultBranchRef"*) echo '{"nameWithOwner":"acme/r","defaultBranchRef":{"name":"main"}}' ;;
+  *"--json nameWithOwner"*) echo '{"nameWithOwner":"acme/r"}' ;;
+  "pr diff"*)
+    if [[ -f "$TEST_DIR/prdiff.called" ]]; then cat "$TEST_DIR/postdiff"
+    else : >"$TEST_DIR/prdiff.called"; cat "$TEST_DIR/prediff"; fi ;;
+  "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
+  *"api repos/"*"pulls"*)
+    printf '%s ' "$@" > "$TEST_DIR/gh-api-args.txt"
+    printf '{"ref":"%s","sha":"%s"}\n' "${GH_BASE_BRANCH:-main}" "$GH_BASE_SHA" ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$STUB_BIN/gh"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  # The captured gh api args must include --hostname ghe.example.com
+  grep -q -- '--hostname ghe.example.com' "$TEST_DIR/gh-api-args.txt"
+}
+
+@test "github.com PR URL passes --hostname github.com (no-op for default host, tkt-325)" {
+  # github.com PR URL → --hostname github.com is a no-op; existing behavior
+  # unchanged. Mirrors the sibling-script pattern (#311): always extract and
+  # pass hostname; github.com is the default host so it's a no-op.
+  sed 's#https://example.test/pr/6#https://github.com/acme/r/pull/6#' "$PR_VIEW_JSON" \
+    >"$PR_VIEW_JSON.tmp" && mv "$PR_VIEW_JSON.tmp" "$PR_VIEW_JSON"
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"--json id,number"*) cat "$PR_VIEW_JSON" ;;
+  *"--json mergeable,mergeStateStatus,headRefOid"*) cat "$PR_VIEW2_JSON" ;;
+  *"--json nameWithOwner,defaultBranchRef"*) echo '{"nameWithOwner":"acme/r","defaultBranchRef":{"name":"main"}}' ;;
+  *"--json nameWithOwner"*) echo '{"nameWithOwner":"acme/r"}' ;;
+  "pr diff"*)
+    if [[ -f "$TEST_DIR/prdiff.called" ]]; then cat "$TEST_DIR/postdiff"
+    else : >"$TEST_DIR/prdiff.called"; cat "$TEST_DIR/prediff"; fi ;;
+  "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
+  *"api repos/"*"pulls"*)
+    printf '%s ' "$@" > "$TEST_DIR/gh-api-args.txt"
+    printf '{"ref":"%s","sha":"%s"}\n' "${GH_BASE_BRANCH:-main}" "$GH_BASE_SHA" ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$STUB_BIN/gh"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  # --hostname github.com is present (no-op for the default host)
+  grep -q -- '--hostname github.com' "$TEST_DIR/gh-api-args.txt"
+}
