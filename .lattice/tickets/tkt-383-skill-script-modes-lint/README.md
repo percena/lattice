@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/383 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T11:52:47Z |
+| updated | 2026-09-02T12:00:38Z |
 | adopted | false |
 | summary | chmod +x stamp-pr-open.sh / review-context.py + mode lint for SKILL-named scripts |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -82,4 +82,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-395 merged: 2026-09-02T12:00:12Z — https://github.com/percena/lattice/pull/395 (base merge)
+- issue #383 closed: 2026-09-02T12:00:30Z — https://github.com/percena/lattice/issues/383
