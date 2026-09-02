@@ -25,10 +25,10 @@
 
 ## Acceptance
 
-- [ ] **A1** `flip_close` predicate on line 575 of `finish-ledger.sh` changed so a merged PR flips status to `closed` regardless of linked-issue verification (`cancel or merged or issue_closed == "true"`).
-- [ ] **A2** Regression test in `finish-ledger.bats`: a merged PR with an un-verifiable linked issue (no `--closed-at`, `gh` fails) still flips binder `| status |` to `closed`.
-- [ ] **A3** Existing test at `finish-ledger.bats` ~line 108 updated to also assert the `| status |` row (not just the "not closed" note line).
-- [ ] **A4** All existing finish-ledger bats tests still pass.
+- [x] **A1** `flip_close` predicate on line 575 of `finish-ledger.sh` changed so a merged PR flips status to `closed` regardless of linked-issue verification (`cancel or merged or issue_closed == "true"`).
+- [x] **A2** Regression test in `finish-ledger.bats`: a merged PR with an un-verifiable linked issue (no `--closed-at`, `gh` fails) still flips binder `| status |` to `closed`.
+- [x] **A3** Existing test at `finish-ledger.bats` ~line 108 updated to also assert the `| status |` row (not just the "not closed" note line).
+- [x] **A4** All existing finish-ledger bats tests still pass.
 
 ## Approach
 
