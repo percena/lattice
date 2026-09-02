@@ -21,7 +21,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-326 (this issue) |
 | worktree_bind | tkt-326-intercept-hooks-jq-fail-open |
-| prs | (none…) |
+| prs | (none…) · pr-331 — https://github.com/percena/lattice/pull/331 |
 
 ## Acceptance
 
@@ -47,4 +47,6 @@ See GitHub issue #326 body.
 
 ## Finish
 
-- (none yet)
+
+- pr-331 merged: 2026-09-02T01:30:57Z — https://github.com/percena/lattice/pull/331 (base merge)
+- issue #326 closed: 2026-09-02T01:31:08Z — https://github.com/percena/lattice/issues/326
