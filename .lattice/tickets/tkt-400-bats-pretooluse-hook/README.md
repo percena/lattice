@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | enhancement, P1 |
 | github | https://github.com/percena/lattice/issues/400 |
-| status | in-progress |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T12:00:00Z |
-| updated | 2026-09-02T12:00:00Z |
+| updated | 2026-09-02T12:57:13Z |
 | adopted | false |
 | summary | PreToolUse Write hook for .bats files: run check-bats-assertions.py on write |
 | spec | spc-398 |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-400-bats-pretooluse-hook |
 | worktree | sibling `…/<repo>.worktrees/tkt-400-bats-pretooluse-hook/` |
-| prs | (none) |
+| prs | pr-407 — https://github.com/percena/lattice/pull/407 |
 
 ## Acceptance (this slice)
 
@@ -64,4 +64,6 @@ See spc-398 for approach details.
 
 ## Finish
 
-- (none yet)
+
+- pr-407 merged: 2026-09-02T12:56:11Z — https://github.com/percena/lattice/pull/407 (base merge)
+- issue #400 closed: 2026-09-02T12:56:59Z — https://github.com/percena/lattice/issues/400

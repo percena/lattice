@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/401 |
-| status | in-progress |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T12:00:00Z |
-| updated | 2026-09-02T12:00:00Z |
+| updated | 2026-09-02T12:57:16Z |
 | adopted | false |
 | summary | ci-local.sh --fast: warn or run quick assertion sub-check (no silent bats skip) |
 | spec | spc-398 |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-401-ci-local-fast-bats |
 | worktree | sibling `…/<repo>.worktrees/tkt-401-ci-local-fast-bats/` |
-| prs | (none) |
+| prs | pr-408 — https://github.com/percena/lattice/pull/408 |
 
 ## Acceptance (this slice)
 
@@ -64,4 +64,6 @@ See spc-398 for approach details.
 
 ## Finish
 
-- (none yet)
+
+- pr-408 merged: 2026-09-02T12:56:16Z — https://github.com/percena/lattice/pull/408 (base merge)
+- issue #401 closed: 2026-09-02T12:57:06Z — https://github.com/percena/lattice/issues/401

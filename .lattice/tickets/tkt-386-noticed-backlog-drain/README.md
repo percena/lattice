@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/386 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T12:47:01Z |
+| updated | 2026-09-02T12:57:10Z |
 | adopted | false |
 | summary | drain the NOTICED backlog: disposition all lines in a rev; file ticket rows |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -85,7 +85,9 @@ Grep all `.lattice/tickets/*/README.md` for `^- NOTICED:` lines. For each line, 
 
 ## Finish
 
-- (none yet)
+
+- pr-413 merged: 2026-09-02T12:54:51Z — https://github.com/percena/lattice/pull/413 (base merge)
+- issue #386 closed: 2026-09-02T12:55:12Z — https://github.com/percena/lattice/issues/386
 
 ## Notes (drain summary)
 
