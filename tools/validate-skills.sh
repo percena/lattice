@@ -243,6 +243,28 @@ for name in "${USER_FACING[@]}"; do
   fi
 done
 
+# tkt-383: mode lint — scripts named as executables in a SKILL.md must be
+# executable (0755). Scope: only scripts referenced by path in a SKILL.md
+# (the same set `skill-scripts-exist` resolves). 16 `scripts/*` files are
+# legitimately non-executable (sourced libs, transition-api.py, verify-
+# mutation.sh) — those are never named as direct executables in a SKILL.md,
+# so they are not flagged. Uses `test -x` (filesystem mode) so it works in
+# both real repos and fixture trees.
+while IFS= read -r skill_md; do
+  skill_dir="$(cd "$(dirname "$skill_md")" && pwd)"
+  # Grep for script-path references: scripts/name.sh or scripts/name.py
+  scripts_refs=$(grep -oE 'scripts/[a-zA-Z0-9_/.-]+\.(sh|py)' "$skill_md" 2>/dev/null | sort -u || true)
+  for ref in $scripts_refs; do
+    resolved=$(cd "$skill_dir" 2>/dev/null && realpath -q "$ref" 2>/dev/null || true)
+    [[ -n "$resolved" && -f "$resolved" ]] || continue
+    if [[ ! -x "$resolved" ]]; then
+      rel="${resolved#$ROOT/}"
+      echo "ERROR: SKILL-named script is not executable: $rel (referenced in ${skill_md#$ROOT/})" >&2
+      ERR=1
+    fi
+  done
+done < <(find "$SKILLS_DIR" -name SKILL.md -type f 2>/dev/null)
+
 if [[ "$ERR" -ne 0 ]]; then
   echo "validate-skills: FAILED" >&2
   exit 1
