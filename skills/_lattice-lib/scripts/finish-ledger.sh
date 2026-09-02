@@ -706,4 +706,25 @@ if [[ "$FLIP_HAPPENED" == "1" ]]; then
   fi
 fi
 
+# tkt-402: bash fallback — verify the ledger entry was actually appended.
+# commit_transaction should append it via _append_ledger_locked, but
+# intermittent failures caused recurring transition_ledger_snapshot_mismatch
+# on merged tickets. This bash post-step uses the CLI record command as a
+# reliable fallback. Runs AFTER the tkt-360 A1 staging assertion (which
+# checks the file is staged, not the entry content).
+if [[ "$FLIP_HAPPENED" == "1" && -f "$LEDGER_FILE" ]]; then
+  LAST_TO=$(tail -1 "$LEDGER_FILE" 2>/dev/null | python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    print(d.get('to',''))
+except: print('')
+" 2>/dev/null)
+  if [[ "$LAST_TO" != "closed" ]]; then
+    echo "finish-ledger: WARNING — ledger entry not appended by commit_transaction; appending via transition-api record (tkt-402)" >&2
+    LATTICE_HOME="$LATTICE_HOME_DIR" python3 "$(dirname "$BINDER_ROWS_LIB")/transition-api.py" record "$TICKET_ID" pr-open closed human "merge" --home "$LATTICE_HOME_DIR" 2>&1 || true
+    git -C "$BINDER_REPO_ROOT" add -- "$LEDGER_FILE" 2>/dev/null || true
+  fi
+fi
+
 exit 0
