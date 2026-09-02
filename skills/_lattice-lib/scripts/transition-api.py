@@ -661,7 +661,12 @@ def cmd_replay(args: list) -> int:
     bad = 0
     total = 0
     for lp in sorted(ledger_dir.glob("*.jsonl")):
-        file_ticket = lp.stem  # tkt-N
+        file_ticket = lp.stem  # full stem (tkt-N or tkt-N-<slug>)
+        # tkt-363: slug-named ledgers (tkt-N-<slug>.jsonl) must still resolve
+        # their binder. Derive the ticket id (tkt-N) from the stem so the
+        # binder glob `tkt-N-*` matches; the full stem is kept for identity.
+        id_match = re.match(r'^(tkt-\d+|spc-\d+)', lp.stem)
+        ticket_id = id_match.group(1) if id_match else lp.stem
         prev_to: str | None = None
         last_to: str | None = None
         for lineno, line in enumerate(
@@ -709,7 +714,7 @@ def cmd_replay(args: list) -> int:
             last_to = to
         # Final snapshot: the ledger's last `to` must equal the binder status.
         if last_to is not None:
-            binder = _binder_for_ticket(file_ticket)
+            binder = _binder_for_ticket(ticket_id)
             if binder is not None:
                 bstatus = _read_field(binder.read_text(encoding="utf-8"),
                                       "status")

@@ -12,7 +12,7 @@ metadata:
 
 Close the loop after SHIP: **resolve target → preflight (CI + base update + alignment) → merge|close → cleanup → binder Finish**.
 
-**Scripts:** `ci-gate-check.sh`, `update-pr-base.sh`, `alignment-check.sh`, `cleanup-workspace.sh`, `close-fixed-issues.sh`, `finish-ledger.sh`, `batch-merge-gate.sh` (+ lattice-lib `check-base-residue.sh`, `resolve-integration-branch.sh`, `verify-main-chain.sh`).
+**Scripts:** `ci-gate-check.sh`, `update-pr-base.sh`, `alignment-check.sh`, `cleanup-workspace.sh`, `close-fixed-issues.sh`, `finish-ledger.sh`, `batch-merge-gate.sh` (`--create --batch-id <id>` to mark batch-work active, `--status` to query, `--remove --reason` to clear) (+ lattice-lib `check-base-residue.sh`, `resolve-integration-branch.sh`, `verify-main-chain.sh`).
 
 **Runtime path:** before executing skill-owned files, set `LATTICE_SKILL_ROOT` to the absolute directory containing this loaded `SKILL.md` (Claude may already provide `CLAUDE_SKILL_DIR`). Never infer it from consumer cwd.
 

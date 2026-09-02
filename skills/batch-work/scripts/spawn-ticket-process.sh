@@ -74,12 +74,22 @@ EOF
 
 now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
-# kill -0 is the portable liveness ground truth across macOS/Linux.
-# Returns 0 if alive, 1 if dead/owned-by-other, non-numeric handled by caller.
+# PID liveness ground truth across macOS/Linux.
+# Returns 0 if the process is genuinely alive, 1 if dead/owned-by-other/zombie.
+# tkt-361: `kill -0` returns true for zombie/defunct processes on Linux — a
+# zombie has exited but the parent hasn't reaped it. On a root host a disowned
+# spawn that immediately fails exec (e.g. claude is a directory) becomes a
+# zombie that `kill -0` sees as alive, so the grace re-check never classifies it
+# as dead. Exclude zombies via `ps -p <pid> -o state=` (Z on both macOS+Linux).
 is_alive() {
   local pid="$1"
   [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  kill -0 "$pid" 2>/dev/null
+  kill -0 "$pid" 2>/dev/null || return 1
+  # kill -0 passed — but on Linux the PID may be a zombie (exited, not reaped).
+  # A zombie's state is "Z"; a genuinely alive process is R/S/D/etc.
+  local state
+  state=$(ps -p "$pid" -o state= 2>/dev/null | tr -d ' ')
+  [[ -n "$state" && "$state" != "Z" ]]
 }
 
 # Append a TSV state record: pid<TAB>worktree<TAB>started_iso[<TAB>base,repo]
