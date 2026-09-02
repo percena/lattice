@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/372 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T07:59:39Z |
+| updated | 2026-09-02T08:16:23Z |
 | adopted | false |
 | summary | SKILL.md + method/taxonomy/template: the three-layer mining protocol, verify-then-report, insight ranking, rev output with a Proposed-tickets table. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -27,7 +27,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-372-review-lineage-skill |
 | worktree | sibling `…/lattice.worktrees/tkt-372-review-lineage-skill/` |
-| prs | (none) |
+| prs | pr-377 — https://github.com/percena/lattice/pull/377 |
 
 ## Acceptance (this slice)
 
