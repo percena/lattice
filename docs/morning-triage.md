@@ -18,6 +18,7 @@ Sources: `spc-42` · `ADR-004` §1–2 · `rev-20260827-102420Z` (Finding 4).
 | 5 | Consume PR verdicts | human | merge / ratify-then-merge / deep-review per PR |
 | 5.5 | Reconcile GitHub↔binder state | human | `reconcile-state.sh` per binder — drift list + manual recovery |
 | 6 | Run finish-work per PR | human | merged PRs + cleanup + Finish ledger |
+| 7 (weekly) | Lineage review | human + agent | `review-lineage` rev: metrics delta, probe failures, ranked insights, ticket drafts |
 
 ### Step 1 — read the digest
 
@@ -135,6 +136,12 @@ For each PR the operator decides to merge (in DAG-respecting order — the diges
 The batch marker (`.lattice/.batch-work-active`) prevented any agent from merging during the night. finish-work removes it after a successful human-driven merge.
 
 Skill: `finish-work` (`skills/finish-work/SKILL.md` — Finish cycle, HARD gate = alignment-check).
+
+### Step 7 — weekly lineage review (and after each Spec closes)
+
+Once a week — and after the last ticket of a Spec lands — run `review-lineage` (`skills/review-lineage/SKILL.md`). It is the M3 feed: it computes what the repo actually did (`lineage-metrics.sh` snapshot + delta vs last week: ledger coverage, never-walked edges, direct-to-base commits, fix recurrence, NOTICED backlog), executes the documented promises (`claim-probes.sh`), re-verifies every candidate against the tree, clusters by root cause and ends in a `rev-` (kind `audit`) with insights and a Proposed-tickets table. The human reads the delta first, ratifies or drops the insights, and hands the accepted drafts to `create-tickets` — the skill itself never files issues, never edits binders, never merges (ADR-004 attention contract; spc-369 D2). Undecidable items land as `needs_decision` rows.
+
+Skill: `review-lineage` (spc-369; first baseline `rev-20260902-080545Z`).
 
 ---
 

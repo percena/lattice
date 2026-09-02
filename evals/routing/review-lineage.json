@@ -1,0 +1,53 @@
+{
+  "skill_name": "review-lineage",
+  "aliases": [
+    "挖掘遗漏问题",
+    "血缘审计",
+    "蒸馏 tickets",
+    "lineage audit",
+    "periodic lineage review",
+    "mine tickets for insights"
+  ],
+  "trigger": {
+    "positive": [
+      {
+        "prompt": "Mine our delivered tickets, ADRs, reviews and specs for defects we overlooked and give me insights with ticket drafts",
+        "top_k": 1
+      },
+      {
+        "prompt": "Run the weekly lineage review: metrics delta, claim probes, what drifted since last week",
+        "top_k": 1
+      },
+      {
+        "prompt": "从我们已经做过的 tickets、ADR、review 和 spec 里挖掘被忽略的重点，给出 insights",
+        "top_k": 1
+      },
+      {
+        "prompt": "对整个仓库做一次周期性的血缘审计，看看哪些承诺没有被实现、哪些状态机边从没走过",
+        "top_k": 1
+      }
+    ],
+    "negative": [
+      {
+        "prompt": "Chain-review last night's delivered tickets and give me a morning digest",
+        "owner": "review-delivery"
+      },
+      {
+        "prompt": "Persist a durable architecture Review with spawn_spec outcome",
+        "owner": "create-review"
+      },
+      {
+        "prompt": "Hunt runtime bugs against the feature map with e2e stories and file them as tickets",
+        "owner": "verify-features"
+      },
+      {
+        "prompt": "Review PR 42 for material bugs and regressions",
+        "owner": "review-code"
+      },
+      {
+        "prompt": "Split the locked spec into tickets and binders",
+        "owner": "create-tickets"
+      }
+    ]
+  }
+}

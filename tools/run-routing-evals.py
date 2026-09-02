@@ -41,6 +41,7 @@ CATALOG = [
     "review-code",
     "review-production",
     "review-delivery",
+    "review-lineage",
 ]
 
 LATIN_TOKEN_RE = re.compile(r"[a-z0-9]+", re.I)

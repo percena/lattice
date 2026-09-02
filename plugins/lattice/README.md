@@ -17,6 +17,7 @@ Percena **Lattice** packaging for Claude Code: full delivery loop in **one** plu
 | `review-code` | [`skills/review-code`](../../skills/review-code/) (symlinked) | Yes — PR-scoped quality side-path |
 | `review-production` | [`skills/review-production`](../../skills/review-production/) (symlinked) | Yes — PR-scoped quality side-path |
 | `review-delivery` | [`skills/review-delivery`](../../skills/review-delivery/) (symlinked) | Yes — chain-review side-path |
+| `review-lineage` | [`skills/review-lineage`](../../skills/review-lineage/) (symlinked) | Yes — lineage-mining side-path |
 | `generate-wiki` | [`skills/generate-wiki`](../../skills/generate-wiki/) (symlinked) | Yes — standalone doc tool |
 | `_lattice-lib` | [`skills/_lattice-lib`](../../skills/_lattice-lib/) (symlinked; **not** a user slash skill) | Yes — shared scripts |
 
@@ -41,12 +42,12 @@ npx skills add percena/lattice \
   --skill start-work --skill create-spec --skill create-review \
   --skill create-tickets --skill batch-work --skill create-pr \
   --skill finish-work --skill create-adr --skill run-e2e --skill verify-features \
-  --skill review-code --skill review-production --skill review-delivery \
+  --skill review-code --skill review-production --skill review-delivery --skill review-lineage \
   --skill generate-wiki \
   -a claude-code -a codex -g -y
 ```
 
-> **Co-install:** always include **`_lattice-lib`** (required by the lifecycle six plus `batch-work`, `create-adr`, `review-delivery`, and `verify-features`).
+> **Co-install:** always include **`_lattice-lib`** (required by the lifecycle six plus `batch-work`, `create-adr`, `review-delivery`, `review-lineage`, and `verify-features`).
 
 ## Skills
 
@@ -63,6 +64,7 @@ npx skills add percena/lattice \
 - **[review-code](../../skills/review-code/)** — Optional PR-scoped code review: material correctness/regression findings with recommended solutions.
 - **[review-production](../../skills/review-production/)** — Optional PR-scoped production-readiness review (security, performance, test coverage, ship/rollback).
 - **[review-delivery](../../skills/review-delivery/)** — Artifact-only chain review of a delivered ticket set → ranked morning digest; never merges.
+- **[review-lineage](../../skills/review-lineage/)** — Periodic lineage mining (metrics snapshot + delta, claim probes, history) → verified insights + ticket drafts in a `rev-`; never files issues, never merges.
 - **[generate-wiki](../../skills/generate-wiki/)** — Navigable root `wiki/` of pure Markdown + optional `llms.txt`; standalone doc tool.
 - **[`_lattice-lib`](../../skills/_lattice-lib/)** — Shared scripts only (not a user slash skill).
 

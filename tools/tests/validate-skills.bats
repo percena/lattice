@@ -38,7 +38,7 @@ EOF
 }
 
 build_green_tree() {
-  local user_facing="start-work create-spec create-review create-tickets create-pr finish-work batch-work run-e2e verify-features generate-wiki review-code review-production create-adr review-delivery"
+  local user_facing="start-work create-spec create-review create-tickets create-pr finish-work batch-work run-e2e verify-features generate-wiki review-code review-production create-adr review-delivery review-lineage"
   local lifecycle="start-work create-spec create-review create-tickets create-pr finish-work"
   local name
   for name in $user_facing _lattice-lib; do

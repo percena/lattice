@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/373 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T07:21:07Z |
+| updated | 2026-09-02T08:34:30Z |
 | adopted | false |
 | summary | Registration surfaces, routing eval, weekly cadence recipe, and the M3 edge for review-lineage. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -31,7 +31,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A4** — see GitHub issue #373 and Spec spc-369 A4.
+- [x] **A4** — review-lineage on every registration surface (README/zh, llms.txt, plugin README + install line + co-install, plugin.json + marketplace.json description/keywords, getting-started side-paths + row), USER_FACING + QUALITY_SIDE_PATHS in validate-skills (EXEMPT bridge removed), routing CATALOG + `evals/routing/review-lineage.json` (4 positive EN+ZH, 5 negatives; rank1 4/4), morning-triage Step 7 (weekly + after each Spec closes), workflow-fsm M3 block + table row.
 
 ## Approach
 
@@ -46,6 +46,9 @@
 
 ## Decision journal
 
+- 2026-09-02 validate-skills.bats fixture list (`user_facing` at :41) must mirror USER_FACING — added review-lineage there (the green-fixture and plugin-bundle tests enumerate the list by hand); NOTICED that the list is duplicated between the lint and its test (source: agent-judgment, ticket-local).
+- 2026-09-02 cadence wording: weekly AND after each Spec closes, per spc-369 In scope (pre-resolved).
+
 ## Pending decisions
 
 (none)
@@ -53,6 +56,8 @@
 ## Attempts
 
 ## Notes
+
+- NOTICED: tools/tests/validate-skills.bats:41 — USER_FACING is hand-duplicated in the bats fixture list; a new user-facing skill silently breaks the suite until both are edited (out-of-paths for the lint itself; tkt-373 edited the line, 2026-09-02)
 
 ## References
 
