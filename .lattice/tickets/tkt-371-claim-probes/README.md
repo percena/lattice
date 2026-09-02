@@ -9,11 +9,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/371 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T07:51:52Z |
+| updated | 2026-09-02T07:59:27Z |
 | adopted | false |
 | summary | claim-probes.sh + references/probes.md registry: executable claim–implementation probes seeded from the spc-337 drift classes, per-repo overlay, planted-drift tests. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -92,4 +92,6 @@ On-repo run of the real registry (`claim-probes.sh --md`, this tree at c4b02bc +
 
 ## Finish
 
-- (none yet)
+
+- pr-376 merged: 2026-09-02T07:59:11Z — https://github.com/percena/lattice/pull/376 (base merge)
+- issue #371 closed: 2026-09-02T07:59:19Z (reason: completed) — https://github.com/percena/lattice/issues/371
