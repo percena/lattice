@@ -6,6 +6,7 @@
 | spec | spc-416 |
 | covers | A6 |
 | prs | pr-421 — https://github.com/percena/lattice/pull/421 |
+| created | 2026-09-02T13:44:22Z |
 | updated | 2026-09-02T15:49:47Z |
 | wait_reason | (none) |
 
