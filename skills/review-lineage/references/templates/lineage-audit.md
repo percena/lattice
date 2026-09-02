@@ -97,6 +97,24 @@ Why this run (cadence / post-soak / operator ask), the home + window mined, and 
 - **Bounds:** one pass, timebox <n> min, Findings <n>/7, Appendix <n>
 - **Not done / unaudited surfaces:** <skip rows, no --gh, …>
 
+## Weak-spot topology (L4 — `hotspot-metrics.sh --md`, spc-387)
+
+<!-- Cross-cutting recurrence: files clustered by path/skill/stage, not individual findings. -->
+<!-- Bounded: ≤5 hotspots. Omit the section if no cluster has ≥2 fix commits. -->
+
+| # | hotspot | files | fix_count | fix_share_% | stage | fix_classes | cross_audit | root_cause | structural? |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | … | … | … | … | … | … | … revs | <hypothesis> | yes (ADR-NNN §N) / no |
+
+## Optimization recommendations (L4 — agent-authored from topology, spc-387)
+
+<!-- For each structural hotspot: what single change would bend the curve? -->
+<!-- Bounded: ≤3 recommendations. Tactical hotspots produce ticket drafts, not recommendations. -->
+
+| rank | hotspot | action | impact | curve_bending_% | verification_metric |
+| --- | --- | --- | --- | --- | --- |
+| 1 | … | land ADR-NNN §N | <what it fixes> | -<N>% fix_recurrence | next Δ: fix_commit_count …→<…> |
+
 ## Appendix (overflow candidates, verified but below the fold)
 
 - <A1 …>
