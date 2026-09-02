@@ -10,7 +10,7 @@ priority: P1
 summary: "Break the recurring bats CI failure cycle: dev branch protection, PreToolUse .bats hook, ci-local.sh --fast fix, finish-ledger backfill automation"
 created: 2026-09-02
 updated: 2026-09-02
-tickets: []
+tickets: [tkt-399, tkt-400, tkt-401, tkt-402]
 prs: []
 reviews: [rev-20260902-080545Z]
 supersedes: []
