@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/385 |
-| status | in-progress |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T13:01:06Z |
 | adopted | false |
 | summary | lineage-metrics fix_recurrence metric + post-ratchet coverage (--created-after) |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-385-fix-recurrence-post-ratchet-coverage |
 | worktree | sibling `…/<repo>.worktrees/tkt-385-fix-recurrence-post-ratchet-coverage/` |
-| prs | (none) |
+| prs | pr-414 — https://github.com/percena/lattice/pull/414 |
 
 ## Acceptance (this slice)
 
@@ -85,4 +85,6 @@
 
 ## Finish
 
-- (none yet)
+
+- pr-414 merged: 2026-09-02T13:00:41Z — https://github.com/percena/lattice/pull/414 (base merge)
+- issue #385 closed: 2026-09-02T13:00:59Z — https://github.com/percena/lattice/issues/385
