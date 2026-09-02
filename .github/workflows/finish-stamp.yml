@@ -1,0 +1,42 @@
+name: finish-stamp
+
+# Post-merge ledger stamp safety net (spc-416 A6, ADR-013 Option E+ Layer 2).
+# Fires when a PR is closed-via-merge. Verifies the local finish-stamp.py stamp
+# landed on the merge base, repairs Mode C ledger discontinuity, and catches
+# local-stamp / agent-process failures. Commits as github-actions[bot].
+#
+# The LOCAL stamp (finish-work → finish-ledger.sh → finish-stamp.py) is primary
+# and CI-independent (ADR-013 Decision 1). This GHA is the safety net. Race
+# between the two is benign — both paths are idempotent (spc-416 Decision 7).
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finish-stamp-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-repair:
+    # Only merged PRs carry terminal ledger evidence worth stamping.
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout merge base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 2
+
+      - name: Verify local stamp + repair ledger (safety net)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 skills/_lattice-lib/scripts/finish-stamp-ci.py \
+            --pr ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }}

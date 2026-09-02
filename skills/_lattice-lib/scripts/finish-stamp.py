@@ -213,10 +213,6 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
     if should_flip:
         text = re.sub(r'(\|\s*status\s*\|\s*)\S+(\s*\|)', r'\1closed\2', text, count=1)
 
-    # --- updated stamp ---
-    updated_stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    text = binder_rows.stamp_updated(text, updated_stamp)
-
     # --- prs row (not for cancel — no PR) ---
     if args.pr_url and not cancel:
         prs_row_re = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
@@ -225,10 +221,14 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
             merged_row = binder_rows.merge_row(prs_match.group(2), args.pr, args.pr_url)
             text = prs_row_re.sub(lambda m: f"{m.group(1)} {merged_row} {m.group(3)}", text, count=1)
 
-    # --- Determine what changed ---
-    written = text != orig
+    # --- Determine what changed (content only — updated stamp applied later) ---
+    # A3 idempotency: compare content BEFORE the updated-stamp bump, so a re-run
+    # on an already-closed binder with a consistent ledger is a true no-op (no
+    # staged timestamp bump, no noise commit). The GHA safety net (A6) relies on
+    # this — without it, every pull_request:closed fires a timestamp-bump commit.
+    content_changed = text != orig
     # flip_happened = a real status flip (non-terminal → closed) — controls ledger
-    flip_happened = should_flip and written
+    flip_happened = should_flip and content_changed
 
     # Check if ledger needs repair (binder closed but ledger missing to=closed)
     ledger_needs_repair = False
@@ -241,9 +241,17 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
         except (OSError, ValueError):
             ledger_needs_repair = True
 
-    if not written and not ledger_needs_repair:
+    # --- Idempotent no-op (A3): no content change AND ledger consistent → skip ---
+    if not content_changed and not ledger_needs_repair:
         print(f"finish-stamp: no change (idempotent — {ticket_id} already closed)")
         return 0
+
+    # --- Apply updated stamp ONLY when the binder content actually changed ---
+    # (not on a pure ledger repair — the binder is untouched in that case)
+    written = content_changed
+    if written:
+        updated_stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        text = binder_rows.stamp_updated(text, updated_stamp)
 
     # --- Atomic write: temp → rename (only if text changed) ---
     if written:
@@ -262,7 +270,10 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
                 os.unlink(tmp)
             raise
 
-    print(f"finish-stamp: stamped" if written else "finish-stamp: no change (idempotent)")
+    if written:
+        print("finish-stamp: stamped")
+    elif ledger_needs_repair:
+        print("finish-stamp: ledger repair (binder unchanged)")
     print(f"flip: {1 if flip_happened else 0}")
 
     # --- Append ledger via record CLI (only on actual flip or repair) ---
@@ -321,8 +332,13 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
         print(f"  common cause: .transition-ledger/ is gitignored, or held index lock", file=sys.stderr)
         return 1
 
-    if written or flip_happened or ledger_needs_repair:
-        print(f"finish-stamp: staged binder + ledger ({ticket_id})")
+    staged_parts = []
+    if written:
+        staged_parts.append("binder")
+    if flip_happened or ledger_needs_repair:
+        staged_parts.append("ledger")
+    if staged_parts:
+        print(f"finish-stamp: staged {' + '.join(staged_parts)} ({ticket_id})")
     return 0
 
 
