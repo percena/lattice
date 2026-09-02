@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/382 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T11:41:50Z |
 | adopted | false |
 | summary | transition-api normalises ledger key to tkt-N + validator guard; fold stray ledgers |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,13 +28,13 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-382-ledger-key-normalise |
 | worktree | sibling `…/<repo>.worktrees/tkt-382-ledger-key-normalise/` |
-| prs | (none) |
+| prs | pr-394 — https://github.com/percena/lattice/pull/394 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `ledger_path()` normalises bare ids to `tkt-N` (prefix `tkt-` when missing).
-- [ ] **A2** Validator emits `ledger_key_not_ticket_id` error for non-`tkt-N`-keyed ledger files.
-- [ ] **A3** `356.jsonl`/`357.jsonl` folded into `tkt-356.jsonl`/`tkt-357.jsonl`; replay opens both files.
+- [x] **A1** `ledger_path()` normalises bare ids to `tkt-N` (prefix `tkt-` when missing).
+- [x] **A2** Validator emits `ledger_key_not_ticket_id` error for non-`tkt-N`-keyed ledger files.
+- [x] **A3** `356.jsonl`/`357.jsonl` folded into `tkt-356.jsonl`/`tkt-357.jsonl`; replay opens both files.
 
 ## Approach
 

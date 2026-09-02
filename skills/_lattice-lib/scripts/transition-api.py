@@ -84,9 +84,17 @@ def ledger_path(ticket: str, home: "Path | str | None" = None) -> Path:
     from `home_for_binder`) wins; else `LATTICE_HOME`; else `.lattice` under
     the current directory. Before spc-337 the ledger was ALWAYS resolved from
     cwd while every writer staged it from the binder path, so a stamp run from
-    a non-toplevel cwd silently lost its ledger (tkt-335)."""
+    a non-toplevel cwd silently lost its ledger (tkt-335).
+
+    tkt-382: normalises bare ids to `tkt-N` — callers that pass a bare digit
+    id (e.g. "356") get `tkt-356.jsonl`, not `356.jsonl`. Stray bare-keyed
+    files (356.jsonl, 357.jsonl) were produced by a caller that bypassed
+    the `tkt-` prefix; this guard prevents future drift."""
     if home is None:
         home = os.environ.get("LATTICE_HOME", ".lattice")
+    # tkt-382: normalise bare digit ids to tkt-N
+    if ticket.isdigit():
+        ticket = f"tkt-{ticket}"
     return Path(home) / ".transition-ledger" / f"{ticket}.jsonl"
 
 

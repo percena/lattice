@@ -1732,6 +1732,23 @@ def validate_home(home: Path) -> list[dict[str, str]]:
     if ledger_dir.is_dir():
         for ledger in sorted(ledger_dir.glob("*.jsonl")):
             file_ticket = ledger.stem  # full stem (tkt-N or tkt-N-<slug>)
+            # tkt-382: ledger files must be keyed as tkt-N (not bare N).
+            # A bare-digit key (e.g. 356.jsonl) means the caller bypassed
+            # the tkt- prefix in ledger_path(); the replay cannot find the
+            # file and the binder's status history is silently lost.
+            if not re.fullmatch(r'tkt-\d+(-[a-z0-9-]+)?', file_ticket):
+                findings.append(
+                    {
+                        "code": "ledger_key_not_ticket_id",
+                        "path": str(ledger),
+                        "detail": (
+                            f"ledger file {ledger.name!r} is not keyed as "
+                            "tkt-N (bare digit or non-standard key); "
+                            "transition-api normalises to tkt-N — "
+                            "fold stray files into tkt-N.jsonl (tkt-382)"
+                        ),
+                    }
+                )
             # tkt-363: slug-named ledgers (tkt-N-<slug>.jsonl) must still
             # resolve their binder. Derive the ticket id (tkt-N) from the
             # stem so the binder glob `tkt-N-*` matches; the full stem is
