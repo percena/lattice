@@ -227,14 +227,23 @@ MD
   python3 "$API" commit tkt-20 in-progress system spawn >/dev/null
   ledger="$LATTICE_HOME/.transition-ledger/tkt-20.jsonl"
   before_path="$LATTICE_HOME/.binder-before-20"
+  ledger_backup="$LATTICE_HOME/.ledger-before-20"
   cp "$B" "$before_path"
+  cp "$ledger" "$ledger_backup"
   before_lines=$(wc -l < "$ledger")
-  # Make the ledger dir unwritable so the append in the transaction fails.
-  chmod 000 "$LATTICE_HOME/.transition-ledger"
+  # tkt-353: make the ledger append fail in a uid-independent way. Root
+  # ignores mode bits (chmod 000 is a no-op for uid 0), so replace the
+  # ledger FILE with a directory: lp.open("a") raises IsADirectoryError
+  # (OSError) inside commit_transaction's try block for every uid, aborting
+  # the transaction before the binder rename (fail-close, exit 3).
+  rm -f "$ledger"
+  mkdir "$ledger"
   run python3 "$API" commit tkt-20 parked agent park
-  chmod 755 "$LATTICE_HOME/.transition-ledger"
+  # Restore the ledger file so the line-count assertion can read it.
+  rmdir "$ledger" 2>/dev/null || true
+  cp "$ledger_backup" "$ledger"
   [ "$status" -eq 3 ]
-  # Binder byte-identical to pre-attempt snapshot.
+  # Binder byte-identical to pre-attempt snapshot (fail-close left it unchanged).
   diff "$before_path" "$B"
   # Ledger line count unchanged (no misleading record).
   [ "$(wc -l < "$ledger")" -eq "$before_lines" ]
@@ -340,4 +349,45 @@ PY
   [ "$status" -eq 0 ]
   grep -q '"metric":"cancel-count"' "$LATTICE_HOME/.transition-ledger/tkt-33.jsonl"
   if grep -q '"metric":"direct-jump"' "$LATTICE_HOME/.transition-ledger/tkt-33.jsonl"; then false; fi
+}
+
+# --- tkt-352 / ADR-012 §4: record home resolution + --help (A1/A2) -----------
+
+@test "tkt-352 A2: --help prints usage and exits 0" {
+  run python3 "$API" --help
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q 'Usage:'
+  run python3 "$API" -h
+  [ "$status" -eq 0 ]
+}
+
+@test "tkt-352 A2: record --help and commit --help print usage and exit 0" {
+  run python3 "$API" record --help
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q 'usage:.*record'
+  run python3 "$API" commit --help
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -q 'usage:.*commit'
+}
+
+@test "tkt-352 A1: --home overrides the ledger home for record" {
+  other="$BATS_RUN_TMPDIR/other-home"
+  mkdir -p "$other/.transition-ledger"
+  run env -u LATTICE_HOME python3 "$API" record tkt-40 queued in-progress system spawn --home "$other"
+  [ "$status" -eq 0 ]
+  [ -s "$other/.transition-ledger/tkt-40.jsonl" ]
+}
+
+@test "tkt-352 A1: record from a non-toplevel cwd lands under the repo .lattice (LATTICE_HOME unset)" {
+  # Build a throwaway git repo so `git rev-parse --show-toplevel` resolves.
+  repo="$BATS_RUN_TMPDIR/mini-repo"
+  mkdir -p "$repo/sub/dir/.lattice/.transition-ledger"
+  ( cd "$repo" && git init -q && git add -A >/dev/null 2>&1 && git commit -qm init >/dev/null 2>&1 ) || true
+  # Run record from a deep subdir with LATTICE_HOME unset — the entry must land
+  # under <repo>/.lattice, not <cwd>/.lattice.
+  run env -u LATTICE_HOME bash -c "cd '$repo/sub/dir' && python3 '$API' record tkt-41 queued in-progress system spawn"
+  [ "$status" -eq 0 ]
+  [ -s "$repo/.lattice/.transition-ledger/tkt-41.jsonl" ]
+  # And NOT under the cwd.
+  [ ! -s "$repo/sub/dir/.lattice/.transition-ledger/tkt-41.jsonl" ]
 }

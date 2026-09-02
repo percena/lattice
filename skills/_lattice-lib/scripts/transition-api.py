@@ -90,6 +90,32 @@ def ledger_path(ticket: str, home: "Path | str | None" = None) -> Path:
     return Path(home) / ".transition-ledger" / f"{ticket}.jsonl"
 
 
+def resolve_record_home(home_override: "str | None" = None) -> str:
+    """Resolve the Lattice home for the ledger-only `record` primitive (the
+    one writer with no binder to anchor it; ADR-012 §4 / tkt-352).
+
+    Order: an explicit `--home <path>` → `LATTICE_HOME` →
+    `<git show-toplevel>/.lattice` (never bare cwd, so a `record` run from a
+    non-toplevel subdir still lands the entry under the repo's `.lattice`).
+    Falls back to `.lattice` only outside a git worktree (preserves the
+    pre-tkt-352 behaviour for bare-cwd manual backstops)."""
+    if home_override:
+        return home_override
+    env = os.environ.get("LATTICE_HOME")
+    if env:
+        return env
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return str(Path(out.stdout.strip()) / ".lattice")
+    except Exception:
+        pass
+    return ".lattice"
+
+
 def resolve_state_home() -> str:
     """Resolve the out-of-repo runtime state dir (ADR-011 / spc-282 A2).
 
@@ -275,13 +301,12 @@ def cmd_commit(args: list) -> int:
     record (fail-close). `record` remains as the ledger-only primitive for
     non-mutating callers; canonical writers route here.
     """
-    if not args:
+    if not args or args[0] in ("--help", "-h"):
         print("usage: transition-api.py commit <ticket-id> <to> <owner> "
               "<reason> [--from <expected>] [--wait-reason <r>] "
               "[--force-side-state-reason <text>] [--trace <text>] "
-              "[--append-journal <text>] [--binder <path>] [--dry-run]",
-              file=sys.stderr)
-        return 3
+              "[--append-journal <text>] [--binder <path>] [--dry-run]")
+        return 0 if (args and args[0] in ("--help", "-h")) else 3
     ticket, to, owner, reason = args[:4]
     rest = args[4:]
     expected_from = None
@@ -534,15 +559,21 @@ def cmd_legal(args: list) -> int:
 
 
 def cmd_record(args: list) -> int:
+    if not args or args[0] in ("--help", "-h"):
+        print("usage: transition-api.py record <ticket-id> <from> <to> "
+              "<owner> <reason> [--force-side-state-reason <text>] "
+              "[--trace <text>] [--home <path>] [--dry-run]")
+        return 0 if (args and args[0] in ("--help", "-h")) else 3
     if len(args) < 5:
         print("usage: transition-api.py record <ticket-id> <from> <to> "
               "<owner> <reason> [--force-side-state-reason <text>] "
-              "[--trace <text>] [--dry-run]", file=sys.stderr)
+              "[--trace <text>] [--home <path>] [--dry-run]", file=sys.stderr)
         return 3
     ticket, frm, to, owner, reason = args[:5]
     rest = args[5:]
     force_reason = None
     trace_override = None
+    home_override = None
     dry = False
     i = 0
     while i < len(rest):
@@ -550,6 +581,8 @@ def cmd_record(args: list) -> int:
             force_reason = rest[i + 1]; i += 2
         elif rest[i] == "--trace" and i + 1 < len(rest):
             trace_override = rest[i + 1]; i += 2
+        elif rest[i] == "--home" and i + 1 < len(rest):
+            home_override = rest[i + 1]; i += 2
         elif rest[i] == "--dry-run":
             dry = True; i += 1
         else:
@@ -583,14 +616,18 @@ def cmd_record(args: list) -> int:
     if dry:
         print(json.dumps(entry, indent=2))
         return 0
-    lp = ledger_path(ticket)
+    # tkt-352 / ADR-012 §4: `record` has no binder to anchor it, so resolve the
+    # home from --home → LATTICE_HOME → <git show-toplevel>/.lattice (never bare
+    # cwd) so a run from a non-toplevel subdir lands under the repo's .lattice.
+    rec_home = resolve_record_home(home_override)
+    lp = ledger_path(ticket, rec_home)
     lp.parent.mkdir(parents=True, exist_ok=True)
     # Atomic append with a flock (review F7): batch-work spawns sibling
     # worktrees; concurrent recorders must not interleave partial JSON lines.
     # ADR-011 / spc-282 A2: the .lock sidecar lives OUT OF REPO (state home)
     # so it does not leak as untracked dirt; the .jsonl it guards stays
     # committed in-repo. Same-clone recorders resolve one lock via fingerprint.
-    lockp = lock_path(ticket)
+    lockp = lock_path(ticket, rec_home)
     lockp.parent.mkdir(parents=True, exist_ok=True)
     lock_fd = os.open(str(lockp), os.O_CREAT | os.O_WRONLY, 0o644)
     try:
@@ -686,9 +723,11 @@ def cmd_replay(args: list) -> int:
 
 
 def main(argv: list) -> int:
-    if len(argv) < 2:
-        print(__doc__, file=sys.stderr)
-        return 3
+    if len(argv) < 2 or argv[1] in ("--help", "-h"):
+        # `--help` (and no-arg) print the docstring usage; exit 0 for an
+        # explicit --help, 3 for a bare invocation (tkt-352 A2).
+        print(__doc__)
+        return 0 if (len(argv) >= 2 and argv[1] in ("--help", "-h")) else 3
     cmd, rest = argv[1], argv[2:]
     if cmd == "legal":
         return cmd_legal(rest)

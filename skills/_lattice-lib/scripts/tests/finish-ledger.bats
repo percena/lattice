@@ -804,17 +804,21 @@ EOF
 }
 
 @test "tkt-323: commit_transaction IO failure fails closed (exit non-zero, not swallowed WARN)" {
-  # A read-only binder directory makes commit_transaction's os.replace fail
-  # (cannot rename the temp into a read-only dir). Before tkt-323 this was
-  # swallowed as a WARN + exit 0; now it raises SystemExit (fail-closed).
+  # tkt-353: inject the IO failure in a uid-independent way. Root ignores
+  # mode bits (chmod 555 is a no-op for uid 0), so the ledger append inside
+  # commit_transaction is made to fail by pre-creating the per-ticket ledger
+  # FILE as a directory — lp.open("a") raises IsADirectoryError (OSError)
+  # inside commit_transaction's try block for every uid, so it returns 3 and
+  # finish-ledger fail-closes with "FAILED".
   write_fresh_binder
   git -C "$REPO" add -A && git -C "$REPO" commit -qm "binder"
-  chmod 555 "$BINDER_DIR"  # make the binder dir read-only → os.replace fails
+  mkdir -p "$LATTICE_HOME/.transition-ledger"
+  rm -rf "$LATTICE_HOME/.transition-ledger/tkt-7.jsonl"
+  mkdir "$LATTICE_HOME/.transition-ledger/tkt-7.jsonl"
   run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -ne 0 ]  # fail-closed (not exit 0)
   printf '%s\n' "$output" | grep -qF "FAILED"
-  chmod 755 "$BINDER_DIR"  # restore so teardown can rm
 }
 
 # --- spc-337 A1/A2: ledger from the binder home; direct-jump anomaly ---------

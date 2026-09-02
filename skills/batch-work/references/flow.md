@@ -131,8 +131,11 @@ If the layer has more tickets than `--concurrency`, spawn in **waves** of `--con
      TIMEBOX: <N> minutes wall-clock (mode <S|M|C>). Exceeding it marks this
      ticket failed; leave the binder ledger current at all times.
 
-     BINDER STATUS: stamp the binder field-table status: in-progress when you
-     start, pr-open after create-pr. (stuck/parked per the policies below.)
+     BINDER STATUS: the `ensure-workspace` bind already stamped `in-progress`
+     at spawn — do NOT hand-stamp `status` (the `in-progress → in-progress` edge
+     is refused and the L3 status-row hook rejects a hand edit). `after-pr-open.sh`
+     (the create-pr post-open step) / the PostToolUse `auto-stamp-pr-open.sh` hook
+     stamps `pr-open` after `gh pr create`. (stuck/parked per the policies below.)
 
      DECISION PROTOCOL — read skills/_lattice-lib/references/decision-policy.md:
      resolve every mid-execution decision through its chain; reversible +
@@ -306,7 +309,7 @@ Human reviews open PRs, then runs finish-work per PR.
 The out-of-repo `.batch-work-active` marker (state home) ensured no agent merged.
 ```
 
-Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by the agents: `queued → in-progress → pr-open` (or `stuck`/`parked` per policy); **fuse-halted tickets stamp `deferred`+reason `fuse-halt`** (ADR-004 amd tkt-136 Option B), **blocked-by-failure dependents stamp `deferred`+reason `blocked-by-failure`**, **watchdog-timeout stamps `stuck`+`wait_reason: unblock`** (FSM-2b, tkt-132); never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
+Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-failed | fuse-halted`) is **report-level**, not the binder enum. Binder `status` (SoT) is stamped by **path points, not agent hand-prose** (ADR-012 §1): `ensure-workspace` stamps `queued → in-progress` at spawn, `after-pr-open.sh` stamps `pr-open` after `gh pr create` (or `stuck`/`parked` per policy); **fuse-halted tickets stamp `deferred`+reason `fuse-halt`** (ADR-004 amd tkt-136 Option B), **blocked-by-failure dependents stamp `deferred`+reason `blocked-by-failure`**, **watchdog-timeout stamps `stuck`+`wait_reason: unblock`** (FSM-2b, tkt-132); never-spawned tickets stay `queued` — the report note is their record. Include the fuse-trip line only when it tripped. Under `--with-review`, the digest is the final artifact and references this table.
 
 **Never-spawned reason mapping (tkt-151 A6 — one unambiguous mapping per reason):**
 
