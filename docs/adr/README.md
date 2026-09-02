@@ -16,4 +16,4 @@
 | [010](./010-review-release-boundary-merge-review-mode.md) | review-code + review-production release-boundary merge-review mode | Accepted | — |
 | [011](./011-consumer-repo-footprint-hygiene.md) | Consumer-repo footprint hygiene — relocate runtime state, bootstrap tracked gitignore | Accepted | — |
 | [012](./012-transitions-stamped-by-the-path.md) | Transitions are stamped by the path, not by the agent — ledger coverage as conformance sensor | Accepted | — |
-| [013](./013-finish-ledger-ledger-write-separation.md) | Finish-ledger ledger write separation — commit_transaction unreliable | Proposed | — |
+| [013](./013-finish-ledger-ledger-write-separation.md) | Post-merge ledger stamping — belt-and-suspenders (simplified local stamp + GHA safety net) | Proposed | Revises initial proposal twice (Option A rejected → Option E single-point-of-failure → Option E+); implements ADR-012 §5 |
