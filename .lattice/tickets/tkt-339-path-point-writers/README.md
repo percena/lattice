@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/339 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T03:10:27Z |
+| updated | 2026-09-02T03:19:50Z |
 | adopted | false |
 | summary | ensure-workspace --bind stamps queued→in-progress; create-pr post-open script + PostToolUse hook stamp pr-open; morning-triage edges as transition-api commands. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-339-path-point-writers |
 | worktree | sibling `…/lattice.worktrees/tkt-339-path-point-writers/` |
-| prs | (none) |
+| prs | pr-348 — https://github.com/percena/lattice/pull/348 |
 
 ## Acceptance (this slice)
 
