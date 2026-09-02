@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/386 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T09:20:35Z |
-| updated | 2026-09-02T09:20:35Z |
+| updated | 2026-09-02T12:47:01Z |
 | adopted | false |
 | summary | drain the NOTICED backlog: disposition all lines in a rev; file ticket rows |
 | spec | (none — spawned from rev-20260902-080545Z) |
@@ -28,7 +28,7 @@
 | related_tickets | (none) |
 | worktree_bind | tkt-386-noticed-backlog-drain |
 | worktree | sibling `…/<repo>.worktrees/tkt-386-noticed-backlog-drain/` |
-| prs | (none) |
+| prs | pr-413 — https://github.com/percena/lattice/pull/413 |
 
 ## Acceptance (this slice)
 
