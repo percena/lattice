@@ -1690,7 +1690,13 @@ def validate_home(home: Path) -> list[dict[str, str]]:
     ledger_dir = home / TRANSITION_LEDGER_DIR
     if ledger_dir.is_dir():
         for ledger in sorted(ledger_dir.glob("*.jsonl")):
-            file_ticket = ledger.stem  # tkt-N
+            file_ticket = ledger.stem  # full stem (tkt-N or tkt-N-<slug>)
+            # tkt-363: slug-named ledgers (tkt-N-<slug>.jsonl) must still
+            # resolve their binder. Derive the ticket id (tkt-N) from the
+            # stem so the binder glob `tkt-N-*` matches; the full stem is
+            # kept for the identity check.
+            id_match = re.match(r'^(tkt-\d+|spc-\d+)', ledger.stem)
+            ticket_id = id_match.group(1) if id_match else ledger.stem
             prev_to: str | None = None
             last_to: str | None = None
             for lineno, line in enumerate(
@@ -1774,7 +1780,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                 last_to = to
             # Final snapshot: the ledger's last `to` must equal the binder status.
             if last_to is not None:
-                binder = binder_for_ticket_id(home, file_ticket)
+                binder = binder_for_ticket_id(home, ticket_id)
                 if binder is not None:
                     bstatus = ticket_status(binder.read_text(encoding="utf-8"))
                     if bstatus is not None and bstatus != last_to:

@@ -13,7 +13,7 @@
 #
 #   --stage push    after `git push`       → verify remote OID == local HEAD
 #   --stage pr      after `gh pr create`   → verify repo/base/head/body/head-OID
-#   --stage merge   after `gh pr merge`     → verify PR MERGED + base OID stable
+#   --stage merge   after `gh pr merge`     → verify PR MERGED + base tip advanced past expected OID
 #
 # Each stage delegates the remote/PR/merge-state probe to verify-mutation.sh
 # (the foundation from tkt-255), then layers the richer field comparison

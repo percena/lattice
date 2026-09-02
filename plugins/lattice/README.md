@@ -78,14 +78,17 @@ npx skills add percena/lattice \
 
 Optional guidance — **skills remain correct without hooks** (Codex / `npx skills`).
 
-| Hook | Role |
-| --- | --- |
-| `track-skill-activation` | Record Skill-tool loads |
-| `track-skill-slash-command` | Record `/create-pr` / `/finish-work` (and `/lattice:…`) slash loads |
-| `intercept-gh-pr-create` | Block bare `gh pr create` unless `create-pr` skill is active |
-| `intercept-gh-pr-merge` | Block bare `gh pr merge` unless `finish-work` skill is active |
-| `intercept-gh-issue-create` | Block bare `gh issue create` unless `create-tickets` (or `create-spec`) skill is active |
-| `clear-skill-markers-on-compact` | Drop markers after context compact |
+| Hook | Event | Role |
+| --- | --- | --- |
+| `track-skill-activation` | PreToolUse `Skill` | Record Skill-tool loads |
+| `track-skill-slash-command` | UserPromptSubmit | Record `/create-pr` / `/finish-work` (and `/lattice:…`) slash loads |
+| `intercept-git-branch-create` | PreToolUse `Bash` | **L1** — block `git checkout -b`/`switch -c` in the main clone under `profile: strict` (ADR-006) |
+| `intercept-shippable-write` | PreToolUse `Write\|Edit\|NotebookEdit` | **L3** — block shippable writes when cwd is not a worktree; also guards the binder `status` row (spc-337 A4) |
+| `intercept-gh-pr-create` | PreToolUse `Bash` | Block bare `gh pr create` unless `create-pr` skill is active |
+| `intercept-gh-pr-merge` | PreToolUse `Bash` | Block bare `gh pr merge` unless `finish-work` skill is active |
+| `intercept-gh-issue-create` | PreToolUse `Bash` | Block bare `gh issue create` unless `create-tickets` (or `create-spec`) skill is active |
+| `auto-stamp-pr-open` | PostToolUse `Bash` | Stamp the pr-open ledger entry after `gh pr create` (spc-337 A3) |
+| `clear-skill-markers-on-compact` | PreCompact | Drop markers after context compact |
 
 Does **not** auto-edit issue/PR/binder bodies. Fail-open on ambiguity.
 

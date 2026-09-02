@@ -246,7 +246,7 @@ Prefer not forcing checkout of `main` when another worktree holds it.
 
 ```bash
 # Capture the base branch tip BEFORE the merge (spc-254 A2 base-OID probe).
-PRE_MERGE_BASE=$(git ls-remote origin "refs/heads/<base>" 2>/dev/null | awk '{print $1}')
+BASE_TIP=$(git ls-remote origin "refs/heads/<base>" 2>/dev/null | awk '{print $1}')
 gh pr merge <N> --squash --delete-branch
 # if gh non-zero: gh pr view <N> --json state,mergedAt — MERGED → **still run §3.1 + §4 cleanup**
 gh pr close <N> --comment "Closing without merge; cleaning workspace."
@@ -275,7 +275,7 @@ SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
 RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
 LIB=$(bash "$RESOLVE")
 bash "$LIB/verify-main-chain.sh" --stage merge --pr <N> \
-  --expected-oid "$PRE_MERGE_BASE" --repo "<owner/name>"
+  --expected-oid "$BASE_TIP" --repo "<owner/name>"
 ```
 
 A `FAILED:` proof HALTS §3.5 (`close-fixed-issues.sh`) and §4

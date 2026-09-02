@@ -43,18 +43,17 @@ EOF
 }
 
 @test "missing claude binary: spawn fails closed (no live process)" {
-  # tkt-353: a controlled PATH carries the shell utilities (bash/nohup/sleep
-  # inherited from the host) plus a `claude` that cannot exec under ANY uid.
-  # A non-executable file (chmod -x) can still exec under root on some
-  # platforms, so the stub is a DIRECTORY — execve on a directory fails with
-  # EACCES/EISDIR for every uid. The spawn subshell starts but claude cannot
-  # exec; the grace re-check catches the dead PID.
+  # tkt-361: assert on the documented outcome (dead PID / 'did not produce
+  # a live process') rather than a specific exit code — on a root host a
+  # disowned spawn that immediately fails exec becomes a zombie that
+  # `kill -0` sees as alive, so the script now excludes zombies in is_alive.
+  # The test asserts non-zero exit (any failure) + the failure message.
   mkdir -p "$TEST_DIR/bin/claude"  # a directory named `claude` — never execable
   cwd="$TEST_DIR/wt"; mkdir -p "$cwd"
   brief="$TEST_DIR/brief"; printf 'dummy brief\n' >"$brief"
   run env PATH="$TEST_DIR/bin:$PATH" SPAWN_GRACE_SEC=0.2 \
     bash "$SPAWN" --cwd "$cwd" --brief-file "$brief"
-  [ "$status" -eq 1 ]
+  [ "$status" -ne 0 ]
   printf '%s\n' "$output" | grep -qE "(did not produce a live process|died immediately)"
 }
 
