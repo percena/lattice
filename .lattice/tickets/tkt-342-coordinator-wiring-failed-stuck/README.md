@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/342 |
-| status | pr-open |
-| fix_cycles | 0 |
+| status | in-progress |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:51:31Z |
+| updated | 2026-09-02T02:53:48Z |
 | adopted | false |
 | summary | batch-work coordinator wired by default (--batch-id), failed fail-closes to stuck, marker --create + barrier heartbeat, ADR-011 amended. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -62,6 +62,7 @@ See GitHub issue #342 for the full slice text; Spec ids owned by this slice:
 - 2026-09-02 — `coordinator.py --self-test` T3 updated to the new contract (in-progress binder + real sibling transition-api; asserts the binder flipped to stuck) and a T3b added for the refused-transition path. While doing so, found the self-test was NOT hermetic: coordinator state lives at the out-of-repo state home (ADR-011), so `st-batch` persisted across runs and the monotonic settle guard (A3.3) refused T3's re-spawn. Pinned `LATTICE_STATE_HOME` to the self-test temp dir (same pin the bats suites use). Ticket-local test hygiene; reversible.
 - 2026-09-02 — Pre-existing reds left as-is (out of A6 scope, environmental): coordinator.bats #8 ends with `run command -v claude; [ "$status" -ne 0 ]` and spawn-ticket-process.bats "missing claude binary" — both fail on any host where `claude` is on PATH (it is here); red at baseline before this change.
 - 2026-09-02 — Agent-mode (Task) prose unchanged beyond naming the command — pre-resolved in binder Anticipated decisions #1 (spc-337 A6 scope: process-mode scripts only).
+- 2026-09-02T02:53:41Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: mini-review Hold: batch-merge-gate.bats uses bare '! grep' assertions (exempt from set -e; CI guard check-bats-assertions fails) — rewrite as 'if grep …; then false; fi'
 
 ## Pending decisions
 

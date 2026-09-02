@@ -156,7 +156,7 @@ setup() {
   printf '%s\n' "$output" | grep -qF "first-batch"
   # First batch still owns the marker.
   grep -qx 'batch-id: first-batch' "$marker"
-  ! grep -q 'second-batch' "$marker"
+  if grep -q 'second-batch' "$marker"; then false; fi
 }
 
 @test "create: --force overwrites a different batch-id (with a warning)" {
@@ -166,7 +166,7 @@ setup() {
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF "warn: --force overwriting"
   grep -qx 'batch-id: second-batch' "$marker"
-  ! grep -q 'first-batch' "$marker"
+  if grep -q 'first-batch' "$marker"; then false; fi
   echo "$output" | grep -F '{' | jq -e '.batch_id == "second-batch"'
 }
 
