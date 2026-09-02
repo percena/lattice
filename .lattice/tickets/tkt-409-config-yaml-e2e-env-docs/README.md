@@ -10,9 +10,9 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/409 |
-| status | pr-open |
+| status | closed |
 | created | 2026-09-02T12:30:00Z |
-| updated | 2026-09-02T13:10:00Z |
+| updated | 2026-09-02T13:58:04Z |
 | adopted | true |
 | summary | document e2e_env allowlist + verify-features wave/crawl/flaky bounds in the config.yaml template |
 | spec | none |
@@ -55,3 +55,6 @@ The verify-features SKILL.md (INVARIANT 4 + Preflight step 0) reads `.lattice/co
 - Parent spec: none · Primary ticket: tkt-409 · Parallel group: (serial NOTICED-drain batch) · Worktree bind: `tkt-409-noticed-drain-fixes`
 
 ## Finish
+
+- pr-417 merged: 2026-09-02T13:55:38Z — https://github.com/percena/lattice/pull/417 (base merge)
+- issue #409 closed: 2026-09-02T13:56:14Z (reason: completed) — https://github.com/percena/lattice/issues/409

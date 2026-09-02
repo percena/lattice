@@ -10,9 +10,9 @@
 | priority | P3 |
 | labels | enhancement, P3 |
 | github | https://github.com/percena/lattice/issues/412 |
-| status | pr-open |
+| status | closed |
 | created | 2026-09-02T12:30:00Z |
-| updated | 2026-09-02T13:10:00Z |
+| updated | 2026-09-02T13:58:27Z |
 | adopted | true |
 | summary | align the spec-done-acceptance-cites-evidence probe with the binder/PR evidence convention (no spec content edits) |
 | spec | none |
@@ -55,3 +55,6 @@ The probe (probes.md:46) already self-documents: "Stricter than the current Spec
 - Parent spec: none · Primary ticket: tkt-412 · Parallel group: (serial NOTICED-drain batch) · Worktree bind: `tkt-409-noticed-drain-fixes`
 
 ## Finish
+
+- pr-417 merged: 2026-09-02T13:55:38Z — https://github.com/percena/lattice/pull/417 (base merge)
+- issue #412 closed: 2026-09-02T13:56:29Z (reason: completed) — https://github.com/percena/lattice/issues/412

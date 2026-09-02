@@ -10,9 +10,9 @@
 | priority | P3 |
 | labels | enhancement, P3 |
 | github | https://github.com/percena/lattice/issues/411 |
-| status | pr-open |
+| status | closed |
 | created | 2026-09-02T12:30:00Z |
-| updated | 2026-09-02T13:10:00Z |
+| updated | 2026-09-02T13:58:19Z |
 | adopted | true |
 | summary | derive USER_FACING list + catalog size in bats fixtures from tools/validate-skills.sh single source |
 | spec | none |
@@ -56,3 +56,6 @@
 - Parent spec: none · Primary ticket: tkt-411 · Parallel group: (serial NOTICED-drain batch) · Worktree bind: `tkt-409-noticed-drain-fixes`
 
 ## Finish
+
+- pr-417 merged: 2026-09-02T13:55:38Z — https://github.com/percena/lattice/pull/417 (base merge)
+- issue #411 closed: 2026-09-02T13:56:21Z (reason: completed) — https://github.com/percena/lattice/issues/411
