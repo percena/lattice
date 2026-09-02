@@ -10,7 +10,7 @@
 | priority | P3 |
 | labels | documentation, P3 |
 | github | https://github.com/percena/lattice/issues/409 |
-| status | in-progress |
+| status | pr-open |
 | adopted | true |
 | summary | document e2e_env allowlist + verify-features wave/crawl/flaky bounds in the config.yaml template |
 | spec | none |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-410, tkt-411, tkt-412 (NOTICED-drain batch) |
 | **worktree_bind** | tkt-409-noticed-drain-fixes |
 | worktree | sibling …/lattice.worktrees/tkt-409-noticed-drain-fixes/ |
-| prs | pending |
+| prs | pr-417 — https://github.com/percena/lattice/pull/417 |
 
 ## Acceptance (this slice)
 
