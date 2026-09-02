@@ -34,15 +34,25 @@
 #             agents --json explicit failure.
 #   timeout — killed past timebox (watchdog).
 #   unknown — PID disappeared with no result artifact, OR exit==0 but no
-#             verified PR claim (can't confirm success). unknown FAIL-CLOSES
-#             the binder to `stuck + wait_reason: unblock` via transition-api.py
-#             record (tkt-255). The host then triages the stuck node.
+#             verified PR claim (can't confirm success).
+#
+# failed|timeout|unknown ALL FAIL-CLOSE the binder to `stuck + wait_reason:
+# unblock` via transition-api.py commit (tkt-255, spc-337 A6 / tkt-342 — a
+# crashed worker never leaves its binder `in-progress`). The host then triages
+# the stuck node.
+#
+# COORDINATOR SPINE (spc-254 A5 / spc-270 A3.1 / spc-337 A6): the coordinator
+# activates when --batch-id is set (the canonical SKILL/flow invocation passes
+# the marker's batch id); --coordinator only overrides the coordinator.py path.
+# With the spine active the wave also touches the .batch-work-active marker at
+# the end of each barrier (heartbeat, ADR-011) via batch-merge-gate.sh --touch.
 #
 # Usage:
 #   run-process-wave.sh --manifest <path> [--concurrency N] [--ram-threshold GB]
 #       [--state-file <path>] [--poll-interval sec] [--spawn-helper <path>]
 #       [--verify-helper <path>] [--transition-api <path>] [--lattice-home <dir>]
-#       [--dry-run] [--report <path>]
+#       [--batch-id <id> [--coordinator <path>] [--layer N] [--wave N]
+#        [--gate-script <path>]] [--dry-run] [--report <path>]
 #   run-process-wave.sh --self-test
 #   run-process-wave.sh --help
 #
@@ -66,6 +76,10 @@ DEFAULT_VERIFY="${LIB_DIR:-$SCRIPT_DIR}/verify-mutation.sh"
 DEFAULT_TRANSITION_API="${LIB_DIR:-$SCRIPT_DIR}/transition-api.py"
 COORD_DIR="$(cd "$SCRIPT_DIR/lib" 2>/dev/null && pwd)"
 DEFAULT_COORDINATOR="${COORD_DIR:-$SCRIPT_DIR/lib}/coordinator.py"
+# batch-merge-gate.sh lives with finish-work (it owns the marker's removal;
+# spc-337 A6 gives it --create/--touch so creation + heartbeat share one helper).
+GATE_DIR="$(cd "$SCRIPT_DIR/../../finish-work/scripts" 2>/dev/null && pwd)"
+DEFAULT_GATE_SCRIPT="${GATE_DIR:-$SCRIPT_DIR/../../finish-work/scripts}/batch-merge-gate.sh"
 
 usage() {
   cat <<EOF
@@ -84,21 +98,28 @@ usage: run-process-wave.sh --manifest <path> [options]
   --verify-helper <path>  verify-mutation.sh path (default: _lattice-lib sibling).
                          Probes each claimed PR --expected-oid IN-WAVE (spc-254 A1).
   --transition-api <path> transition-api.py path (default: _lattice-lib sibling).
-                         Records the unknown→stuck fail-close ledger flip.
+                         Records the failed|timeout|unknown→stuck fail-close flip.
   --lattice-home <dir>    Lattice home dir for the transition ledger (default:
                          \$LATTICE_HOME or .lattice).
-  --coordinator <path>    coordinator.py path (default: sibling lib). When set,
-                         the wave persists DAG/layer/node-attempt/PID-PR-OID/
-                         marker-owner/failure-class/resume-cursor to
-                         .lattice/.coordinator/<batch-id>.json (spc-254 A5).
-                         A host restart resumes from the persisted cursor
-                         without re-deriving. The coordinator performs NO
-                         model inference (D4) — it consumes the transition API
-                         (tkt-255) and this wave's classification (tkt-257).
-                         Requires --batch-id.
-  --batch-id <id>         Batch id. DEFAULT-ON: when set, the coordinator
-                         persists DAG/cursor/attempts/PID-PR-OID (spc-270
-                         A3.1); omit for the legacy no-state path.
+  --batch-id <id>         Batch id (the .batch-work-active marker's id). Setting
+                         it ACTIVATES the coordinator spine: the wave persists
+                         DAG/layer/node-attempt/PID-PR-OID/marker-owner/
+                         failure-class/resume-cursor to <state-home>/
+                         .coordinator/<batch-id>.json (spc-254 A5, spc-270
+                         A3.1) so a host restart resumes from the persisted
+                         cursor without re-deriving, and touches the marker at
+                         each barrier (heartbeat, ADR-011 / spc-337 A6). The
+                         coordinator performs NO model inference (D4) — it
+                         consumes the transition API (tkt-255) and this wave's
+                         classification (tkt-257). Omit for the legacy
+                         no-state path.
+  --coordinator <path>    coordinator.py path override (default: sibling lib).
+                         Only changes WHICH script the spine uses; it does not
+                         activate the spine — --batch-id does.
+  --gate-script <path>    batch-merge-gate.sh path override (default:
+                         ../../finish-work/scripts sibling). Used for the
+                         per-barrier marker --touch when --batch-id is set;
+                         a missing gate script is a warning, never a failure.
   --layer <N>             DAG layer index this wave belongs to (forwarded to
                          the coordinator so resume knows which layer settled).
   --wave <N>              Wave index within the layer (forwarded to the
@@ -178,10 +199,11 @@ probe_agents_json() {
   echo ""
 }
 
-# Record the unknown fail-close: binder in-progress → stuck with wait_reason:
-# unblock, via transition-api.py (tkt-255). Best-effort — a missing/errored
-# transition-api MUST NOT crash the wave (set -e guarded); it warns so the
-# host's morning triage still sees the unrecorded stuck node in the report.
+# Record the failed|timeout|unknown fail-close: binder in-progress → stuck with
+# wait_reason: unblock, via transition-api.py (tkt-255; spc-337 A6 adds
+# failed). Best-effort — a missing/errored transition-api MUST NOT crash the
+# wave (set -e guarded); it warns so the host's morning triage still sees the
+# unrecorded stuck node in the report.
 record_stuck() {
   local ticket="$1" reason="$2"
   [[ -f "$WAVE_TRANSITION_API" ]] || { echo "error: transition-api.py not found; cannot atomic-fail-close $ticket" >&2; return 1; }
@@ -230,10 +252,12 @@ coord_record_spawn() {
 
 # coord_record_node <ticket> <status> [pid] [pr] [oid] [reason]
 # status ∈ {ok,failed,timeout,unknown,spawned-but-dead,workspace-failed}.
-# The coordinator calls transition-api for ok (→pr-open), unknown/timeout
-# (→stuck). failed/spawned-but-dead/workspace-failed persist the failure
-# class only (host triages the binder). When the spine is NOT active, the
-# caller falls back to record_stuck for the unknown fail-close.
+# The coordinator calls transition-api commit for failed/timeout/unknown
+# (→stuck + wait_reason: unblock, BEFORE settle — spc-270 A3.4 + spc-337 A6).
+# ok/spawned-but-dead/workspace-failed persist the failure class only (the
+# worker owns ok→pr-open; the other two never reached start-work, so the
+# binder is still queued). When the spine is NOT active, the caller falls back
+# to record_stuck for the same failed/timeout/unknown fail-close.
 coord_record_node() {
   local ticket="$1" status="$2" pid="${3:-}" pr="${4:-}" oid="${5:-}" reason="${6:-}"
   [[ -n "${WAVE_COORDINATOR:-}" ]] || return 0
@@ -246,6 +270,21 @@ coord_record_node() {
   [[ -n "$reason" ]] && args+=(--reason "$reason")
   LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" "${args[@]}" >/dev/null 2>&1 \
     || echo "warn: coordinator record-node failed for $ticket (state not persisted)" >&2
+}
+
+# heartbeat_marker — touch the .batch-work-active marker's mtime at the end of
+# each barrier (ADR-011 amendment, spc-337 A6 / tkt-342) so the mtime-based
+# stale-marker GC never reaps a live batch. Only when the spine is active
+# (WAVE_BATCH_ID set — the marker is keyed by that batch id). Best-effort: a
+# missing gate script or an absent marker is a warning, never a wave failure.
+heartbeat_marker() {
+  [[ -n "${WAVE_BATCH_ID:-}" ]] || return 0
+  if [[ ! -f "${WAVE_GATE_SCRIPT:-}" ]]; then
+    echo "warn: batch-merge-gate.sh not found at ${WAVE_GATE_SCRIPT:-<unset>}; marker heartbeat skipped for batch $WAVE_BATCH_ID" >&2
+    return 0
+  fi
+  bash "$WAVE_GATE_SCRIPT" --touch >/dev/null \
+    || echo "warn: marker heartbeat (--touch) failed for batch $WAVE_BATCH_ID (stale-marker GC may reap it)" >&2
 }
 
 # After a wave barrier settles, advance the resume cursor so a restart
@@ -308,15 +347,17 @@ classify_node() {
   ENDS[i]=$(now_epoch)
   echo "${STATUS[i]}: ${ticket} pid=$pid ($reason)" >&2
 
-  # unknown fail-closes the binder to stuck + wait_reason: unblock. When the
-  # coordinator spine is active (spc-254 A5), coord_record_node persists ALL
-  # settled statuses (ok/failed/timeout/unknown) AND records the binder flip
-  # via transition-api internally — replacing record_stuck so there is no
-  # double ledger entry. When the spine is off, the legacy record_stuck path
-  # runs only for unknown (preserving prior behavior + existing tests).
+  # failed|unknown fail-close the binder to stuck + wait_reason: unblock
+  # (timeout does the same from barrier_poll). When the coordinator spine is
+  # active (spc-254 A5), coord_record_node persists ALL settled statuses
+  # (ok/failed/timeout/unknown) AND records the binder flip via transition-api
+  # internally — replacing record_stuck so there is no double ledger entry.
+  # When the spine is off, the legacy record_stuck path runs for failed AND
+  # unknown (spc-337 A6: a crashed worker / phantom PR must not leave the
+  # binder in-progress — same set as coordinator.py STUCK_STATUSES).
   if [[ -n "${WAVE_COORDINATOR:-}" ]]; then
     coord_record_node "$ticket" "${STATUS[i]}" "$pid" "$pr" "$oid" "$reason"
-  elif [[ "${STATUS[i]}" == "unknown" ]]; then
+  elif [[ "${STATUS[i]}" == "unknown" || "${STATUS[i]}" == "failed" ]]; then
     # Atomic fail-close (A2.2). A transition failure prevents node settle
     # and makes the wave exit machine-decidably non-ok (A2.3): the node
     # stays unsolved and WAVE_TRANSITION_FAIL bumps so run_wave exits 1.
@@ -331,7 +372,7 @@ classify_node() {
 run_wave() {
   local manifest="" concurrency=3 ram_thr=10 state_file="" poll_interval=10 spawn_helper="$DEFAULT_HELPER" dry=0 report=""
   local verify_helper="$DEFAULT_VERIFY" transition_api="$DEFAULT_TRANSITION_API" lattice_home="${LATTICE_HOME:-.lattice}"
-  local coordinator="" batch_id="" layer=0 wave=0
+  local coordinator="" batch_id="" layer=0 wave=0 gate_script="$DEFAULT_GATE_SCRIPT"
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --manifest) manifest="$2"; shift 2 ;;
@@ -345,6 +386,7 @@ run_wave() {
       --lattice-home) lattice_home="$2"; shift 2 ;;
       --coordinator) coordinator="$2"; shift 2 ;;
       --batch-id) batch_id="$2"; shift 2 ;;
+      --gate-script) gate_script="$2"; shift 2 ;;
       --layer) layer="$2"; shift 2 ;;
       --wave) wave="$2"; shift 2 ;;
       --dry-run) dry=1; shift ;;
@@ -352,28 +394,30 @@ run_wave() {
       *) echo "usage error: unknown arg '$1'" >&2; usage >&2; exit 2 ;;
     esac
   done
-  # Default the coordinator path (uses DEFAULT_COORDINATOR so it isn't dead
-  # code, SC2034). The spine stays opt-in: it only activates when --coordinator
-  # is explicitly passed (coordinator_explicit), keeping the legacy path
-  # (no --coordinator) unchanged.
+  # Default the coordinator path. --coordinator ONLY overrides which script the
+  # spine runs; activation is decided by --batch-id below (one truth, spc-337
+  # A6 — the earlier "opt-in via --coordinator" comment was stale).
   coordinator="${coordinator:-$DEFAULT_COORDINATOR}"
 
   [[ -n "$manifest" ]] || { echo "usage error: --manifest is required" >&2; usage >&2; exit 2; }
   [[ -f "$spawn_helper" ]] || { echo "error: spawn-helper not found: $spawn_helper" >&2; exit 1; }
   [[ -f "$verify_helper" ]] || { echo "error: verify-helper not found: $verify_helper" >&2; exit 1; }
   [[ "$concurrency" =~ ^[0-9]+$ && "$concurrency" -ge 1 ]] || { echo "error: --concurrency must be a positive int" >&2; exit 2; }
-  # Coordinator wiring (spc-254 A5 / spc-270 A3.1). DEFAULT-ON: when --batch-id
-  # is supplied, the wave persists DAG/layer/node-attempt/PID-PR-OID/marker-
-  # owner/failure-class/resume-cursor so a host restart resumes without
-  # re-deriving. An explicit --coordinator overrides the path; --batch-id
-  # without --coordinator uses the sibling default. No --batch-id ⇒ legacy
-  # opt-out (unchanged). The coordinator performs NO model inference (D4); it
-  # consumes the transition API (tkt-255) + this wave's four-signal
-  # classification (tkt-257 ok|failed|timeout|unknown).
+  # Coordinator wiring (spc-254 A5 / spc-270 A3.1 / spc-337 A6). The spine
+  # activates when --batch-id is supplied (the canonical SKILL/flow invocation
+  # passes the marker's batch id): the wave persists DAG/layer/node-attempt/
+  # PID-PR-OID/marker-owner/failure-class/resume-cursor so a host restart
+  # resumes without re-deriving, and touches the .batch-work-active marker at
+  # each barrier (heartbeat). --coordinator only overrides the script path;
+  # --batch-id without --coordinator uses the sibling default. No --batch-id ⇒
+  # legacy no-state path (unchanged). The coordinator performs NO model
+  # inference (D4); it consumes the transition API (tkt-255) + this wave's
+  # four-signal classification (tkt-257 ok|failed|timeout|unknown).
   WAVE_COORDINATOR=""
   WAVE_BATCH_ID=""
   WAVE_LAYER=0
   WAVE_WAVE=0
+  WAVE_GATE_SCRIPT="$gate_script"
   if [[ -n "$batch_id" ]]; then
     [[ -f "$coordinator" ]] || { echo "error: coordinator not found: $coordinator (required when --batch-id is set; spc-270 A3.1 default-on)" >&2; exit 1; }
     # Ensure the state file exists (idempotent — init is a no-op if it does).
@@ -526,8 +570,17 @@ barrier_poll() {
         if [[ "$elapsed" -gt "$limit" ]]; then
           kill "$pid" 2>/dev/null || true
           STATUS[i]="timeout"; ENDS[i]=$(now_epoch)
-          coord_record_node "${M_TICKET[i]}" "timeout" "$pid" "" "" "watchdog timeout (elapsed ${elapsed}s > timebox ${limit}s)"
-          echo "timeout: ${M_TICKET[i]} pid=$pid (elapsed ${elapsed}s > timebox ${limit}s)" >&2
+          local treason="watchdog timeout (elapsed ${elapsed}s > timebox ${limit}s)"
+          echo "timeout: ${M_TICKET[i]} pid=$pid ($treason)" >&2
+          # timeout fail-closes the binder to stuck + wait_reason: unblock
+          # (FSM-2b, tkt-132) — via the spine when active, else record_stuck
+          # (spc-337 A6: same failed|timeout|unknown set on both paths).
+          if [[ -n "${WAVE_COORDINATOR:-}" ]]; then
+            coord_record_node "${M_TICKET[i]}" "timeout" "$pid" "" "" "$treason"
+          elif ! record_stuck "${M_TICKET[i]}" "$treason"; then
+            WAVE_TRANSITION_FAIL=$(( WAVE_TRANSITION_FAIL + 1 ))
+            echo "timeout-transition-failed: ${M_TICKET[i]} pid=$pid ($treason; ATOMIC TRANSITION FAILED — node not settled (host must stamp stuck))" >&2
+          fi
         fi
       else
         # PID dead (settled within timebox) → classify from the four signals.
@@ -537,6 +590,8 @@ barrier_poll() {
     [[ "$any_running" -eq 0 ]] && break
     sleep "$interval"
   done
+  # Barrier settled → marker heartbeat (no-op unless --batch-id is set).
+  heartbeat_marker
 }
 
 emit_report() {
@@ -572,7 +627,7 @@ emit_report() {
   lines+=("- workspace-failed: $wf")
   lines+=("- spawned-but-dead: $spawned_dead")
   lines+=("")
-  lines+=("Classification (spc-254 A1 / spc-270 A2): ok requires exit=0 + verify-mutation --expected-oid verified; agents --json is advisory-only when uncorrelated (A2.4); unknown atomically fail-closes the binder to stuck + wait_reason: unblock via transition-api commit (A2.2); a transition failure leaves the wave exit non-ok (A2.3).")
+  lines+=("Classification (spc-254 A1 / spc-270 A2 / spc-337 A6): ok requires exit=0 + verify-mutation --expected-oid verified; agents --json is advisory-only when uncorrelated (A2.4); failed|timeout|unknown atomically fail-close the binder to stuck + wait_reason: unblock via transition-api commit (A2.2, A6); a transition failure leaves the wave exit non-ok (A2.3).")
   local report_text
   report_text=$(printf '%s\n' "${lines[@]}")
   printf '%s\n' "$report_text"

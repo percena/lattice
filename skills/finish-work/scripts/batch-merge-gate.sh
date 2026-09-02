@@ -14,8 +14,21 @@
 # Usage:
 #   batch-merge-gate.sh --check                     # exit 0=allowed, 1=blocked
 #   batch-merge-gate.sh --status                    # print JSON status
+#   batch-merge-gate.sh --create --batch-id <id> [--force]
+#                                                  # write the marker (batch-work
+#                                                  # SPAWN LAYER; spc-337 A6)
+#   batch-merge-gate.sh --touch                     # refresh marker mtime
+#                                                  # (per-barrier heartbeat, ADR-011)
 #   batch-merge-gate.sh --remove --reason "user-authorized: <why>"
 #                                                  # remove marker + emit trace
+#
+# Marker lifecycle (spc-337 A6 / tkt-342): creation is scripted (`--create`)
+# so the batch-id + started lines are written by the same helper that removes
+# them — no raw printf in prose. `--create` is idempotent for the SAME batch-id
+# and REFUSES to overwrite a marker carrying a different (or missing) batch-id
+# unless `--force` (a second batch must not silently steal the gate). The wave
+# script calls `--touch` at the end of each barrier so the stale-marker GC
+# (mtime-based) never reaps a live batch.
 #
 # Env:
 #   LATTICE_BATCH_GATE_HOME  override the state home (tests / manual pin)
@@ -30,12 +43,20 @@ BATCH_GATE_AUTH=".batch-merge-authorized"
 
 ACTION=""
 REASON=""
+BATCH_ID=""
+FORCE=false
 
 usage() {
   cat >&2 <<'EOF'
-Usage: batch-merge-gate.sh --check | --status | --remove --reason "<text>"
+Usage: batch-merge-gate.sh --check | --status | --create --batch-id <id> [--force]
+                          | --touch | --remove --reason "<text>"
   --check    exit 0 if merge allowed (marker absent/escaped), 1 if blocked
-  --status   print JSON: {marker_present, home, escape_present, allowed}
+  --status   print JSON: {marker_present, home, escape_present, allowed, batch_id}
+  --create   write the marker (batch-id + started lines); --batch-id REQUIRED.
+             Idempotent for the same batch-id; refuses a DIFFERENT batch-id
+             unless --force. Prints the same JSON as --status.
+  --touch    refresh the marker mtime (barrier heartbeat); warns + exit 0 when
+             the marker is absent
   --remove   remove the marker (human-authorized escape); --reason REQUIRED
 EOF
   exit 2
@@ -45,8 +66,12 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --check) ACTION="check"; shift ;;
     --status) ACTION="status"; shift ;;
+    --create) ACTION="create"; shift ;;
+    --touch) ACTION="touch"; shift ;;
     --remove) ACTION="remove"; shift ;;
     --reason) REASON="${2:-}"; shift 2 ;;
+    --batch-id) BATCH_ID="${2:-}"; shift 2 ;;
+    --force) FORCE=true; shift ;;
     -h|--help) usage ;;
     *) echo "Unknown: $1" >&2; usage ;;
   esac
@@ -55,6 +80,10 @@ done
 [[ -n "$ACTION" ]] || usage
 if [[ "$ACTION" == "remove" && -z "$REASON" ]]; then
   echo "Error: --remove requires --reason \"<structured text>\" (ADR-007 §5c)" >&2
+  exit 2
+fi
+if [[ "$ACTION" == "create" && -z "$BATCH_ID" ]]; then
+  echo "Error: --create requires --batch-id <id> (spc-337 A6)" >&2
   exit 2
 fi
 
@@ -128,24 +157,32 @@ if $marker_present && ! $escape_present; then
   allowed=false
 fi
 
-case "$ACTION" in
-  check)
-    if $allowed; then exit 0; else exit 1; fi
-    ;;
-  status)
-    if ! command -v python3 >/dev/null 2>&1; then
-      # Degrade: emit JSON without the interpreter (spc-212 A2 — no bare
-      # "command not found"). Paths are Lattice-home paths (no quotes).
-      printf '{"marker_present":%s,"escape_present":%s,"allowed":%s,"home":"%s","marker_path":"%s","python3":"missing"}\n' \
-        "$marker_present" "$escape_present" "$allowed" "$HOME_DIR" "$MARKER_PATH"
-      exit 0
-    fi
-    BG_MARKER_PRESENT="$marker_present" \
-    BG_ESCAPE_PRESENT="$escape_present" \
-    BG_ALLOWED="$allowed" \
-    BG_HOME="$HOME_DIR" \
-    BG_MARKER_PATH="$MARKER_PATH" \
-    python3 - <<'PY'
+# Batch id recorded in the marker (`batch-id: <id>` line), or "" when the
+# marker is absent / carries no such line (legacy raw-touch marker).
+marker_batch_id() {
+  [[ -f "$MARKER_PATH" ]] || return 0
+  sed -n 's/^batch-id:[[:space:]]*//p' "$MARKER_PATH" 2>/dev/null | head -1 || true
+}
+
+# emit_status_json — the --status JSON (also printed by --create so the caller
+# sees the resolved home/marker path + batch_id in one machine-readable line).
+emit_status_json() {
+  local batch_id
+  batch_id=$(marker_batch_id)
+  if ! command -v python3 >/dev/null 2>&1; then
+    # Degrade: emit JSON without the interpreter (spc-212 A2 — no bare
+    # "command not found"). Paths are Lattice-home paths (no quotes).
+    printf '{"marker_present":%s,"escape_present":%s,"allowed":%s,"home":"%s","marker_path":"%s","batch_id":"%s","python3":"missing"}\n' \
+      "$marker_present" "$escape_present" "$allowed" "$HOME_DIR" "$MARKER_PATH" "$batch_id"
+    return 0
+  fi
+  BG_MARKER_PRESENT="$marker_present" \
+  BG_ESCAPE_PRESENT="$escape_present" \
+  BG_ALLOWED="$allowed" \
+  BG_HOME="$HOME_DIR" \
+  BG_MARKER_PATH="$MARKER_PATH" \
+  BG_BATCH_ID="$batch_id" \
+  python3 - <<'PY'
 import json, os
 print(json.dumps({
   "marker_present": os.environ.get("BG_MARKER_PRESENT") == "true",
@@ -153,8 +190,55 @@ print(json.dumps({
   "allowed": os.environ.get("BG_ALLOWED") == "true",
   "home": os.environ.get("BG_HOME") or "",
   "marker_path": os.environ.get("BG_MARKER_PATH") or "",
+  "batch_id": os.environ.get("BG_BATCH_ID") or "",
 }))
 PY
+}
+
+case "$ACTION" in
+  check)
+    if $allowed; then exit 0; else exit 1; fi
+    ;;
+  status)
+    emit_status_json
+    ;;
+  create)
+    # Scripted marker creation (spc-337 A6). The marker is the single gate
+    # point (ADR-008 / ADR-011): one batch owns it at a time.
+    if $marker_present; then
+      existing=$(marker_batch_id)
+      if [[ "$existing" == "$BATCH_ID" ]]; then
+        echo "Note: marker already present for batch-id $BATCH_ID — idempotent no-op: $MARKER_PATH" >&2
+        emit_status_json
+        exit 0
+      fi
+      if ! $FORCE; then
+        echo "Error: marker already present for a DIFFERENT batch (batch-id: ${existing:-<none>}) at $MARKER_PATH; refusing to overwrite without --force (or --remove --reason first)" >&2
+        exit 1
+      fi
+      echo "warn: --force overwriting marker for batch-id ${existing:-<none>} with $BATCH_ID" >&2
+    fi
+    mkdir -p "$HOME_DIR" 2>/dev/null || true
+    started=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "unknown")
+    printf 'batch-id: %s\nstarted: %s\n' "$BATCH_ID" "$started" > "$MARKER_PATH"
+    marker_present=true
+    allowed=false
+    $escape_present && allowed=true
+    emit_status_json
+    exit 0
+    ;;
+  touch)
+    # Barrier heartbeat (ADR-011 amendment, spc-337 A6): refresh the mtime so
+    # the mtime-based stale-marker GC never reaps a live batch. Absent marker
+    # → warning only (exit 0): the wave must never crash on a missing marker.
+    if ! $marker_present; then
+      echo "warn: marker absent — nothing to touch (batch not started via --create, or already removed): $MARKER_PATH" >&2
+      exit 0
+    fi
+    touch "$MARKER_PATH"
+    ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "unknown")
+    printf 'touched: %s ts=%s\n' "$MARKER_PATH" "$ts"
+    exit 0
     ;;
   remove)
     if ! $marker_present; then

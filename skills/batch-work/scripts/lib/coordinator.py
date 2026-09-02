@@ -84,6 +84,14 @@ SETTLED_STATUSES = frozenset({"ok", "failed", "timeout", "unknown", "closed",
                               "transition_failed", "spawned-but-dead",
                               "workspace-failed"})
 
+# spc-337 A6 (tkt-342): settled statuses that fail-close the binder to
+# `stuck + wait_reason: unblock` via transition-api commit BEFORE the node is
+# settled. `failed` joins unknown|timeout — a worker that crashed or claimed a
+# phantom PR after start-work stamped in-progress must never leave the binder
+# reading "active work" (FSM-2b). Mirrors run-process-wave.sh's non-coordinator
+# record_stuck path (same set).
+STUCK_STATUSES = frozenset({"failed", "timeout", "unknown"})
+
 
 def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -408,21 +416,26 @@ def cmd_record_node(args: list) -> int:
     failure_class = kv.get("--failure-class") or status
     tapi = kv.get("--transition-api") or DEFAULT_TRANSITION_API
 
-    # spc-270 A3.4: for unknown/timeout, the atomic stuck flip (transition-api
-    # commit) MUST succeed BEFORE the node is settled. A transition failure
-    # leaves the node unsettled (status=transition_failed, NOT in settled_tickets)
-    # and record-node returns non-zero so the wave knows the node did not settle
-    # (run-process-wave's WAVE_TRANSITION_FAIL mirrors this for the non-coordinator
-    # path). ok/failed/spawned-but-dead/workspace-failed settle immediately (the
-    # worker owns the ok→pr-open flip; failed records the failure class only).
+    # spc-270 A3.4 + spc-337 A6: for failed/unknown/timeout, the atomic stuck
+    # flip (transition-api commit, in-progress → stuck + wait_reason: unblock)
+    # MUST succeed BEFORE the node is settled. A transition failure leaves the
+    # node unsettled (status=transition_failed, NOT in settled_tickets) and
+    # record-node returns non-zero so the wave knows the node did not settle
+    # (run-process-wave's WAVE_TRANSITION_FAIL mirrors this for the
+    # non-coordinator path). `failed` (worker exit!=0 / phantom PR) fail-closes
+    # exactly like unknown|timeout — a crashed worker never leaves its binder
+    # `in-progress` (FSM-2b; tkt-342 closes the rev-20260902-015425Z F5
+    # regression). ok/spawned-but-dead/workspace-failed settle immediately (the
+    # worker owns the ok→pr-open flip; spawned-but-dead/workspace-failed never
+    # reached start-work, so the binder is still `queued` and stays schedulable).
     transition_ok = True
-    if status in ("unknown", "timeout"):
+    if status in STUCK_STATUSES:
         reason = kv.get("--reason") or f"coordinator: node {status}"
         transition_ok = _commit_stuck(tapi, lattice_home, ticket, reason)
 
-    # Persist: settle only when the transition succeeded (or status is not
-    # unknown/timeout). On failure, persist status=transition_failed but do NOT
-    # add to settled_tickets — the node is not settled (host must stamp stuck).
+    # Persist: settle only when the transition succeeded (or status is not a
+    # STUCK_STATUSES member). On failure, persist status=transition_failed but do
+    # NOT add to settled_tickets — the node is not settled (host must stamp stuck).
     persist_status = status if transition_ok else "transition_failed"
     node = {
         "ticket": ticket,
@@ -598,6 +611,11 @@ def self_test() -> int:
             fail += 1
 
     home = tempfile.mkdtemp(prefix="coord-st.")
+    # Hermetic: coordinator state relocates to the out-of-repo state home
+    # (ADR-011), so pin it to this temp dir — otherwise `st-batch` persists
+    # across self-test runs and the monotonic settle guard (A3.3) refuses the
+    # re-spawn in T3 (spurious FAIL). Same pin the bats suites use.
+    os.environ["LATTICE_STATE_HOME"] = home
     bid = "st-batch"
 
     def run(*a) -> int:
@@ -642,16 +660,52 @@ def self_test() -> int:
         n = st["dag"][0]["waves"][0]["nodes"][0]
         if n.get("status") != "running" or n.get("pid") != 4242:
             return False
-        # record-node for a non-ok node without transition-api must still persist
-        run("record-node", "--batch-id", bid, "--ticket", "tkt-A",
-            "--status", "failed", "--pid", "4242", "--failure-class", "failed",
-            "--reason", "crash", "--transition-api", "/nonexistent/tapi.py",
-            "--lattice-home", home)
+        # spc-337 A6: a `failed` node fail-closes its binder (in-progress →
+        # stuck) via transition-api commit BEFORE it settles, exactly like
+        # unknown|timeout. Provide the in-progress binder the worker's
+        # start-work would have stamped, and use the real sibling
+        # transition-api so the flip is atomic (binder + ledger).
+        bdir = Path(home) / "tickets" / "tkt-A-st"
+        bdir.mkdir(parents=True, exist_ok=True)
+        (bdir / "README.md").write_text(
+            "# tkt-A\n\n| Field | Value |\n| --- | --- |\n"
+            "| status | in-progress |\n| wait_reason | (none) |\n",
+            encoding="utf-8")
+        r = run("record-node", "--batch-id", bid, "--ticket", "tkt-A",
+                "--status", "failed", "--pid", "4242", "--failure-class", "failed",
+                "--reason", "crash", "--transition-api", DEFAULT_TRANSITION_API,
+                "--lattice-home", home)
+        if r != 0:
+            return False
         st = load_state(bid, home)
         n = st["dag"][0]["waves"][0]["nodes"][0]
+        binder = (bdir / "README.md").read_text(encoding="utf-8")
         return (n.get("status") == "failed" and n.get("failure_class") == "failed"
-                and "tkt-A" in st.get("settled_tickets", []))
+                and "tkt-A" in st.get("settled_tickets", [])
+                and "| status | stuck |" in binder
+                and "| wait_reason | unblock |" in binder)
     chk("T3: record-spawn + record-node merge-update (no wipe)", t3)
+
+    # T3b (spc-337 A6): a `failed` node whose stuck transition is REFUSED
+    # (no transition-api reachable → no binder flip) must NOT settle — it
+    # persists as transition_failed and record-node exits non-zero, so the
+    # wave never mistakes an un-fail-closed node for a settled one.
+    def t3b() -> bool:
+        bid2 = "st-batch-refused"
+        run("init", "--batch-id", bid2, "--lattice-home", home)
+        run("record-spawn", "--batch-id", bid2, "--ticket", "tkt-R",
+            "--layer", "0", "--wave", "0", "--pid", "4343",
+            "--worktree", "/p", "--brief-file", "/b", "--timebox", "5",
+            "--lattice-home", home)
+        r = run("record-node", "--batch-id", bid2, "--ticket", "tkt-R",
+                "--status", "failed", "--pid", "4343", "--failure-class", "failed",
+                "--reason", "crash", "--transition-api", "/nonexistent/tapi.py",
+                "--lattice-home", home)
+        st = load_state(bid2, home)
+        n = st["dag"][0]["waves"][0]["nodes"][0]
+        return (r != 0 and n.get("status") == "transition_failed"
+                and "tkt-R" not in st.get("settled_tickets", []))
+    chk("T3b: failed with a refused stuck transition does NOT settle (spc-337 A6)", t3b)
 
     # T4: resume reports the pending (unsettled) ticket only
     def t4() -> bool:

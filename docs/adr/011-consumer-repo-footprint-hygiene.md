@@ -80,6 +80,15 @@ We adopt **Option A**. Three policies form one footprint contract:
 - 2026-08-31: Proposed (drafted alongside `spc-282` scope lock).
 - 2026-08-31: Proposed → Accepted — tkt-283..287 landed (A1-A7): runtime state relocated to `$XDG_STATE_HOME/lattice/<repo-fingerprint>/`, tracked `.lattice/.gitignore` + `docs/adr/.gitignore` bootstrapped, onboarding contract + stale-marker GC + migration shipped. Fresh-customer-repo zero-leak verified.
 
+## Amendment (2026-09-02, spc-337 / tkt-342)
+
+The per-wave marker **heartbeat** this ADR relied on ("batch-work re-touching the marker each wave") is now implemented, and marker **creation is scripted**:
+
+- `skills/finish-work/scripts/batch-merge-gate.sh --create --batch-id <id>` writes the `.batch-work-active` marker (`batch-id:` + `started:` lines) at the state home; idempotent for the same id, refuses a different id without `--force`. `batch-work` prose no longer hand-`printf`s the marker.
+- `batch-merge-gate.sh --touch` refreshes the marker mtime. `skills/batch-work/scripts/run-process-wave.sh` calls it at the end of every barrier whenever `--batch-id` is set (the canonical SKILL/flow invocation now passes it), so the mtime-based stale-marker GC never reaps a live batch. An absent marker or missing gate script is a warning, never a wave failure.
+
+Verification: `skills/finish-work/scripts/tests/batch-merge-gate.bats` (create / idempotent / refuse / force / touch) and `skills/batch-work/scripts/tests/run-process-wave.bats` (`--touch` called at the barrier when `--batch-id` is set; end-to-end mtime advance).
+
 ## Notes
 
 The full disk-write catalog that informed this decision (Categories A–E, 30+ paths across `skills/**`, `plugins/**`, `_lattice-lib/**`) is recorded in `spc-282` Acceptance evidence. The "good" out-of-tree writes already in place (`${TMPDIR}` scratch, the uid-namespaced `${XDG_RUNTIME_DIR}/activated-skills/` root) confirm the relocation pattern is precedented and works on both macOS and Linux. ADR-008's spawn-mode law is unaffected; only its "single gate point at `<MAIN>/.lattice/`" location reference is amended to the state dir.

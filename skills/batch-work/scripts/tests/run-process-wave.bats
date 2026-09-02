@@ -438,3 +438,140 @@ EOF
   printf '%s\n' "$output" | grep -qF "ok: 1"
   printf '%s\n' "$output" | grep -qF "failed: 0"
 }
+
+# ---------------------------------------------------------------------------
+# spc-337 A6 (tkt-342) — failed fail-closes to stuck on the non-coordinator
+# path; --batch-id activates the spine AND the per-barrier marker heartbeat.
+# ---------------------------------------------------------------------------
+
+# A fake batch-merge-gate.sh that logs every invocation's argv to $GATE_LOG.
+build_fake_gate() {
+  local f="$1"
+  cat >"$f" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${GATE_LOG:?GATE_LOG unset}"
+exit 0
+EOF
+  chmod +x "$f"
+}
+
+@test "A6: failed (worker exit!=0) fail-closes binder to stuck on the non-coordinator path (fault test)" {
+  # Fault: the worker ran past start-work (binder in-progress), then crashed
+  # with exit=1. Without --batch-id (legacy path) the wave itself must flip
+  # the binder in-progress → stuck + wait_reason: unblock — a crashed worker
+  # never leaves its binder reading "active work" (FSM-2b).
+  helper="$TEST_DIR/exit1.sh"
+  FAKE_EXIT=1 build_result_helper "$helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-FS\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-FS in-progress
+  run env FAKE_EXIT=1 bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "failed: 1"
+  binder="$LATTICE_HOME/tickets/tkt-FS-test/README.md"
+  grep -qF '| status | stuck |' "$binder"
+  grep -qF '| wait_reason | unblock |' "$binder"
+  ledger="$LATTICE_HOME/.transition-ledger/tkt-FS.jsonl"
+  [ -f "$ledger" ]
+  grep -qF '"from":"in-progress"' "$ledger"
+  grep -qF '"to":"stuck"' "$ledger"
+}
+
+@test "A6: failed with a refused transition (wrong from-state) → wave exits non-ok, binder untouched" {
+  helper="$TEST_DIR/exit1.sh"
+  FAKE_EXIT=1 build_result_helper "$helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-FC\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-FC closed   # closed ≠ expected in-progress → commit rc=1
+  run env FAKE_EXIT=1 bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -ne 0 ]
+  printf '%s\n' "$output" | grep -qF "failed: 1"
+  grep -qF '| status | closed |' "$LATTICE_HOME/tickets/tkt-FC-test/README.md"
+}
+
+@test "A6: --batch-id set → marker heartbeat: gate script called with --touch at the barrier" {
+  fast_helper="$TEST_DIR/fast.sh"
+  build_fast_helper "$fast_helper"
+  fake_gate="$TEST_DIR/fake-gate.sh"
+  build_fake_gate "$fake_gate"
+  export GATE_LOG="$TEST_DIR/gate.log"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-HB\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-HB in-progress   # the spine's unknown→stuck commit needs it
+  run env GATE_LOG="$GATE_LOG" bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$fast_helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
+    --batch-id "hb-batch-1" --layer 0 --wave 0 --gate-script "$fake_gate"
+  [ "$status" -eq 0 ]
+  # The spine was activated by --batch-id alone (no --coordinator needed).
+  printf '%s\n' "$output" | grep -qF "coordinator: spine active batch=hb-batch-1"
+  [ -f "$LATTICE_HOME/.coordinator/hb-batch-1.json" ]
+  # The barrier touched the marker via the gate script.
+  [ -f "$GATE_LOG" ]
+  grep -qx -- '--touch' "$GATE_LOG"
+}
+
+@test "A6: no --batch-id → no heartbeat (gate script never called)" {
+  fast_helper="$TEST_DIR/fast.sh"
+  build_fast_helper "$fast_helper"
+  fake_gate="$TEST_DIR/fake-gate.sh"
+  build_fake_gate "$fake_gate"
+  export GATE_LOG="$TEST_DIR/gate.log"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-NH\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  run env GATE_LOG="$GATE_LOG" bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$fast_helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
+    --gate-script "$fake_gate"
+  [ "$status" -eq 0 ]
+  [ ! -f "$GATE_LOG" ]
+}
+
+@test "A6: --batch-id with a missing gate script → warning only, wave still exits 0" {
+  fast_helper="$TEST_DIR/fast.sh"
+  build_fast_helper "$fast_helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-MG\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-MG in-progress
+  run bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$fast_helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
+    --batch-id "mg-batch-1" --gate-script "$TEST_DIR/does-not-exist.sh"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "warn: batch-merge-gate.sh not found"
+  printf '%s\n' "$output" | grep -qF "marker heartbeat skipped"
+}
+
+@test "A6: --batch-id with the REAL gate script touches a --create'd marker (end-to-end heartbeat)" {
+  fast_helper="$TEST_DIR/fast.sh"
+  build_fast_helper "$fast_helper"
+  gate="$(dirname "$WAVE")/../../finish-work/scripts/batch-merge-gate.sh"
+  [ -f "$gate" ]
+  export LATTICE_BATCH_GATE_HOME="$TEST_DIR/gate-home"
+  mkdir -p "$LATTICE_BATCH_GATE_HOME"
+  bash "$gate" --create --batch-id "e2e-hb" >/dev/null
+  marker="$LATTICE_BATCH_GATE_HOME/.batch-work-active"
+  touch -d '2000-01-01T00:00:00Z' "$marker" 2>/dev/null || touch -t 200001010000 "$marker"
+  old_mtime=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker")
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-E2\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  build_binder tkt-E2 in-progress
+  run env LATTICE_BATCH_GATE_HOME="$LATTICE_BATCH_GATE_HOME" bash "$WAVE" --manifest "$m" \
+    --spawn-helper "$fast_helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
+    --batch-id "e2e-hb" --layer 0 --wave 0
+  [ "$status" -eq 0 ]
+  new_mtime=$(stat -c %Y "$marker" 2>/dev/null || stat -f %m "$marker")
+  [ "$new_mtime" -gt "$old_mtime" ]
+  grep -qx 'batch-id: e2e-hb' "$marker"
+}
