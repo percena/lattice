@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/341 |
-| status | pr-open |
-| fix_cycles | 0 |
+| status | in-progress |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:42:04Z |
+| updated | 2026-09-02T02:53:31Z |
 | adopted | false |
 | summary | finish-work prose repaired: multi-PR merge verifier, marker location, ci-gate-check in short path, explicit base-tip capture; docs-truth bats. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -57,6 +57,7 @@ See GitHub issue #341 for the full slice text; Spec ids owned by this slice:
 - 2026-09-02 — `docs-truth.bats` lives at `skills/finish-work/tests/` (binder `paths` / issue #341 verbatim) although sibling script suites sit under `scripts/tests/`; the file is prose-only (no script under test), so the top-level `tests/` split is defensible. Source: binder `paths` row (pre-resolved by create-tickets).
 - 2026-09-02 — flow.md §7 step 6 under `--close`: `verify-main-chain.sh --stage merge` proves MERGED + base-tip advance, which a close never produces, so the `--close` branch confirms `gh pr view <N> --json state` = `CLOSED` instead. Source: `verify-main-chain.sh --help` (stage merge contract); reversible, ticket-local.
 - 2026-09-02 — Common Rationalizations rows left untouched: none repeats the stale marker location (anticipated-decision disposition "only if they repeat it"). `ci-gate-check.sh` was also added to the SKILL `**Scripts:**` roster so the short-path reference resolves to a listed script.
+- 2026-09-02T02:53:30Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: mini-review Hold: docs-truth.bats uses bare '! grep' assertions (exempt from set -e; CI guard check-bats-assertions fails) — rewrite as 'if grep …; then false; fi'
 
 ## Pending decisions
 

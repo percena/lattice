@@ -38,7 +38,7 @@ flow_section_7() {
 @test "(a) flow.md §7 does not verify a merge with verify-mutation.sh --pr" {
   run flow_section_7
   [ "$status" -eq 0 ]
-  ! grep -qF 'verify-mutation.sh --pr' <<<"$output"
+  if grep -qF 'verify-mutation.sh --pr' <<<"$output"; then false; fi
 }
 
 @test "(a) flow.md §7 proves each merge with verify-main-chain.sh --stage merge + captured base tip" {
@@ -50,11 +50,11 @@ flow_section_7() {
 }
 
 @test "(b) SKILL.md no longer places the batch marker at MAIN clone .lattice/" {
-  ! grep -qF 'MAIN clone `.lattice/`' "$SKILL_MD"
+  if grep -qF 'MAIN clone `.lattice/`' "$SKILL_MD"; then false; fi
 }
 
 @test "(b) flow.md no longer places the batch marker at MAIN clone .lattice/" {
-  ! grep -qF 'MAIN clone `.lattice/`' "$FLOW_MD"
+  if grep -qF 'MAIN clone `.lattice/`' "$FLOW_MD"; then false; fi
 }
 
 @test "(b) SKILL.md names the out-of-repo state home for the batch marker (ADR-011)" {
