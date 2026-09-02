@@ -1481,17 +1481,26 @@ def validate_home(home: Path) -> list[dict[str, str]]:
         # in the parser, but the row itself is drift — ADR-012 §7 front-matter
         # migration will re-row these). Warning-level: legacy binders with stray
         # columns are baselined, not re-rowed here. Escaped pipes (`\|`) in
-        # values are not counted as column separators.
+        # values are not counted as column separators. Header and separator
+        # rows are skipped by content, not index (tkt-381 review F5/F6).
         _tb_lines = _tb.splitlines()
         _declared_cols = 0
         if _tb_lines:
-            _hdr_cells = [c.strip() for c in re.split(r'(?<!\\)\|', _tb_lines[0].strip()) if c.strip()]
-            _declared_cols = len(_hdr_cells)
-        for _ri, _row in enumerate(_tb_lines):
-            if _ri < 2:  # skip header + separator
+            # Header row: count all cells (including empty) between outer pipes.
+            _hdr_raw = [c.strip() for c in re.split(r'(?<!\\)\|', _tb_lines[0].strip().strip("|"))]
+            _declared_cols = len(_hdr_raw)
+        for _row in _tb_lines:
+            _cells_raw = [c.strip() for c in re.split(r'(?<!\\)\|', _row.strip().strip("|"))]
+            # Skip separator rows (---|---) by content.
+            if _cells_raw and all(re.fullmatch(r'-+:?', c) for c in _cells_raw if c):
                 continue
-            _cells = [c.strip() for c in re.split(r'(?<!\\)\|', _row.strip()) if c.strip()]
-            if _declared_cols and len(_cells) > _declared_cols:
+            # Skip header rows by content (first cell is 'Field').
+            if _cells_raw and _cells_raw[0].lower() == 'field':
+                continue
+            # Count ALL cells (including empty) vs declared column count.
+            # Not filtering empty cells: `| wait_reason | | 2026-… |` has
+            # 3 cells (empty value + stray column) — must be flagged (F5).
+            if _declared_cols and len(_cells_raw) > _declared_cols:
                 findings.append(
                     {
                         "code": "binder_row_extra_columns",
@@ -1501,7 +1510,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                             f"field-table row has a stray extra column: "
                             f"{_row.strip()!r} — table declares "
                             f"{_declared_cols} column(s); row has "
-                            f"{len(_cells)} (ADR-012 §7 front-matter migration)"
+                            f"{len(_cells_raw)} (ADR-012 §7 front-matter migration)"
                         ),
                     }
                 )

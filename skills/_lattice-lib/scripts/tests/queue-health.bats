@@ -400,7 +400,7 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
-# tkt-381: _FIELD_ROW_RE reads 3-column binder rows correctly
+# tkt-381: column-aware tokenizer for _parse_field_rows
 # ---------------------------------------------------------------------------
 
 @test "_parse_field_rows reads 3-column row value as second cell only" {
@@ -426,6 +426,39 @@ assert rows.get("status") == "closed", repr(rows.get("status"))
 text2 = "| status | queued |"
 rows2 = qh._parse_field_rows(text2)
 assert rows2.get("status") == "queued", repr(rows2.get("status"))
+PY
+}
+
+@test "_parse_field_rows preserves escaped pipes in value (review F1)" {
+  python3 - "$QH_LIB" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import queue_health as qh
+# Escaped pipe in value — must NOT be treated as a column separator.
+text = r"| summary | int\|str union |"
+rows = qh._parse_field_rows(text)
+val = rows.get("summary", "")
+assert "int" in val and "str" in val, repr(val)
+assert "|" in val or "\\|" in val, repr(val)  # the pipe is preserved
+PY
+}
+
+@test "_parse_field_rows scoped to first table block — body row cannot shadow card (review F4)" {
+  python3 - "$QH_LIB" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import queue_health as qh
+# Card status is queued; a later body table has `| status | parked | note |`.
+text = """| Field | Value |
+| --- | --- |
+| status | queued |
+
+Some prose.
+
+| status | parked | pending ratification |
+"""
+rows = qh._parse_field_rows(text)
+assert rows.get("status") == "queued", repr(rows.get("status"))
 PY
 }
 

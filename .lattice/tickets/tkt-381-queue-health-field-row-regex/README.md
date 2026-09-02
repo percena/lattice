@@ -50,6 +50,9 @@
 
 ## Decision journal
 
+- 2026-09-02 — Column-aware tokenizer replaces `_FIELD_ROW_RE` regex. Initial approach `[^|]*?` fixed 3-column rows but truncated values containing literal/escaped pipes (tkt-257 summary `ok|failed`, tkt-143 `int\|str`). Switched to split-on-unescaped-pipe tokenizer: `re.split(r'(?<!\\)\|', line)` takes cell[0] as field, cell[1] as value. Scoped to first table block (consecutive `|`-prefixed lines) so body tables cannot shadow the binder card (review F4). Source: 2 — code review findings F1+F4. reversible, ticket-local.
+- 2026-09-02 — Reconciles tkt-370 Decision journal line 50. tkt-370 decided to keep `_parse_field_rows` unchanged so 3-column binders surface as malformed histogram keys (`closed |`). This ticket's fix (tkt-381 acceptance A1) changes the parser to read the correct value, and the drift now surfaces via the `binder_row_extra_columns` validator warning instead of malformed histogram data — a dedicated warning is a stronger sensor than a malformed key. Source: 5 — tkt-381 acceptance A1+A2 supersede the tkt-370 observation-time decision. reversible, cross-contract (tkt-370 histogram).
+
 ## Pending decisions
 
 ## Attempts
