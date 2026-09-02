@@ -47,7 +47,11 @@ done
 
 GIT_DIR_ARGS=()
 [[ -n "$REPO_ROOT" ]] && GIT_DIR_ARGS=(-C "$REPO_ROOT")
-REPO_ROOT=$(git "${GIT_DIR_ARGS[@]}" rev-parse --show-toplevel 2>/dev/null || true)
+# tkt-367: the `+` guard emits nothing when GIT_DIR_ARGS is empty/unset, which
+# satisfies `set -u` on bash 3.2 (macOS BSD default). Bare `${GIT_DIR_ARGS[@]}`
+# triggers "unbound variable" there — the same portability class tkt-356 fixed
+# in finish-ledger.sh:264 (`${GH_ARGS[@]+"${GH_ARGS[@]}"}`).
+REPO_ROOT=$(git ${GIT_DIR_ARGS[@]+"${GIT_DIR_ARGS[@]}"} rev-parse --show-toplevel 2>/dev/null || true)
 [[ -z "$REPO_ROOT" ]] && { echo "Error: not a git repo (or cannot resolve root)" >&2; exit 1; }
 
 # Nothing staged under .lattice? finish-ledger's no-binder skip path legitimately

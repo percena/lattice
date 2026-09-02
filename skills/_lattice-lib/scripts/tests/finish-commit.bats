@@ -78,6 +78,26 @@ MD
   [ -z "$(git -C "$REPO" status --porcelain -- .lattice)" ]
 }
 
+@test "tkt-367: no --repo (empty GIT_DIR_ARGS) resolves root from cwd (bash-3.2 safe)" {
+  # The dogfood scenario: finish-commit.sh --message "..." with no --repo, so
+  # GIT_DIR_ARGS stays empty. Under `set -u` on bash 3.2, a bare
+  # `${GIT_DIR_ARGS[@]}` triggers "unbound variable" — the + guard (tkt-367)
+  # must keep this path working. Run under /bin/bash when it is bash 3.2 to
+  # exercise the actual regression platform; else the bats bash (4+).
+  stage_finish_set
+  RUN_BASH="bash"
+  if [ "$(/bin/bash --version 2>/dev/null | grep -o 'version [0-9]\+\.[0-9]\+' | head -1)" = "version 3.2" ]; then
+    RUN_BASH="/bin/bash"
+  fi
+  # cwd is the repo root so `git rev-parse --show-toplevel` resolves without -C.
+  run bash -c "cd '$REPO' && '$RUN_BASH' '$FC' --message 'finish(tkt-7): no --repo'"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "finish-commit: committed"
+  [ -z "$(git -C "$REPO" status --porcelain -- .lattice)" ]
+  # must NOT emit the unbound-variable error on bash 3.2
+  if printf '%s\n' "$output" | grep -q 'unbound variable'; then false; fi
+}
+
 @test "nothing staged: exits 0 with a skip note (finish-ledger no-binder path)" {
   git -C "$REPO" commit -qm base --allow-empty >/dev/null 2>&1 || true
   run bash "$FC" --message "finish(tkt-7): nothing" --repo "$REPO"

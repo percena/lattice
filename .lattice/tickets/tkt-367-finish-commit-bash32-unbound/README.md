@@ -32,9 +32,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `finish-commit.sh --message "..."` (no `--repo`) runs without `unbound variable` on bash 3.2.
-- [ ] **A2** bats test covers the no-`--repo` invocation (the dogfood scenario that caught the bug).
-- [ ] **A3** no other `set -u` + empty-array pitfalls remain in `finish-commit.sh`.
+- [x] **A1** `finish-commit.sh --message "..."` (no `--repo`) runs without `unbound variable` on bash 3.2.
+- [x] **A2** bats test covers the no-`--repo` invocation (the dogfood scenario that caught the bug).
+- [x] **A3** no other `set -u` + empty-array pitfalls remain in `finish-commit.sh` (only `GIT_DIR_ARGS` is an array; audited).
 
 ## Approach
 
