@@ -11,7 +11,7 @@ summary: "Replace the 732-line bash+Python hybrid finish-ledger.sh with a pure-P
 created: 2026-09-02
 updated: 2026-09-02
 tickets: [tkt-418, tkt-419, tkt-422]
-prs: [pr-420, pr-421]
+prs: [pr-420, pr-421, pr-423]
 reviews: []
 supersedes: [spc-398 A4]
 superseded_by: null
