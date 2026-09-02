@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | docs, P3 |
 | github | https://github.com/percena/lattice/issues/362 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T00:00:00Z |
+| updated | 2026-09-02T09:18:08Z |
 | adopted | true |
 | summary | Fix 5 docs residue items from spc-337 reviews |
 | spec | none (post-spc-337 leftover audit) |
@@ -24,15 +24,15 @@
 | **related_tickets** | tkt-361, tkt-363 (same batch PR) |
 | **worktree_bind** | tkt-361-spc337-leftover-audit |
 | worktree | sibling lattice.worktrees/tkt-361-spc337-leftover-audit/ |
-| prs | (none) |
+| prs | pr-380 — https://github.com/percena/lattice/pull/380 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** plugins/lattice/README.md hooks table lists intercept-git-branch-create (L1), intercept-shippable-write (L3, incl. the status-row rule) and auto-stamp-pr-open (PostToolUse).
-- [ ] **A2** start-work policy.md L3 row cites the status-row rule and the transition-api escape.
-- [ ] **A3** verify-main-chain.sh header matches stage_merge semantics (tip advanced past expected OID, ancestry proven).
-- [ ] **A4** One variable name (BASE_TIP) across finish-work flow §3.1, §7 and the SKILL short path.
-- [ ] **A5** finish-work SKILL names batch-merge-gate.sh --create (batch-work) and --status (batch_id) alongside --remove.
+- [x] **A1** plugins/lattice/README.md hooks table lists intercept-git-branch-create (L1), intercept-shippable-write (L3, incl. the status-row rule) and auto-stamp-pr-open (PostToolUse).
+- [x] **A2** start-work policy.md L3 row cites the status-row rule and the transition-api escape.
+- [x] **A3** verify-main-chain.sh header matches stage_merge semantics (tip advanced past expected OID, ancestry proven).
+- [x] **A4** One variable name (BASE_TIP) across finish-work flow §3.1, §7 and the SKILL short path.
+- [x] **A5** finish-work SKILL names batch-merge-gate.sh --create (batch-work) and --status (batch_id) alongside --remove.
 
 ## Approach
 

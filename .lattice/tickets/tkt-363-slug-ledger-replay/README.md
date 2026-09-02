@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/363 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T00:00:00Z |
+| updated | 2026-09-02T09:18:13Z |
 | adopted | true |
 | summary | Derive ticket id via ^tkt-\d+ from stem; backfill tkt-257 pr-open→closed |
 | spec | none (post-spc-337 leftover audit) |
@@ -24,12 +24,12 @@
 | **related_tickets** | tkt-361, tkt-362 (same batch PR) |
 | **worktree_bind** | tkt-361-spc337-leftover-audit |
 | worktree | sibling lattice.worktrees/tkt-361-spc337-leftover-audit/ |
-| prs | (none) |
+| prs | pr-380 — https://github.com/percena/lattice/pull/380 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Replay derives the ticket id with `^(tkt-\d+)` from the stem (identity + snapshot checks apply to slug-named files); a fixture with a slug-named ledger whose last `to` ≠ binder status fails.
-- [ ] **A2** tkt-257's ledger gets its missing pr-open → closed entry (record, trace 'backfill') or is renamed to tkt-257.jsonl with the entry appended — replay green afterwards.
+- [x] **A1** Replay derives the ticket id with `^(tkt-\d+)` from the stem (identity + snapshot checks apply to slug-named files); a fixture with a slug-named ledger whose last `to` ≠ binder status fails.
+- [x] **A2** tkt-257's ledger gets its missing pr-open → closed entry (record, trace 'backfill') or is renamed to tkt-257.jsonl with the entry appended — replay green afterwards.
 
 ## Approach
 

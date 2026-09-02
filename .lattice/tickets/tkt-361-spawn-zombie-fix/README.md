@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/361 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T00:00:00Z |
-| updated | 2026-09-02T00:00:00Z |
+| updated | 2026-09-02T09:18:04Z |
 | adopted | true |
 | summary | Fix is_alive() zombie detection + test outcome-based assertion |
 | spec | none (post-spc-337 leftover audit) |
@@ -24,12 +24,12 @@
 | **related_tickets** | tkt-362, tkt-363 (same batch PR) |
 | **worktree_bind** | tkt-361-spc337-leftover-audit |
 | worktree | sibling lattice.worktrees/tkt-361-spc337-leftover-audit/ |
-| prs | (none) |
+| prs | pr-380 — https://github.com/percena/lattice/pull/380 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** The test is green as root and non-root: assert on the documented outcome (dead PID / 'did not produce a live process') rather than a specific exit code, or make the script's exit code for a dead spawn deterministic (document it in the usage header).
-- [ ] **A2** `bats skills/batch-work/scripts/tests/` fully green on the dogfood host.
+- [x] **A1** The test is green as root and non-root: assert on the documented outcome (dead PID / 'did not produce a live process') rather than a specific exit code, or make the script's exit code for a dead spawn deterministic (document it in the usage header).
+- [x] **A2** `bats skills/batch-work/scripts/tests/` fully green on the dogfood host.
 
 ## Approach
 
