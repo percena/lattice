@@ -28,10 +28,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] spec front-matter `status: done`.
-- [ ] status-history entry documents: CI green (artifacts, lattice-scripts, plugin-hooks, lint all success post pr-355), metrics (219 legacy warnings + 0 errors; ledger coverage 42/145; direct jumps 10), 4 follow-ups fixed (#349, #350, #352, #353), #356 filed.
-- [ ] `validate-lattice-artifacts.py` passes on the updated spec.
-- [ ] #337 closed on GitHub.
+- [x] spec front-matter `status: done`.
+- [x] status-history entry documents: CI green (artifacts, lattice-scripts, plugin-hooks, lint all success post pr-355), metrics (219 legacy warnings + 0 errors; ledger coverage 42/145; direct jumps 10), 4 follow-ups fixed (#349, #350, #352, #353), #356 filed.
+- [x] `validate-lattice-artifacts.py` passes on the updated spec.
+- [x] #337 closed on GitHub.
 
 ## Approach
 
