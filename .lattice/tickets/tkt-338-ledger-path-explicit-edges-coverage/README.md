@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug,P1 |
 | github | https://github.com/percena/lattice/issues/338 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T02:57:37Z |
+| updated | 2026-09-02T02:57:41Z |
 | adopted | false |
 | summary | Ledger resolved from the binder's Lattice home (not cwd), explicit terminal edges replace any→closed, closed_without_ledger coverage metric. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
