@@ -28,10 +28,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] test 7 passes on macOS — deny partial-line status change with correct message.
-- [ ] test 11 passes on macOS — allow partial-line edit leaving status value intact.
-- [ ] `bats plugins/lattice/scripts/tests/intercept-shippable-write-status-row.bats` all-green on macOS darwin.
-- [ ] CI stays green (no regression on Linux).
+- [x] test 7 passes on macOS — deny partial-line status change with correct message.
+- [x] test 11 passes on macOS — allow partial-line edit leaving status value intact.
+- [x] `bats plugins/lattice/scripts/tests/intercept-shippable-write-status-row.bats` all-green on macOS darwin.
+- [x] CI stays green (no regression on Linux).
 
 ## Approach
 
