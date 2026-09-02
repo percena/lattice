@@ -3,14 +3,14 @@ id: spc-387
 slug: weak-spot-topology
 title: "review-lineage L4: weak-spot topology + optimization recommendations"
 kind: feat
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "A fourth analytical layer for review-lineage: clusters fixed files into path-level hotspots, tracks cross-audit recurrence, and produces root-cause hypotheses + curve-bending recommendations so the team knows which structural change would eliminate the most rework."
 created: 2026-09-02
 updated: 2026-09-02
 tickets: [tkt-388, tkt-389]
-prs: []
+prs: [pr-390]
 reviews: [rev-20260902-080545Z]
 supersedes: []
 superseded_by: null
@@ -56,7 +56,7 @@ The user's insight: *which paths/aspects are repeatedly creating tickets for fix
 
 ## Acceptance
 
-- [ ] **A1** — **Hotspot sensor.** `skills/review-lineage/scripts/hotspot-metrics.sh` computes, from `.lattice/` + `git` only, the following metrics and writes them into the snapshot JSON (schema-versioned) + `--md` delta:
+- [x] **A1** — **Hotspot sensor.** `skills/review-lineage/scripts/hotspot-metrics.sh` computes, from `.lattice/` + `git` only, the following metrics and writes them into the snapshot JSON (schema-versioned) + `--md` delta:
 
   | metric | what it computes |
   | --- | --- |
@@ -68,13 +68,13 @@ The user's insight: *which paths/aspects are repeatedly creating tickets for fix
 
   **File→skill auto-derivation** (no manual config table): `skills/<skill>/` → that skill; `skills/_lattice-lib/` → `shared` (referenced by ≥2 SKILL.md files); `tools/` → `cross-cutting`. **Skill→stage** from `validate-skills.sh` arrays (`USER_FACING` → delivery path; `QUALITY_SIDE_PATHS` → review path; `_lattice-lib` → shared). **Reuse** (D5): composes `lineage_metrics.git_metrics()` (no second git log runner), `queue_health._parse_field_rows()` (no second binder parser), `validate-skills.sh` arrays (no second skill registry). `--since`, `--home`, `--base`, `--snapshot-dir`, `--json`/`--md`, `--no-snapshot` flags parallel `lineage-metrics.sh`. Exit 0 always. Bats on a fixture asserts every metric; on this repo it runs < 5 s and identifies the terminal-stamp cluster with 54% fix share.
 
-- [ ] **A2** — **Method extension.** `skills/review-lineage/references/method.md` gains an `## L4 synthesis` section covering:
+- [x] **A2** — **Method extension.** `skills/review-lineage/references/method.md` gains an `## L4 synthesis` section covering:
 
   - **Root-cause hypothesis**: for each hotspot cluster, generate a hypothesis from the cluster's properties — multi-writer disagreement (≥3 files in the cluster are independent writers of the same state); decided-but-unimplemented ADR (fix subjects reference `ADR-NNN §N` that is `Accepted` but has no implementing ticket/PR); format-drift escape (cluster includes a parser + its input format); environment-dependence (fix subjects reference `bash 3.2` / `gh` version / `root`).
   - **Curve-bending analysis**: rank hotspots by `impact = fix_commit_count × fix_class_diversity × cross_audit_recurrence_count × structural_depth` where `fix_class_diversity` = distinct fix classes in the cluster, `structural_depth` = 2 if the cluster references a decided-but-unimplemented ADR, 1 otherwise. For each hotspot, state the hypothesized curve-bending effect ("landing ADR-012 §5 → cluster fix_commit_count should fall from 46 to < 15") and the verification metric (what number the next snapshot's Δ should show). This is a **ranking formula computed by the agent in L3/L4**, not a sensor metric — the sensor provides the inputs, the method section defines how to combine them.
   - **Structural-vs-tactical diagnosis**: `structural` = the hotspot references a decided-but-unimplemented ADR/Spec direction (the fix is to land the ADR, not to patch); `tactical` = patchable (file a ticket). Structural hotspots produce an optimization recommendation, not a ticket draft.
 
-- [ ] **A3** — **Template extension.** `skills/review-lineage/references/templates/lineage-audit.md` gains two sections after `## Findings`:
+- [x] **A3** — **Template extension.** `skills/review-lineage/references/templates/lineage-audit.md` gains two sections after `## Findings`:
 
   ```markdown
   ## Weak-spot topology
@@ -92,7 +92,7 @@ The user's insight: *which paths/aspects are repeatedly creating tickets for fix
 
   The topology table is populated from `hotspot-metrics.sh --md` output. The recommendations are authored in L4 (agent judgment, not scripted). Bounded: ≤5 hotspots + ≤3 recommendations (same bounded posture as Findings ≤7).
 
-- [ ] **A4** — **Bats + dry run.** `skills/review-lineage/scripts/tests/hotspot-metrics.bats` with planted-drift tests: (1) a fixture repo with 3 `fix(` commits touching 2 files in the same skill dir asserts a hotspot cluster with `fix_commit_count=3`; (2) a fixture with a `flip` subject asserts `fix_class_histogram.status-flip=1`; (3) a fixture with a NOTICED line + a rev Proposed-tickets entry asserts `noticed_feedback.became_ticket=1`. A dry run on this repo: `hotspot-metrics.sh --md` identifies the terminal-stamp cluster as #1 with 54% fix share, `cross_audit_recurrence.terminal-stamp.revs` contains ≥3 rev-ids, and `fix_class_histogram.status-flip` > 0. `ci-local.sh --fast` green.
+- [x] **A4** — **Bats + dry run.** `skills/review-lineage/scripts/tests/hotspot-metrics.bats` with planted-drift tests: (1) a fixture repo with 3 `fix(` commits touching 2 files in the same skill dir asserts a hotspot cluster with `fix_commit_count=3`; (2) a fixture with a `flip` subject asserts `fix_class_histogram.status-flip=1`; (3) a fixture with a NOTICED line + a rev Proposed-tickets entry asserts `noticed_feedback.became_ticket=1`. A dry run on this repo: `hotspot-metrics.sh --md` identifies the terminal-stamp cluster as #1 with 54% fix share, `cross_audit_recurrence.terminal-stamp.revs` contains ≥3 rev-ids, and `fix_class_histogram.status-flip` > 0. `ci-local.sh --fast` green.
 
 ## Non-goals
 
