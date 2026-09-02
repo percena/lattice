@@ -862,3 +862,57 @@ EOF
   if grep -q '^- anomaly:' "$BINDER"; then false; fi
   grep -q '"metric":"merge-count"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
 }
+
+# tkt-360 A1/A3: a status flip appends a ledger entry — finish-ledger must fail
+# closed when that entry is NOT staged (the tkt-356/tkt-357 bug class: a flipped
+# binder committed with no ledger entry → transition_ledger_snapshot_mismatch →
+# dev artifacts CI red).
+
+@test "tkt-360 A1: flip + ledger not stageable (ledger gitignored) fails closed" {
+  write_fresh_binder
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  # gitignore the ledger dir so `git add` of the ledger is silently dropped —
+  # the exact class of silent staging failure A1 must catch.
+  printf '.lattice/.transition-ledger/\n' > "$REPO/.gitignore"
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm gitignore >/dev/null 2>&1 || true
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -ne 0 ]
+  printf '%s\n' "$output" | grep -qF "tkt-360 A1"
+  printf '%s\n' "$output" | grep -qF "NOT staged"
+  printf '%s\n' "$output" | grep -qF "recovery:"
+  # the ledger WAS written to disk (commit_transaction ran before staging);
+  # the binder IS flipped on disk (atomic write already happened) — but
+  # finish-ledger refuses exit 0 so the flow cannot commit a flipped binder
+  # without its ledger entry staged.
+  [ -s "$REPO/.lattice/.transition-ledger/tkt-7.jsonl" ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  # the ledger is NOT in the index (gitignored)
+  if git -C "$REPO" diff --cached --name-only | grep -q 'transition-ledger'; then false; fi
+}
+
+@test "tkt-360 A1: happy path stages the ledger and exits 0 (flip happened)" {
+  write_fresh_binder
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  # flip happened → ledger staged in the binder's repo
+  git -C "$REPO" diff --cached --name-only | grep -q '.transition-ledger/tkt-7.jsonl'
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+@test "tkt-360 A1: no flip (idempotent re-run) does not assert the ledger (exit 0)" {
+  write_fresh_binder
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  # first run: flip + stage
+  bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm stamped >/dev/null 2>&1 || true
+  # second run: idempotent no-change — flip:0, no ledger assertion fires
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "no change (idempotent)"
+}
+
