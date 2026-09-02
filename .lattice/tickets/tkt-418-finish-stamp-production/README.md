@@ -1,12 +1,12 @@
 | field | value |
-| status | queued |
+| status | closed |
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/418 |
 | spec | spc-416 |
 | covers | A1, A2, A3, A4, A5, A7, A8, A9 |
-| prs | (none) |
-| updated | 2026-09-02T19:30:00Z |
+| prs | pr-420 — https://github.com/percena/lattice/pull/420 |
+| updated | 2026-09-02T14:11:33Z |
 | wait_reason | (none) |
 
 ## Summary
@@ -36,3 +36,9 @@ Harden finish-stamp.py from dry-run prototype to production. Write finish-stamp.
 
 - Prototype at skills/_lattice-lib/scripts/finish-stamp.py passed 22/22 dry-run assertions
 - commit_transaction stays in transition-api.py for other callers (stamp-pr-open.sh, bump-fix-cycle.sh)
+
+## Finish
+
+- pr-420 merged: 2026-09-02T14:09:58Z — https://github.com/percena/lattice/pull/420 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #418 closed: 2026-09-02T14:11:30Z (reason: completed) — https://github.com/percena/lattice/issues/418
