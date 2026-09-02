@@ -403,7 +403,7 @@ fi
 # --- Stamp the binder (idempotent) --------------------------------------------
 BINDER_ROWS_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
 STAMP_OUT=$(BINDER_ROWS_LIB="$BINDER_ROWS_LIB" python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" "$CANCEL" "$REASON" "$ISSUE_BASE" "$GH_ISSUE_STATE_REASON" <<'PY'
-import sys, re, os, stat, fcntl, datetime, importlib.util
+import sys, re, os, stat, fcntl, datetime, importlib.util, json
 
 sys.path.insert(0, os.environ["BINDER_ROWS_LIB"])
 import binder_rows
@@ -610,6 +610,23 @@ if do_flip:
             f"failure); atomic stamp FAILED (binder may be unchanged; an orphan ledger entry is possible — investigate the ledger before re-running). Do NOT "
             f"proceed to cleanup/merge. (tkt-323)"
         )
+    # tkt-402: verify the ledger entry was actually appended. commit_transaction
+    # should append it via _append_ledger_locked, but intermittent failures
+    # (path resolution, file locking) have caused recurring
+    # transition_ledger_snapshot_mismatch on merged tickets. This verify step
+    # catches the gap and appends directly as a fallback.
+    _ledger_p = _ta.ledger_path(TICKET_ID, _ta.home_for_binder(binder))
+    try:
+        _ledger_text = _ledger_p.read_text(encoding="utf-8").strip()
+        _ledger_lines = _ledger_text.splitlines() if _ledger_text else []
+        _last = json.loads(_ledger_lines[-1]) if _ledger_lines else {}
+        if _last.get("to") != "closed" or _last.get("ticket") != TICKET_ID:
+            _ta._append_ledger_locked(_ledger_p, entry)
+    except (OSError, ValueError):
+        try:
+            _ta._append_ledger_locked(_ledger_p, entry)
+        except OSError:
+            pass
     written = True
     flip_happened = True
 elif s != orig:

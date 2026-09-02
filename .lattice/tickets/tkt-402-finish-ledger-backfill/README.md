@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/402 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T12:00:00Z |
