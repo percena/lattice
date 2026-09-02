@@ -95,10 +95,10 @@ def resolve_record_home(home_override: "str | None" = None) -> str:
     one writer with no binder to anchor it; ADR-012 §4 / tkt-352).
 
     Order: an explicit `--home <path>` → `LATTICE_HOME` →
-    `<git show-toplevel>/.lattice` (never bare cwd, so a `record` run from a
-    non-toplevel subdir still lands the entry under the repo's `.lattice`).
-    Falls back to `.lattice` only outside a git worktree (preserves the
-    pre-tkt-352 behaviour for bare-cwd manual backstops)."""
+    `<git show-toplevel>/.lattice` (never bare cwd inside a repo, so a `record`
+    run from a non-toplevel subdir still lands the entry under the repo's
+    `.lattice`). Falls back to `.lattice` under cwd only outside a git worktree
+    (preserves the pre-tkt-352 behaviour for bare-cwd manual backstops)."""
     if home_override:
         return home_override
     env = os.environ.get("LATTICE_HOME")

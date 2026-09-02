@@ -21,10 +21,11 @@ setup_file() {
 }
 
 # Print the flow.md spawn-brief BINDER STATUS block (the indented heredoc lines
-# that carry the agent-facing status instruction), bounded by the surrounding
-# VERIFY-AFTER-MUTATE and DECISION PROTOCOL markers.
+# that carry the agent-facing status instruction), bounded by the next
+# all-caps indented header (e.g. DECISION PROTOCOL). Continuation lines start
+# with a lowercase word/punct, so `^     [A-Z]` only matches section headers.
 binder_status_block() {
-  awk '/BINDER STATUS:/{on=1; print; next} on && /^[^ ]/{exit} on{print}' "$FLOW_MD"
+  awk '/BINDER STATUS:/{on=1; print; next} on && /^     [A-Z]/{exit} on{print}' "$FLOW_MD"
 }
 
 @test "(a) flow.md BINDER STATUS block tells agents NOT to hand-stamp in-progress" {
