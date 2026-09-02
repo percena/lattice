@@ -9,7 +9,7 @@ priority: P2
 summary: "A fourth analytical layer for review-lineage: clusters fixed files into path-level hotspots, tracks cross-audit recurrence, and produces root-cause hypotheses + curve-bending recommendations so the team knows which structural change would eliminate the most rework."
 created: 2026-09-02
 updated: 2026-09-02
-tickets: []
+tickets: [tkt-388, tkt-389]
 prs: []
 reviews: [rev-20260902-080545Z]
 supersedes: []
