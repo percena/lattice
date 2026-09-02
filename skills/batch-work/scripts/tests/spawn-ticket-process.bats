@@ -43,13 +43,13 @@ EOF
 }
 
 @test "missing claude binary: spawn fails closed (no live process)" {
-  # A non-executable claude on a PATH that still carries the shell utilities
-  # (bash/nohup/sleep) so the spawn subshell can start but claude cannot exec.
-  # The first is_alive (pre-grace) or the grace re-check catches the dead PID;
-  # either way the spawn is reported as a failure, never recorded `running`.
-  mkdir -p "$TEST_DIR/bin"
-  printf '#!/usr/bin/env bash\nexit 1\n' >"$TEST_DIR/bin/claude"
-  chmod -x "$TEST_DIR/bin/claude"
+  # tkt-353: a controlled PATH carries the shell utilities (bash/nohup/sleep
+  # inherited from the host) plus a `claude` that cannot exec under ANY uid.
+  # A non-executable file (chmod -x) can still exec under root on some
+  # platforms, so the stub is a DIRECTORY — execve on a directory fails with
+  # EACCES/EISDIR for every uid. The spawn subshell starts but claude cannot
+  # exec; the grace re-check catches the dead PID.
+  mkdir -p "$TEST_DIR/bin/claude"  # a directory named `claude` — never execable
   cwd="$TEST_DIR/wt"; mkdir -p "$cwd"
   brief="$TEST_DIR/brief"; printf 'dummy brief\n' >"$brief"
   run env PATH="$TEST_DIR/bin:$PATH" SPAWN_GRACE_SEC=0.2 \

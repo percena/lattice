@@ -265,13 +265,25 @@ EOF
   llm_subprocess=$(printf '%s' "$src" | grep -cE 'subprocess\.\w+\([^)]*["'"'"'](claude|agents)' || true)
   [ "$llm_subprocess" -eq 0 ]
   # Runtime proof: a full record-node cycle spawns no claude/agents process.
+  # tkt-353: build a controlled PATH with a stub claude that records an
+  # invocation marker, then assert the coordinator never triggered it. This
+  # passes whether or not the host has claude installed (the old
+  # `command -v claude` host-PATH assertion was red wherever claude IS on PATH).
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/claude" <<'EOF'
+#!/usr/bin/env bash
+echo "claude-invoked" > "$CLAUDE_INVOKED_MARKER"
+EOF
+  chmod +x "$TEST_DIR/bin/claude"
+  export CLAUDE_INVOKED_MARKER="$TEST_DIR/claude-invoked"
+  rm -f "$CLAUDE_INVOKED_MARKER"
   python3 "$COORD" init --batch-id "noinfer-1" --lattice-home "$LATTICE_HOME" >/dev/null
-  python3 "$COORD" record-node --batch-id "noinfer-1" --ticket "tkt-N" --status unknown \
+  env PATH="$TEST_DIR/bin:$PATH" python3 "$COORD" record-node --batch-id "noinfer-1" \
+    --ticket "tkt-N" --status unknown \
     --pid 1234 --failure-class unknown --reason "test" \
     --transition-api "$TAPI" --lattice-home "$LATTICE_HOME" >/dev/null 2>&1 || true
-  # No claude/agents binary was invoked (the only subprocess was python3 tapi).
-  run command -v claude
-  [ "$status" -ne 0 ]
+  # The stub claude was never invoked (the only subprocess was python3 tapi).
+  [ ! -f "$CLAUDE_INVOKED_MARKER" ]
 }
 
 # ---------------------------------------------------------------------------
