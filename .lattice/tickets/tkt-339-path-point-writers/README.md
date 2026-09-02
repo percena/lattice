@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat,P1 |
 | github | https://github.com/percena/lattice/issues/339 |
-| status | pr-open |
-| fix_cycles | 0 |
+| status | rework |
+| fix_cycles | 1 |
 | wait_reason | (none) |
 | created | 2026-09-02T02:29:15Z |
-| updated | 2026-09-02T03:19:50Z |
+| updated | 2026-09-02T03:31:49Z |
 | adopted | false |
 | summary | ensure-workspace --bind stamps queued→in-progress; create-pr post-open script + PostToolUse hook stamp pr-open; morning-triage edges as transition-api commands. |
 | spec | spc-337 — FSM conformance closure (path: ../../specs/spc-337-fsm-conformance-closure.md) |
@@ -60,6 +60,7 @@ See GitHub issue #339 for the full slice text; Spec ids owned by this slice:
 - 2026-09-02 — **`after-pr-open.sh --repo` defaults to origin** (`remote.origin.url` → owner/name, same parse as check-pr-context.sh) because `verify-main-chain --stage pr` requires `--repo`; `--expected-head`/`--expected-body-file`/`--binder`/`--check-all` pass through. Source: verify-main-chain usage + create-pr §4.1.
 - 2026-09-02 — **PostToolUse hook also emits `hookSpecificOutput.additionalContext` on stdout** (stamped / failed) besides the stderr advisory, since stderr on exit 0 is not shown to the model (intercept-gh-pr-common.sh delivery contract). Exit is always 0. Source: spc-337 A3 "fail-open, advisory on error".
 - 2026-09-02 — **Hook passes `--repo <owner/name>` parsed from the PR URL** to stamp-pr-open (the PR's own repo, not a guessed origin). Source: stamp-pr-open `--repo` contract.
+- 2026-09-02T03:31:49Z — fix cycle 1: `pr-open` → rework (fix_cycles 1; cap ≤2; ADR-004 §5) — brief: review Hold (PR #348): M1 MEDIUM — auto-stamp-pr-open.sh resolves toplevel from payload cwd and stamp-pr-open picks the binder from the current branch, never checking the PR's headRefName: a 'cd ../tkt-11-x && gh pr create' from worktree tkt-10 stamps tkt-10's binder; from the main clone on dev the stamp is skipped yet additionalContext says 'stamped'. Fix: fetch headRefName, refuse when ≠ current branch (or parse --head), honest skip wording; one bats each. M2 (batch-work brief still says stamp in-progress by prose) → follow-up ticket, out of paths.
 
 ## Pending decisions
 
