@@ -9,11 +9,11 @@
 | priority | P2 |
 | labels | docs,P2 |
 | github | https://github.com/percena/lattice/issues/373 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-02T07:21:07Z |
-| updated | 2026-09-02T08:34:30Z |
+| updated | 2026-09-02T08:37:06Z |
 | adopted | false |
 | summary | Registration surfaces, routing eval, weekly cadence recipe, and the M3 edge for review-lineage. |
 | spec | spc-369 — review-lineage (path: ../../specs/spc-369-review-lineage.md) |
@@ -27,7 +27,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-373-review-lineage-registration |
 | worktree | sibling `…/lattice.worktrees/tkt-373-review-lineage-registration/` |
-| prs | (none) |
+| prs | pr-378 — https://github.com/percena/lattice/pull/378 |
 
 ## Acceptance (this slice)
 
