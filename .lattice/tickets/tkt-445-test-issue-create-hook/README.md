@@ -10,10 +10,10 @@
 | priority | P2 |
 | labels | test, P2 |
 | github | https://github.com/percena/lattice/issues/445 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:44:31Z |
-| updated | 2026-09-03T15:44:31Z |
+| updated | 2026-09-03T16:51:58Z |
 | adopted | false |
 | summary | Test intercept-gh-issue-create hook covering block/allow/advisory paths |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -59,4 +59,7 @@ Follow pattern from intercept-gh-pr-create.bats: stub gh via PATH injection, set
 
 ## Finish
 
-- (none yet)
+
+- pr-452 merged: 2026-09-03T16:49:10Z — https://github.com/percena/lattice/pull/452 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #445 closed: 2026-09-03T16:50:01Z (reason: completed) — https://github.com/percena/lattice/issues/445

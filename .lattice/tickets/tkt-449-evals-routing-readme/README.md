@@ -10,10 +10,10 @@
 | priority | P3 |
 | labels | docs, P3 |
 | github | https://github.com/percena/lattice/issues/449 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:44:31Z |
-| updated | 2026-09-03T15:44:31Z |
+| updated | 2026-09-03T16:52:08Z |
 | adopted | false |
 | summary | Add evals/routing/README.md documenting eval tiers and run instructions |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -58,4 +58,7 @@ Read existing eval files (evals/routing/, evals/providers/) to understand the fr
 
 ## Finish
 
-- (none yet)
+
+- pr-455 merged: 2026-09-03T16:49:27Z — https://github.com/percena/lattice/pull/455 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #449 closed: 2026-09-03T16:50:15Z (reason: completed) — https://github.com/percena/lattice/issues/449

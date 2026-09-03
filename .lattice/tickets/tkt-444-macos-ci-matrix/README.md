@@ -10,10 +10,10 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/444 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:43:52Z |
-| updated | 2026-09-03T15:43:52Z |
+| updated | 2026-09-03T16:51:54Z |
 | adopted | false |
 | summary | Add macOS runner to bats CI workflows |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -60,4 +60,7 @@ May surface BSD vs GNU portability issues that need follow-up tickets.
 
 ## Finish
 
-- (none yet)
+
+- pr-451 merged: 2026-09-03T16:49:44Z — https://github.com/percena/lattice/pull/451 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #444 closed: 2026-09-03T16:49:56Z (reason: completed) — https://github.com/percena/lattice/issues/444

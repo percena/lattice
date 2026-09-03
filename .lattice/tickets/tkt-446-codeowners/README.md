@@ -10,10 +10,10 @@
 | priority | P2 |
 | labels | chore, P2 |
 | github | https://github.com/percena/lattice/issues/446 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:44:31Z |
-| updated | 2026-09-03T15:44:31Z |
+| updated | 2026-09-03T16:52:04Z |
 | adopted | false |
 | summary | Add .github/CODEOWNERS for security-sensitive paths |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -58,4 +58,7 @@ Create .github/CODEOWNERS with maintainer entries for the three directories. Tou
 
 ## Finish
 
-- (none yet)
+
+- pr-454 merged: 2026-09-03T16:49:22Z — https://github.com/percena/lattice/pull/454 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #446 closed: 2026-09-03T16:50:10Z (reason: completed) — https://github.com/percena/lattice/issues/446

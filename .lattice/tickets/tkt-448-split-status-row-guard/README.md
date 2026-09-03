@@ -10,10 +10,10 @@
 | priority | P2 |
 | labels | refactor, P2 |
 | github | https://github.com/percena/lattice/issues/448 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:44:31Z |
-| updated | 2026-09-03T15:44:31Z |
+| updated | 2026-09-03T16:52:11Z |
 | adopted | false |
 | summary | Split L3 status-row guard into plugins/lattice/hooks/lib/status-row-guard.sh |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -64,4 +64,7 @@ Move _status_cell, _status_row_count, _status_row_guard functions (~lines 155-26
 
 ## Finish
 
-- (none yet)
+
+- pr-456 merged: 2026-09-03T16:49:31Z — https://github.com/percena/lattice/pull/456 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #448 closed: 2026-09-03T16:50:19Z (reason: completed) — https://github.com/percena/lattice/issues/448

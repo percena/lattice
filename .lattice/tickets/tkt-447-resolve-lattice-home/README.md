@@ -10,10 +10,10 @@
 | priority | P2 |
 | labels | refactor, P2 |
 | github | https://github.com/percena/lattice/issues/447 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:44:31Z |
-| updated | 2026-09-03T15:44:31Z |
+| updated | 2026-09-03T16:52:14Z |
 | adopted | false |
 | summary | Extract shared resolve_lattice_lib_scripts function from duplicated walk-up loop |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -58,4 +58,7 @@ Add `resolve_lattice_lib_scripts()` to _lattice-home.sh. Each consumer sources _
 
 ## Finish
 
-- (none yet)
+
+- pr-457 merged: 2026-09-03T16:49:35Z — https://github.com/percena/lattice/pull/457 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #447 closed: 2026-09-03T16:50:24Z (reason: completed) — https://github.com/percena/lattice/issues/447

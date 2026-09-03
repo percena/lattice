@@ -10,10 +10,10 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/443 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:43:52Z |
-| updated | 2026-09-03T15:43:52Z |
+| updated | 2026-09-03T16:52:01Z |
 | adopted | false |
 | summary | Eliminate fragile eval+python3 pattern — 8 sites across 4 files |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -59,4 +59,7 @@ Per site: keep inline python3 for JSON parsing (codebase convention), but print 
 
 ## Finish
 
-- (none yet)
+
+- pr-453 merged: 2026-09-03T16:49:18Z — https://github.com/percena/lattice/pull/453 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #443 closed: 2026-09-03T16:50:06Z (reason: completed) — https://github.com/percena/lattice/issues/443

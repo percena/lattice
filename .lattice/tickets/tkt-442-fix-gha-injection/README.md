@@ -10,10 +10,10 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/442 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | created | 2026-09-03T15:43:52Z |
-| updated | 2026-09-03T15:43:52Z |
+| updated | 2026-09-03T16:37:25Z |
 | adopted | false |
 | summary | Fix GHA expression injection in finish-stamp.yml |
 | spec | spc-441 — project-wide hardening sweep (path: ../../specs/spc-441-hardening-sweep.md) |
@@ -59,4 +59,7 @@ In the "Resolve event inputs" step, move all `${{ inputs.* }}` and `${{ github.e
 
 ## Finish
 
-- (none yet)
+
+- pr-450 merged: 2026-09-03T16:36:40Z — https://github.com/percena/lattice/pull/450 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #442 closed: 2026-09-03T16:37:04Z (reason: completed) — https://github.com/percena/lattice/issues/442
