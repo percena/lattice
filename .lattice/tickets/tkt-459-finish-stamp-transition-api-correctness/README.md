@@ -70,7 +70,9 @@ Touch-set: see `paths` row.
 
 ## Notes
 
-- `stamp-pr-open.sh` `|| true` ledger staging is a sibling defect but the file is touched by open PR #453 — NOTICED, not folded in.
+- `stamp-pr-open.sh` `|| true` ledger staging is a sibling defect; #453 has since merged — NOTICED for a follow-up ticket, not folded in.
+- NOTICED-drain (dev red, out-of-paths, 2026-09-03): `.lattice/specs/spc-441-hardening-sweep.md` was flipped `locked → done` by direct commit 17d5663 with A1–A8 unchecked + a stale TL;DR header → `artifacts.yml` red on dev (`spec_done_open_acceptance`, `spec_header_status_mismatch`) — the same class as spc-433/#440. Drained here: boxes checked (all 8 PRs merged, tkt-442..449 closed in 0572c63), header fixed. Recurrence #2 of "locked→done flip has no scripted chokepoint".
+- NOTICED-drain (dev red, out-of-paths, 2026-09-03): `plugins/lattice/hooks/lib/status-row-guard.sh` (extracted by #456) references caller-set variables → `lint.yml` shellcheck `-S warning` SC2154 red on dev. Drained here with a file-level `# shellcheck disable=SC2154` + justification (sourced library contract).
 
 ## References
 
