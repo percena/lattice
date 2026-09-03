@@ -59,3 +59,7 @@ Both fixes are correct (verified by code reading + 35/24 bats green). Risk = fut
 ## Ship plan
 
 one-PR, one worktree, one session. No parallel group (N=1).
+
+## Notes
+
+- 2026-09-03 — red-run disposition: lattice-artifacts fail = transient/pre-existing (validator exits 1 on legacy binder timestamp warnings tkt-5..96, predates this PR; tkt-431 binder compliant). bats pass (5m38s). Not introduced by this change.
