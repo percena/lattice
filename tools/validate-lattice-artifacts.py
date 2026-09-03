@@ -10,7 +10,7 @@ Checks (selected, not exhaustive):
     (requires a real ``## Finish`` ledger), legacy open (warning, lazy migration)
   - coupled ticket fields (tkt-151 A3): ``stuck`` requires
     ``wait_reason: unblock|re-scope``; ``deferred`` requires a valid
-    machine-readable reason (``fuse-halt|blocked-by-failure|spec-superseded``);
+    machine-readable reason (``fuse-halt|blocked-by-failure|budget-exhausted|spec-superseded``);
     contradictory values fail
   - Spec status vocabulary (tkt-151 A1/A2): ``draft|locked|done|superseded``;
     ``done`` with open non-deferred A* or a contradicting display status fails;
@@ -350,7 +350,7 @@ REVIEW_OUTCOME_OK = {
 # there, then mirror here (bats parity test asserts equality).
 WAIT_REASON_RE = re.compile(r"^\|\s*wait_reason\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
 STUCK_REASONS = frozenset({"unblock", "re-scope"})
-DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "spec-superseded"})
+DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "budget-exhausted", "spec-superseded"})
 # Terminal Finish-evidence stamps (## Finish ledger). A merged ledger records
 # `pr-P merged:`; a cancel ledger records `issue #N closed:` without a merge.
 # Both are provable-from-one-snapshot terminal evidence (A4): a non-terminal
@@ -1256,7 +1256,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
         # tkt-151 A3: coupled ticket fields. `stuck` requires a valid
         # wait_reason in {unblock, re-scope}; `deferred` requires a valid
         # machine-readable reason in {fuse-halt, blocked-by-failure,
-        # spec-superseded}. A contradictory value (e.g. stuck + fuse-halt,
+        # budget-exhausted, spec-superseded}. A contradictory value (e.g. stuck + fuse-halt,
         # deferred + unblock) fails
         # — the reason must match the status. Missing/(none) for either fails.
         wr = binder_wait_reason(text)

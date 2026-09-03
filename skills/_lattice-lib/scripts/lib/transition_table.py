@@ -64,7 +64,7 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
                "trivial direct PR (jump over in-progress)",
                None, "WARN journal entry", "direct-jumps"),
     Transition("queued", "deferred", "system|human",
-               "fuse-halt | blocked-by-failure | deliberate deschedule",
+               "fuse-halt | blocked-by-failure | budget-exhausted | deliberate deschedule",
                "deschedule at trip time",
                None, "deferred + wait_reason stamp", "deferred-count"),
     Transition("in-progress", "deferred", "system|human",

@@ -46,7 +46,7 @@ from typing import Dict, List, Optional, Tuple
 # Water-level side states (the pile-up set). Excludes `rework` (active work).
 # parked = irreversible/cross-contract decision pending (morning ratification)
 # stuck  = needs human investigation (operator-chosen exit)
-# deferred = fuse-halt / blocked-by-failure / spec-superseded (trip-time)
+# deferred = fuse-halt / blocked-by-failure / budget-exhausted / spec-superseded (trip-time)
 WATER_LEVEL_STATES = frozenset({"parked", "stuck", "deferred"})
 
 # Default thresholds (spc-186 A5). Tunable via .lattice/config.yaml queue_health:.
