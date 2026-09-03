@@ -13,7 +13,7 @@
 | status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
-| created | 2026-09-03T16:00:00Z |
+| created | 2026-09-03T09:59:30Z |
 | updated | 2026-09-03T09:59:30Z |
 | adopted | false |
 | summary | start-work --budget + --unattended mode + .lattice/snapshots/ context cards |
