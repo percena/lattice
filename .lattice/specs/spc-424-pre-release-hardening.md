@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Pre-release state machine hardening — 6 verified fixes from dev branch review
 
 > **TL;DR:** Pre-release review of the dev branch confirmed 6 issues in the state machine stamp path. Four are code correctness gaps (Medium/Low-Med), two are documentation/CI hygiene (Low). All verified against the current tree. This Spec fixes all 6 in a single delivery ticket.
-> **Kind:** fix · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** fix · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** dev branch review (2026-09-03) → spc-424 → tkt-… → pr-…
 
 ## Why
