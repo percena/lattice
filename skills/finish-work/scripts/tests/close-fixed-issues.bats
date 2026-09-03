@@ -20,31 +20,31 @@ EOF
 )
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[7,8,9,10]'* ]]
-  [[ "$output" != *'"closing_ids":[7,8,9,10,99]'* ]]
-  [[ "$output" != *',12,'* ]]
-  [[ "$output" == *'"dry_run":true'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[7,8,9,10]'
+  [ -z "$(printf '%s\n' "$output" | grep -F '"closing_ids":[7,8,9,10,99]')" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F ',12,')" ]
+  printf '%s\n' "$output" | grep -qF '"dry_run":true'
 }
 
 @test "case-insensitive keywords" {
   body=$'fixes #3\nCLOSES #2\nResolves #1\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[1,2,3]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[1,2,3]'
 }
 
 @test "dedupes repeated Fixes" {
   body=$'Fixes #5\nFixes #5\nFixes #4\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[4,5]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[4,5]'
 }
 
 @test "empty body is ok with empty candidates" {
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"no keywords here"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[]'* ]]
-  [[ "$output" == *'"ok":true'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[]'
+  printf '%s\n' "$output" | grep -qF '"ok":true'
 }
 
 @test "body-file path works" {
@@ -53,19 +53,21 @@ EOF
   run bash "$CLOSE" --body-file "$f" --dry-run --json
   rm -f "$f"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[42]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[42]'
 }
 
 @test "live close without --pr is rejected" {
   run bash "$CLOSE" --body-stdin <<<"Fixes #1"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"only support --dry-run"* ]] || [[ "$stderr" == *"only support --dry-run"* ]]
+  printf '%s\n' "$output" | grep -qF "only support --dry-run" || printf '%s\n' "$stderr" | grep -qF "only support --dry-run"
 }
 
 make_fake_gh() {
-  # Fallback for pre-1.4 bats where BATS_TEST_TMPDIR is unset (would expand
-  # to / and leak state across runs).
-  local tmp="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
+  # Always self-managed per call: a shared BATS_TEST_TMPDIR (pre-1.4 bats
+  # shims set one dir per suite, not per test) would accumulate gh.log
+  # across tests and false-fail the dry-run log assertions.
+  local tmp
+  tmp="$(mktemp -d)"
   export FAKE_GH_LOG="$tmp/gh.log"
   export GH_BIN="$tmp/gh"
   cat >"$GH_BIN" <<'EOF'
@@ -121,57 +123,63 @@ assert_log_lacks() {
 @test "human dry-run lists candidates" {
   run bash "$CLOSE" --body-stdin --dry-run <<<"Fixes #7"$'\n'"Fixes #8"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"candidates: 7 8"* ]]
-  [[ "$output" == *"dry_run: true"* ]]
+  printf '%s\n' "$output" | grep -qF "candidates: 7 8"
+  printf '%s\n' "$output" | grep -qF "dry_run: true"
 }
 
 @test "ignores fenced directives in containers and does not accept trailing-text closers" {
   body=$'Fixes #3\n> ````markdown\n> Fixes #7\n> ```\n>     ````\n> Closes #8\n> ~~~~\n> Resolves #9\n> ````\n- ~~~\n  Fixes #10\n  ~~~\nResolves #4\n> ```markdown\n> example only\nFixes #11\n- ~~~\n  example only\nFixes #12\n- Example\n    ```text\n    Fixes #41\n    ```\nFixes #42\n```bad`info\nFixes #13\n```\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[3,4,11,12,13,42]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[3,4,11,12,13,42]'
 }
 
 @test "does not coerce repository-qualified closing references to local ids" {
   body=$'Fixes owner/other#8\nCloses #7\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[7]'* ]]
-  [[ "$output" == *'"unsupported_references":["owner/other#8"]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[7]'
+  printf '%s\n' "$output" | grep -qF '"unsupported_references":["owner/other#8"]'
 }
 
 @test "matches GitHub's full closing keyword grammar (tense + colon forms)" {
   body=$'Fixed #12\nfix #13\nCloses: #14\nclose #15\nresolved #16\nResolve #17\nclosed #18\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[12,13,14,15,16,17,18]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[12,13,14,15,16,17,18]'
 }
 
 @test "hyphen compounds and inline code spans are prose, not directives" {
   body=$'This auto-closes #5 once deployed\nre-fixes #6 the regression\nUse `Fixes #55` in the body\nFixes #9\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[9]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[9]'
 }
 
 @test "issue-URL closing forms are unsupported references, not silently ignored" {
   body=$'Fixes https://github.com/owner/other/issues/15\nCloses #7\n'
   run bash "$CLOSE" --body-stdin --dry-run --json <<<"$body"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[7]'* ]]
-  [[ "$output" == *'https://github.com/owner/other/issues/15'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[7]'
+  printf '%s\n' "$output" | grep -qF 'https://github.com/owner/other/issues/15'
 }
 
 @test "missing extractor lib hard-fails instead of reporting ok with zero ids" {
   # Own mktemp dir: BATS_TEST_TMPDIR is unset before bats 1.4 and would
   # expand these paths into /.
   tmp=$(mktemp -d)
-  cp "$CLOSE" "$tmp/close.sh"
-  run bash "$tmp/close.sh" --body-stdin --dry-run --json <<<"Fixes #7"
+  # Recreate the relative directory layout so ensure-python3.sh resolves
+  # (the guard lives at ../../_lattice-lib/scripts/ relative to the script).
+  fwdir="$tmp/skills/finish-work/scripts"
+  libdir="$tmp/skills/_lattice-lib/scripts"
+  mkdir -p "$fwdir" "$libdir"
+  cp "$CLOSE" "$fwdir/close.sh"
+  cp "$(cd "$(dirname "$CLOSE")/../../_lattice-lib/scripts" && pwd)/ensure-python3.sh" "$libdir/"
+  run bash "$fwdir/close.sh" --body-stdin --dry-run --json <<<"Fixes #7"
   rm -rf "$tmp"
   [ "$status" -eq 2 ]
-  [[ "$output" == *'"ok":false'* ]]
-  [[ "$output" == *'closing_extractor_failed'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok":false'
+  printf '%s\n' "$output" | grep -qF 'closing_extractor_failed'
 }
 
 @test "broken python3 hard-fails instead of reporting ok with zero ids" {
@@ -181,7 +189,7 @@ assert_log_lacks() {
   PATH="$tmp:$PATH" run bash "$CLOSE" --body-stdin --dry-run <<<"Fixes #7"
   rm -rf "$tmp"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"closing directive extractor failed"* ]]
+  printf '%s\n' "$output" | grep -qF "closing directive extractor failed"
 }
 
 @test "OPEN PR fails closed without reading or closing issues" {
@@ -192,9 +200,9 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok":false'* ]]
-  [[ "$output" == *'"reason":"pr_not_merged"'* ]]
-  [[ "$output" == *'"pr_state":"OPEN"'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok":false'
+  printf '%s\n' "$output" | grep -qF '"reason":"pr_not_merged"'
+  printf '%s\n' "$output" | grep -qF '"pr_state":"OPEN"'
   assert_log_lacks '^issue (view|close)' || return 1
 }
 
@@ -205,8 +213,8 @@ assert_log_lacks() {
   run bash "$CLOSE" --pr 99 --json
   [ "$status" -eq 2 ]
   assert_log_lacks '^issue (view|close)' || return 1
-  [[ "$output" == *'"ok":false'* ]]
-  [[ "$output" == *'"reason":"pr_metadata_unavailable"'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok":false'
+  printf '%s\n' "$output" | grep -qF '"reason":"pr_metadata_unavailable"'
 }
 
 @test "closed ambiguous or undated merged PR fails closed" {
@@ -238,7 +246,7 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --expected-closing-ids 7 --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"skipped_epic":[7]'* ]]
+  printf '%s\n' "$output" | grep -qF '"skipped_epic":[7]'
   assert_log_lacks '^issue close' || return 1
 }
 
@@ -252,7 +260,7 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --expected-closing-ids 7 --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closed":[7]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closed":[7]'
   grep -q '^issue close 7 ' "$FAKE_GH_LOG"
 }
 
@@ -262,7 +270,7 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason":"expected_closing_ids_required"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason":"expected_closing_ids_required"'
   assert_log_lacks '^issue (view|close)' || return 1
 }
 
@@ -272,8 +280,8 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --expected-closing-ids '8,7,8' --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids":[7,8]'* ]]
-  [[ "$output" == *'"expected_closing_ids":[7,8]'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids":[7,8]'
+  printf '%s\n' "$output" | grep -qF '"expected_closing_ids":[7,8]'
   grep -q '^issue close 7 ' "$FAKE_GH_LOG"
   grep -q '^issue close 8 ' "$FAKE_GH_LOG"
 }
@@ -284,7 +292,7 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --expected-closing-ids 7 --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason":"closing_set_changed"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason":"closing_set_changed"'
   assert_log_lacks '^issue (view|close)' || return 1
 }
 
@@ -294,6 +302,6 @@ assert_log_lacks() {
 
   run bash "$CLOSE" --pr 99 --expected-closing-ids '' --json
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"reason":"closing_set_changed"'* ]]
+  printf '%s\n' "$output" | grep -qF '"reason":"closing_set_changed"'
   assert_log_lacks '^issue (view|close)' || return 1
 }

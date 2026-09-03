@@ -1,0 +1,1 @@
+{"schema_version":1,"feature_id":"ftr-noshot","story_id":"noshot","run_id":"r","status":"pass","assertions":[{"name":"x","pass":true}],"screenshots":["missing.png"],"round_trip":true,"leftovers":[]}

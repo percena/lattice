@@ -1,7 +1,7 @@
 # tkt-14-bug-repro-loop
 
 > **TL;DR:** Pre-fix reproduction / post-fix verification loop for bug-class tickets in start-work CLASSIFY step
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-14 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/14 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | pre-fix reproduction / post-fix verification loop in start-work for bug-class tickets |
 | spec | spc-12 — Lattice skill-gap bridge (path: ../../specs/spc-12-skill-gap-bridge.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-13 (same PR) |
 | **worktree_bind** | tkt-13-duplicate-work-precheck (shared with primary) |
 | worktree | sibling …/lattice.worktrees/tkt-13-duplicate-work-precheck/ |
-| prs | (none) |
+| prs | pr-19 — https://github.com/percena/lattice/pull/19 |
 
 ## Acceptance (this slice)
 
@@ -62,4 +62,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-19 merged: 2026-08-25T08:42:46Z — https://github.com/percena/lattice/pull/19 (base merge)
+- issue #14 closed: 2026-08-25T08:42:57Z — https://github.com/percena/lattice/issues/14

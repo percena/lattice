@@ -1,7 +1,7 @@
 # tkt-40-binder-syntaxlint-fix
 
 > **TL;DR:** Fix tkt-35 binder checkbox hygiene + add PyYAML availability check note to syntax-lint.md
-> **Kind:** fix · **Status:** open · **Priority:** P3
+> **Kind:** fix · **Priority:** P3
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-40 (this issue) |
 | **related_tickets** | tkt-35 (split-lint-heavy) |
 | **worktree_bind** | tkt-40-binder-syntaxlint-fix |
-| prs | (none) · pr-41 — https://github.com/percena/lattice/pull/41 |
+| prs | pr-41 — https://github.com/percena/lattice/pull/41 |
 
 ## Acceptance (this slice)
 

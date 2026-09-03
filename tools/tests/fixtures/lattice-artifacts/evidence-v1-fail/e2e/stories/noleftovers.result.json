@@ -1,0 +1,1 @@
+{"schema_version":1,"feature_id":"ftr-noleftovers","story_id":"noleftovers","run_id":"r","status":"pass","assertions":[{"name":"x","pass":true}],"screenshots":["noleftovers.png"],"round_trip":true}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "feature_id": "ftr-login",
+  "story_id": "login",
+  "run_id": "run-abc",
+  "status": "pass",
+  "assertions": [{"name": "lands on dashboard", "pass": true}],
+  "screenshots": ["login.png"],
+  "round_trip": true,
+  "leftovers": []
+}

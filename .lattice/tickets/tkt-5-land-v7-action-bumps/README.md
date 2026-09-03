@@ -1,7 +1,7 @@
 # tkt-5-land-v7-action-bumps
 
 > **TL;DR:** Land the three Dependabot v7 major bumps (checkout/setup-node/setup-python) as one combined upgrade commit; dev CI must stay green.
-> **Kind:** chore · **Status:** open · **Priority:** P2
+> **Kind:** chore · **Priority:** P2
 > **Path:** spc-4 → tkt-5 → (pr-…)
 
 | Field | Value |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-6, tkt-7 (same PR), tkt-8 (cleanup after merge) |
 | **worktree_bind** | `spc-4-gh-actions-v7-upgrade` |
 | worktree | sibling `…/lattice.worktrees/spc-4-gh-actions-v7-upgrade/` |
-| prs | pr-9 (https://github.com/percena/lattice/pull/9, base dev, all CI green) |
+| prs | pr-9 — https://github.com/percena/lattice/pull/9 |
 
 ## Acceptance (this slice)
 

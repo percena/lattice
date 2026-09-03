@@ -65,7 +65,7 @@ printf '%s\n' '{"default":{"candidate":true,"baseline":false}}' > /tmp/fake-eval
 FAKE_EVAL_SCENARIO=/tmp/fake-eval-scenario.json \
 python3 tools/run-behavioral-evals.py \
   --provider-command "python3 evals/providers/fake-provider.py"
-bats skills/_lattice-lib/scripts/tests/behavioral-evals.bats
+bats tools/tests/behavioral-evals.bats
 ```
 
 CI (`lint` → skill-quality) runs both `--validate-only` and the free fake-provider

@@ -97,8 +97,8 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
-  [[ "$output" == *"issue #26 has 2 open Acceptance"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
+  printf '%s\n' "$output" | grep -qF "issue #26 has 2 open Acceptance"
 }
 
 @test "HARD: binder open boxes on Fixes land" {
@@ -108,7 +108,7 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"binder tkt-26 has 2 open Acceptance"* ]]
+  printf '%s\n' "$output" | grep -qF "binder tkt-26 has 2 open Acceptance"
 }
 
 @test "HARD: binder checked but issue still open (GH out of sync)" {
@@ -119,7 +119,7 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not synced with binder"* || "$output" == *"open Acceptance"* ]]
+  printf '%s\n' "$output" | grep -qE 'not\ synced\ with\ binder|open\ Acceptance'
 }
 
 @test "ok: all Acceptance checked on issue + binder" {
@@ -129,7 +129,7 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"checklist_ok"* ]]
+  printf '%s\n' "$output" | grep -qF "checklist_ok"
 }
 
 @test "ok: deferred open boxes are not HARD" {
@@ -139,7 +139,7 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"deferred"* || "$output" == *"checklist_ok"* ]]
+  printf '%s\n' "$output" | grep -qE 'deferred|checklist_ok'
 }
 
 @test "Refs only: open Acceptance is WARN not HARD" {
@@ -149,8 +149,8 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"WARN"* || "$output" == *"Refs"* ]]
-  [[ "$output" != *"issue #26 has 1 open Acceptance item(s) while PR Fixes"* ]]
+  printf '%s\n' "$output" | grep -qE 'WARN|Refs'
+  [ -z "$(printf '%s\n' "$output" | grep -F "issue #26 has 1 open Acceptance item(s) while PR Fixes")" ]
 }
 
 @test "json includes closing_ids" {
@@ -160,8 +160,8 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE" --json
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"closing_ids"'* ]]
-  [[ "$output" == *'"ok": true'* || "$output" == *'"ok": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"closing_ids"'
+  printf '%s\n' "$output" | grep -qE '"ok":\ true|"ok":\ true'
 }
 
 @test "light profile: open Acceptance on Fixes is WARN (exit 0)" {
@@ -172,10 +172,10 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"profile: light"* ]] || [[ "$output" == *"profile=light"* ]]
-  [[ "$output" == *"WARN"* ]] || [[ "$output" == *"open Acceptance"* ]]
+  printf '%s\n' "$output" | grep -qF "profile: light" || printf '%s\n' "$output" | grep -qF "profile=light"
+  printf '%s\n' "$output" | grep -qF "WARN" || printf '%s\n' "$output" | grep -qF "open Acceptance"
   # Must not be HARD-failed
-  [[ "$output" != *"alignment: HARD gaps"* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F "alignment: HARD gaps")" ]
 }
 
 @test "strict default: open Acceptance on Fixes still HARD" {
@@ -186,7 +186,7 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
 }
 
 @test "HARD: indented Acceptance boxes are still open" {
@@ -196,8 +196,8 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
-  [[ "$output" == *"issue #26 has"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
+  printf '%s\n' "$output" | grep -qF "issue #26 has"
 }
 
 @test "finds closed binder under tickets/archive" {
@@ -219,7 +219,7 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"binder tkt-26 has 1 open Acceptance"* ]]
+  printf '%s\n' "$output" | grep -qF "binder tkt-26 has 1 open Acceptance"
 }
 
 @test "HARD: Spec cited but Spec file missing (strict land-time)" {
@@ -230,9 +230,9 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
-  [[ "$output" == *"spc-99"* ]]
-  [[ "$output" == *"no file"* || "$output" == *"land-time Spec load failed"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
+  printf '%s\n' "$output" | grep -qF "spc-99"
+  printf '%s\n' "$output" | grep -qE 'no\ file|land\-time\ Spec\ load\ failed'
 }
 
 @test "ok: bare spc-N in prose is not a Spec cite (no missing-file HARD)" {
@@ -245,10 +245,10 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"checklist_ok"* ]]
-  [[ "$output" != *"HARD gaps"* ]]
-  [[ "$output" != *"land-time Spec load failed"* ]]
-  [[ "$output" == *"specs: (none)"* || "$output" == *"specs: []"* ]]
+  printf '%s\n' "$output" | grep -qF "checklist_ok"
+  [ -z "$(printf '%s\n' "$output" | grep -F "HARD gaps")" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F "land-time Spec load failed")" ]
+  printf '%s\n' "$output" | grep -qE 'specs:\ \(none\)|specs:\ \[\]'
 }
 
 @test "light profile: missing Spec file is WARN (exit 0)" {
@@ -259,9 +259,9 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"WARN"* ]]
-  [[ "$output" == *"spc-99"* ]]
-  [[ "$output" != *"alignment: HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "WARN"
+  printf '%s\n' "$output" | grep -qF "spc-99"
+  [ -z "$(printf '%s\n' "$output" | grep -F "alignment: HARD gaps")" ]
 }
 
 @test "WARN: binder covers A* not on Spec Acceptance" {
@@ -293,9 +293,9 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"WARN"* ]]
-  [[ "$output" == *"covers"* ]]
-  [[ "$output" == *"A9"* ]]
+  printf '%s\n' "$output" | grep -qF "WARN"
+  printf '%s\n' "$output" | grep -qF "covers"
+  printf '%s\n' "$output" | grep -qF "A9"
 }
 
 @test "WARN: Spec tickets listed but PR has no Fixes" {
@@ -327,8 +327,8 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"WARN"* ]]
-  [[ "$output" == *"no Fixes/Closes/Resolves"* || "$output" == *"lists tickets"* ]]
+  printf '%s\n' "$output" | grep -qF "WARN"
+  printf '%s\n' "$output" | grep -qE 'no\ Fixes/Closes/Resolves|lists\ tickets'
 }
 
 @test "adopted: open issue boxes are not HARD when binder Acceptance done" {
@@ -353,9 +353,9 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"checklist_ok"* || "$output" == *"adopted"* ]]
-  [[ "$output" != *"alignment: HARD gaps"* ]]
-  [[ "$output" != *"not synced with binder"* ]]
+  printf '%s\n' "$output" | grep -qE 'checklist_ok|adopted'
+  [ -z "$(printf '%s\n' "$output" | grep -F "alignment: HARD gaps")" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F "not synced with binder")" ]
 }
 
 @test "adopted: open binder boxes still HARD on Fixes land" {
@@ -379,8 +379,8 @@ EOF
 
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
-  [[ "$output" == *"binder tkt-26 has"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
+  printf '%s\n' "$output" | grep -qF "binder tkt-26 has"
 }
 
 
@@ -405,7 +405,7 @@ EOF
   write_binder $'- [x] **A1** first\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
 }
 
 @test "HARD: open box in ordered '1. [ ]' syntax is seen" {
@@ -414,7 +414,7 @@ EOF
   write_binder $'- [x] **A1** first\n- [x] **A2** second\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
 }
 
 @test "HARD: open box with double space after bullet is seen" {
@@ -423,7 +423,7 @@ EOF
   write_binder $'- [x] **A1** first\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
 }
 
 @test "HARD: 'follow-up' mid-description does not defer a real criterion" {
@@ -432,7 +432,7 @@ EOF
   write_binder $'- [x] **A1** add follow-up email reminders\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
 }
 
 @test "ok: annotation-position deferral keywords still defer" {
@@ -449,7 +449,7 @@ EOF
   write_binder $'- [x] **A1** undeferred work item\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HARD gaps"* ]]
+  printf '%s\n' "$output" | grep -qF "HARD gaps"
 }
 
 @test "fenced 'Refs #N' example does not load the issue" {
@@ -458,8 +458,8 @@ EOF
   write_binder $'- [x] **A1** first\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Refs: (none)"* ]]
-  [[ "$output" != *"4242"* ]]
+  printf '%s\n' "$output" | grep -qF "Refs: (none)"
+  [ -z "$(printf '%s\n' "$output" | grep -F "4242")" ]
 }
 
 @test "inline 'Refs #N' code-span example does not load the issue" {
@@ -471,8 +471,8 @@ EOF
   write_binder $'- [x] **A1** first\n'
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Refs: (none)"* ]]
-  [[ "$output" != *"4242"* ]]
+  printf '%s\n' "$output" | grep -qF "Refs: (none)"
+  [ -z "$(printf '%s\n' "$output" | grep -F "4242")" ]
 }
 
 @test "live binder shadows archived copy of the same ticket" {
@@ -504,5 +504,41 @@ ARCH
   cp "$LATTICE/tickets/tkt-26-demo/README.md" "$LATTICE/tickets/tkt-26-zother/README.md"
   run bash "$ALIGN" --pr 99 --home "$LATTICE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ambiguous binder dirs for tkt-26"* ]]
+  printf '%s\n' "$output" | grep -qF "ambiguous binder dirs for tkt-26"
+}
+
+@test "WARN: Fixes issue closed as NOT_PLANNED while PR delivers it (tkt-294)" {
+  # Override the PR JSON with a GitHub-style URL so repo_id extraction works.
+  python3 - <<'PY' >"$GH_PR_JSON"
+import json, sys
+json.dump({
+  "number": 99, "title": "feat: demo", "body": "## Why\n\nShip demo.\n\nFixes #26\n",
+  "state": "OPEN", "headRefName": "feat/tkt-99-demo", "baseRefName": "dev",
+  "url": "https://github.com/acme/r/pull/99", "isDraft": False, "mergeable": "MERGEABLE",
+}, sys.stdout)
+PY
+  # Issue is CLOSED with all Acceptance checked
+  python3 - <<'PY' >"$GH_ISSUE_JSON"
+import json, sys
+json.dump({
+  "number": 26, "title": "demo ticket",
+  "body": "### Acceptance\n- [x] **A1** first\n",
+  "state": "CLOSED", "labels": [],
+}, sys.stdout)
+PY
+  write_binder $'- [x] **A1** first\n'
+  # Override the stub to also handle gh api repos/.../issues/... returning state_reason
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+echo "$*" >>"${GH_CALL_LOG:-/dev/null}"
+if [[ "$1" == "pr" && "$2" == "view" ]]; then cat "${GH_PR_JSON:?}"; exit 0; fi
+if [[ "$1" == "issue" && "$2" == "view" ]]; then cat "${GH_ISSUE_JSON:?}"; exit 0; fi
+if [[ "$1" == "api" && "$2" == repos/*issues/* ]]; then printf 'not_planned'; exit 0; fi
+exit 1
+EOF
+  chmod +x "$STUB_BIN/gh"
+  run bash "$ALIGN" --pr 99 --home "$LATTICE"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "NOT_PLANNED"
+  printf '%s\n' "$output" | grep -qF "reconcile close-reason"
 }

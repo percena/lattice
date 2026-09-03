@@ -29,23 +29,23 @@ teardown() {
 @test "assert fails on team base main clone" {
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]] || [[ "$output" == *'"ok":false'* ]]
-  [[ "$output" == *team_base_checkout* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false' || printf '%s\n' "$output" | grep -qF '"ok":false'
+  printf '%s\n' "$output" | grep -qF team_base_checkout
 }
 
 @test "explicit clean base-direct escape passes and records reason" {
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json --allow-base-write --reason 'user explicitly requested direct base commit'"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"base_direct_escape": true'* ]]
-  [[ "$output" == *'"on_team_base": true'* ]]
-  [[ "$output" == *'"escape_reason": "user explicitly requested direct base commit"'* ]]
+  printf '%s\n' "$output" | grep -qF '"base_direct_escape": true'
+  printf '%s\n' "$output" | grep -qF '"on_team_base": true'
+  printf '%s\n' "$output" | grep -qF '"escape_reason": "user explicitly requested direct base commit"'
 }
 
 @test "base-direct escape refuses a dirty starting tree" {
   echo dirty >"$TEST_DIR/dirty.txt"
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --allow-base-write --reason 'user authorized'"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"clean starting tree"* ]]
+  printf '%s\n' "$output" | grep -qF "clean starting tree"
 }
 
 @test "GitHub default branch metadata wins over stale origin HEAD" {
@@ -62,8 +62,8 @@ EOF
   chmod +x "$TEST_DIR/bin/gh"
   run bash -c "cd '$TEST_DIR' && PATH='$TEST_DIR/bin:$PATH' bash '$ASSERT' --json"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"default_base": "dev"'* ]]
-  [[ "$output" == *'"base_source": "gh-default"'* ]]
+  printf '%s\n' "$output" | grep -qF '"default_base": "dev"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "gh-default"'
 }
 
 @test "config without base_branch falls through and still emits structured output" {
@@ -71,10 +71,10 @@ EOF
   printf '%s\n' 'profile: strict' >"$TEST_DIR/.lattice/config.yaml"
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]]
-  [[ "$output" == *'"default_base": "main"'* ]]
-  [[ "$output" == *'"base_source": "fallback"'* ]]
-  [[ "$output" == *team_base_checkout* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF '"default_base": "main"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "fallback"'
+  printf '%s\n' "$output" | grep -qF team_base_checkout
 }
 
 @test "explicit fully qualified custom base is still recognized as team base" {
@@ -82,22 +82,46 @@ EOF
   git -C "$TEST_DIR" checkout release >/dev/null
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json --base refs/heads/release"
   [ "$status" -eq 1 ]
-  [[ "$output" == *team_base_checkout* ]]
-  [[ "$output" == *'"default_base": "refs/heads/release"'* ]]
+  printf '%s\n' "$output" | grep -qF team_base_checkout
+  printf '%s\n' "$output" | grep -qF '"default_base": "refs/heads/release"'
 }
 
-@test "assert passes on feature branch of main clone" {
+@test "assert passes on feature branch of main clone (light profile)" {
+  mkdir -p "$TEST_DIR/.lattice"
+  printf '%s\n' 'profile: light' >"$TEST_DIR/.lattice/config.yaml"
   git -C "$TEST_DIR" checkout -b tkt-9-demo >/dev/null
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT'"
   [ "$status" -eq 0 ]
+}
+
+@test "assert fails on feature branch of main clone under strict profile" {
+  mkdir -p "$TEST_DIR/.lattice"
+  printf '%s\n' 'profile: strict' >"$TEST_DIR/.lattice/config.yaml"
+  git -C "$TEST_DIR" checkout -b tkt-9-demo >/dev/null
+  run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false' || printf '%s\n' "$output" | grep -qF '"ok":false'
+  printf '%s\n' "$output" | grep -qF non_base_on_main_clone
+}
+
+@test "non-base main-clone strict escape via --allow-base-write --reason passes" {
+  mkdir -p "$TEST_DIR/.lattice"
+  printf '%s\n' 'profile: strict' >"$TEST_DIR/.lattice/config.yaml"
+  git -C "$TEST_DIR" add .lattice && git -C "$TEST_DIR" commit -m cfg >/dev/null
+  git -C "$TEST_DIR" checkout -b tkt-9-demo >/dev/null
+  run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json --allow-base-write --reason 'user-authorized: quick fix'"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"base_direct_escape": true'
+  printf '%s\n' "$output" | grep -qF authorized_nonbase_direct
+  printf '%s\n' "$output" | grep -qF '"on_team_base": false'
 }
 
 @test "assert fails on detached HEAD on main clone" {
   git -C "$TEST_DIR" checkout --detach >/dev/null 2>&1
   run bash -c "cd '$TEST_DIR' && bash '$ASSERT' --json"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"ok": false'* ]] || [[ "$output" == *'"ok":false'* ]]
-  [[ "$output" == *detached_or_empty_on_main_clone* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": false' || printf '%s\n' "$output" | grep -qF '"ok":false'
+  printf '%s\n' "$output" | grep -qF detached_or_empty_on_main_clone
 }
 
 @test "assert passes inside linked worktree" {
@@ -117,7 +141,7 @@ EOF
   echo dirty >"$TEST_DIR/.lattice/tickets/tkt-1-x/README.md"
   run bash "$RESIDUE" --main-root "$TEST_DIR" --json --strict
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"has_residue": true'* ]] || [[ "$output" == *'"has_residue":true'* ]]
+  printf '%s\n' "$output" | grep -qF '"has_residue": true' || printf '%s\n' "$output" | grep -qF '"has_residue":true'
 }
 
 @test "check-base-residue clean when no porcelain under .lattice" {
@@ -130,7 +154,7 @@ EOF
   git -C "$TEST_DIR" commit -m "chore: lattice" >/dev/null 2>&1 || true
   run bash "$RESIDUE" --main-root "$TEST_DIR" --json --strict
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"has_residue": false'* ]] || [[ "$output" == *'"has_residue":false'* ]]
+  printf '%s\n' "$output" | grep -qF '"has_residue": false' || printf '%s\n' "$output" | grep -qF '"has_residue":false'
 }
 
 @test "lattice-init does not double-append gitignore when lattice rules exist without marker" {
@@ -152,8 +176,8 @@ EOF
   echo "# agent dirt" >>"$TEST_DIR/.gitignore"
   run bash "$RESIDUE" --main-root "$TEST_DIR" --json --strict
   [ "$status" -eq 1 ]
-  [[ "$output" == *'"has_residue": true'* ]] || [[ "$output" == *'"has_residue":true'* ]]
-  [[ "$output" == *'.gitignore'* ]]
+  printf '%s\n' "$output" | grep -qF '"has_residue": true' || printf '%s\n' "$output" | grep -qF '"has_residue":true'
+  printf '%s\n' "$output" | grep -qF '.gitignore'
 }
 
 @test "assert --json without python3 fails cleanly, not 127 at emission" {
@@ -165,7 +189,7 @@ EOF
   done
   run bash -c "cd '$TEST_DIR' && export PATH='$FAKE_BIN' && exec bash '$ASSERT' --json"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"python3 is required"* ]]
+  printf '%s\n' "$output" | grep -qF "python3 is required"
 }
 
 @test "check-base-residue --json without python3 fails cleanly" {
@@ -177,7 +201,7 @@ EOF
   done
   run bash -c "export PATH='$FAKE_BIN' && exec bash '$RESIDUE' --main-root '$TEST_DIR' --json"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"python3 is required"* ]]
+  printf '%s\n' "$output" | grep -qF "python3 is required"
 }
 
 @test "ensure-lattice --json stays valid when init prints stderr warnings" {

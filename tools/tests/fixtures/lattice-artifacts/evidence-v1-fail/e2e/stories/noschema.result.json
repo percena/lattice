@@ -1,0 +1,1 @@
+{"feature_id":"ftr-noschema","story_id":"noschema","run_id":"r","status":"pass","assertions":[{"name":"x","pass":true}],"screenshots":["noschema.png"],"round_trip":true,"leftovers":[]}

@@ -13,6 +13,11 @@ setup() {
   # finish-ledger rewrites this file in place, so it refuses paths outside a
   # repo's .lattice/ tree — stage it exactly where the workflow puts it.
   REPO="$TEST_DIR/repo"
+  # tkt-299 follow-up: finish-ledger's close flip routes through commit_transaction
+  # (which writes the ledger via LATTICE_HOME). Export the tmp repo home so the
+  # tkt-7.jsonl ledger lands in the per-test tmp repo, not the real repo home
+  # (no residue; the validator stays clean locally).
+  export LATTICE_HOME="$REPO/.lattice"
   BINDER_DIR="$REPO/.lattice/tickets/tkt-7-demo"
   mkdir -p "$BINDER_DIR"
   git -C "$REPO" init -q -b main
@@ -50,15 +55,15 @@ MD
   run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
     --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
   [ "$status" -eq 0 ]
-  [[ "$output" == *"stamped"* ]]
+  printf '%s\n' "$output" | grep -qF "stamped"
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z — https://github.com/percena/lattice/pull/12" "$BINDER"
   grep -q "issue #7 closed: 2026-07-31T10:01:00Z — https://github.com/percena/lattice/issues/7" "$BINDER"
   # issue URL must not be doubled
-  ! grep -q "github.com/https://github.com" "$BINDER"
+  if grep -q "github.com/https://github.com" "$BINDER"; then false; fi
   grep -qE '\| status \| closed \|' "$BINDER"
   [ "$(grep -c '^## Finish' "$BINDER")" -eq 1 ]
-  ! grep -q '(none yet)' "$BINDER"
+  if grep -q '(none yet)' "$BINDER"; then false; fi
 }
 
 @test "idempotent: re-run does not duplicate the pr line" {
@@ -79,14 +84,14 @@ MD
   bash "$FL" --pr 12 --issue 7 --binder "$BINDER" \
     --merged-at 2026-07-31T11:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
   grep -q "pr-12 merged: 2026-07-31T11:00:00Z" "$BINDER"
-  ! grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
+  if grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"; then false; fi
 }
 
 @test "no binder file: skip with note, exit 0 (not a failure)" {
   run bash "$FL" --pr 12 --binder "$BINDER_DIR/nonexistent.md" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skip"* ]]
+  printf '%s\n' "$output" | grep -qF "skip"
 }
 
 @test "multiple PRs: appends to the same ## Finish (no second heading)" {
@@ -107,6 +112,26 @@ MD
   [ "$status" -eq 0 ]
   grep -q "pr-12 merged" "$BINDER"
   grep -qi "not closed" "$BINDER"
+  # tkt-335: a merged PR is terminal evidence on its own — status must flip
+  # to closed even when the linked issue cannot be verified closed (race/gh flake).
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+@test "tkt-335: merged PR + un-verifiable issue still flips status to closed" {
+  # Regression: flip_close predicate previously gated the status→closed flip on
+  # linked-issue verification (issue_closed == "true" or not issue_m). Since
+  # finish-work always passes --issue, a race/gh-flake/rate-limit left
+  # flip_close=False — terminal Finish ledger stamped but status stayed 'open',
+  # triggering finish_without_terminal_status validator error.
+  write_fresh_binder
+  run bash "$FL" --pr 42 --issue 99 --binder "$BINDER" --pr-state MERGED \
+    --merged-at 2026-08-15T12:00:00Z
+  [ "$status" -eq 0 ]
+  grep -q "pr-42 merged: 2026-08-15T12:00:00Z" "$BINDER"
+  # The issue note should still appear (gh could not verify closure)
+  grep -qi "not closed" "$BINDER"
+  # CRITICAL: status must flip to closed because merged is terminal evidence
+  grep -qE '\| status \| closed \|' "$BINDER"
 }
 
 @test "closed-without-merge records status and never claims mergedAt" {
@@ -114,7 +139,7 @@ MD
   run bash "$FL" --pr 12 --binder "$BINDER" --pr-state CLOSED
   [ "$status" -eq 0 ]
   grep -q "pr-12 closed without merge" "$BINDER"
-  ! grep -q "pr-12 merged" "$BINDER"
+  if grep -q "pr-12 merged" "$BINDER"; then false; fi
   # no merge happened, so the ticket is not silently marked closed
   grep -qE '\| status \| open \|' "$BINDER"
 }
@@ -133,7 +158,7 @@ MD
   write_fresh_binder
   run bash "$FL" --pr 12 --binder "$BINDER" --pr-state OPEN
   [ "$status" -eq 1 ]
-  [[ "$output" == *"still OPEN"* ]]
+  printf '%s\n' "$output" | grep -qF "still OPEN"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -156,7 +181,7 @@ MD
   done
   # Locking must not leave repository-visible sidecars or atomic-write temps.
   run bash -c "ls -A '$BINDER_DIR' | grep -cE '\.(lock|tmp)$' || true"
-  [[ "$output" == "0" ]]
+  [ "$output" = "0" ]
 }
 
 @test "refuses a non-numeric --pr (URL from prose would stamp another repo)" {
@@ -164,7 +189,7 @@ MD
   run bash "$FL" --pr "https://github.com/attacker/repo/pull/1" --binder "$BINDER" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--pr must be a positive GitHub PR number"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--pr must be a positive GitHub PR number"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -173,12 +198,12 @@ MD
   run bash "$FL" --pr 12 --issue "7 --repo other/repo" --binder "$BINDER" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--issue must be a positive GitHub issue number"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--issue must be a positive GitHub issue number"
 
   run bash "$FL" --pr 12 --binder "$BINDER" --repo "owner/repo/../../x" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--repo must be owner/name"* ]]
+  printf '%s\n' "$output" | grep -qF -- "--repo must be owner/name"
 }
 
 @test "refuses a symlinked binder pointing outside .lattice" {
@@ -189,7 +214,7 @@ MD
   run bash "$FL" --pr 12 --binder "$BINDER_DIR/link.md" \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"symlinked binder path component"* ]]
+  printf '%s\n' "$output" | grep -qF "symlinked binder path component"
   [ "$(cat "$secret")" = "do not touch" ]
 }
 
@@ -198,7 +223,7 @@ MD
   printf '# repo readme\n' >"$outside"
   run bash "$FL" --pr 12 --binder "$outside" --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must live under"* ]]
+  printf '%s\n' "$output" | grep -qF "must live under"
   [ "$(cat "$outside")" = "# repo readme" ]
 }
 
@@ -206,7 +231,7 @@ MD
   write_fresh_binder
   run bash "$FL" --pr 12 --binder "$BINDER" --merged-at null
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not an ISO-8601 timestamp"* ]]
+  printf '%s\n' "$output" | grep -qF "not an ISO-8601 timestamp"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -217,8 +242,10 @@ MD
   [ "$status" -eq 0 ]
   grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
   grep -qi "not closed" "$BINDER"
-  ! grep -q "closed: null" "$BINDER"
-  grep -qE '\| status \| open \|' "$BINDER"
+  if grep -q "closed: null" "$BINDER"; then false; fi
+  # tkt-335: a merged PR is terminal evidence — status flips to closed
+  # even when the linked issue's closedAt is null (not yet propagated).
+  grep -qE '\| status \| closed \|' "$BINDER"
 }
 
 @test "binder keeps its mode and leaves no temp residue after an atomic rewrite" {
@@ -229,7 +256,7 @@ MD
   perms=$(ls -l "$BINDER" | cut -c1-10)
   [ "$perms" = "-rw-r-----" ]
   run bash -c "ls -A '$BINDER_DIR' | grep -c '^\.finish-ledger\.' || true"
-  [[ "$output" == "0" ]]
+  [ "$output" = "0" ]
 }
 
 @test "refuses to stamp a PR from a different repository into this binder" {
@@ -246,7 +273,7 @@ EOF
 
   run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --pr 12 --binder "$BINDER"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
   grep -q '(none yet)' "$BINDER"
 }
 
@@ -341,7 +368,7 @@ EOF
   git -C "$REPO" remote add origin https://github.com/owner-a/repo-a.git
   run bash "$FL" --pr 12 --binder "$BINDER" --repo owner-b/repo-b
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
 }
 
 @test "same owner/repo on a different GitHub host is still refused" {
@@ -357,9 +384,9 @@ EOF
   run env PATH="$TEST_DIR/bin:$PATH" GH_HOST=ghe.example.com \
     bash "$FL" --pr 12 --binder "$BINDER" --repo acme/repo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"different repository"* ]]
-  [[ "$output" == *"github.com/acme/repo"* ]]
-  [[ "$output" == *"ghe.example.com/acme/repo"* ]]
+  printf '%s\n' "$output" | grep -qF "different repository"
+  printf '%s\n' "$output" | grep -qF "github.com/acme/repo"
+  printf '%s\n' "$output" | grep -qF "ghe.example.com/acme/repo"
 }
 
 @test "--repo rejects traversal-shaped components" {
@@ -368,10 +395,522 @@ EOF
     run bash "$FL" --pr 12 --binder "$BINDER" --repo "$bad" --pr-state MERGED \
       --merged-at 2026-07-31T10:00:00Z
     [ "$status" -eq 2 ]
-    [[ "$output" == *"--repo must be owner/name"* ]]
+    printf '%s\n' "$output" | grep -qF -- "--repo must be owner/name"
   done
   # a real name that merely starts with a dot is still accepted
   run bash "$FL" --pr 12 --binder "$BINDER" --repo "owner/.github" --pr-state MERGED \
     --merged-at 2026-07-31T10:00:00Z
   [ "$status" -eq 0 ]
 }
+
+@test "a (none) prs placeholder is replaced, never appended beside" {
+  # digest rev-20260826-172600Z Findings 4: appending left "(none) · pr-N …"
+  for placeholder in '(none)' '(none yet)' '(none — pending)'; do
+    write_fresh_binder
+    sed -i.bak "s/| prs | (none yet) |/| prs | $placeholder |/" "$BINDER"
+    rm -f "$BINDER.bak"
+    run bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+      --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
+    [ "$status" -eq 0 ]
+    grep -q '| prs | pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
+    if grep -qF "$placeholder ·" "$BINDER"; then false; fi
+  done
+}
+
+@test "a filled prs row appends once and re-runs stay idempotent" {
+  write_fresh_binder
+  sed -i.bak 's#| prs | (none yet) |#| prs | pr-11 — https://github.com/percena/lattice/pull/11 |#' "$BINDER"
+  rm -f "$BINDER.bak"
+  bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  grep -q '| prs | pr-11 — https://github.com/percena/lattice/pull/11, pr-12 — https://github.com/percena/lattice/pull/12 |' "$BINDER"
+  # idempotent: second run for the same PR leaves a single pr-12 entry
+  bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  prs_row="$(grep -m1 '^| prs |' "$BINDER")"
+  [ "$(printf '%s' "$prs_row" | grep -o 'pr-12' | wc -l)" -eq 1 ]
+  [ "$(printf '%s' "$prs_row" | grep -o 'pr-11' | wc -l)" -eq 1 ]
+}
+
+# tkt-90: the flip must cover the FSM working vocabulary, not just legacy `open`
+# — stamp-pr-open stamps `pr-open`, which stranded 19 merged binders.
+
+@test "pr-open binder: status flips to closed when issue closed" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | pr-open |#' "$BINDER"
+  rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+@test "in-progress and rework binders: status flips to closed" {
+  for st in in-progress rework; do
+    write_fresh_binder
+    sed -i.bak "s#| status | open |#| status | $st |#" "$BINDER"
+    rm -f "$BINDER.bak"
+    bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+      --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+    grep -qE '\| status \| closed \|' "$BINDER"
+  done
+}
+
+@test "parked binder with a closed issue flips to closed (tkt-150: parked no longer stranded)" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | parked |#' "$BINDER"
+  rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+# tkt-150: the cancel path and the full working-state vocabulary. The prior
+# parked-preservation regression codified the contradiction (a closed issue left
+# the binder working); it is replaced by a cancel-from-any-state matrix and the
+# negative open/unknown cases.
+
+@test "cancel-from-any-state matrix: --cancel closes every working state" {
+  for st in open queued in-progress parked stuck pr-open rework deferred; do
+    write_fresh_binder
+    sed -i.bak "s#| status | open |#| status | $st |#" "$BINDER"
+    rm -f "$BINDER.bak"
+    run bash "$FL" --cancel --reason "human cancel: wontfix" \
+      --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+    [ "$status" -eq 0 ]
+    grep -qE '\| status \| closed \|' "$BINDER"
+    grep -q '^- cancelled: human cancel: wontfix — 2026-07-31T10:01:00Z' "$BINDER"
+    # no fabricated PR evidence
+    if grep -qE '^- pr-' "$BINDER"; then false; fi
+    if grep -q 'merged' "$BINDER"; then false; fi
+    # prs row untouched (no PR URL, no warning fabricated into a row)
+    grep -q '| prs | (none yet) |' "$BINDER"
+  done
+}
+
+@test "cancel with a gh-verified CLOSED issue closes the ticket and stamps issue line" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":"2026-07-31T10:01:00Z"}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "dup of #9" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  grep -q '^- cancelled: dup of #9' "$BINDER"
+  grep -q '^- issue #7 closed: 2026-07-31T10:01:00Z — https://github.com/acme/repo/issues/7' "$BINDER"
+  if grep -qE '^- pr-' "$BINDER"; then false; fi
+}
+
+@test "cancel with an OPEN issue fails closed (no terminal evidence)" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"OPEN","closedAt":null}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "x" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "requires terminal evidence"
+  printf '%s\n' "$output" | grep -qF "not closed"
+  # binder untouched — no cancel line, status still open
+  if grep -q '^- cancelled:' "$BINDER"; then false; fi
+  grep -qE '\| status \| open \|' "$BINDER"
+}
+
+@test "cancel with an unverifiable issue (no gh / foreign repo) fails closed" {
+  write_fresh_binder
+  # no origin → binder repo unresolved → gh not usable → issue cannot be verified
+  run bash "$FL" --cancel --reason "x" --issue 7 --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "requires terminal evidence"
+  if grep -q '^- cancelled:' "$BINDER"; then false; fi
+}
+
+@test "cancel rejects --pr, missing --reason, and missing terminal evidence" {
+  write_fresh_binder
+  # --pr is forbidden on the no-PR cancel path
+  run bash "$FL" --cancel --reason "x" --pr 5 --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "no-PR path"
+  # --reason is required
+  run bash "$FL" --cancel --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF -- "--cancel requires --reason"
+  # terminal evidence is required
+  run bash "$FL" --cancel --reason "x" --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "requires terminal evidence"
+  # --pr-state/--merged-at forbidden on cancel
+  run bash "$FL" --cancel --reason "x" --pr-state MERGED --closed-at 2026-07-31T10:01:00Z --binder "$BINDER"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "no-PR path"
+  # binder untouched across all
+  grep -q '(none yet)' "$BINDER"
+}
+
+@test "cancel is idempotent and atomic: re-run updates reason, leaves no temp residue" {
+  write_fresh_binder
+  bash "$FL" --cancel --reason "first" --closed-at 2026-07-31T10:01:00Z --binder "$BINDER" >/dev/null
+  run bash "$FL" --cancel --reason "second" --closed-at 2026-07-31T10:02:00Z --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^- cancelled:' "$BINDER")" -eq 1 ]
+  grep -q '^- cancelled: second — 2026-07-31T10:02:00Z' "$BINDER"
+  if grep -q '^- cancelled: first' "$BINDER"; then false; fi
+  [ "$(grep -c '^## Finish' "$BINDER")" -eq 1 ]
+  run bash -c "ls -A '$BINDER_DIR' | grep -cE '\.(lock|tmp)$' || true"
+  [ "$output" = "0" ]
+}
+
+@test "merged from parked/stuck/deferred flips to closed and surfaces anomaly (A2)" {
+  for st in parked stuck deferred; do
+    write_fresh_binder
+    sed -i.bak "s#| status | open |#| status | $st |#" "$BINDER"
+    rm -f "$BINDER.bak"
+    bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice --pr-state MERGED \
+      --merged-at 2026-07-31T10:00:00Z >/dev/null
+    grep -qE '\| status \| closed \|' "$BINDER"
+    grep -q "pr-12 merged: 2026-07-31T10:00:00Z" "$BINDER"
+    # literal backticks around the prior status — printf avoids command substitution
+    anom_pat=$(printf 'anomaly: prior status `%s`' "$st")
+    grep -qF "$anom_pat" "$BINDER"
+    # anomaly line is not duplicated on re-run
+    bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice --pr-state MERGED \
+      --merged-at 2026-07-31T10:00:00Z >/dev/null
+    [ "$(grep -c '^- anomaly:' "$BINDER")" -eq 1 ]
+  done
+}
+
+@test "closed-without-merge from parked with a closed issue flips to closed (no mergedAt)" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | parked |#' "$BINDER"
+  rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --pr-state CLOSED \
+    --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -q "pr-12 closed without merge" "$BINDER"
+  if grep -q "pr-12 merged" "$BINDER"; then false; fi
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+# spc-186 A4 / tkt-191: `updated` bumped atomically with the status flip.
+# `created` is never touched. Bump is gated on a real mutation (idempotent
+# re-run does not touch `updated`). Lazy migration: a binder with no `updated`
+# row stamps cleanly (bump is a no-op when absent).
+
+write_ts_binder() {
+  write_fresh_binder
+  sed -i.bak 's/| status | open |/| status | open |\n| created | 2026-01-01T00:00:00Z |\n| updated | 2026-01-01T00:00:00Z |/' "$BINDER"
+  rm -f "$BINDER.bak"
+}
+
+@test "updated row is bumped atomically with the status→closed stamp (created untouched)" {
+  write_ts_binder
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  grep -qE '\| updated \| 20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z \|' "$BINDER"
+  # old value gone (bumped, not duplicated)
+  if grep -q '| updated | 2026-01-01T00:00:00Z |' "$BINDER"; then false; fi
+  # created is never bumped
+  grep -q '| created | 2026-01-01T00:00:00Z |' "$BINDER"
+}
+
+@test "idempotent re-run does not bump updated again (no change)" {
+  write_ts_binder
+  bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+  cp "$BINDER" "$TEST_DIR/after-first.md"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "no change (idempotent"
+  cmp -s "$BINDER" "$TEST_DIR/after-first.md"
+}
+
+@test "updated bump is a no-op when the row is absent (lazy migration, no insert)" {
+  write_fresh_binder
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  if grep -qE '^\| updated \|' "$BINDER"; then false; fi
+}
+
+# tkt-91: the prs grammar is single-sourced in lib/binder_rows.py — writers
+# emit the tkt-74 canon (comma joiner, URL required), and the emitted row must
+# satisfy the validator's canonical regex.
+
+@test "multi-PR append emits the comma canon accepted by the validator" {
+  write_fresh_binder
+  bash "$FL" --pr 11 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  bash "$FL" --pr 12 --binder "$BINDER" --repo percena/lattice \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z >/dev/null
+  row="$(grep -m1 '^| prs |' "$BINDER" | sed 's/^| prs | //; s/ |$//')"
+  ROW="$row" python3 - "$(dirname "$FL")/lib" <<'PY'
+import os, sys
+sys.path.insert(0, sys.argv[1])
+import binder_rows
+row = os.environ["ROW"]
+assert binder_rows.PRS_ROW_CANON_RE.fullmatch(row), f"off-canon row: {row!r}"
+PY
+}
+
+@test "prs grammar in lib/binder_rows.py matches the validator's copy byte-for-byte" {
+  python3 - "$(dirname "$FL")/lib" "$(cd "$(dirname "$FL")/../../.." && pwd)/tools/validate-lattice-artifacts.py" <<'PY'
+import importlib.util, sys
+sys.path.insert(0, sys.argv[1])
+import binder_rows
+spec = importlib.util.spec_from_file_location("val", sys.argv[2])
+val = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(val)
+assert binder_rows.PRS_PLACEHOLDER_RE.pattern == val.PRS_PLACEHOLDER_RE.pattern
+assert binder_rows.PRS_ROW_CANON_RE.pattern == val.PRS_ROW_CANON_RE.pattern
+PY
+}
+
+@test "stamp_updated bumps a present updated row and is a no-op when absent (tkt-191)" {
+  python3 - "$(dirname "$FL")/lib" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import binder_rows
+
+# present row → bumped in place; created untouched
+text = "| status | queued |\n| created | 2026-01-01T00:00:00Z |\n| updated | 2026-01-01T00:00:00Z |"
+out = binder_rows.stamp_updated(text, "2026-08-29T12:00:00Z")
+assert "| updated | 2026-08-29T12:00:00Z |" in out, out
+assert "| updated | 2026-01-01T00:00:00Z |" not in out, out
+assert "| created | 2026-01-01T00:00:00Z |" in out, out
+
+# absent row → no-op (lazy migration; never inserts)
+bare = "| status | queued |\n"
+assert binder_rows.stamp_updated(bare, "2026-08-29T12:00:00Z") == bare, "must not insert"
+PY
+}
+
+@test "status vocabulary in lib/status_vocab.py matches the validator's copy (tkt-189)" {
+  python3 - "$(dirname "$FL")/lib" "$(cd "$(dirname "$FL")/../../.." && pwd)/tools/validate-lattice-artifacts.py" <<'PY'
+import importlib.util, sys
+sys.path.insert(0, sys.argv[1])
+import status_vocab
+spec = importlib.util.spec_from_file_location("val", sys.argv[2])
+val = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(val)
+# Constants parity
+assert status_vocab.STATUS_WORKING_ORDER == val.STATUS_WORKING_ORDER
+assert status_vocab.STATUS_WORKING == val.STATUS_WORKING
+assert status_vocab.STATUS_TERMINAL == val.STATUS_TERMINAL
+assert status_vocab.STATUS_LEGACY == val.STATUS_LEGACY
+assert status_vocab.STATUS_OK == val.STATUS_OK
+assert status_vocab.SIDE_STATES == val.SIDE_STATES
+assert status_vocab.DIRECT_JUMP_SOURCES == val.DIRECT_JUMP_SOURCES
+# Coupled-field wait_reason vocabulary parity (tkt-190 / spc-186 A3)
+assert status_vocab.STUCK_REASONS == val.STUCK_REASONS
+assert status_vocab.DEFERRED_REASONS == val.DEFERRED_REASONS
+assert "spec-superseded" in status_vocab.DEFERRED_REASONS
+# Compiled regex pattern byte-equality (the load-bearing single-source check)
+assert status_vocab.NONTERMINAL_RE.pattern == val.NONTERMINAL_RE.pattern
+assert status_vocab.NONTERMINAL_ALT == val.NONTERMINAL_ALT
+# Helpers agree
+for s in ("queued", "in-progress", "parked", "stuck", "pr-open", "rework",
+          "deferred", "open", "closed", "bogus"):
+    assert status_vocab.is_terminal(s) == val.is_terminal(s), s
+    assert status_vocab.is_nonterminal(s) == val.is_nonterminal(s), s
+    assert status_vocab.is_side_state(s) == val.is_side_state(s), s
+PY
+}
+
+@test "no URL resolvable: prs row left untouched with a warning (bare pr-N never emitted)" {
+  write_fresh_binder
+  run bash "$FL" --pr 12 --binder "$BINDER" \
+    --pr-state MERGED --merged-at 2026-07-31T10:00:00Z
+  [ "$status" -eq 0 ]
+  grep -q '| prs | (none yet) |' "$BINDER"
+  if grep -qE '\| prs \| pr-12 \|' "$BINDER"; then false; fi
+}
+
+@test "A3: garbage --closed-at on cancel path is rejected (ISO-8601 validation)" {
+  write_fresh_binder
+  run bash "$FL" --cancel --reason "wontfix" --closed-at "garbage-not-a-timestamp" \
+    --binder "$BINDER"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "must be an ISO-8601 timestamp"
+  # binder untouched
+  grep -q '(none yet)' "$BINDER"
+  if grep -q '^- cancelled:' "$BINDER"; then false; fi
+}
+
+@test "cancel with null closedAt stamps a visible unavailable marker (tkt-242 L4)" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":null}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "dup of #9" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  # NOT a silent dateless cancel — a visible closedAt-unavailable marker
+  grep -q '^- cancelled: dup of #9 — closedAt: unavailable (issue #7 CLOSED but closedAt null)' "$BINDER"
+  # no fabricated ISO date on the cancel line
+  if grep -qE '^- cancelled: dup of #9 — 20[0-9]{2}-[0-9]{2}-[0-9]{2}T' "$BINDER"; then false; fi
+  # terminal evidence exists (issue closed) so status still flips to closed
+  grep -qE '\| status \| closed \|' "$BINDER"
+  # no fabricated PR evidence
+  if grep -qE '^- pr-' "$BINDER"; then false; fi
+}
+
+@test "cancel with null closedAt is idempotent (re-run updates the marker, not a duplicate line) (tkt-242 L4)" {
+  write_fresh_binder
+  git -C "$REPO" remote add origin https://github.com/acme/repo.git
+  mkdir -p "$TEST_DIR/bin"
+  cat >"$TEST_DIR/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  repo) printf '%s\n' 'https://github.com/acme/repo' ;;
+  issue) printf '%s\n' '{"state":"CLOSED","closedAt":null}' ;;
+esac
+EOF
+  chmod +x "$TEST_DIR/bin/gh"
+  env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "first" \
+    --issue 7 --binder "$BINDER" >/dev/null
+  run env PATH="$TEST_DIR/bin:$PATH" bash "$FL" --cancel --reason "second" \
+    --issue 7 --binder "$BINDER"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^- cancelled:' "$BINDER")" -eq 1 ]
+  grep -q '^- cancelled: second — closedAt: unavailable' "$BINDER"
+  if grep -q '^- cancelled: first' "$BINDER"; then false; fi
+}
+
+@test "tkt-323: commit_transaction IO failure fails closed (exit non-zero, not swallowed WARN)" {
+  # tkt-353: inject the IO failure in a uid-independent way. Root ignores
+  # mode bits (chmod 555 is a no-op for uid 0), so the ledger append inside
+  # commit_transaction is made to fail by pre-creating the per-ticket ledger
+  # FILE as a directory — lp.open("a") raises IsADirectoryError (OSError)
+  # inside commit_transaction's try block for every uid, so it returns 3 and
+  # finish-ledger fail-closes with "FAILED".
+  write_fresh_binder
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm "binder"
+  mkdir -p "$LATTICE_HOME/.transition-ledger"
+  rm -rf "$LATTICE_HOME/.transition-ledger/tkt-7.jsonl"
+  mkdir "$LATTICE_HOME/.transition-ledger/tkt-7.jsonl"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -ne 0 ]  # fail-closed (not exit 0)
+  printf '%s\n' "$output" | grep -qE "(ERROR|error|Error)"
+}
+
+# --- spc-337 A1/A2: ledger from the binder home; direct-jump anomaly ---------
+
+@test "spc-337 A1: finish-ledger run from a foreign cwd (LATTICE_HOME unset) stages the ledger under the binder home" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | pr-open |#' "$BINDER"; rm -f "$BINDER.bak"
+  OTHER="$TEST_DIR/elsewhere"; mkdir -p "$OTHER"
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  run env -u LATTICE_HOME bash -c "cd '$OTHER' && bash '$FL' --pr 12 --issue 7 --binder '$BINDER' --repo percena/lattice --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z"
+  [ "$status" -eq 0 ]
+  [ -s "$REPO/.lattice/.transition-ledger/tkt-7.jsonl" ]
+  grep -q '"from":"pr-open"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+  [ ! -e "$OTHER/.lattice" ]
+  # staged in the binder's repo, not the foreign cwd
+  git -C "$REPO" diff --cached --name-only | grep -q '.transition-ledger/tkt-7.jsonl'
+}
+
+@test "spc-337 A2: a merge observed from queued journals a direct-jump anomaly and metric direct-jump" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | queued |#' "$BINDER"; rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  grep -q '^- anomaly: direct jump — prior status `queued`' "$BINDER"
+  grep -q '"metric":"direct-jump"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+  grep -q '"reason":"merge"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+  # idempotent re-run: one anomaly line
+  bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+  [ "$(grep -c '^- anomaly:' "$BINDER")" -eq 1 ]
+}
+
+@test "spc-337 A2: a merge from pr-open journals no anomaly (the honest path)" {
+  write_fresh_binder
+  sed -i.bak 's#| status | open |#| status | pr-open |#' "$BINDER"; rm -f "$BINDER.bak"
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  if grep -q '^- anomaly:' "$BINDER"; then false; fi
+  grep -q '"metric":"merge-count"' "$REPO/.lattice/.transition-ledger/tkt-7.jsonl"
+}
+
+# tkt-360 A1/A3: a status flip appends a ledger entry — finish-ledger must fail
+# closed when that entry is NOT staged (the tkt-356/tkt-357 bug class: a flipped
+# binder committed with no ledger entry → transition_ledger_snapshot_mismatch →
+# dev artifacts CI red).
+
+@test "tkt-360 A1: flip + ledger not stageable (ledger gitignored) fails closed" {
+  write_fresh_binder
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  # gitignore the ledger dir so `git add` of the ledger is silently dropped —
+  # the exact class of silent staging failure A1 must catch.
+  printf '.lattice/.transition-ledger/\n' > "$REPO/.gitignore"
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm gitignore >/dev/null 2>&1 || true
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -ne 0 ]
+  printf '%s\n' "$output" | grep -qE "NOT staged|git add failed"
+  # the ledger WAS written to disk (finish-stamp ran before staging);
+  # the binder IS flipped on disk (atomic write already happened) — but
+  # finish-stamp refuses exit 0 so the flow cannot commit a flipped binder
+  # without its ledger entry staged.
+  [ -s "$REPO/.lattice/.transition-ledger/tkt-7.jsonl" ]
+  grep -qE '\| status \| closed \|' "$BINDER"
+  # the ledger is NOT in the index (gitignored)
+  if git -C "$REPO" diff --cached --name-only | grep -q 'transition-ledger'; then false; fi
+}
+
+@test "tkt-360 A1: happy path stages the ledger and exits 0 (flip happened)" {
+  write_fresh_binder
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  # flip happened → ledger staged in the binder's repo
+  git -C "$REPO" diff --cached --name-only | grep -q '.transition-ledger/tkt-7.jsonl'
+  grep -qE '\| status \| closed \|' "$BINDER"
+}
+
+@test "tkt-360 A1: no flip (idempotent re-run) does not assert the ledger (exit 0)" {
+  write_fresh_binder
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm base >/dev/null 2>&1 || true
+  # first run: flip + stage
+  bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z >/dev/null
+  git -C "$REPO" add -A >/dev/null 2>&1; git -C "$REPO" commit -qm stamped >/dev/null 2>&1 || true
+  # second run: idempotent no-change — flip:0, no ledger assertion fires
+  run bash "$FL" --pr 12 --issue 7 --binder "$BINDER" --repo percena/lattice \
+    --merged-at 2026-07-31T10:00:00Z --closed-at 2026-07-31T10:01:00Z
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "no change (idempotent"
+}
+

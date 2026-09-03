@@ -1,0 +1,2 @@
+# partial baseline — covers tkt-301 only; tkt-302 is new (must fail)
+legacy_open_status	tools/tests/fixtures/lattice-artifacts/ratchet/tickets/tkt-301-baseline/README.md

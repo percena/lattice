@@ -1,7 +1,7 @@
 # tkt-31-run-e2e-symlink-fix
 
 > **TL;DR:** Fix broken plugin symlink (4→3 levels) + dead ego-browser markdown link in run-e2e SKILL.md
-> **Kind:** fix · **Status:** open · **Priority:** P1
+> **Kind:** fix · **Priority:** P1
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-31 (this issue) |
 | **related_tickets** | tkt-32, tkt-33, tkt-34 (same PR) |
 | **worktree_bind** | tkt-31-run-e2e-symlink-fix |
-| prs | (none) · pr-36 — https://github.com/percena/lattice/pull/36 |
+| prs | pr-36 — https://github.com/percena/lattice/pull/36 |
 
 ## Acceptance (this slice)
 

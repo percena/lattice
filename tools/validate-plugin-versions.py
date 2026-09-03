@@ -2,8 +2,12 @@
 """Validate Claude plugin manifests and version-derived cache identities.
 
 The marketplace is the catalog, while each plugin manifest is the packaged
-source of truth.  When a path materialized into a plugin cache changes, the
-plugin's semantic version must increase relative to the selected base commit.
+source of truth.  The manifest version is a cache-busting key: plugin cache
+paths are keyed by version, so bundled content that ships to users requires a
+version increase.  This invariant is enforced at the **release boundary**
+(`--release-check`, base-ref = `origin/main`/release tag) — the point where
+content reaches user caches.  On integration branches (`dev`) the validator
+enforces only the non-decrease hard bottom (version must not go backwards).
 """
 
 from __future__ import annotations
@@ -229,7 +233,8 @@ def discover_base_ref(root: Path) -> str | None:
     candidates: list[str] = ["origin/main"]
     origin_head = git(root, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", check=False).strip()
     if origin_head.startswith("refs/remotes/"):
-        candidates.append(origin_head.removeprefix("refs/remotes/"))
+        # str.removeprefix is 3.9+; the documented floor is 3.8 (README).
+        candidates.append(origin_head[len("refs/remotes/"):])
     candidates.extend(
         [
             "origin/master",
@@ -279,6 +284,13 @@ def parse_args() -> argparse.Namespace:
         "--initial-publish",
         action="store_true",
         help="validate current metadata/cache identities without a historical release baseline",
+    )
+    parser.add_argument(
+        "--release-check",
+        action="store_true",
+        help="enforce the version-increment invariant at the release boundary: "
+        "bundled content changed without a version increment is an error "
+        "(use when --base-ref points to origin/main or a release tag)",
     )
     parser.add_argument("--repo-root", type=Path, help="repository root (defaults to git root)")
     parser.add_argument("--json", action="store_true", help="emit deterministic JSON")
@@ -402,7 +414,13 @@ def main() -> int:
 
         if base_oid and previous_manifest is None:
             bundle_changed = True
-        if base_oid and bundle_changed and manifest_version == previous_version:
+        # Release-boundary enforcement (ADR-005): the "bundled content changed
+        # without a version increment" invariant fires only when --release-check
+        # is active (base-ref points to origin/main or a release tag — the point
+        # where content reaches user caches).  On integration branches (dev),
+        # equal-version-with-bundle-change is accepted; the non-decrease bottom
+        # below still fires unconditionally.
+        if args.release_check and base_oid and bundle_changed and manifest_version == previous_version:
             errors.append(
                 f"{name}: bundled content changed without a version increment ({manifest_version})"
             )
@@ -466,6 +484,7 @@ def main() -> int:
         "marketplace": marketplace_name,
         "ok": not errors,
         "plugins": plugin_results,
+        "release_check": args.release_check,
     }
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))

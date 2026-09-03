@@ -21,6 +21,8 @@
 #               permission prompt, which is not this hook's job, and "ask"
 #               would force prompts on already-allowlisted commands.
 #   strict   -> exit 2 + advice on stderr (fed to the model, blocks the call).
+# Default is strict (governance hardening, spc-145 follow-up). Override to
+# advisory for one shell: export LATTICE_HOOK_MODE=advisory
 # Fail OPEN on ambiguity: every failure mode must resolve to exit 0.
 
 _INTERCEPT_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,8 +38,8 @@ intercept_gh_pr_main() {
 
     hook_data=$(cat)
 
-    hook_mode=$(printf '%s' "${LATTICE_HOOK_MODE:-advisory}" | tr '[:upper:]' '[:lower:]')
-    case "$hook_mode" in advisory|strict) ;; *) hook_mode="advisory" ;; esac
+    hook_mode=$(printf '%s' "${LATTICE_HOOK_MODE:-strict}" | tr '[:upper:]' '[:lower:]')
+    case "$hook_mode" in advisory|strict) ;; *) hook_mode="strict" ;; esac
 
     # Cheap pre-filter (advisory mode only): if "gh" appears nowhere in the
     # raw hook JSON, bail before spawning jq/python3. JSON \u escapes can
@@ -73,6 +75,22 @@ intercept_gh_pr_main() {
         exit 0
     fi
 
+    # python3 absent: the strip / classifier / skill-active checks below all
+    # fail-open, so the gh-pr guardrail is inert. Emit a ONE-TIME stdout JSON
+    # advisory (stderr is discarded on exit 0, so stdout is the only path that
+    # reaches the model). Never block — fail-open even in strict mode
+    # (spc-212 A3/D3: blocking user ops because a guardrail's own python is
+    # missing is hostile). Gate on the command containing "gh" so the advisory
+    # does not fire on unrelated Bash calls (strict mode skips the *gh*
+    # pre-filter at line 47).
+    if ! command -v python3 >/dev/null 2>&1 && [[ "$command" == *gh* ]]; then
+        jq -cn --arg ctx "Lattice gh-pr guardrail is INERT: python3 is not installed, so the create-pr/finish-work/create-tickets skill-marker check is skipped (fail-open). Strict-mode protections are inactive until python3 is installed (see ensure-python3.sh)." \
+            --arg msg "lattice: gh-pr guardrail degraded (python3 missing); protections inactive" \
+            '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$ctx},systemMessage:$msg}' \
+            2>/dev/null || true
+        exit 0
+    fi
+
     # Strip helper unavailable/failed -> fail OPEN (contract). Matching the raw
     # command instead would false-block quoted mentions in strict mode.
     if ! cleaned_command=$(printf '%s' "$command" | python3 "$INTERCEPT_STRIP_HELPER" 2>/dev/null); then
@@ -81,10 +99,59 @@ intercept_gh_pr_main() {
 
     # Pragmatic direct-gh classifier: covers documented gh/pr inherited flag
     # placement without pretending to be an exhaustive shell security sandbox.
+    # Nested-shell payloads (bash -c '…', eval "…") are invisible by design —
+    # the strip helper removes quoted payloads upstream; see the detector
+    # docstring's "Accepted limitation". Strict mode guards direct commands.
     # Missing/broken classifier follows the hook's fail-open contract.
-    if [[ ! "${INTERCEPT_GH_PR_VERB:-}" =~ ^(create|merge)$ ]] || \
+    if [[ ! "${INTERCEPT_GH_PR_VERB:-}" =~ ^(create|merge|issue-create)$ ]] || \
        ! printf '%s' "$cleaned_command" | python3 "$INTERCEPT_GH_PR_HELPER" "$INTERCEPT_GH_PR_VERB" 2>/dev/null; then
         exit 0
+    fi
+
+    # Batch-work merge gate (spc-186 A1, ADR-007 five-piece contract): a bare
+    # `gh pr merge` while the .batch-work-active marker is present at the repo
+    # MAIN clone .lattice/ is blocked fail-closed. Runs only for the merge verb;
+    # create is unaffected. Fails CLOSED (tkt-239) when LATTICE_BATCH_GATE_HOME
+    # is unset and the lattice home cannot be resolved — a misresolvable home
+    # makes an active marker invisible, so the gate must not silently allow.
+    if [[ "${INTERCEPT_GH_PR_VERB:-}" == "merge" ]]; then
+        # shellcheck source=/dev/null
+        source "${_INTERCEPT_LIB_DIR}/batch-merge-gate.sh" 2>/dev/null || exit 0
+        local bg_rc=0
+        batch_gate_allows_merge 2>/dev/null || bg_rc=$?
+        if [ "$bg_rc" -ne 0 ]; then
+            if [[ "$hook_mode" == "strict" ]]; then
+                if [[ "${BATCH_GATE_BLOCK_REASON:-}" == "unresolvable-home" ]]; then
+                    cat >&2 <<'EOF'
+lattice: batch-work merge gate cannot resolve the lattice home.
+
+  LATTICE_BATCH_GATE_HOME is unset and the repo MAIN .lattice/ could not be
+  resolved (non-standard layout / submodule / no .lattice). The gate FAILS
+  CLOSED (tkt-239): an active .batch-work-active marker under a misresolvable
+  home would otherwise be invisible and silently allow a merge.
+
+  To proceed, either:
+    1. Set LATTICE_BATCH_GATE_HOME=<MAIN>/.lattice and retry, OR
+    2. Run: batch-merge-gate.sh --remove --reason "user-authorized: <why>"
+       (records the escape in the binder ## Decision journal), OR
+    3. Use /finish-work which resolves the gate through the scripted path.
+
+  Failing closed is intentional — set the env var or clear the marker.
+EOF
+                else
+                    batch_gate_advice_text >&2
+                fi
+                exit 2
+            fi
+            # Advisory: JSON on stdout (exit 0) so the model sees the context.
+            local batch_advice
+            batch_advice=$(batch_gate_advice_text)
+            jq -cn --arg ctx "$batch_advice" \
+                --arg msg "lattice: batch-work merge gate blocked gh pr merge (marker present)" \
+                '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$ctx},systemMessage:$msg}' \
+                2>/dev/null || true
+            exit 0
+        fi
     fi
 
     if [[ -z "$session_id" || ! "$session_id" =~ ^[A-Za-z0-9_-]+$ ]]; then
@@ -110,22 +177,37 @@ intercept_gh_pr_main() {
         touch "$session_dir" 2>/dev/null || true
     fi
 
+    # Build skill-name list: primary + optional alternate. The issue-create
+    # hook sets INTERCEPT_SKILL_NAME_ALT=create-spec because create-spec also
+    # legitimately calls gh issue create (references/issue-and-write.md).
+    local skill_names=("$INTERCEPT_SKILL_NAME")
+    [[ -n "${INTERCEPT_SKILL_NAME_ALT:-}" ]] && skill_names+=("$INTERCEPT_SKILL_NAME_ALT")
+    local hit_skill=""
+
     marker_hit=0
     if [[ -n "$agent_id" && "$agent_id" =~ ^[A-Za-z0-9_-]+$ ]]; then
         agent_marker_dir="${session_dir}/${agent_id}"
-        if [[ -f "${agent_marker_dir}/${INTERCEPT_SKILL_NAME}" || -f "${agent_marker_dir}/lattice:${INTERCEPT_SKILL_NAME}" ]]; then
-            marker_hit=1
-        fi
+        for skill_name in "${skill_names[@]}"; do
+            if [[ -f "${agent_marker_dir}/${skill_name}" || -f "${agent_marker_dir}/lattice:${skill_name}" ]]; then
+                marker_hit=1
+                hit_skill="$skill_name"
+                break
+            fi
+        done
     else
         marker_dir="$session_dir"
-        if [[ -f "${marker_dir}/${INTERCEPT_SKILL_NAME}" || -f "${marker_dir}/lattice:${INTERCEPT_SKILL_NAME}" ]]; then
-            marker_hit=1
-        fi
+        for skill_name in "${skill_names[@]}"; do
+            if [[ -f "${marker_dir}/${skill_name}" || -f "${marker_dir}/lattice:${skill_name}" ]]; then
+                marker_hit=1
+                hit_skill="$skill_name"
+                break
+            fi
+        done
     fi
 
     if [[ "$marker_hit" -eq 1 ]]; then
         if [[ -n "$transcript_path" && -f "$transcript_path" ]] && command -v python3 >/dev/null 2>&1; then
-            python3 "$INTERCEPT_SKILL_ACTIVE_HELPER" "$transcript_path" "$INTERCEPT_SKILL_NAME"
+            python3 "$INTERCEPT_SKILL_ACTIVE_HELPER" "$transcript_path" "$hit_skill"
             rc=$?
             if [[ "$rc" -ne 1 ]]; then
                 exit 0
@@ -135,8 +217,13 @@ intercept_gh_pr_main() {
         fi
     fi
 
-    advice="${INTERCEPT_ADVICE}
-Hook mode: ${hook_mode} (set LATTICE_HOOK_MODE=strict to enforce the skill marker)."
+    if [[ "$hook_mode" == "strict" ]]; then
+        advice="${INTERCEPT_ADVICE}
+Hook mode: strict (default; set LATTICE_HOOK_MODE=advisory to nudge-only)."
+    else
+        advice="${INTERCEPT_ADVICE}
+Hook mode: advisory (set LATTICE_HOOK_MODE=strict to enforce the skill marker)."
+    fi
 
     if [[ "$hook_mode" == "strict" ]]; then
         printf '%s\n' "$advice" >&2

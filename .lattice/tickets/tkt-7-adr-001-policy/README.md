@@ -1,7 +1,7 @@
 # tkt-7-adr-001-policy
 
 > **TL;DR:** Land ADR-001 codifying the SHA-pin + weekly + grouped + major-bump-validation policy.
-> **Kind:** docs · **Status:** open · **Priority:** P2
+> **Kind:** docs · **Priority:** P2
 > **Path:** spc-4 → tkt-7 → (pr-… rides tkt-5 PR)
 
 | Field | Value |
@@ -23,7 +23,7 @@
 | **related_tickets** | tkt-5, tkt-6 |
 | **worktree_bind** | `spc-4-gh-actions-v7-upgrade` |
 | worktree | sibling `…/lattice.worktrees/spc-4-gh-actions-v7-upgrade/` |
-| prs | (none — rides tkt-5 PR) · pr-9 — https://github.com/percena/lattice/pull/9 |
+| prs | pr-9 — https://github.com/percena/lattice/pull/9 |
 
 ## Acceptance (this slice)
 

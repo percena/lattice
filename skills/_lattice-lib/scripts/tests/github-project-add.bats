@@ -24,6 +24,13 @@ setup() {
   cat >"$STUB_BIN/gh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"${GH_LOG:-/dev/null}"
+# `gh api user --jq .login` — emit the configured login (default empty = unresolved)
+if [[ "${1:-}" == "api" && "${2:-}" == "user" ]]; then
+  case "${GH_API_USER_MODE:-ok}" in
+    fail) exit 1 ;;
+    *) printf '%s' "${GH_USER_LOGIN:-}"; exit 0 ;;
+  esac
+fi
 case "${GH_MODE:-ok}" in
   ok) exit 0 ;;
   already) echo "GraphQL: item already exists on project" >&2; exit 1 ;;
@@ -56,7 +63,7 @@ teardown() {
   export LATTICE_GITHUB_PROJECT_NUMBER=12
   run bash "$ADD" "https://github.com/acme/r/issues/1"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to acme/projects/12"* ]]
+  printf '%s\n' "$output" | grep -qF "added to acme/projects/12"
   grep -F -e "project item-add 12 --owner acme --url https://github.com/acme/r/issues/1" "$GH_LOG"
 }
 
@@ -68,7 +75,7 @@ LATTICE_GITHUB_PROJECT_NUMBER=7
 EOF
   run env LATTICE_GITHUB_PROJECT_ALLOW_DOTENV=1 bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to from-env-file/projects/7"* ]]
+  printf '%s\n' "$output" | grep -qF "added to from-env-file/projects/7"
   grep -F -e "project item-add 7 --owner from-env-file" "$GH_LOG"
 }
 
@@ -83,7 +90,7 @@ LATTICE_GITHUB_PROJECT_NUMBER=99
 EOF
   run env LATTICE_GITHUB_PROJECT_ALLOW_DOTENV=1 bash "$ADD" "https://github.com/acme/r/pull/3"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to local/projects/99"* ]]
+  printf '%s\n' "$output" | grep -qF "added to local/projects/99"
 }
 
 @test ".env quoted value keeps ' # ' inside quotes; trailing comment after quote dropped" {
@@ -115,7 +122,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_NUMBER=42
   run bash "$ADD" "https://github.com/acme/r/issues/4"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added to env-owner/projects/42"* ]]
+  printf '%s\n' "$output" | grep -qF "added to env-owner/projects/42"
 }
 
 @test "ADD_ISSUES=false skips issues" {
@@ -124,7 +131,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_ADD_ISSUES=false
   run bash "$ADD" "https://github.com/acme/r/issues/5"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ADD_ISSUES disabled"* ]]
+  printf '%s\n' "$output" | grep -qF "ADD_ISSUES disabled"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -134,7 +141,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_ADD_PRS=false
   run bash "$ADD" "https://github.com/acme/r/pull/6"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ADD_PRS disabled"* ]]
+  printf '%s\n' "$output" | grep -qF "ADD_PRS disabled"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -144,7 +151,7 @@ EOF
   export GH_MODE=already
   run bash "$ADD" "https://github.com/acme/r/issues/7"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already on acme/projects/12"* ]]
+  printf '%s\n' "$output" | grep -qF "already on acme/projects/12"
 }
 
 @test "missing project scope → exit 0 with hint" {
@@ -153,7 +160,7 @@ EOF
   export GH_MODE=scope
   run bash "$ADD" "https://github.com/acme/r/issues/8"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"gh missing project scope"* ]]
+  printf '%s\n' "$output" | grep -qF "gh missing project scope"
 }
 
 @test "generic gh failure → exit 0 non-fatal" {
@@ -162,7 +169,7 @@ EOF
   export GH_MODE=fail
   run bash "$ADD" "https://github.com/acme/r/issues/9"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"item-add failed (non-fatal)"* ]]
+  printf '%s\n' "$output" | grep -qF "item-add failed (non-fatal)"
 }
 
 @test "non-digit project number → skip without gh" {
@@ -170,7 +177,7 @@ EOF
   export LATTICE_GITHUB_PROJECT_NUMBER=some-project
   run bash "$ADD" "https://github.com/acme/r/issues/10"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"must be digits"* ]]
+  printf '%s\n' "$output" | grep -qF "must be digits"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -179,21 +186,21 @@ EOF
   export LATTICE_GITHUB_PROJECT_NUMBER=12
   run bash "$ADD" "https://example.com/x"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"not a github.com URL"* ]]
+  printf '%s\n' "$output" | grep -qF "not a github.com URL"
   [ ! -s "$GH_LOG" ]
 }
 
 @test "no URL → skip exit 0" {
   run bash "$ADD"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"no URL"* ]]
+  printf '%s\n' "$output" | grep -qF "no URL"
 }
 
 @test "missing --url value → exit 0 (no hang)" {
   # Regression: shift 2 || true with only --url never advanced argv.
   run bash "$ADD" --url
   [ "$status" -eq 0 ]
-  [[ "$output" == *"requires a value"* ]]
+  printf '%s\n' "$output" | grep -qF "requires a value"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -209,10 +216,11 @@ EOF
 LATTICE_GITHUB_PROJECT_OWNER=attacker-org
 LATTICE_GITHUB_PROJECT_NUMBER=1
 EOF
-  run bash "$ADD" "https://github.com/acme/r/issues/2"
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"cannot authorize writing to an external board"* ]]
-  [ ! -s "$GH_LOG" ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  # `gh api user` (a read) may be logged, but no `project item-add` write may occur.
+  if grep -q "item-add" "$GH_LOG"; then false; fi
 }
 
 @test "process env authorizes the write without the opt-in flag" {
@@ -224,5 +232,68 @@ EOF
     bash "$ADD" "https://github.com/acme/r/issues/2"
   [ "$status" -eq 0 ]
   grep -F -e "project item-add 5 --owner trusted" "$GH_LOG"
-  ! grep -q "attacker-org" "$GH_LOG"
+  if grep -q "attacker-org" "$GH_LOG"; then false; fi
+}
+
+@test "self-owner .env auto-trusts without ALLOW_DOTENV (A1)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  # No LATTICE_GITHUB_PROJECT_ALLOW_DOTENV set; OWNER == authenticated user.
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "auto-trusted"
+  printf '%s\n' "$output" | grep -qF "added to alice/projects/7"
+  grep -F -e "project item-add 7 --owner alice" "$GH_LOG"
+}
+
+@test "self-owner auto-trust is case-insensitive (login casing)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=Alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "auto-trusted"
+  grep -F -e "project item-add 7 --owner Alice" "$GH_LOG"
+}
+
+@test "non-self owner .env still gated (A2)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=attacker-org
+LATTICE_GITHUB_PROJECT_NUMBER=1
+EOF
+  # Authenticated user is alice; board owner is attacker-org → gate fires.
+  GH_USER_LOGIN=alice run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  # `gh api user` read may be logged, but no item-add write may occur.
+  if grep -q "item-add" "$GH_LOG"; then false; fi
+}
+
+@test "gh api user unavailable → gate retained, fail closed (A3)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  # OWNER == alice, but gh api user fails (no auth / network) → cannot prove
+  # self-ownership → fall back to the explicit opt-in, which is unset → skip.
+  GH_API_USER_MODE=fail run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  if grep -q "item-add" "$GH_LOG"; then false; fi
+}
+
+@test "gh api user unresolved (empty login) → gate retained (A3 variant)" {
+  cat >"$MAIN/.env" <<'EOF'
+LATTICE_GITHUB_PROJECT_OWNER=alice
+LATTICE_GITHUB_PROJECT_NUMBER=7
+EOF
+  # gh api user succeeds but returns an empty login (e.g. degraded response) →
+  # do not auto-trust → gate fires.
+  run bash "$ADD" "https://github.com/acme/r/issues/3"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "cannot authorize writing to an external board"
+  if grep -q "item-add" "$GH_LOG"; then false; fi
 }

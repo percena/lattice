@@ -35,7 +35,7 @@ setup() {
 {"id":"PR_node1","number":6,"url":"https://example.test/pr/6","state":"OPEN",
  "title":"feat: demo","headRefName":"tkt-6-feature","headRefOid":"$HEAD_OID",
  "headRepository":{"nameWithOwner":"acme/r"},"isCrossRepository":false,
- "baseRefName":"main","baseRefOid":"$BASE_OID",
+ "baseRefName":"main",
  "mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}
 EOF
   PR_VIEW2_JSON="$TEST_DIR/pr-view2.json"
@@ -52,13 +52,56 @@ case "$*" in
   *"--json mergeable,mergeStateStatus,headRefOid"*) cat "$PR_VIEW2_JSON" ;;
   *"--json nameWithOwner,defaultBranchRef"*) echo '{"nameWithOwner":"acme/r","defaultBranchRef":{"name":"main"}}' ;;
   *"--json nameWithOwner"*) echo '{"nameWithOwner":"acme/r"}' ;;
+  "pr diff"*)
+    # Stateful: first call serves the pre-update diff, later calls the
+    # post-update diff (used by the update_branch diff_changed probe).
+    if [[ -f "$TEST_DIR/prdiff.called" ]]; then
+      cat "$TEST_DIR/postdiff"
+    else
+      : >"$TEST_DIR/prdiff.called"
+      cat "$TEST_DIR/prediff"
+    fi
+    ;;
+  "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
+  *"api repos/"*"pulls"*) printf '{"ref":"%s","sha":"%s"}\n' "${GH_BASE_BRANCH:-main}" "$GH_BASE_SHA" ;;
   *) exit 1 ;;
 esac
 EOF
   chmod +x "$STUB_BIN/gh"
   export PATH="$STUB_BIN:$PATH"
-  export PR_VIEW_JSON PR_VIEW2_JSON
+  export PR_VIEW_JSON PR_VIEW2_JSON TEST_DIR HEAD_OID BASE_OID
+  export GH_BASE_SHA="$BASE_OID"
   cd "$MAIN"
+}
+
+# Regenerate the PR view fixtures for a given head branch from current origin
+# tips (base = main, mergeStateStatus BEHIND, post-update view CLEAN).
+make_pr_view() {
+  local head_branch="$1" head_oid base_oid
+  git -C "$MAIN" fetch -q origin
+  head_oid=$(git -C "$MAIN" rev-parse "origin/$head_branch")
+  base_oid=$(git -C "$MAIN" rev-parse origin/main)
+  export GH_BASE_SHA="$base_oid"
+  export GH_BASE_BRANCH="main"
+  export BASE_OID="$base_oid"
+  cat >"$PR_VIEW_JSON" <<EOF
+{"id":"PR_node1","number":6,"url":"https://example.test/pr/6","state":"OPEN",
+ "title":"feat: demo","headRefName":"$head_branch","headRefOid":"$head_oid",
+ "headRepository":{"nameWithOwner":"acme/r"},"isCrossRepository":false,
+ "baseRefName":"main",
+ "mergeable":"MERGEABLE","mergeStateStatus":"BEHIND","isDraft":false}
+EOF
+  cat >"$PR_VIEW2_JSON" <<EOF
+{"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"$head_oid"}
+EOF
+}
+
+tcommit() {
+  # tcommit <dir> <message> [git-add args...]
+  local dir="$1" msg="$2"
+  shift 2
+  if [[ $# -gt 0 ]]; then git -C "$dir" add "$@"; fi
+  git -C "$dir" -c user.email=t@t -c user.name=t commit -q -m "$msg"
 }
 
 teardown() {
@@ -107,4 +150,169 @@ last_json() {
   run bash "$UPDATE" --pr 6 --rebase
   [ "$status" -eq 1 ]
   last_json "$output" | jq -e '.ok == false and .reason == "head_oid_changed"'
+}
+
+@test "noop (already up to date) reports diff_changed false and conflict false" {
+  sed 's/"mergeStateStatus":"BEHIND"/"mergeStateStatus":"CLEAN"/' "$PR_VIEW_JSON" \
+    >"$PR_VIEW_JSON.tmp" && mv "$PR_VIEW_JSON.tmp" "$PR_VIEW_JSON"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  last_json "$output" | jq -e '.ok == true and .action == "noop" and .diff_changed == false and .conflict == false'
+}
+
+@test "rebase that shifts the diff content reports diff_changed true" {
+  # ancestor file on main, shared by base and head
+  printf 'l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\nl10\n' >"$MAIN/file.txt"
+  tcommit "$MAIN" ancestor-file file.txt
+  git -C "$MAIN" push -q origin main
+  git -C "$MAIN" branch tkt-7-feature
+  git -C "$MAIN" push -q origin tkt-7-feature
+  WT2="$TEST_DIR/wt2"
+  git -C "$MAIN" worktree add -q "$WT2" tkt-7-feature
+  # head edits the last line
+  sed 's/^l10$/l10-feature/' "$WT2/file.txt" >"$WT2/file.txt.tmp" && mv "$WT2/file.txt.tmp" "$WT2/file.txt"
+  tcommit "$WT2" head-edit file.txt
+  git -C "$WT2" push -q origin tkt-7-feature
+  # base inserts lines at the top -> hunk offsets shift after rebase
+  printf 'top1\ntop2\ntop3\n' | cat - "$MAIN/file.txt" >"$MAIN/file.txt.tmp" && mv "$MAIN/file.txt.tmp" "$MAIN/file.txt"
+  tcommit "$MAIN" base-top-insert file.txt
+  git -C "$MAIN" push -q origin main
+  make_pr_view tkt-7-feature
+  run bash "$UPDATE" --pr 6 --rebase
+  [ "$status" -eq 0 ]
+  last_json "$output" | jq -e '.ok == true and .action == "rebase" and .diff_changed == true and .conflict == false'
+}
+
+@test "clean rebase with untouched files reports diff_changed false" {
+  git -C "$MAIN" branch tkt-8-feature
+  git -C "$MAIN" push -q origin tkt-8-feature
+  WT2="$TEST_DIR/wt8"
+  git -C "$MAIN" worktree add -q "$WT2" tkt-8-feature
+  # head adds its own file; base advances on an unrelated file
+  echo feature >"$WT2/feat.txt"
+  tcommit "$WT2" head-add feat.txt
+  git -C "$WT2" push -q origin tkt-8-feature
+  echo base >"$MAIN/base.txt"
+  tcommit "$MAIN" base-add base.txt
+  git -C "$MAIN" push -q origin main
+  make_pr_view tkt-8-feature
+  run bash "$UPDATE" --pr 6 --rebase
+  [ "$status" -eq 0 ]
+  last_json "$output" | jq -e '.ok == true and .action == "rebase" and .diff_changed == false and .conflict == false'
+}
+
+@test "conflicting rebase aborts with conflict true in JSON" {
+  echo hello >"$MAIN/conflict.txt"
+  tcommit "$MAIN" ancestor conflict.txt
+  git -C "$MAIN" push -q origin main
+  git -C "$MAIN" branch tkt-9-feature
+  git -C "$MAIN" push -q origin tkt-9-feature
+  WT2="$TEST_DIR/wt9"
+  git -C "$MAIN" worktree add -q "$WT2" tkt-9-feature
+  echo head-side >"$WT2/conflict.txt"
+  tcommit "$WT2" head-edit conflict.txt
+  git -C "$WT2" push -q origin tkt-9-feature
+  echo base-side >"$MAIN/conflict.txt"
+  tcommit "$MAIN" base-edit conflict.txt
+  git -C "$MAIN" push -q origin main
+  make_pr_view tkt-9-feature
+  run bash "$UPDATE" --pr 6 --rebase
+  [ "$status" -eq 1 ]
+  last_json "$output" | jq -e '.ok == false and .reason == "rebase_failed" and .conflict == true'
+  # worktree left clean (rebase aborted)
+  [ -z "$(git -C "$WT2" status --porcelain)" ]
+}
+
+@test "update_branch with changed PR diff reports diff_changed true" {
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old2\n+new2\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  last_json "$output" | jq -e '.ok == true and .action == "update_branch" and .diff_changed == true and .conflict == false'
+}
+
+@test "update_branch with identical PR diff reports diff_changed false" {
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  last_json "$output" | jq -e '.ok == true and .action == "update_branch" and .diff_changed == false and .conflict == false'
+}
+
+@test "base OID is fetched via REST when gh pr view JSON lacks baseRefOid (tkt-293 regression)" {
+  # The PR_VIEW_JSON fixture no longer includes baseRefOid (mirrors older gh
+  # versions where the field is absent). The script must fetch the base SHA
+  # via gh api repos/.../pulls/... and populate BASE_OID from it.
+  # Verify: the final JSON summary includes the correct baseOid.
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  # baseOid in the output must match the REST-fetched value ($BASE_OID)
+  last_json "$output" | jq -e --arg oid "$BASE_OID" '.baseOid == $oid'
+  # PR_VIEW_JSON fixture must not contain baseRefOid
+  grep -qv 'baseRefOid' "$PR_VIEW_JSON"
+}
+
+@test "gh api base-sha fetch passes --hostname for GHE-hosted PRs (tkt-325)" {
+  # GHE-hosted PR URL → gh api repos/.../pulls/... must receive --hostname.
+  sed 's#https://example.test/pr/6#https://ghe.example.com/acme/r/pull/6#' "$PR_VIEW_JSON" \
+    >"$PR_VIEW_JSON.tmp" && mv "$PR_VIEW_JSON.tmp" "$PR_VIEW_JSON"
+  # Replace stub to capture the gh api call's full args
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"--json id,number"*) cat "$PR_VIEW_JSON" ;;
+  *"--json mergeable,mergeStateStatus,headRefOid"*) cat "$PR_VIEW2_JSON" ;;
+  *"--json nameWithOwner,defaultBranchRef"*) echo '{"nameWithOwner":"acme/r","defaultBranchRef":{"name":"main"}}' ;;
+  *"--json nameWithOwner"*) echo '{"nameWithOwner":"acme/r"}' ;;
+  "pr diff"*)
+    if [[ -f "$TEST_DIR/prdiff.called" ]]; then cat "$TEST_DIR/postdiff"
+    else : >"$TEST_DIR/prdiff.called"; cat "$TEST_DIR/prediff"; fi ;;
+  "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
+  *"api repos/"*"pulls"*)
+    printf '%s ' "$@" > "$TEST_DIR/gh-api-args.txt"
+    printf '{"ref":"%s","sha":"%s"}\n' "${GH_BASE_BRANCH:-main}" "$GH_BASE_SHA" ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$STUB_BIN/gh"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  # The captured gh api args must include --hostname ghe.example.com
+  grep -q -- '--hostname ghe.example.com' "$TEST_DIR/gh-api-args.txt"
+}
+
+@test "github.com PR URL passes --hostname github.com (no-op for default host, tkt-325)" {
+  # github.com PR URL → --hostname github.com is a no-op; existing behavior
+  # unchanged. Mirrors the sibling-script pattern (#311): always extract and
+  # pass hostname; github.com is the default host so it's a no-op.
+  sed 's#https://example.test/pr/6#https://github.com/acme/r/pull/6#' "$PR_VIEW_JSON" \
+    >"$PR_VIEW_JSON.tmp" && mv "$PR_VIEW_JSON.tmp" "$PR_VIEW_JSON"
+  cat >"$STUB_BIN/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *"--json id,number"*) cat "$PR_VIEW_JSON" ;;
+  *"--json mergeable,mergeStateStatus,headRefOid"*) cat "$PR_VIEW2_JSON" ;;
+  *"--json nameWithOwner,defaultBranchRef"*) echo '{"nameWithOwner":"acme/r","defaultBranchRef":{"name":"main"}}' ;;
+  *"--json nameWithOwner"*) echo '{"nameWithOwner":"acme/r"}' ;;
+  "pr diff"*)
+    if [[ -f "$TEST_DIR/prdiff.called" ]]; then cat "$TEST_DIR/postdiff"
+    else : >"$TEST_DIR/prdiff.called"; cat "$TEST_DIR/prediff"; fi ;;
+  "api graphql"*) echo '{"data":{"updatePullRequestBranch":{"pullRequest":{"headRefOid":"x"}}}}' ;;
+  *"api repos/"*"pulls"*)
+    printf '%s ' "$@" > "$TEST_DIR/gh-api-args.txt"
+    printf '{"ref":"%s","sha":"%s"}\n' "${GH_BASE_BRANCH:-main}" "$GH_BASE_SHA" ;;
+  *) exit 1 ;;
+esac
+EOF
+  chmod +x "$STUB_BIN/gh"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/prediff"
+  printf 'diff --git a/x b/x\n-old\n+new\n' >"$TEST_DIR/postdiff"
+  run bash "$UPDATE" --pr 6
+  [ "$status" -eq 0 ]
+  # --hostname github.com is present (no-op for the default host)
+  grep -q -- '--hostname github.com' "$TEST_DIR/gh-api-args.txt"
 }

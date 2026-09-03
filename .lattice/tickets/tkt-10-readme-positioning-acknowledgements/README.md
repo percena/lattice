@@ -1,7 +1,7 @@
 # tkt-10-readme-positioning-acknowledgements
 
 > **TL;DR:** Refine README (en + zh) intro/positioning to reflect Lattice's actual stance (lightweight discipline, local-first retrieval, transparent Memory, lineage) and add an Acknowledgements section thanking the linuxdo community.
-> **Kind:** documentation · **Status:** open · **Priority:** P3
+> **Kind:** documentation · **Priority:** P3
 > **Path:** tkt-10 → pr-11 (one-PR)
 
 | Field | Value |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-10-readme-positioning-acknowledgements` |
 | worktree | sibling `…/lattice.worktrees/tkt-10-readme-positioning-acknowledgements/` |
-| prs | pr-11 |
+| prs | pr-11 — https://github.com/percena/lattice/pull/11 |
 
 ## Acceptance (this slice)
 

@@ -51,10 +51,11 @@ Short path below is enough for a normal private-repo PR.
 8. **Body shape** — Why + How required; Scope on M/C; **Verification (commands run)** only when real commands ran. Standing DoD when claiming shippable.
 9. **No theater** — No empty Test plan checklist, no Files Updated list, no invented risks / hunk narration. Optional Risks/Decisions only if user stated them. Claims of green tests require Iron Law evidence (`definition-of-done.md`).
 10. **Progress comments** — Multi-commit milestones → `templates/pr-progress-comment.md`; skip typo-only pushes.
+11. **Post-open step is a script (ADR-012 §1)** — After a **new** PR, run `bash "$SKILL_ROOT/scripts/after-pr-open.sh" --pr <N> --expected-oid "$LOCAL_HEAD" --repo <owner/name> --expected-base <base> --expected-head <branch>` — THE post-open step. It chains, in this order and in one call: **mutation-proof the PR** (`../_lattice-lib/scripts/verify-main-chain.sh --stage pr …`, spc-254 A2/D5) — a `FAILED:` proof exits non-zero, emits structured recovery JSON, and the stamp never runs — then the binder stamp (`../_lattice-lib/scripts/stamp-pr-open.sh --pr <N>`: binder `prs` row + `status: pr-open` + issue acceptance sync, idempotent; no binder → skip). Never run `stamp-pr-open.sh` by hand as the post-open step and never edit the binder `status` row (the L3 hook refuses it). In Claude Code the plugin's PostToolUse hook (`auto-stamp-pr-open.sh`) runs the same idempotent stamp after any successful `gh pr create` as a safety net — only from a tree whose current branch is the PR head branch, otherwise it reports "did NOT stamp"; the script step remains the portable writer. Marker lifecycle: the batch-work marker (`.batch-work-active`) lives in the out-of-repo state home (ADR-011, `lattice-state-home.sh`) and stays until finish-work removes it at merge — scripts must never `git add -A` a legacy in-repo copy (check-pr-context whitelists it at warning level only). Normal, batch, and delegated paths share this one helper contract.
 
 ### HINT
 
-11. **Response style** — Intent question (if needed), public-repo warning (if public), PR URL or errors. No phase narration.
+12. **Response style** — Intent question (if needed), public-repo warning (if public), PR URL or errors. No phase narration.
 
 ## Short path
 
@@ -63,7 +64,7 @@ Short path below is enough for a normal private-repo PR.
 3. If on default branch → WORKSPACE recovery (`workflow.md` §1.6).
 4. Commit/push if needed; pick `--base`; confirm diff matches intent.
 5. PUBLIC → sanitize + explicit confirm.
-6. `gh pr create` / `gh pr edit` with template body; after **new** PR, optional Project add; update L0; print URL.
+6. `gh pr create` / `gh pr edit` with template body; after a **new** PR run `bash "$SKILL_ROOT/scripts/after-pr-open.sh" --pr <N> --expected-oid "$LOCAL_HEAD" --repo <owner/name> --expected-base <base> --expected-head <branch>` (verify + pr-open stamp, one call — halts on `FAILED:`); then optional Project add; update Spec `prs:`; print URL.
 
 After a **new** PR URL:
 

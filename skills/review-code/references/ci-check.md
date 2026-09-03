@@ -11,10 +11,10 @@ Always during Step 3 (Auxiliary checks), after the change set is resolved. Skip 
 ### PR mode (preferred when a PR exists)
 
 ```bash
-gh pr checks <PR_N> --json name,state,conclusion,link
+gh pr checks <PR_N> --json name,state,link
 ```
 
-Parse `state` (`SUCCESS` / `FAILURE` / `PENDING` / `NEUTRAL`) and `conclusion`. A check is a **failure** when `state` is `FAILURE` or `conclusion` is `FAILURE`/`CANCELLED`/`TIMED_OUT`.
+Parse `state` (`SUCCESS` / `FAILURE` / `PENDING` / `NEUTRAL`). A check is a **failure** when `state` is `FAILURE`. (The `conclusion` field was removed in gh ≥ 2.6x; `ci-gate-check.sh` derives the legacy pair from `state` — tkt-349.)
 
 ### Branch mode (no PR, or review before create-pr)
 

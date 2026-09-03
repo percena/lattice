@@ -66,7 +66,7 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 @test "placeholder cannot splice neighbours into a false phrase match" {
   result=$(run_helper 'echo gh "1" pr "2" create')
   [ "$result" = "echo gh 1 pr 2 create" ]
-  [[ ! "$result" =~ $PHRASE_RE ]]
+  [ -z "$(printf '%s\n' "$result" | grep -E "$PHRASE_RE")" ]
 }
 
 # ============================================================
@@ -101,13 +101,13 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 @test "line continuation still matches (gh pr \\<newline>create)" {
   input=$'gh pr \\\ncreate --fill'
   result=$(run_helper "$input")
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 @test "single-quoted double-quote chars cannot hide a real invocation" {
   input=$'echo \'"\'; gh pr create; echo \'"\''
   result=$(run_helper "$input")
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 # ============================================================
@@ -117,19 +117,19 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 
 @test "bare \$(gh pr create) is preserved for matching" {
   result=$(run_helper 'x=$(gh pr create)')
-  [[ "$result" == *"gh pr create"* ]]
+  printf '%s\n' "$result" | grep -qF "gh pr create"
 }
 
 @test "\$(gh pr create) inside double quotes is surfaced, not collapsed" {
   result=$(run_helper 'echo "see $(gh pr create) done"')
-  [[ "$result" == *"gh pr create"* ]]
+  printf '%s\n' "$result" | grep -qF "gh pr create"
 }
 
 @test "literal double-quoted text inside \$(...) still collapses" {
   # Interior of a substitution is itself normalized, so a literal quoted span
   # inside it cannot masquerade as a phrase.
   result=$(run_helper 'echo "$(echo "gh pr create")"')
-  [[ "$result" != *"gh pr create"* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
 }
 
 @test "quoted opening paren inside \$(...) does not hide a later command" {
@@ -175,7 +175,7 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 }
 
 @test "bash no-exec boundary parsing never executes substitution content" {
-  marker="${BATS_TEST_TMPDIR}/normalizer-must-not-execute"
+  marker="${BATS_TEST_TMPDIR:-$(mktemp -d)}/normalizer-must-not-execute"
   printf -v input 'echo "$(touch %q; gh pr create)"' "$marker"
   result=$(run_helper "$input")
   [ ! -e "$marker" ]
@@ -194,7 +194,7 @@ PHRASE_RE='gh[[:space:]]+pr[[:space:]]+(create|merge)'
 }
 
 @test "parse-budget exhaustion still does not execute substitution content" {
-  marker="${BATS_TEST_TMPDIR}/fail-closed-must-not-execute"
+  marker="${BATS_TEST_TMPDIR:-$(mktemp -d)}/fail-closed-must-not-execute"
   printf -v input 'echo "$(touch %q; gh pr create)"' "$marker"
   LATTICE_STRIP_PAREN_BUDGET_SECONDS=0 run run_helper "$input"
   result="$output"
@@ -230,23 +230,23 @@ PY
 
 @test "escaped \$( does not execute and stays neutralized" {
   result=$(run_helper 'echo "\$(gh pr create)"')
-  [[ "$result" != *"gh pr create"* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
 }
 
 @test "backtick substitution inside double quotes is surfaced" {
   result=$(run_helper 'echo "see `gh pr create` done"')
-  [[ "$result" == *"gh pr create"* ]]
+  printf '%s\n' "$result" | grep -qF "gh pr create"
 }
 
 
 @test "legacy backtick command substitution remains matchable" {
   result=$(run_helper 'echo `gh pr create`')
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 @test "backtick command substitution inside double quotes remains matchable" {
   result=$(run_helper 'x="prefix `gh pr merge 1` suffix"')
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 @test "escaped backticks remain literal and cannot create a match" {
@@ -263,7 +263,7 @@ PY
 
 @test "single-quoted backticks remain literal and cannot create a match" {
   result=$(run_helper "echo '\`gh pr create\`'")
-  [[ ! "$result" =~ $PHRASE_RE ]]
+  [ -z "$(printf '%s\n' "$result" | grep -E "$PHRASE_RE")" ]
 }
 
 # ============================================================
@@ -297,25 +297,25 @@ PY
 @test "strips heredoc with hyphenated delimiter" {
   input=$'cat <<\'E-O-F\'\ngh pr create\nE-O-F'
   result=$(run_helper "$input")
-  [[ ! "$result" =~ $PHRASE_RE ]]
+  [ -z "$(printf '%s\n' "$result" | grep -E "$PHRASE_RE")" ]
 }
 
 @test "heredoc opener inside double quotes does not swallow following code" {
   input=$'echo "docs<<X"\ngh pr create\nX'
   result=$(run_helper "$input")
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 @test "here-string is an operator, not a heredoc" {
   input=$'grep x <<<foo\ngh pr merge 5'
   result=$(run_helper "$input")
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 @test "arithmetic shift is not a heredoc opener" {
   input=$'echo $((1<<2))\ngh pr create'
   result=$(run_helper "$input")
-  [[ "$result" =~ $PHRASE_RE ]]
+  printf '%s\n' "$result" | grep -qE "$PHRASE_RE"
 }
 
 # ============================================================
@@ -324,7 +324,7 @@ PY
 
 @test "comment content is removed" {
   result=$(run_helper 'git push  # then gh pr create')
-  [[ ! "$result" =~ $PHRASE_RE ]]
+  [ -z "$(printf '%s\n' "$result" | grep -E "$PHRASE_RE")" ]
 }
 
 @test "hash inside a word is not a comment" {
@@ -344,23 +344,23 @@ PY
 
 @test "phrase outside any quotes survives stripping" {
   result=$(run_helper "gh pr create 'hidden'")
-  [[ "$result" == *"gh pr create"* ]]
+  printf '%s\n' "$result" | grep -qF "gh pr create"
 }
 
 @test "phrase inside single quotes is removed" {
   result=$(run_helper "echo 'gh pr create'")
-  [[ "$result" != *"gh pr create"* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
 }
 
 @test "phrase inside double quotes is removed" {
   result=$(run_helper 'echo "gh pr create"')
-  [[ "$result" != *"gh pr create"* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
 }
 
 @test "phrase inside heredoc body is removed" {
   input=$'cat <<EOF\ngh pr create\nEOF'
   result=$(run_helper "$input")
-  [[ "$result" != *"gh pr create"* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
 }
 
 # ============================================================
@@ -380,8 +380,8 @@ PY
 @test "unterminated heredoc body is removed (bash still runs the command)" {
   input=$'cat <<EOF\nnever closed\ngh pr create'
   result=$(run_helper "$input")
-  [[ "$result" != *"gh pr create"* ]]
-  [[ "$result" == "cat "* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
+  printf '%s\n' "$result" | grep -qE '^cat '
 }
 
 # ============================================================
@@ -391,7 +391,7 @@ PY
 @test "arithmetic shift does not swallow the following line" {
   result=$(run_helper 'echo $(( x << y ))
 gh pr create')
-  [[ "$result" == *"gh pr create"* ]]
+  printf '%s\n' "$result" | grep -qF "gh pr create"
   run detect_create "$result"
   [ "$status" -eq 0 ]
 }
@@ -415,7 +415,7 @@ gh pr create')
 cat <<EOF
 gh pr create
 EOF')
-  [[ "$result" != *"gh pr create"* ]]
+  [ -z "$(printf '%s\n' "$result" | grep -F "gh pr create")" ]
   run detect_create "$result"
   [ "$status" -eq 1 ]
 }

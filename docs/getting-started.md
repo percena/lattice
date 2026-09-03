@@ -43,7 +43,7 @@ Lattice is **discipline-first**, not a silent IDE theme. Default profile is **st
 | `jq` | JSON in scripts |
 | `python3` | Alignment / plugin transcript helpers |
 | `curl` | Asset upload |
-| Agent with [Agent Skills](https://agentskills.io/) or Claude Code plugins | Run the six user skills |
+| Agent with [Agent Skills](https://agentskills.io/) or Claude Code plugins | Run the user-facing skills |
 
 ## Skill + plugin map (what to install)
 
@@ -54,12 +54,12 @@ Lattice is **discipline-first**, not a silent IDE theme. Default profile is **st
 | `create-spec` | skill | Persist `spc-n` |
 | `create-review` | skill | Persist `rev-YYYYMMDD-HHMMSSZ` (not GitHub PR review) |
 | `create-tickets` | skill | Issues + binders |
-| `batch-work` | skill (optional) | DAG-orchestrated parallel fan-out of `start-work` agents on sibling worktrees |
+| `batch-work` | skill (optional) | DAG-orchestrated unattended parallel fan-out of `start-work` agents on sibling worktrees |
 | `create-pr` | skill | Open/update PR |
 | `finish-work` | skill | Align + merge + cleanup |
-| `lattice@percena` | Claude plugin | Packages all six skills; gates bare `gh pr create` / `gh pr merge` |
+| `lattice@percena` | Claude plugin | Packages **every** shipped skill (lifecycle six + side-paths + `_lattice-lib`); gates bare `gh pr create` / `gh pr merge` |
 
-Full path = **`_lattice-lib` + six user skills**, and on Claude **`lattice@percena`** (one plugin).
+Full path = **`_lattice-lib` + six user skills**, and on Claude **`lattice@percena`** (one plugin). The optional side-paths — `review-code` · `review-production` · `review-delivery` · `review-lineage` (quality), `run-e2e` (e2e reference) · `verify-features` (runtime verification), `generate-wiki` · `create-adr` (doc tools) — are mapped in their "Optional" sections below.
 
 ## 1. Install the full pack (once per machine)
 
@@ -80,7 +80,7 @@ npx skills add percena/lattice \
 
 ### Optional: quality side-paths (PR-scoped)
 
-The six lifecycle skills alone are a **complete** demo/universal loop. For **PR-level** code or production checks, install optional side-paths (not packaged in `lattice@percena` for v1):
+The six lifecycle skills alone are a **complete** demo/universal loop. For **PR-level** code or production checks, install optional side-paths (already bundled in the `lattice@percena` plugin; portable installs add them explicitly):
 
 ```bash
 npx skills add percena/lattice --skill review-code --skill review-production
@@ -90,6 +90,8 @@ npx skills add percena/lattice --skill review-code --skill review-production
 | --- | --- |
 | `/review-code` | Light **material** code review of a **PR / dirty WT / branch change set** (before or after `create-pr`) — failure scenario + evidence + recommendation; not style-nit primary |
 | `/review-production` | Heavier production-readiness checklist on that **same PR unit** (advice only) |
+| `/review-delivery` | Artifact-only **chain review of a delivered ticket set** (`spc-N` \| ids \| batch report) — A*→evidence fidelity, cross-PR coherence + throwaway integration build, decision-ratification queue, per-PR findings → ranked morning digest (`auto-pass \| ratify-then-pass \| deep-review`) with per-axis attestation; co-installs `_lattice-lib`; never merges |
+| `/review-lineage` | Periodic **lineage mining** over the whole repo (`--since 30d`) — `lineage-metrics.sh` snapshot + delta, `claim-probes.sh` claim–implementation probes, history archaeology → every candidate re-verified against the tree, clustered by root cause, ranked → `rev-` (kind `audit`) with insights + a Proposed-tickets table for `create-tickets`; co-installs `_lattice-lib`; never files issues, never merges. Run weekly and after each Spec closes |
 
 **HARD default:** analysis unit = one PR (or the diff / dirty working tree that will become one PR) — **not** whole-repo architecture. Expand only if the user **explicitly** asks; otherwise redirect to `/create-review` / Spec.
 
@@ -101,12 +103,14 @@ Two additional skills extend the loop for parallel delivery and browser e2e:
 
 | Skill | Needs `_lattice-lib`? | Role |
 | --- | --- | --- |
-| `/batch-work` | Yes (co-install) | DAG-orchestrated fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, failure isolation |
+| `/batch-work` | Yes (co-install) | DAG-orchestrated unattended fan-out: reads `parallel_group` + `blocked_by` from ticket binders, spawns one `start-work` agent per ticket in a sibling worktree, layer-barrier sync, failure isolation |
 | `/run-e2e` | No (reference pattern) | Heredoc JS story pattern for ego-browser — one Bash invocation per story, fail-loud auth, structured JSON; not a runner, not a loop entry |
+| `/verify-features` | Yes | Full-feature runtime verification: builds/refreshes `.lattice/feature-map.md` (lineage-mined oracles), runs bounded e2e waves on `run-e2e` stories, files bugs as tickets with repro steps |
 
 ```bash
 npx skills add percena/lattice --skill batch-work        # co-installs _lattice-lib
 npx skills add percena/lattice --skill run-e2e            # standalone reference
+npx skills add percena/lattice --skill verify-features --skill _lattice-lib  # runtime verification (needs the lib)
 ```
 
 **batch-work** spawns agents that stop at `create-pr` (human reviews, then `finish-work` per PR). A `.lattice/.batch-work-active` marker in each worktree blocks `finish-work` merge until the human runs it.
@@ -146,6 +150,7 @@ Lattice is a **delivery-graph engine** (Spec / tickets / worktree / PR / finish)
 | Pre-merge quality pass | `code-review-and-quality` (and/or security persona if risk warrants) |
 
 These stay **optional**. Lattice correctness does not depend on them. Prefer thin `/review-*` for PR scope; use packs for depth. Do **not** vendor a full external catalog into every consumer repo “to make Lattice complete.”
+
 ### B. Claude Code plugins (skills + optional hooks)
 
 ```text
@@ -160,7 +165,7 @@ claude plugin marketplace add percena/lattice
 claude plugin install lattice@percena
 ```
 
-Hooks advise on bare `gh pr create` / `gh pr merge` on Claude only; set `LATTICE_HOOK_MODE=strict` to opt into marker-based blocking. Skills remain correct without hooks (Codex).
+Hooks block bare `gh pr create` / `gh pr merge` / `gh issue create` on Claude only (strict default); set `LATTICE_HOOK_MODE=advisory` for nudge-only. Skills remain correct without hooks (Codex).
 
 ### Org roll-out (Claude Code)
 
@@ -196,6 +201,44 @@ claude plugin marketplace add /path/to/lattice
 claude plugin install lattice@percena
 ```
 
+### Detect installed-tree drift (fail loud, never silent)
+
+Lattice dogfoods itself through the globally installed skill tree. That install
+can drift **bidirectionally** from the repo — older files (an installed
+`ensure-lattice.sh` that exits 2 silently while the repo ships a fuller
+version), whole skills missing from the install, or install-side files that
+are *newer* than the repo (local edits / not-yet-merged work). Silent staleness
+undermines every skill-level guarantee, so the repo ships a drift check that
+**fails loud (exit 1, never a silent exit 2)** with an actionable inventory:
+
+```bash
+# Run from a Lattice checkout (worktree). Uses repo skills/ as the truth set.
+bash skills/_lattice-lib/scripts/check-installed-skill-drift.sh
+#   LATTICE_SKILL_ROOT=<repo skills dir>            (default: this script's own ../../..)
+#   LATTICE_INSTALLED_SKILL_HOME=<installed skills> (default: $HOME/.claude/skills)
+#   --json     machine-readable payload
+#   --check-only  no-op alias (the check never writes)
+# Exit 0 = in sync; 1 = drift (loud, actionable); 2 = misuse (bad args / missing dirs)
+```
+
+The check reports three categories and **never auto-clobbers** — you decide the
+refresh, because a blind overwrite would destroy install-side newer/local content:
+
+| Category | Meaning | Operator action |
+| --- | --- | --- |
+| `skill-absent-install` | whole skill missing from install (stalest case) | Refresh the full pack |
+| `repo-only` | file in repo, absent from install (install is stale) | Refresh pulls these in |
+| `install-only` | file in install, absent from repo (local edit OR stale artifact) | **Do not clobber** — review; may be newer-than-repo work |
+| `differs` | content mismatch — either side may be newer | `diff` the two, then refresh or reconcile |
+
+Non-Lattice skills that live in the install dir (e.g. `bailian-cli`,
+`ego-browser`) are out of scope — only skills shipped under the repo `skills/`
+are compared. Generated `__pycache__`/`*.pyc` is ignored. The bidirectional
+report is the point: refresh is operator-gated, never a blind `cp -R`.
+
+When drift is found, refresh per **Refresh install** above (full pack, local
+tip, or Claude plugin reinstall), then re-run the check until it exits 0.
+
 ## 2. Consumer repo — no manual init
 
 After skills are on the machine, **open the consumer repo and run a Lattice skill** (`/start-work`, `/create-spec`, …). Agents **must** run the deterministic script:
@@ -211,6 +254,7 @@ What `ensure-lattice` does (idempotent):
 | --- | --- |
 | Skeleton | `.lattice/{specs,reviews,tickets}` |
 | Config | `.lattice/config.yaml` with `profile: strict` if missing (**never** overwrites existing profile) |
+| Preferences | `.lattice/preferences.md` scaffolded from the shipped template (minimal heredoc fallback when the references tree is absent) if missing — **never** overwrites an existing file, refuses a symlinked path |
 | Gitignore | merges Lattice snippet into `.gitignore` when markers absent (default) |
 | Labels | **not** synced by default; agent may pass `--sync-labels` or run `create-tickets` `sync-github-labels.sh` when `gh` fails |
 
@@ -269,11 +313,11 @@ Two legitimate installs — pick consciously. **Dogfood for this monorepo stays 
 
 | Track | Install | Profile | When |
 | --- | --- | --- | --- |
-| **Team (default)** | Full portable pack **+** Claude plugin `lattice@percena` | `strict` | Shared repos, parallel tickets, advisory intercepts; teams may opt into strict hook blocking |
+| **Team (default)** | Full portable pack **+** Claude plugin `lattice@percena` | `strict` | Shared repos, parallel tickets; strict hook blocking on by default |
 | **Expert / strong-model solo** | Portable skills only (or plugins disabled); optional quality side-paths | often `light` | Solo speed; trusts model path choice while preserving authority, identity, destructive safety, and verification truth |
 
 **What stays hard on both tracks:** no silent PR from the live default branch, real GH identity for `spc-N`, destructive-action safety, and finish-work honesty when binders apply. Worktree/bind choices are defaults with evidence-bearing escapes.
-**What team plugins add:** PreToolUse intercepts advise on bare `gh pr create`/`merge`; `LATTICE_HOOK_MODE=strict` opts into marker-based blocking (fail-open on ambiguity).
+**What team plugins add:** PreToolUse intercepts block bare `gh pr create`/`merge`/`issue create` (strict default); `LATTICE_HOOK_MODE=advisory` opts into nudge-only (fail-open on ambiguity, including `python3` missing — spc-212).
 **What light relaxes:** shippable `--mode branch` without policy shame; Acceptance open-on-Fixes → WARN not HARD.
 
 See also [Profiles](#profiles-strict--light).
@@ -315,6 +359,7 @@ Or one shell: `export LATTICE_PROFILE=light`.
 | --- | --- |
 | `.lattice/specs`, `reviews`, `tickets/*/README.md` | Usually **yes** |
 | `.lattice/config.yaml` | **yes** (team profile) |
+| `.lattice/preferences.md` | **yes** (team preference SoT) |
 | `.lattice/lineage/`, `BOARD.md` | **no** — not product; do not create (gitignored) |
 | `.lattice/.ids/`, ticket `assets/*` | **no** (gitignore) |
 | Physical worktrees | Outside repo (`../<repo>.worktrees/`) |
@@ -342,6 +387,7 @@ Lattice keeps **batch principal confirmation** (not one-question-per-turn like M
 | `ensure-lattice.sh` / `ensure-workspace.sh` not found | Install **`_lattice-lib`** with the six user skills (full pack) |
 | `ensure-workspace` unbound error | Prefer issue/Spec; or pass semantic `--branch`, `--allow-unbound`, and a concrete `--reason` |
 | Global skill text or plugins look stale | Re-run full pack + reinstall **`lattice@percena`** (section 1 / Refresh install) |
+| Need the exact drift inventory (which files differ / are missing / are newer) | Run `bash skills/_lattice-lib/scripts/check-installed-skill-drift.sh` — bidirectional report, exit 1 on drift (never silent) |
 | Forgot to install `lattice@percena` | Install `lattice@percena` for full Claude path; or use portable skills only |
 | Want fewer worktrees | Set `profile: light` and use `--mode branch` with bind — or skip Lattice for pure throwaways |
 | Agent asks you to run `bash $HOME/.../lattice-init.sh` | **Reject** — reinstall pack or set `LATTICE_LIB_SCRIPTS`; skills must call `ensure-lattice` internally |
@@ -370,3 +416,6 @@ cd /path/to/your-app
 | --- | --- |
 | [README](../README.md) | Install matrix + system map |
 | [github-surface.md](./github-surface.md) | Label catalog |
+| [workflow-fsm.md](./workflow-fsm.md) | Three coupled state machines, transition owners, bounded-loop invariant |
+| [day-phase.md](./day-phase.md) | Attended planning recipe: requirement → proposal rev → spec → adr → tickets |
+| [morning-triage.md](./morning-triage.md) | Morning triage recipe: night-batch digest → ratify → disposition → stamps → verdicts → finish-work |

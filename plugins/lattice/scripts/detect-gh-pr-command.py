@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Best-effort detector for direct `gh [global flags] pr [flags] VERB` calls.
+"""Best-effort detector for direct `gh [global flags] pr [flags] VERB` and
+`gh [global flags] issue create` calls.
 
 Input is already stripped of quoted strings and heredoc bodies by the hook's
 normalizer. This is intentionally a lightweight GitHub CLI classifier, not a
-shell parser. When a region contains a valid `gh pr` mutation behind an unknown
-command prefix, it fails closed instead of assuming the prefix only prints
-text. The small safe list below preserves common prose/search commands.
+shell parser. When a region contains a valid `gh pr`/`gh issue` mutation
+behind an unknown command prefix, it fails closed instead of assuming the
+prefix only prints text. The small safe list below preserves common
+prose/search commands.
 
 The scan is FORWARD, per command region, because that is the only way to tell
 an invocation from a word that merely spells "gh":
 
     gh pr create                 -> invocation
+    gh issue create              -> invocation (verb=issue-create)
     sudo -u me gh pr create      -> invocation (wrapper)
     >out.txt gh pr create        -> invocation (leading redirection)
     echo gh pr create            -> argument text, NOT an invocation
@@ -18,6 +21,13 @@ an invocation from a word that merely spells "gh":
 
 A backwards scan cannot distinguish `sudo -u me gh` from `echo gh` without
 re-deriving where the command word starts, so we derive that directly.
+
+Accepted limitation (pinned by tests): nested-shell payloads are invisible by
+design — the hook normalizer strips quoted strings before we run, so
+`bash -c 'gh pr create'`, `sh -c …`, and `eval "gh pr merge"` are NOT detected.
+Same tradeoff class as the heredoc-body note in strip-quoted-and-heredocs.py:
+this hook is a guardrail for direct commands, not a sandbox boundary against
+an operator who deliberately wraps a call.
 """
 
 from __future__ import annotations
@@ -70,6 +80,44 @@ WRAPPERS = {
 SAFE_ARGUMENT_COMMANDS = {
     "echo", "printf", "grep", "egrep", "fgrep", "rg",
 }
+
+# More commands whose words are data, never dispatched as a command —
+# `touch gh pr create` creates three files. Without this list the fail-closed
+# fallback below treats any argument sequence spelling `gh pr create` as an
+# invocation and blocks legitimate file work (the worst hook failure mode).
+# Dual-natured commands that CAN dispatch are NOT here: xargs is a WRAPPER;
+# find and git are handled by EXEC_CAPABLE_COMMANDS below.
+DATA_ARGUMENT_COMMANDS = {
+    "[", "basename", "cat", "cd", "chmod", "chown", "cmp", "comm", "cp",
+    "cut", "diff", "dirname", "du", "file", "head", "ln", "ls", "mkdir",
+    "mv", "paste", "pwd", "readlink", "realpath", "rm", "rmdir", "sort",
+    "stat", "tail", "test", "touch", "tr", "uniq", "wc",
+}
+
+# Dual-natured: words are data UNLESS an exec trigger appears in the same
+# region. A trigger may span multiple tokens:
+# - find: `-exec`/`-execdir`/`-ok`/`-okdir` run a command (`find . -name gh
+#   -o -name pr -o -name create` is a search; `find . -exec gh pr create {} +`
+#   runs gh)
+# - git: `git bisect run <cmd> …` executes its arguments as a shell command
+#   with bare, visible tokens — git's only unquoted exec surface (`git checkout
+#   -- gh pr create` restores paths; `git bisect start …` takes refs)
+# Without a trigger → treat as data; with one → fall through to the
+# fail-closed unknown-prefix scan.
+EXEC_CAPABLE_COMMANDS = {
+    "find": ("-exec", "-execdir", "-ok", "-okdir"),
+    "git": ("bisect run",),
+}
+
+
+def has_exec_trigger(name: str, region: list[str]) -> bool:
+    for trigger in EXEC_CAPABLE_COMMANDS[name]:
+        parts = trigger.split()
+        width = len(parts)
+        for i in range(len(region) - width + 1):
+            if region[i:i + width] == parts:
+                return True
+    return False
 
 ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 LINE_CONTINUATION_RE = re.compile(r"\\\n")
@@ -179,11 +227,22 @@ def is_gh_pr_verb(items: list[str], index: int, verb: str) -> bool:
     if index >= len(items) or os.path.basename(items[index]) != "gh":
         return False
     cursor, ok = skip_flags(items, index + 1)
-    if not ok or cursor >= len(items) or items[cursor] != "pr":
+    if not ok or cursor >= len(items):
         return False
-    cursor, ok = skip_flags(items, cursor + 1)
-    if not ok or cursor >= len(items) or items[cursor] != verb:
-        return False
+    if verb == "issue-create":
+        # Match `gh issue create`
+        if items[cursor] != "issue":
+            return False
+        cursor, ok = skip_flags(items, cursor + 1)
+        if not ok or cursor >= len(items) or items[cursor] != "create":
+            return False
+    else:
+        # Match `gh pr <verb>`
+        if items[cursor] != "pr":
+            return False
+        cursor, ok = skip_flags(items, cursor + 1)
+        if not ok or cursor >= len(items) or items[cursor] != verb:
+            return False
     return not has_terminal_flag(items, cursor + 1)
 
 
@@ -199,6 +258,16 @@ def contains(command: str, verb: str) -> bool:
         command_name = os.path.basename(items[index])
         if command_name in SAFE_ARGUMENT_COMMANDS:
             continue
+        if command_name in DATA_ARGUMENT_COMMANDS:
+            continue
+        if command_name in EXEC_CAPABLE_COMMANDS:
+            region = []
+            cursor = index + 1
+            while cursor < len(items) and items[cursor] not in BOUNDARIES:
+                region.append(items[cursor])
+                cursor += 1
+            if not has_exec_trigger(command_name, region):
+                continue
 
         # Unknown command prefixes may be command runners. Treat a later valid
         # gh mutation in the same region as executable instead of maintaining
@@ -212,7 +281,7 @@ def contains(command: str, verb: str) -> bool:
 
 
 def main() -> int:
-    if len(sys.argv) != 2 or sys.argv[1] not in {"create", "merge"}:
+    if len(sys.argv) != 2 or sys.argv[1] not in {"create", "merge", "issue-create"}:
         return 2
     return 0 if contains(sys.stdin.read(), sys.argv[1]) else 1
 

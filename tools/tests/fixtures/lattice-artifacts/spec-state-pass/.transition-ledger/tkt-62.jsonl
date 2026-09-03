@@ -1,0 +1,1 @@
+{"ts":"2026-08-01T00:00:00Z","ticket":"tkt-62","from":"queued","to":"closed","owner":"human","reason":"cancel","guard":"merge observed from queued (direct jump; stamps skipped) | cancel","escape_used":false,"force_side_state_reason":null,"trace":"Finish ledger (no mergedAt)","metric":"direct-jump"}

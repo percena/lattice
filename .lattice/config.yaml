@@ -5,4 +5,30 @@
 #            bind law still requires tkt-/spc- (no unbound)
 # Override for one shell: export LATTICE_PROFILE=light
 # long_lived_patterns: [integration, trunk]   # additive to main/master/dev/develop/release/*/rc/*
+# batch-work tunables (flat keys; all DEFAULT — absent = defaults shown):
+# batch_timebox_S: 30        # per-ticket wall-clock timebox, minutes, mode S
+# batch_timebox_M: 60        # mode M
+# batch_timebox_C: 120       # mode C
+# batch_fuse_threshold: 50   # layer failed+stuck percentage that trips the fuse
 profile: strict
+# ci_gate: tunable infra-class failure patterns for the finish-work CI merge
+# gate (spc-186 A6/A8, ADR-007 §5a). Patterns are case-insensitive substrings
+# matched against the failed check's log excerpt + check name. When all
+# failing checks match an infra pattern AND local verification evidence is
+# present, the gate passes with an auto-stamped waiver (compiled corner case,
+# NOT an exception). Real failures block HARD. Absent = defaults shipped in
+# skills/finish-work/scripts/lib/ci_failure_classify.py.
+# ci_gate:
+#   infra_patterns:
+#     billing:      [billing, "usage limit", "quota exceeded", "payment required", "spending limit"]
+#     rate_limit:   ["rate limit", "rate-limited", "secondary rate limit", "too many requests"]
+#     timeout:      [timeout, "timed out", "deadline exceeded"]
+#     runner_infra: ["runner offline", "runner unavailable", "connection refused", "ephemeral runner"]
+#   empty_step_max_duration_seconds: 5  # CI empty-step flake heuristic (no log + short run)
+# queue_health: staleness / water-level thresholds (spc-186 A5, ADR-007 §8 —
+# advisory SENSOR, never a HARD block). Surface in the review-delivery morning
+# digest "Queue health" section + start-work entry one-line banner. Computed
+# from binder `updated` (tkt-191) + gh pr createdAt fallback (lazy migration).
+# queue_health:
+#   pr_open_hours: 36     # pr-open age (hours) beyond which the digest flags it
+#   side_state_total: 5   # parked+stuck+deferred count beyond which the digest flags it

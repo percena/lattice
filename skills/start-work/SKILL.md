@@ -27,6 +27,8 @@ Templates: co-installed `create-spec` / `create-review` `references/templates/` 
 | Severity labels INVARIANT/DEFAULT/HINT | `../_lattice-lib/references/constraint-language.md` |
 | Delegation and accountable ownership | `../_lattice-lib/references/orchestration-patterns.md` |
 | Claiming shippable / tests green | `../_lattice-lib/references/definition-of-done.md` |
+| Mid-EXECUTE decision resolution, park & pivot | `../_lattice-lib/references/decision-policy.md` |
+| Retry caps, early-stop, stuck-with-ledger (unattended) | `../_lattice-lib/references/fallback-policy.md` |
 
 Do **not** pre-load every reference; stay on this file for locked resume + S path.
 
@@ -48,6 +50,16 @@ RESOLVE="$SKILL_ROOT/../_lattice-lib/scripts/resolve-lattice-lib.sh"
 [[ -f "$RESOLVE" ]] || { echo "Error: _lattice-lib is not installed beside $SKILL_ROOT" >&2; exit 1; }
 LIB=$(bash "$RESOLVE")
 bash "$LIB/ensure-lattice.sh"
+# Water-level banner (spc-186 A5, ADR-007 §8 — advisory SENSOR, never a block):
+# prints one line when side-state total or pr-open aging exceeds a threshold,
+# empty when clean. Thresholds in .lattice/config.yaml queue_health:.
+bash "$LIB/queue-health.sh" --banner 2>/dev/null || true
+# Stale runtime-state GC (ADR-011 / spc-282 A6): a crashed prior batch may have
+# left the gate marker in the out-of-repo state home, permanently opening the
+# merge gate (fail-open). GC removes stale entries (default 24h, env
+# LATTICE_STALE_MARKER_HOURS) so an orphaned batch does not leave a permanent
+# fail-open. GC only removes; never creates markers. Advisory, never a block.
+bash "$LIB/state-dir-gc.sh" 2>/dev/null || true
 # Before shippable L0 write on team base:
 bash "$LIB/assert-shippable-cwd.sh" || {
   bash "$LIB/ensure-workspace.sh" --mode worktree --bind tkt --id N --slug <slug>
@@ -82,19 +94,26 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 ## S path (short)
 
 1. INTAKE + CLASSIFY → announce mode. If ticket has `bug` label or Reproduction Steps in binder → classify as **bug-class** (triggers Phase 0c/1b loop in step 7).  
-2. If `tkt-N` / `spc-N` **with locked L0** → **resume** (load binder/Spec, skip re-grill).  
+2. If `tkt-N` / `spc-N` **with locked L0** → **resume** (load binder/Spec, skip re-grill). Resume honors the binder `status` FSM (SoT — `docs/workflow-fsm.md` or portable `_lattice-lib/references/workflow-fsm-reference.md`, ADR-004 §6):
+   - `rework` — PR returned with findings. Load the findings (binder + PR review threads / review-delivery digest) as the **new brief**; EXECUTE the fixes on the **same branch/PR** (address-review shape, fix cycle ≤2). Do not open a second PR; on push, status returns to `pr-open`.
+   - `parked` (ratified) — the **ratify** action calls `ratify.sh` (`../_lattice-lib/scripts/ratify.sh`), which writes the decision into `## Decision journal` **and** flips `parked → queued` in a single git commit (ADR-004 amd tkt-136 Option A — crash window narrowed, not eliminated). Resume implements from the recorded decision; do not re-ask it. Still-`parked` binders without a ratified entry stay parked — surface, don't guess.
+   - `stuck` — never silently retry (Attempts ledger + caps carry across sessions, `fallback-policy.md`). Three exits, **operator-chosen**: **unblock** (answer/env fix) → re-queue (`wait_reason: unblock`); **re-scope** (scope-escape signal = planning defect) → Spec/ticket revision via `create-spec`/`create-tickets` (`wait_reason: re-scope`, routed to M1); **cancel** → `status: closed` without merge, stamped via `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> | --issue M) --binder <path>` (no PR row, no `mergedAt`; requires human reason + firm close time or a gh-verified CLOSED issue). Stamp the binder `wait_reason` row so morning triage can route the two dispositions.
+   - `in-progress` (interrupted/abandoned) — a watchdog-timeout or crash from a prior session left the binder at `in-progress`. If the host stamped `stuck`+`wait_reason: unblock` at trip time (FSM-2b, tkt-132), route through the stuck exits above. If the binder is genuinely still being worked (human resume mid-session), continue implementation — the status is honest. An abandoned `in-progress` with no `stuck` stamp is an edge case: treat as `stuck`, investigate the prior ledger, and route through the operator-chosen exits.
 3. Else if **existing GH issue `#M`** / `tkt-M` **without complete L0** → **ADOPT_CHECK** (portable detail in `references/policy.md`) — **append-only** on issue body; write binder; optional Spec/comment; soft-fail edges.  
 4. Else if fuzzy greenfield → **delegate `create-spec`** (then tickets if needed).  
-5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship).  
+5. COMMITTED card (Why / In / Out / Acceptance / mode / workspace / ship / **Direction confirmed via**).  
 5b. Duplicate-work precheck (advisory, DEFAULT): run `check-duplicate-work.sh --title "<ticket title>"` (in `_lattice-lib/scripts/`) before `ensure-workspace`. Review ⚠️ overlaps; never blocks (advisory, exits 0).  
 6. WORKSPACE: `ensure-workspace --mode worktree --bind tkt|spc …` (or light/user branch escape). **cd** to path.  
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.
    - DEFAULT: no forced TDD; use the bound workspace unless an escape is explicit; new irreversible axis → PCA batch.
+   - DEFAULT: mid-EXECUTE decisions resolve via `../_lattice-lib/references/decision-policy.md` (chain first-hit; reversible+local → journal; else park & pivot); unattended fallback follows `../_lattice-lib/references/fallback-policy.md`.
+   - DEFAULT: operator states a durable work preference mid-session → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`decision-policy.md` §Capture duty).
+   - DEFAULT: defect noticed outside the ticket's `paths` → write `- NOTICED: <path> — <one line> (out-of-paths, <date>)` to the binder `## Notes` at notice time, then move on — never expand scope, never silently drop (`decision-policy.md` §Observation duty).
    - **Bug-class tickets** (ticket has `bug` label or Reproduction Steps): run the reproduce → fix → re-verify loop:
      - **Phase 0c (Pre-Fix Reproduction):** reproduce from ticket Reproduction Steps; capture pre-fix evidence in binder `reproduction-evidence.md`. If no Reproduction Steps found in binder → skip to Phase 1 with a note (cannot reproduce without steps). If bug no longer reproduces → consider wont-fix (stop, ask user).
      - **Phase 1 (Fix):** implement the fix.
      - **Phase 1b (Post-Fix Verification):** re-execute same reproduction; append post-fix evidence with cross-comparison table (pre vs post). If symptom persists → loop back to Phase 1 (max 2 cycles). If still failing after 2 cycles → stop, report to user.
-   - `NOTICED BUT NOT TOUCHING:` out-of-ticket cleanup → later ticket, do not fold in.  
+   - Out-of-ticket cleanup is never folded in — it rides the `NOTICED:` binder line above; a later ticket is the sweep's disposition, not this agent's detour.  
 8. Done implementing → VERIFY with **fresh command evidence** (DoD Iron Law: `../_lattice-lib/references/definition-of-done.md`) → `create-pr`.
 
 ### ADOPT_CHECK (existing issue, incomplete L0) — INVARIANT append-only
@@ -142,10 +161,13 @@ Policy tables (profiles, labels, bloodline): **`references/policy.md`**.
 - Workspace name: tkt-<id>-slug | spc-<n>-slug
 - Ship: one-PR | multi-PR
 - Primary ticket: none | tkt-N
+- Direction confirmed via: ADR-NNN | rev-… | user-stated | assumed
 - User-decided / Agent-assumed
 ```
 
 Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
+
+**`Direction confirmed via: assumed` → batch-confirm before product EXECUTE.** A wholly un-confirmed direction (no accepted ADR, no concluded `rev-`, not user-stated) must not silently proceed to implementation; surface it at the workspace gate and confirm the direction first. A reversing/replacing architecture choice implemented before confirmation can produce major rework, so `assumed` flips a PCA batch before EXECUTE rather than after.
 
 ## Loading constraints
 
@@ -182,7 +204,9 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 | "Setup-only was soft; keep coding" | Explicit setup-only stops after workspace |
 | "New irreversible API rename mid-EXECUTE — just decide" | New principal → PCA batch |
 | "Delegation transfers accountability" | The host still owns scope, authority, integration, and fresh verification |
-| "While setting up, fix unrelated lint on main" | Scope: ticket bind only; NOTICED BUT NOT TOUCHING |
+| "While setting up, fix unrelated lint on main" | Scope: ticket bind only; capture a `NOTICED:` binder line and move on (§Observation duty) |
+| "`rework` binder — a fresh PR is cleaner" | Same PR: findings are the brief and the review thread is the context; a new PR orphans both (fix cycle ≤2) |
+| "`stuck` binder — I'll just have another go" | Attempts caps are per ticket, not per session; stuck exits are operator-chosen (unblock / re-scope / cancel), never a silent retry |
 
 ## Red Flags
 
@@ -199,7 +223,8 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 Before claiming workflow setup / EXECUTE handoff is done:
 
 - [ ] Mode `S|M|C` announced with one-line reason
-- [ ] COMMITTED card (or locked L0 resume) is explicit
+- [ ] COMMITTED card (or locked L0 resume) is explicit, including `Direction confirmed via:` (`ADR-NNN` / `rev-…` / `user-stated` / `assumed`); `assumed` triggered a batch-confirm before product EXECUTE
 - [ ] Shippable path: `assert-shippable-cwd` passes under the workspace or records the explicit clean base-direct escape (or pure throwaway no-PR)
 - [ ] Ticket/Spec ids recorded when required by mode
 - [ ] Setup-only stops without product implementation when requested
+- [ ] Resume honored the binder `status`: `rework` → findings-as-brief on the same PR; `parked` → implemented from the ratified `## Decision journal` entry (no re-ask); `stuck` → operator-chosen exit recorded, no silent retry; `in-progress` (abandoned) → treated as stuck if prior run failed/timed out, else continued

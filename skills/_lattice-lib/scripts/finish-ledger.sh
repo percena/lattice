@@ -11,6 +11,9 @@
 #   Exits 0 on success or no-binder-skip; 1 on gh/IO failure.
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+bash "$(dirname "${BASH_SOURCE[0]}")/ensure-python3.sh" || exit 1
+
 PR_N=""
 ISSUE_M=""
 BINDER=""
@@ -18,18 +21,28 @@ REPO=""
 MERGED_AT_OVERRIDE=""
 CLOSED_AT_OVERRIDE=""
 PR_STATE_OVERRIDE=""
+CANCEL=false
+REASON=""
 
 usage() {
   cat >&2 <<'EOF'
 Usage: finish-ledger.sh --pr <N> [--issue <M>] --binder <path> [--repo <owner/repo>]
                         [--merged-at <ts>] [--closed-at <ts>] [--pr-state MERGED|CLOSED]
-  --pr        PR number (required). Fetches mergedAt unless --merged-at given.
+  --pr        PR number (required for the PR path). Fetches mergedAt unless --merged-at given.
   --issue     closing issue number (optional). Fetches closedAt; sets status=closed.
   --binder    path to binder README.md (required).
   --repo      owner/repo for gh (optional; defaults to origin).
   --merged-at override mergedAt (skip gh fetch; tests/offline).
   --closed-at override closedAt (skip gh fetch).
   --pr-state  override PR state MERGED|CLOSED (skip gh fetch).
+
+Cancel path (no PR; terminal human cancel before any PR):
+  finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> | --issue <M>)
+                   --binder <path> [--repo <owner/repo>]
+  --cancel      no-PR terminal cancel. Requires --reason and either --closed-at
+                (human-supplied firm close time) or --issue (gh-verified CLOSED).
+                Writes a dated cancel ledger line; never claims mergedAt or a PR row.
+  --reason      human-supplied cancel reason (required with --cancel).
 EOF
   exit 2
 }
@@ -43,12 +56,24 @@ while [[ $# -gt 0 ]]; do
     --merged-at) MERGED_AT_OVERRIDE="${2:-}"; shift 2 ;;
     --closed-at) CLOSED_AT_OVERRIDE="${2:-}"; shift 2 ;;
     --pr-state) PR_STATE_OVERRIDE=$(printf '%s' "${2:-}" | tr '[:lower:]' '[:upper:]'); shift 2 ;;
+    --cancel) CANCEL=true; shift ;;
+    --reason) REASON="${2:-}"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "Unknown: $1" >&2; usage ;;
   esac
 done
 
-[[ -z "$PR_N" ]] && { echo "Error: --pr is required" >&2; usage; }
+if $CANCEL; then
+  [[ -n "$PR_N" ]] && { echo "Error: --cancel is a no-PR path; use --pr-state CLOSED for a closed-without-merge PR" >&2; exit 2; }
+  [[ -n "$PR_STATE_OVERRIDE" || -n "$MERGED_AT_OVERRIDE" ]] && { echo "Error: --cancel is a no-PR path; --pr-state/--merged-at are not valid here" >&2; exit 2; }
+  [[ -z "$REASON" ]] && { echo "Error: --cancel requires --reason \"<text>\"" >&2; exit 2; }
+  if [[ -z "$CLOSED_AT_OVERRIDE" && -z "$ISSUE_M" ]]; then
+    echo "Error: --cancel requires terminal evidence: --closed-at <ts> (human-supplied) or --issue <M> (gh-verified CLOSED)" >&2
+    exit 2
+  fi
+else
+  [[ -z "$PR_N" ]] && { echo "Error: --pr is required" >&2; usage; }
+fi
 [[ -z "$BINDER" ]] && { echo "Error: --binder is required" >&2; usage; }
 
 # `gh pr view <arg>` accepts a number, a branch name OR a full URL, and gh's
@@ -57,7 +82,7 @@ done
 # another repository's mergedAt/closedAt into this repo's binder. Same rule the
 # sibling helpers already enforce (cleanup-workspace.sh, update-pr-base.sh,
 # alignment-check.sh).
-if [[ ! "$PR_N" =~ ^[1-9][0-9]*$ ]]; then
+if ! $CANCEL && [[ ! "$PR_N" =~ ^[1-9][0-9]*$ ]]; then
   echo "Error: --pr must be a positive GitHub PR number, got: $PR_N" >&2
   exit 2
 fi
@@ -176,10 +201,12 @@ PY
 }
 
 # What actually needs a gh round-trip:
-#   PR outcome  — hard requirement unless fully overridden
+#   PR outcome  — hard requirement unless fully overridden (cancel path has no PR)
 #   issue state — best effort; an unreachable issue records "not closed"
 NEED_GH_PR=true
-if [[ -n "$PR_STATE_OVERRIDE" ]]; then
+if $CANCEL; then
+  NEED_GH_PR=false
+elif [[ -n "$PR_STATE_OVERRIDE" ]]; then
   # A CLOSED PR carries no mergedAt, so it needs nothing else.
   [[ "$PR_STATE_OVERRIDE" != "MERGED" || -n "$MERGED_AT_OVERRIDE" ]] && NEED_GH_PR=false
 elif [[ -n "$MERGED_AT_OVERRIDE" ]]; then
@@ -192,6 +219,7 @@ BINDER_ORIGIN=$(git -C "$BINDER_REPO_ROOT" config --get remote.origin.url 2>/dev
 BINDER_REPO_ID=$(repo_identity_from_url "$BINDER_ORIGIN" 2>/dev/null || true)
 
 GH_USABLE=false
+GH_TARGET_REPO_ID=""
 if { $NEED_GH_PR || $NEED_GH_ISSUE; } && command -v gh >/dev/null 2>&1; then
   if [[ -n "$REPO" && -n "$BINDER_REPO_ID" ]]; then
     BINDER_HOST=${BINDER_REPO_ID%%/*}
@@ -261,33 +289,37 @@ fi
 # --merged-at without --pr-state means "this PR merged" (back-compat).
 [[ -z "$PR_STATE" && -n "$MERGED_AT" ]] && PR_STATE="MERGED"
 
-case "$PR_STATE" in
-  MERGED)
-    # `gh -q .mergedAt` prints the literal string "null" for an unmerged PR,
-    # which is non-empty and would be stamped verbatim as a merge date.
-    if [[ ! "$MERGED_AT" =~ $ISO8601_RE ]]; then
-      echo "Error: PR #$PR_N is MERGED but mergedAt is not an ISO-8601 timestamp: ${MERGED_AT:-(empty)}" >&2
+# Cancel path has no PR; skip PR-state validation entirely (no fabricated PR row).
+if ! $CANCEL; then
+  case "$PR_STATE" in
+    MERGED)
+      # `gh -q .mergedAt` prints the literal string "null" for an unmerged PR,
+      # which is non-empty and would be stamped verbatim as a merge date.
+      if [[ ! "$MERGED_AT" =~ $ISO8601_RE ]]; then
+        echo "Error: PR #$PR_N is MERGED but mergedAt is not an ISO-8601 timestamp: ${MERGED_AT:-(empty)}" >&2
+        exit 1
+      fi
+      ;;
+    CLOSED)
+      # Documented contract (finish-work SKILL.md): a close-without-merge records
+      # status WITHOUT claiming mergedAt. Never carry a stale/omitted date here.
+      MERGED_AT=""
+      ;;
+    OPEN)
+      echo "Error: PR #$PR_N is still OPEN; finish-ledger records the outcome AFTER merge or close" >&2
       exit 1
-    fi
-    ;;
-  CLOSED)
-    # Documented contract (finish-work SKILL.md): a close-without-merge records
-    # status WITHOUT claiming mergedAt. Never carry a stale/omitted date here.
-    MERGED_AT=""
-    ;;
-  OPEN)
-    echo "Error: PR #$PR_N is still OPEN; finish-ledger records the outcome AFTER merge or close" >&2
-    exit 1
-    ;;
-  *)
-    echo "Error: unknown PR state for #$PR_N: ${PR_STATE:-(empty)}" >&2
-    exit 1
-    ;;
-esac
+      ;;
+    *)
+      echo "Error: unknown PR state for #$PR_N: ${PR_STATE:-(empty)}" >&2
+      exit 1
+      ;;
+  esac
+fi
 
 # --- Resolve closing issue state ---------------------------------------------
 CLOSED_AT="$CLOSED_AT_OVERRIDE"
 ISSUE_CLOSED=false
+GH_ISSUE_STATE_REASON=""
 if [[ -n "$ISSUE_M" ]]; then
   if [[ -n "$CLOSED_AT_OVERRIDE" ]]; then
     ISSUE_CLOSED=true
@@ -305,6 +337,28 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
 ')"
       CLOSED_AT="$GH_ISSUE_CLOSED_AT"
       [[ "$GH_ISSUE_STATE" == "CLOSED" ]] && ISSUE_CLOSED=true
+      # state_reason is not a gh issue view --json field on all gh versions
+      # (tkt-294). Fetch via REST for ledger fidelity + anomaly detection.
+      # GH_TARGET_REPO_ID is host/owner/repo (e.g. github.com/percena/lattice)
+      # — strip the host prefix for the gh api repos/ path (needs owner/repo).
+      # GH_TARGET_REPO_ID is set in both the --repo path and the auto-resolve
+      # path; $REPO alone is empty without --repo (tkt-301 code review).
+      # Surface fetch failures so a close-reason contradiction is not silently
+      # lost when the API is least reliable (rate limits, auth, cross-repo).
+      if [[ "$GH_ISSUE_STATE" == "CLOSED" && -n "$GH_TARGET_REPO_ID" ]]; then
+        API_REPO="${GH_TARGET_REPO_ID#*/}"  # strip host → owner/repo
+        API_HOST="${GH_TARGET_REPO_ID%%/*}"  # host for --hostname (tkt-311 A1)
+        if ! GH_ISSUE_STATE_REASON=$(gh api "repos/${API_REPO}/issues/${ISSUE_M}" --jq '.state_reason' ${API_HOST:+--hostname "$API_HOST"} 2>/dev/null); then
+          GH_ISSUE_STATE_REASON=""
+          echo "finish-ledger: WARNING — cannot fetch state_reason for issue #$ISSUE_M (REST API failed); close-reason not recorded in ledger" >&2
+        fi
+        # Defense-in-depth: gh api --jq may emit 'null' (issue lacks state_reason)
+        # or an error body on non-2xx — discard anything not in the known set.
+        case "$GH_ISSUE_STATE_REASON" in
+          completed|not_planned|reopened|duplicate|out_of_date) ;;
+          *) GH_ISSUE_STATE_REASON="" ;;
+        esac
+      fi
     fi
   fi
   # Same "null"-string trap as mergedAt: an OPEN issue reports null.
@@ -316,121 +370,61 @@ emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
   $ISSUE_CLOSED || CLOSED_AT=""
 fi
 
-# --- Stamp the binder (idempotent) --------------------------------------------
-python3 - "$BINDER" "$PR_N" "$MERGED_AT" "$CLOSED_AT" "$ISSUE_CLOSED" "$PR_URL" "$ISSUE_M" "$PR_STATE" <<'PY'
-import sys, re, os, stat, fcntl
+# ISO-8601 validation for CLOSED_AT that runs for BOTH the cancel path and the
+# issue path (tkt-179 A3): the only prior check was inside the ISSUE_M block, so
+# the no-issue cancel path bypassed it and garbage values were stamped verbatim.
+if [[ -n "$CLOSED_AT" && ! "$CLOSED_AT" =~ $ISO8601_RE ]]; then
+  echo "Error: --closed-at must be an ISO-8601 timestamp, got: $CLOSED_AT" >&2
+  exit 1
+fi
 
-binder, pr_n, merged_at, closed_at, issue_closed, pr_url, issue_m, pr_state = sys.argv[1:9]
-# Take an exclusive lock for the whole read-modify-write. Two finish sessions
-# stamping the same binder for sibling PRs would otherwise both read the old
-# content and the second rename would drop the first PR's line entirely.
-# Lock the containing directory: its inode remains stable while the binder is
-# atomically replaced, and unlike a sidecar lock it cannot be unlinked while a
-# waiter still holds the old inode. It also leaves no untracked lock artifact.
-lock_dir = os.path.dirname(os.path.abspath(binder)) or "."
-lock_fd = os.open(lock_dir, os.O_RDONLY)
-try:
-    fcntl.flock(lock_fd, fcntl.LOCK_EX)
-except OSError as exc:
-    os.close(lock_fd)
-    raise SystemExit(f"finish-ledger: cannot lock binder directory: {exc}")
+# Cancel path: terminal evidence is mandatory. An OPEN/unverifiable issue is not
+# a cancel — fail closed rather than strand the binder in a working state or
+# stamp a fabricated terminal. A no-issue cancel already required --closed-at.
+if $CANCEL && [[ -n "$ISSUE_M" ]] && ! $ISSUE_CLOSED; then
+  echo "Error: --cancel requires terminal evidence — issue #$ISSUE_M is not closed (or could not be verified against this binder's repo)" >&2
+  echo "  pass --closed-at <ts> for a human-supplied firm close time, or close the issue first" >&2
+  exit 1
+fi
 
-# Read INSIDE the lock so a concurrent writer's line is already visible.
-s = open(binder, encoding="utf-8").read()
-orig = s
+# Issue URL base for the cancel path (no PR URL is available there). Falls back
+# to the placeholder when neither --repo nor a resolved gh target is known.
+ISSUE_BASE=""
+if [[ -n "$ISSUE_M" ]]; then
+  if [[ -n "$REPO" ]]; then
+    BINDER_HOST=${BINDER_REPO_ID%%/*}
+    OFFLINE_HOST=${GH_HOST:-${BINDER_HOST:-github.com}}
+    ISSUE_BASE="https://$OFFLINE_HOST/$REPO"
+  elif [[ -n "$GH_TARGET_REPO_ID" ]]; then
+    ISSUE_BASE="https://$GH_TARGET_REPO_ID"
+  fi
+fi
 
-merged = pr_state == "MERGED"
-if merged:
-    pr_line = f"- pr-{pr_n} merged: {merged_at}"
-else:
-    pr_line = f"- pr-{pr_n} closed without merge"
-if pr_url:
-    pr_line += f" — {pr_url}"
-pr_line += " (base merge)" if merged else ""
-
-issue_line = ""
-if issue_m and closed_at and issue_closed == "true":
-    if pr_url:
-        base = pr_url.split("/pull/")[0]  # https://github.com/owner/repo
-        issue_line = f"\n- issue #{issue_m} closed: {closed_at} — {base}/issues/{issue_m}"
-    else:
-        issue_line = f"\n- issue #{issue_m} closed: {closed_at} — https://github.com/<org>/<repo>/issues/{issue_m}"
-elif issue_m and not issue_closed == "true":
-    issue_line = f"\n- issue #{issue_m}: not closed (closed-without-merge? status recorded without mergedAt claim)"
-
-# 1. Replace `## Finish` body.
-# Find the ## Finish section (up to next ## heading or EOF).
-m = re.search(r'(^## Finish\s*\n)(.*?)(?=\n## |\Z)', s, flags=re.DOTALL | re.MULTILINE)
-if not m:
-    # No ## Finish heading — append one.
-    s = s.rstrip() + "\n\n## Finish\n\n" + pr_line + issue_line + "\n"
-else:
-    head, body = m.group(1), m.group(2)
-    # Idempotent: if a pr-N line already exists, update mergedAt; else append.
-    pr_pat = re.compile(rf'^- pr-{re.escape(pr_n)} (?:merged:|closed without merge).*$', re.MULTILINE)
-    if pr_pat.search(body):
-        body = pr_pat.sub(pr_line, body)
-        # refresh issue line if issue info present
-        if issue_line:
-            iss_pat = re.compile(rf'^- issue #{re.escape(issue_m)}.*$', re.MULTILINE) if issue_m else None
-            if iss_pat and iss_pat.search(body):
-                body = iss_pat.sub(issue_line.lstrip("\n"), body)
-            else:
-                body = body.rstrip() + issue_line + "\n"
-    else:
-        # Drop a bare "(none yet)" placeholder.
-        body = re.sub(r'^- \(none yet\)\s*\n?', '', body, flags=re.MULTILINE)
-        body = body.rstrip()
-        if body:
-            body = body + "\n" + pr_line + issue_line + "\n"
-        else:
-            body = "\n" + pr_line + issue_line + "\n"
-    s = s[:m.start()] + head + body + s[m.end():]
-
-# 2. status: open → closed (only when issue closed or no issue but PR merged).
-if issue_closed == "true" or (not issue_m and merged):
-    s = re.sub(r'(\| status \|)\s*open\s*(\|)', r'\1 closed \2', s)
-
-# 3. prs table row: record pr-N — URL (idempotent; append for multiple PRs).
-prs_entry = f"pr-{pr_n}"
-if pr_url:
-    prs_entry += f" — {pr_url}"
-prs_row = re.compile(r'(\| prs \|)\s*(.*?)\s*(\|)')
-m_prs = prs_row.search(s)
-if m_prs:
-    cur = m_prs.group(2)
-    if cur == "(none yet)" or cur.strip() == "":
-        s = prs_row.sub(lambda mm: f"{mm.group(1)} {prs_entry} {mm.group(3)}", s, count=1)
-    elif f"pr-{pr_n}" not in cur:
-        s = prs_row.sub(lambda mm: f"{mm.group(1)} {cur} · {prs_entry} {mm.group(3)}", s, count=1)
-    else:
-        # pr-N already recorded; leave (idempotent)
-        pass
-
-if s != orig:
-    # Write via temp + atomic rename: a crash (or a second finish session
-    # stamping the same binder for a sibling PR) must never leave a truncated
-    # binder behind. Preserve the original mode.
-    import tempfile
-    d = os.path.dirname(os.path.abspath(binder)) or "."
-    mode = os.stat(binder).st_mode
-    fd, tmp = tempfile.mkstemp(dir=d, prefix=".finish-ledger.", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(s)
-            fh.flush()
-            os.fsync(fh.fileno())
-        os.chmod(tmp, stat.S_IMODE(mode))
-        os.replace(tmp, binder)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise
-print("finish-ledger: stamped" if s != orig else "finish-ledger: no change (idempotent)")
-try:
-    fcntl.flock(lock_fd, fcntl.LOCK_UN)
-finally:
-    os.close(lock_fd)
-PY
-
-exit 0
+# --- Stamp via finish-stamp.py (ADR-013: pure Python, no bash/Python boundary) ---
+# finish-stamp.py handles: binder write + ledger append (record CLI) + staging +
+# verification in a single Python process. No commit_transaction, no FLIP_HAPPENED,
+# no || true, no bash fallback. The old 732-line bash+Python hybrid heredoc +
+# bash staging/fallback is retired (ADR-013 Option E+ Layer 1).
+#
+# The front-end above resolved: gh dates, PR state, repo identity, binder path
+# security. finish-stamp.py does the write + stage. Idempotent: no-op if already
+# closed. Mode C repair: checks ledger continuity before stamping.
+FINISH_STAMP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/finish-stamp.py"
+# Build args: CANCEL is a bash boolean (true/false), not a string — use a
+# conditional so --cancel is only passed when $CANCEL is true, not when it's
+# the non-empty string "false".
+CANCEL_ARG=()
+$CANCEL && CANCEL_ARG=(--cancel)
+python3 "$FINISH_STAMP" \
+  --binder "$BINDER" \
+  ${PR_N:+--pr "$PR_N"} \
+  ${MERGED_AT:+--merged-at "$MERGED_AT"} \
+  ${CLOSED_AT:+--closed-at "$CLOSED_AT"} \
+  ${PR_STATE:+--pr-state "$PR_STATE"} \
+  ${PR_URL:+--pr-url "$PR_URL"} \
+  ${ISSUE_M:+--issue "$ISSUE_M"} \
+  ${CANCEL_ARG[@]+"${CANCEL_ARG[@]}"} \
+  ${REASON:+--reason "$REASON"} \
+  ${ISSUE_BASE:+--issue-base "$ISSUE_BASE"} \
+  ${GH_ISSUE_STATE_REASON:+--state-reason "$GH_ISSUE_STATE_REASON"}
+exit $?

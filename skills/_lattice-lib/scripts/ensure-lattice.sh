@@ -17,6 +17,8 @@
 #     unless --no-write-gitignore. Does not overwrite existing config/profile.
 #   - --sync-labels: forwarded to lattice-init (opt-in; not default)
 #   - --profile: only applies when config is first created
+#   - scaffolds .lattice/preferences.md from the shipped template when absent
+#     (heredoc fallback on partial installs; NEVER overwrites an existing file)
 #
 # Exit: 0 ok/ready, 1 error or not ready (--check-only), 2 usage
 set -euo pipefail
@@ -94,6 +96,12 @@ _read_profile() {
   fi
 }
 
+# Minimal JSON string escaper for the python3-absent degrade path (spc-212).
+# The normal path uses python3 json.dumps; this keeps the degrade emit valid.
+_jl_json_str() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
 if $CHECK_ONLY; then
   READY=false
   if _skeleton_ok; then
@@ -101,6 +109,17 @@ if $CHECK_ONLY; then
   fi
   ACTIVE_PROFILE=$(_read_profile || true)
   if $AS_JSON; then
+    if ! command -v python3 >/dev/null 2>&1; then
+      # Degrade: emit minimal JSON without the interpreter (spc-212 A2).
+      # profile is null when absent (matches the python3 path's `prof or None`).
+      _pf='null'
+      [[ -z "${ACTIVE_PROFILE:-}" ]] || _pf="\"$(_jl_json_str "${ACTIVE_PROFILE:-}")\""
+      printf '{"ok":%s,"ready":%s,"root":"%s","lattice":"%s","action":"check","profile":%s}\n' \
+        "$([[ "$READY" == true ]] && echo true || echo false)" \
+        "$([[ "$READY" == true ]] && echo true || echo false)" \
+        "$(_jl_json_str "$ROOT")" "$(_jl_json_str "$LATTICE")" "$_pf"
+      if $READY; then exit 0; else exit 1; fi
+    fi
     python3 - "$ROOT" "$LATTICE" "$READY" "${ACTIVE_PROFILE:-}" <<'PY'
 import json, sys
 root, lattice, ready, prof = sys.argv[1:5]
@@ -130,7 +149,27 @@ PY
   exit 1
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the physical installed script directory, including when the
+# entrypoint itself was reached through a symlink (same pattern as
+# lattice-init.sh resolve_script_dir): the lexical BASH_SOURCE directory would
+# let a consumer checkout place a fake lattice-init.sh / references tree
+# beside a symlink to this trusted script.
+resolve_script_dir() {
+  local source="$1"
+  local dir target
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    target="$(readlink "$source")"
+    if [[ "$target" == /* ]]; then
+      source="$target"
+    else
+      source="$dir/$target"
+    fi
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_script_dir "${BASH_SOURCE[0]}")"
 INIT="$SCRIPT_DIR/lattice-init.sh"
 if [[ ! -f "$INIT" ]]; then
   echo "Error: lattice-init.sh not found next to ensure-lattice.sh" >&2
@@ -146,7 +185,7 @@ INIT_ARGS=(--root "$ROOT")
 $WRITE_GITIGNORE && INIT_ARGS+=(--write-gitignore)
 $SYNC_LABELS && INIT_ARGS+=(--sync-labels)
 [[ -n "$PROFILE" ]] && INIT_ARGS+=(--profile "$PROFILE")
-$AS_JSON && INIT_ARGS+=(--json)
+$AS_JSON && command -v python3 >/dev/null 2>&1 && INIT_ARGS+=(--json)
 
 # Keep stdout vs stderr separate so --json is not poisoned by warnings.
 INIT_ERR_FILE=$(mktemp "${TMPDIR:-/tmp}/ensure-lattice.XXXXXX.err")
@@ -174,6 +213,60 @@ if ! _skeleton_ok; then
   exit 1
 fi
 
+# ADR-011 / spc-282 A7: one-shot migration of in-repo runtime-state files
+# superseded by the state-home relocation (.batch-work-active,
+# .batch-merge-authorized, .coordinator/, transition-ledger .lock sidecars).
+# Idempotent rm — cheap, only touches files if a pre-upgrade clone carried them.
+# Does NOT touch the committed transition-ledger .jsonl.
+MIGRATE="$SCRIPT_DIR/migrate-relocated-runtime-state.sh"
+if [[ -f "$MIGRATE" ]]; then
+  bash "$MIGRATE" "$ROOT" 2>/dev/null || true
+fi
+
+# --- .lattice/preferences.md scaffold (spc-42 A3, ADR-004 §3) ---------------
+# Idempotent: NEVER overwrite an existing file — team edits are the point.
+# Source of truth is the skill-shipped template; when the references tree is
+# absent (partial consumer install), a minimal heredoc fallback keeps the
+# scaffold working. Not part of _skeleton_ok: pre-existing repos stay "ready"
+# under --check-only and pick the file up lazily on their next default run.
+PREFS="$LATTICE/preferences.md"
+PREFS_CREATED=false
+if [[ -L "$PREFS" ]]; then
+  # Consumer checkouts are input, not trusted (matches lattice-init's
+  # managed-path rule): never write through a symlink.
+  echo "Error: refusing symlinked managed path: $PREFS" >&2
+  exit 1
+fi
+if [[ ! -e "$PREFS" ]]; then
+  PREFS_TEMPLATE="$SCRIPT_DIR/../references/templates/preferences.md"
+  if [[ -f "$PREFS_TEMPLATE" ]]; then
+    cp "$PREFS_TEMPLATE" "$PREFS"
+  else
+    cat >"$PREFS" <<'EOF'
+# Team preferences (Lattice)
+
+Taste/stack defaults for unattended agents — chain source #4 in `decision-policy.md`.
+Severity per `constraint-language.md`: INVARIANT conflicts park, DEFAULT applies + journals, HINT just applies.
+Lifecycle: entries promote from decision-journal items ratified ×2 (proposal in the
+morning digest); supersede with a date, never delete; Spec/ADR always outrank
+preferences; every use is cited in the consuming agent's `## Decision journal`.
+
+## INVARIANT
+
+<!-- - No new runtime dependency without an ADR (added YYYY-MM-DD) -->
+
+## DEFAULT
+
+<!-- - New scripts: bash + `set -euo pipefail` (added YYYY-MM-DD) -->
+
+## HINT
+
+<!-- - Prefer table-form reference docs over prose lists (added YYYY-MM-DD) -->
+EOF
+  fi
+  PREFS_CREATED=true
+fi
+
 ACTION="ready"
 if ! $HAD_CONFIG; then
   ACTION="initialized"
@@ -183,22 +276,30 @@ ACTIVE_PROFILE=$(_read_profile || true)
 [[ -z "${ACTIVE_PROFILE:-}" ]] && ACTIVE_PROFILE="${PROFILE:-strict}"
 
 if $AS_JSON; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    # Degrade: emit minimal JSON without the interpreter (spc-212 A2).
+    printf '{"ok":true,"ready":true,"action":"%s","root":"%s","lattice":"%s","profile":"%s","created_preferences":%s}\n' \
+      "$(_jl_json_str "$ACTION")" "$(_jl_json_str "$ROOT")" "$(_jl_json_str "$LATTICE")" "$(_jl_json_str "$ACTIVE_PROFILE")" \
+      "$([[ "$PREFS_CREATED" == true ]] && echo true || echo false)"
+    exit 0
+  fi
   if printf '%s' "$INIT_OUT" | python3 -c 'import json,sys; json.load(sys.stdin)' >/dev/null 2>&1; then
     printf '%s' "$INIT_OUT" | python3 -c '
 import json, sys
-action, prof = sys.argv[1], sys.argv[2]
+action, prof, prefs = sys.argv[1], sys.argv[2], sys.argv[3]
 data = json.load(sys.stdin)
 data["action"] = action
 data["ready"] = True
 data["ok"] = True
+data["created_preferences"] = prefs == "true"
 if not data.get("profile"):
     data["profile"] = prof
 print(json.dumps(data, indent=2))
-' "$ACTION" "$ACTIVE_PROFILE"
+' "$ACTION" "$ACTIVE_PROFILE" "$PREFS_CREATED"
   else
-    python3 - "$ROOT" "$LATTICE" "$ACTION" "$ACTIVE_PROFILE" <<'PY'
+    python3 - "$ROOT" "$LATTICE" "$ACTION" "$ACTIVE_PROFILE" "$PREFS_CREATED" <<'PY'
 import json, sys
-root, lattice, action, prof = sys.argv[1:5]
+root, lattice, action, prof, prefs = sys.argv[1:6]
 print(json.dumps({
   "ok": True,
   "ready": True,
@@ -206,6 +307,7 @@ print(json.dumps({
   "root": root,
   "lattice": lattice,
   "profile": prof,
+  "created_preferences": prefs == "true",
 }, indent=2))
 PY
   fi
@@ -219,6 +321,7 @@ else
   echo "  lattice: $LATTICE"
   echo "  profile: $ACTIVE_PROFILE"
   echo "  action:  $ACTION"
+  echo "  prefs:   created=$PREFS_CREATED"
   if printf '%s' "$INIT_OUT" | grep -q 'labels:'; then
     printf '%s\n' "$INIT_OUT" | grep -E 'labels:|gitignore write:' | sed 's/^/  init: /' || true
   fi

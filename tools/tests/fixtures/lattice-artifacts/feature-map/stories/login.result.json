@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "feature_id": "ftr-login",
+  "story_id": "login",
+  "run_id": "run-login-1",
+  "status": "pass",
+  "reason": "title-matched",
+  "assertions": [
+    { "name": "lands on /dash", "pass": true }
+  ],
+  "screenshots": ["login.png"],
+  "leftovers": []
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Returns JSON with repo context needed for PR creation in a single call.
 # Usage: bash "$SKILL_ROOT/scripts/check-pr-context.sh" (absolute active skill root)
-# Output: {"repo":"...","visibility":"PUBLIC|PRIVATE|INTERNAL|UNKNOWN","branch":"...","already_pushed":bool,"default_branch":"...","default_branch_source":"github|fallback"}
+# Output: {"repo":"...","visibility":"PUBLIC|PRIVATE|INTERNAL|UNKNOWN","branch":"...","already_pushed":bool,"default_branch":"...","default_branch_source":"github|fallback",...,"uncommitted_count":N}
 # default_branch falls back to "main" when the GitHub lookup fails; the
 # fallback is surfaced via default_branch_source plus a stderr warning.
 
@@ -30,6 +30,23 @@ ALREADY_PUSHED="false"
 if [ -n "$BRANCH" ] && git ls-remote --heads origin "refs/heads/$BRANCH" 2>/dev/null \
     | awk -v ref="refs/heads/$BRANCH" '$2==ref {found=1} END {exit !found}'; then
   ALREADY_PUSHED="true"
+fi
+
+# Uncommitted-changes count, EXCLUDING the intentional batch-work marker.
+# `.lattice/.batch-work-active` is deliberately untracked-and-dirty for the whole
+# batch run (its dirt visibility guards cleanup; never gitignore it), so it must
+# not trip the "you have uncommitted changes" warning on every PR. Warning-level
+# whitelist only — the marker still shows in `git status`.
+UNCOMMITTED_COUNT=0
+STATUS_LINES=$(git status --porcelain 2>/dev/null || true)
+if [ -n "$STATUS_LINES" ]; then
+  # Porcelain paths are repo-root-relative; match the marker path exactly
+  # (including as a rename target) so real dirt is never masked.
+  UNCOMMITTED_COUNT=$(printf '%s\n' "$STATUS_LINES" \
+    | grep -cvE '^.. (\.lattice/\.batch-work-active|.* -> \.lattice/\.batch-work-active)$' || true)
+fi
+if [ "$UNCOMMITTED_COUNT" -gt 0 ]; then
+  echo "Warning: $UNCOMMITTED_COUNT uncommitted change(s) besides the batch marker — commit or stash before the PR" >&2
 fi
 
 DEFAULT_BRANCH_SOURCE="github"
@@ -73,4 +90,5 @@ jq -nc \
   --arg recommended_source "$RECOMMENDED_SOURCE" \
   --argjson long_lived "$LONG_LIVED" \
   --argjson ask_integration "$ASK_INTEGRATION" \
-  '{repo:$repo,visibility:$visibility,branch:$branch,already_pushed:$already_pushed,default_branch:$default_branch,default_branch_source:$default_branch_source,recommended_base:$recommended_base,recommended_source:$recommended_source,long_lived:$long_lived,ask_integration:$ask_integration}'
+  --argjson uncommitted_count "$UNCOMMITTED_COUNT" \
+  '{repo:$repo,visibility:$visibility,branch:$branch,already_pushed:$already_pushed,default_branch:$default_branch,default_branch_source:$default_branch_source,recommended_base:$recommended_base,recommended_source:$recommended_source,long_lived:$long_lived,ask_integration:$ask_integration,uncommitted_count:$uncommitted_count}'

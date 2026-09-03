@@ -1,7 +1,7 @@
 # tkt-33-batch-work-marker-fix
 
 > **TL;DR:** Replace unreliable BATCH_WORK=1 env-var gate with a marker-file mechanism that survives across Bash sessions
-> **Kind:** fix · **Status:** open · **Priority:** P2
+> **Kind:** fix · **Priority:** P2
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-31 |
 | **related_tickets** | tkt-31, tkt-32, tkt-34 |
 | **worktree_bind** | tkt-31-run-e2e-symlink-fix (shared) |
-| prs | (none) · pr-36 — https://github.com/percena/lattice/pull/36 |
+| prs | pr-36 — https://github.com/percena/lattice/pull/36 |
 
 ## Acceptance (this slice)
 

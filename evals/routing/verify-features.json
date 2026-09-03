@@ -1,0 +1,17 @@
+{
+  "skill_name": "verify-features",
+  "aliases": ["全功能测试", "功能验证扫描", "full-feature verification", "feature bug hunt", "找出应用里的 bug"],
+  "trigger": {
+    "positive": [
+      { "prompt": "Go through every feature of the app end to end and find the real bugs the vibe-coded changes introduced", "top_k": 1 },
+      { "prompt": "Build a feature map of what this application can do and verify each feature against its expected behavior in the browser", "top_k": 1 },
+      { "prompt": "对这个应用做一次全功能端到端验证，逐个功能测试并找出其中的 bug", "top_k": 1 }
+    ],
+    "negative": [
+      { "prompt": "Write an e2e browser story for the login flow with ego-browser", "owner": "run-e2e" },
+      { "prompt": "Review PR 42 for material bugs and regressions", "owner": "review-code" },
+      { "prompt": "Chain-review last night's delivered ticket set into a morning digest", "owner": "review-delivery" },
+      { "prompt": "Verify the feature for bugs and review the diff", "owner": "review-code" }
+    ]
+  }
+}

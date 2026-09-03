@@ -38,9 +38,12 @@ EOF
 }
 
 build_green_tree() {
-  local user_facing="start-work create-spec create-review create-tickets create-pr finish-work generate-wiki review-code review-production create-adr"
-  local lifecycle="start-work create-spec create-review create-tickets create-pr finish-work"
-  local name
+  # tkt-411: derive the user-facing catalog from the single source
+  # (tools/validate-skills.sh USER_FACING[]) instead of hand-duplicating it
+  # here, so a newly added skill no longer breaks this fixture silently.
+  local user_facing lifecycle name
+  user_facing="$(bash "$VALIDATE" --list-user-facing)"
+  lifecycle="start-work create-spec create-review create-tickets create-pr finish-work"
   for name in $user_facing _lattice-lib; do
     mkdir -p "$LATTICE_SKILLS_DIR/$name"
     write_skill_md "$LATTICE_SKILLS_DIR/$name/SKILL.md"
@@ -53,10 +56,22 @@ build_green_tree() {
   : >"$LATTICE_SKILLS_DIR/_lattice-lib/references/orchestration-patterns.md"
 }
 
+# Mirror the repo layout beside the fixture skills root: a plugins/lattice/skills
+# tree of 3-level relative symlinks, so the registration-integrity bundle check
+# activates (it keys off dirname of the skills root).
+build_plugin_tree() {
+  local dir name
+  mkdir -p "$TEST_TMP/plugins/lattice/skills"
+  for dir in "$LATTICE_SKILLS_DIR"/*/; do
+    name="$(basename "$dir")"
+    ln -s "../../../skills/$name" "$TEST_TMP/plugins/lattice/skills/$name"
+  done
+}
+
 @test "green fixture tree passes" {
   run bash "$VALIDATE"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"validate-skills: OK"* ]]
+  printf '%s\n' "$output" | grep -qF "validate-skills: OK"
 }
 
 @test "name: in body prose cannot satisfy the frontmatter check" {
@@ -77,7 +92,7 @@ name: sneaky-body-line
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing frontmatter name:"* ]]
+  printf '%s\n' "$output" | grep -qF "missing frontmatter name:"
 }
 
 @test "agents: in body prose cannot satisfy the codex check" {
@@ -99,7 +114,7 @@ agents: "claude-code,codex" must not count.
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing metadata.agents"* ]]
+  printf '%s\n' "$output" | grep -qF "missing metadata.agents"
 }
 
 @test "description: below the closing --- cannot satisfy the check" {
@@ -120,7 +135,7 @@ description: not-frontmatter (line 6, inside old head -n 30 window)
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing frontmatter description:"* ]]
+  printf '%s\n' "$output" | grep -qF "missing frontmatter description:"
 }
 
 @test "missing codex in frontmatter agents still fails" {
@@ -141,21 +156,38 @@ metadata:
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"does not list codex"* ]]
+  printf '%s\n' "$output" | grep -qF "does not list codex"
 }
 
 @test "cwd fallback through an unset CLAUDE_SKILL_DIR fails" {
   printf '\nRun "${CLAUDE_SKILL_DIR:-.}/scripts/helper.sh"\n' >>"$LATTICE_SKILLS_DIR/start-work/SKILL.md"
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *'unsafe ${CLAUDE_SKILL_DIR:-.} fallback'* ]]
+  printf '%s\n' "$output" | grep -qF 'unsafe ${CLAUDE_SKILL_DIR:-.} fallback'
 }
 
 @test "consumer-repository lattice-lib executable fallback fails" {
   printf '\nRESOLVE="skills/_lattice-lib/scripts/resolve-lattice-lib.sh"\n' >>"$LATTICE_SKILLS_DIR/create-pr/SKILL.md"
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"cwd-relative skills/_lattice-lib/scripts"* ]]
+  printf '%s\n' "$output" | grep -qF "cwd-relative skills/_lattice-lib/scripts"
+}
+
+@test "unregistered skills/ directory fails registration integrity" {
+  mkdir -p "$LATTICE_SKILLS_DIR/rogue-skill"
+  run bash "$VALIDATE"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "skills/rogue-skill not registered"
+}
+
+@test "full plugin bundle passes; a missing bundle symlink fails" {
+  build_plugin_tree
+  run bash "$VALIDATE"
+  [ "$status" -eq 0 ]
+  rm "$TEST_TMP/plugins/lattice/skills/batch-work"
+  run bash "$VALIDATE"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "plugin bundle missing symlink for skills/batch-work"
 }
 
 @test "consumer-root runtime helper fallback fails" {
@@ -167,5 +199,33 @@ bash "$SYNC"
 EOF
   run bash "$VALIDATE"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"consumer-root skill script executable fallback"* ]]
+  printf '%s\n' "$output" | grep -qF "consumer-root skill script executable fallback"
+}
+
+@test "tkt-383: mode lint catches SKILL-named script at 100644" {
+  # Plant a non-executable script referenced in a SKILL.md.
+  mkdir -p "$LATTICE_SKILLS_DIR/start-work/scripts"
+  cat >"$LATTICE_SKILLS_DIR/start-work/scripts/planted.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "planted"
+EOF
+  chmod 644 "$LATTICE_SKILLS_DIR/start-work/scripts/planted.sh"
+  printf '\nRun `scripts/planted.sh` for setup.\n' >>"$LATTICE_SKILLS_DIR/start-work/SKILL.md"
+  run bash "$VALIDATE"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF "not executable"
+  printf '%s\n' "$output" | grep -qF "planted.sh"
+}
+
+@test "tkt-383: executable SKILL-named script passes mode lint" {
+  mkdir -p "$LATTICE_SKILLS_DIR/start-work/scripts"
+  cat >"$LATTICE_SKILLS_DIR/start-work/scripts/clean.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "clean"
+EOF
+  chmod 755 "$LATTICE_SKILLS_DIR/start-work/scripts/clean.sh"
+  printf '\nRun `scripts/clean.sh` for setup.\n' >>"$LATTICE_SKILLS_DIR/start-work/SKILL.md"
+  run bash "$VALIDATE"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "validate-skills: OK"
 }

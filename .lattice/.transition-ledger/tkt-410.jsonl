@@ -1,0 +1,1 @@
+{"ts":"2026-09-02T13:45:38Z","ticket":"tkt-410","from":"in-progress","to":"closed","owner":"human","reason":"cancel","guard":"merge observed from in-progress (direct jump; pr-open skipped) | cancel","escape_used":false,"force_side_state_reason":null,"trace":"Finish ledger (+anomaly on direct-jump merge)","metric":"cancel-count"}

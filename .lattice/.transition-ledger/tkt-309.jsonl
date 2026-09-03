@@ -1,0 +1,2 @@
+{"ts":"2026-09-01T09:09:16Z","ticket":"tkt-309","from":"in-progress","to":"pr-open","owner":"agent","reason":"create-pr opens the PR","guard":"create-pr opens the PR","escape_used":false,"force_side_state_reason":null,"trace":"pr-open stamp","metric":"pr-open-count"}
+{"ts": "2026-09-01T09:27:58Z", "ticket": "tkt-309", "from": "pr-open", "to": "closed", "owner": "human", "reason": "merge", "guard": "merge — day only; .batch-work-active marker gate", "escape_used": false, "force_side_state_reason": null, "trace": "Finish ledger mergedAt", "metric": "merge-count"}

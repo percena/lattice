@@ -13,6 +13,7 @@
 - [2. Propose ticket set (one batch — delivery meta only)](#2-propose-ticket-set-one-batch-delivery-meta-only)
   - [Ship plan](#ship-plan)
   - [Proposed tickets](#proposed-tickets)
+- [2.2 Anticipated-decisions scan + Approach authoring (same batch)](#22-anticipated-decisions-scan--approach-authoring-same-batch)
 - [2.5 POST_SPLIT_CHECK (when Spec has `A*`)](#25-postsplitcheck-when-spec-has-a)
 - [3. Create with gh](#3-create-with-gh)
 - [3.5 Local binder + Spec edges (after each create)](#35-local-binder-spec-edges-after-each-create)
@@ -84,6 +85,37 @@ Reply **go**, edit rows, or **single issue instead** (ticket-only / no Spec).
 
 Skip table only when user already ordered exact titles **and** independence is obvious (still fill blocked_by / paths + ship plan).
 
+## 2.2 Anticipated-decisions scan + Approach authoring (same batch)
+
+Per proposed ticket, **before** presenting the section-2 batch. Split time is when global context + the human are present — front-load the night's questions here (spc-42 A5, ADR-004 §2).
+
+**Dry-run (read-only):** open the modules the ticket's approx `paths` touch; walk the planned change against real code. No product edits — INVARIANT 5 still holds. List the decision points you expect the implementer to hit: error semantics, naming, library/dependency choice, edge behavior, config/API surface, test placement.
+
+**Disposition each point** per `../../_lattice-lib/references/decision-policy.md` (reversibility × blast-radius matrix):
+
+| Disposition | When | Lands as |
+| --- | --- | --- |
+| `pre-resolved(<source>)` | Answer already exists (Spec Decisions / ADR / preferences) or planner settles it now — confirm in the batch | `## Anticipated decisions` line citing the source |
+| `agent-decides` | Reversible **and** ticket-local only | Night agent self-decides + `## Decision journal` |
+| `must-ask` | Irreversible or cross-contract with no existing source | Question in the batch; unanswered → `## Pending decisions` |
+
+Anything irreversible or cross-contract is **never** `agent-decides` — it is `pre-resolved` (settled now) or `must-ask`. When unsure whether a point is cross-contract, treat it as cross-contract (decision-policy DEFAULT).
+
+**Present in the SAME batch** as the ticket table — one delivery-meta round, never serial questioning. Append to the section-2 proposal:
+
+```markdown
+### Decision dispositions
+| tkt | decision point | disposition | proposed resolution / question |
+| --- | --- | --- | --- |
+| 1 | error type for parse failures | pre-resolved (Spec D2) | reuse `LatticeError` — confirm |
+| 1 | retry semantics on flaky fetch | must-ask | at-most-once or backoff? default: at-most-once |
+| 2 | helper naming in lib/ | agent-decides | codebase convention; journaled at night |
+```
+
+The same **go / edit rows** reply covers dispositions. Must-ask items the user does not resolve become binder `## Pending decisions` (question · context · default-if-unanswered) at binder-write time — the night agent parks & pivots on them, never blocks.
+
+**Author `## Approach` per ticket:** 5–10 line implementation sketch + touch-set (files this slice edits), written now with global context — it is chain source #1 for the night agent's decision resolution.
+
 ## 2.5 POST_SPLIT_CHECK (when Spec has `A*`)
 
 After proposal **and** after binders:
@@ -144,9 +176,10 @@ mkdir -p "$DIR/assets"
 # Fill templates/ticket-binder.md → $DIR/README.md
 ```
 
-- Rename `tkt-pending-<slug>` → `tkt-N-<slug>` if needed.
+- Fill `## Approach` + `## Anticipated decisions` from the §2.2 scan; user-unresolved must-ask items → `## Pending decisions`.
+- Rename `tkt-pending-<slug>` → `tkt-N-<slug>` if needed. **Never** pre-guess the number — create the issue first, capture N from the URL, then rename. The validator (`validate-lattice-artifacts.py`) errors when dir N ≠ github issue N, and warns `phantom_binder_smell` when a numeric dir carries a placeholder `github` field (tkt-155).
 - Spec front matter `tickets: […, tkt-N]` bare ids.
-- id = GitHub issue number always.
+- id = GitHub issue number always. The binder `github` field URL must point to that same issue.
 
 ## 4. Handoff
 

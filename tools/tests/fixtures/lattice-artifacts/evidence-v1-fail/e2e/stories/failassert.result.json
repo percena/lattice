@@ -1,0 +1,1 @@
+{"schema_version":1,"feature_id":"ftr-failassert","story_id":"failassert","run_id":"r","status":"pass","assertions":[{"name":"x","pass":false}],"screenshots":["failassert.png"],"round_trip":true,"leftovers":[]}

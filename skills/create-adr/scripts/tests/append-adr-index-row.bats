@@ -44,14 +44,14 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num 003 --file "$TMP/003-baz.md" --title "Baz" --status "Active"
   [ "$status" -eq 0 ]
-  [[ "$(grep -cE '^\| \[003\]' "$README")" -eq 1 ]]
+  [ "$(grep -cE '^\| \[003\]' "$README")" -eq 1 ]
 }
 
 @test "existing 001 row is not duplicated" {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num 001 --file "$TMP/001-foo.md" --title "Foo" --status "Active"
   [ "$status" -eq 0 ]
-  [[ "$(grep -cE '^\| \[001\]' "$README")" -eq 1 ]]
+  [ "$(grep -cE '^\| \[001\]' "$README")" -eq 1 ]
 }
 
 @test "supersede note is placed in the last cell" {
@@ -79,9 +79,9 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num 003 --file "$TMP/003-baz.md" --title "evil | injected" --status "Active" --readme "$README"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"cannot be a single index-table cell"* ]]
+  printf '%s\n' "$output" | grep -qF "cannot be a single index-table cell"
   # README unchanged
-  [[ "$(grep -cE '^\| \[003\]' "$README")" -eq 0 ]]
+  [ "$(grep -cE '^\| \[003\]' "$README")" -eq 0 ]
 }
 
 @test "title with backslash is rejected (awk -v escape injection)" {
@@ -89,7 +89,7 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num 003 --file "$TMP/003-baz.md" --title 'has\newline' --status "Active" --readme "$README"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"cannot be a single index-table cell"* ]]
+  printf '%s\n' "$output" | grep -qF "cannot be a single index-table cell"
 }
 
 @test "title with newline is rejected (row split)" {
@@ -104,14 +104,14 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num '.*' --file "$TMP/003-baz.md" --title "Baz" --status "Active" --readme "$README"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must be exactly 3 digits"* ]]
+  printf '%s\n' "$output" | grep -qF "must be exactly 3 digits"
 }
 
 @test "missing ADR file fails closed" {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num 003 --file "$TMP/003-missing.md" --title "Missing" --status "Proposed" --readme "$README"
   [ "$status" -eq 1 ]
-  [[ "$(grep -cE '^\| \[003\]' "$README")" -eq 0 ]]
+  [ "$(grep -cE '^\| \[003\]' "$README")" -eq 0 ]
 }
 
 @test "unsafe ADR basename is rejected" {
@@ -133,7 +133,7 @@ teardown() {
   run bash "$SKILL_ROOT/scripts/append-adr-index-row.sh" \
     --num 003 --file "$TMP/003-alpha.md" --title "Alpha" --status "Proposed" --readme "$README"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"exactly one file"* ]]
+  printf '%s\n' "$output" | grep -qF "exactly one file"
 }
 
 @test "concurrent distinct appends preserve both rows" {

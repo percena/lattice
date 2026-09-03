@@ -8,9 +8,17 @@ Percena **Lattice** packaging for Claude Code: full delivery loop in **one** plu
 | `create-spec` | [`skills/create-spec`](../../skills/create-spec/) (symlinked) | Yes |
 | `create-review` | [`skills/create-review`](../../skills/create-review/) (symlinked) | Yes |
 | `create-tickets` | [`skills/create-tickets`](../../skills/create-tickets/) (symlinked) | Yes |
+| `batch-work` | [`skills/batch-work`](../../skills/batch-work/) (symlinked) | Yes — parallel fan-out orchestrator |
 | `create-pr` | [`skills/create-pr`](../../skills/create-pr/) (symlinked) | Yes |
 | `finish-work` | [`skills/finish-work`](../../skills/finish-work/) (symlinked) | Yes |
 | `create-adr` | [`skills/create-adr`](../../skills/create-adr/) (symlinked) | Yes — out-of-band ADR companion (not a loop step, not a lineage node) |
+| `run-e2e` | [`skills/run-e2e`](../../skills/run-e2e/) (symlinked) | Yes — e2e reference pattern (not a runner) |
+| `verify-features` | [`skills/verify-features`](../../skills/verify-features/) (symlinked) | Yes — full-feature runtime verification against the feature map |
+| `review-code` | [`skills/review-code`](../../skills/review-code/) (symlinked) | Yes — PR-scoped quality side-path |
+| `review-production` | [`skills/review-production`](../../skills/review-production/) (symlinked) | Yes — PR-scoped quality side-path |
+| `review-delivery` | [`skills/review-delivery`](../../skills/review-delivery/) (symlinked) | Yes — chain-review side-path |
+| `review-lineage` | [`skills/review-lineage`](../../skills/review-lineage/) (symlinked) | Yes — lineage-mining side-path |
+| `generate-wiki` | [`skills/generate-wiki`](../../skills/generate-wiki/) (symlinked) | Yes — standalone doc tool |
 | `_lattice-lib` | [`skills/_lattice-lib`](../../skills/_lattice-lib/) (symlinked; **not** a user slash skill) | Yes — shared scripts |
 
 Part of the [`percena`](../../README.md) marketplace.
@@ -25,14 +33,21 @@ Part of the [`percena`](../../README.md) marketplace.
 ### Skills only (Claude + Codex)
 
 ```bash
+# every shipped skill (all 15 units: 14 user-facing + _lattice-lib)
+npx skills add percena/lattice -a claude-code -a codex -g -y
+
+# or explicit (all 15 units):
 npx skills add percena/lattice \
   --skill _lattice-lib \
   --skill start-work --skill create-spec --skill create-review \
-  --skill create-tickets --skill create-pr --skill finish-work \
+  --skill create-tickets --skill batch-work --skill create-pr \
+  --skill finish-work --skill create-adr --skill run-e2e --skill verify-features \
+  --skill review-code --skill review-production --skill review-delivery --skill review-lineage \
+  --skill generate-wiki \
   -a claude-code -a codex -g -y
 ```
 
-> **Co-install:** always include **`_lattice-lib`**.
+> **Co-install:** always include **`_lattice-lib`** (required by the lifecycle six plus `batch-work`, `create-adr`, `review-delivery`, `review-lineage`, and `verify-features`).
 
 ## Skills
 
@@ -40,10 +55,18 @@ npx skills add percena/lattice \
 - **[create-spec](../../skills/create-spec/)** — First-pass PCA align + persist `spc-n`.
 - **[create-review](../../skills/create-review/)** — Persist `rev-YYYYMMDD-HHMMSSZ` with explicit `outcome`.
 - **[create-tickets](../../skills/create-tickets/)** — Split locked scope into GitHub issues + binders.
+- **[batch-work](../../skills/batch-work/)** — DAG-orchestrated unattended fan-out: parallel `start-work` agents on sibling worktrees with layer-barrier sync.
 - **[create-pr](../../skills/create-pr/)** — Open/update PR; media upload via `_lattice-lib` when paths present.
 - **[finish-work](../../skills/finish-work/)** — Merge/close PR, delete branch, remove worktree.
 - **[create-adr](../../skills/create-adr/)** — Out-of-band ADR companion: writes `docs/adr/NNN`; co-installs `_lattice-lib`; not a lineage node, not a loop step.
-- **[lattice-lib](../../skills/_lattice-lib/)** — Shared scripts only (not a user slash skill).
+- **[run-e2e](../../skills/run-e2e/)** — Reference pattern for ego-browser heredoc JS e2e stories; not a runner, not a loop entry.
+- **[verify-features](../../skills/verify-features/)** — Full-feature runtime verification: lineage-mined feature map with cited oracles, bounded e2e waves on run-e2e stories, bugs filed as tickets; co-installs `_lattice-lib`.
+- **[review-code](../../skills/review-code/)** — Optional PR-scoped code review: material correctness/regression findings with recommended solutions.
+- **[review-production](../../skills/review-production/)** — Optional PR-scoped production-readiness review (security, performance, test coverage, ship/rollback).
+- **[review-delivery](../../skills/review-delivery/)** — Artifact-only chain review of a delivered ticket set → ranked morning digest; never merges.
+- **[review-lineage](../../skills/review-lineage/)** — Periodic lineage mining (metrics snapshot + delta, claim probes, history) → verified insights + ticket drafts in a `rev-`; never files issues, never merges.
+- **[generate-wiki](../../skills/generate-wiki/)** — Navigable root `wiki/` of pure Markdown + optional `llms.txt`; standalone doc tool.
+- **[`_lattice-lib`](../../skills/_lattice-lib/)** — Shared scripts only (not a user slash skill).
 
 ## Typical path
 
@@ -51,48 +74,52 @@ npx skills add percena/lattice \
 /start-work → (/create-spec | /create-review) → /create-tickets → implement → /create-pr → /finish-work
 ```
 
-## Hooks (0.1.x, Claude-only)
+## Hooks (Claude-only)
 
 Optional guidance — **skills remain correct without hooks** (Codex / `npx skills`).
 
-| Hook | Role |
-| --- | --- |
-| `track-skill-activation` | Record Skill-tool loads |
-| `track-skill-slash-command` | Record `/create-pr` / `/finish-work` (and `/lattice:…`) slash loads |
-| `intercept-gh-pr-create` | Advise on bare `gh pr create`; `LATTICE_HOOK_MODE=strict` opts into blocking |
-| `intercept-gh-pr-merge` | Advise on bare `gh pr merge`; strict mode same |
-| `clear-skill-markers-on-compact` | Drop markers after context compact |
+| Hook | Event | Role |
+| --- | --- | --- |
+| `track-skill-activation` | PreToolUse `Skill` | Record Skill-tool loads |
+| `track-skill-slash-command` | UserPromptSubmit | Record `/create-pr` / `/finish-work` (and `/lattice:…`) slash loads |
+| `intercept-git-branch-create` | PreToolUse `Bash` | **L1** — block `git checkout -b`/`switch -c` in the main clone under `profile: strict` (ADR-006) |
+| `intercept-shippable-write` | PreToolUse `Write\|Edit\|NotebookEdit` | **L3** — block shippable writes when cwd is not a worktree; also guards the binder `status` row (spc-337 A4) |
+| `intercept-gh-pr-create` | PreToolUse `Bash` | Block bare `gh pr create` unless `create-pr` skill is active |
+| `intercept-gh-pr-merge` | PreToolUse `Bash` | Block bare `gh pr merge` unless `finish-work` skill is active |
+| `intercept-gh-issue-create` | PreToolUse `Bash` | Block bare `gh issue create` unless `create-tickets` (or `create-spec`) skill is active |
+| `auto-stamp-pr-open` | PostToolUse `Bash` | Stamp the pr-open ledger entry after `gh pr create` (spc-337 A3) |
+| `clear-skill-markers-on-compact` | PreCompact | Drop markers after context compact |
 
 Does **not** auto-edit issue/PR/binder bodies. Fail-open on ambiguity.
 
 ### Hook configuration: `LATTICE_HOOK_MODE`
 
-Default is **advisory** — bare `gh pr create` / `gh pr merge` get a stderr nudge
-(`exit 0`); the skill is recommended, not mandatory.
+Default is **strict** — bare `gh pr create` / `gh pr merge` / `gh issue create`
+are **blocked** (`exit 2`) unless the respective skill marker is active in the
+session.
 
-To **enforce** the marker gate (block the tool call until `create-pr` /
-`finish-work` is active in the session), set:
+To **disable** the block and get a nudge-only advisory (`exit 0`), set:
 
 ```bash
 # per shell
-export LATTICE_HOOK_MODE=strict
+export LATTICE_HOOK_MODE=advisory
 ```
 
 or in `~/.claude/settings.json` env (applies to every session):
 
 ```json
-{ "env": { "LATTICE_HOOK_MODE": "strict" } }
+{ "env": { "LATTICE_HOOK_MODE": "advisory" } }
 ```
 
-Any value other than `advisory`/`strict` falls back to advisory. Strict mode is
-recommended for the dogfood repo and teams that want a best-effort guard around
-direct `gh pr create` / `gh pr merge` calls. It recognizes documented `gh`/`pr`
-repository-flag placements, but it is not a shell security sandbox and remains
-fail-open when parsing itself is unavailable or indeterminate. In strict mode,
-an unquoted `gh pr create` / `merge` mutation behind an unknown command prefix
-is conservatively treated as executable unless the prefix is a known text/search
-command. The skills themselves remain correct without hooks
-(Codex / `npx skills`).
+Any value other than `advisory`/`strict` falls back to strict. Advisory mode is
+available for sessions that want nudge-only enforcement. The hooks recognize
+documented `gh`/`pr`/`issue` repository-flag placements, but are not a shell
+security sandbox and remain fail-open when parsing itself is unavailable or
+indeterminate (including `python3` missing — see spc-212). In strict mode,
+an unquoted `gh pr create` / `merge` / `issue create` mutation behind an
+unknown command prefix is conservatively treated as executable unless the
+prefix is a known text/search command. The skills themselves remain correct
+without hooks (Codex / `npx skills`).
 
 ### Marker TTL: `LATTICE_SKILL_MARKER_TTL_HOURS`
 

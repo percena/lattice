@@ -106,13 +106,24 @@ Each ticket must declare (templates):
 | **covers** | Spec `A*` owned by this slice |
 | **paths** | Expected touch-set (approx globs) |
 | **blocked_by** | Hard deps (`none` or `#N`) |
+| **merge_blocked_by** | Merge-order dep (`none` or `#N`) — #N must MERGE before this ticket's PR lands (distinct from `blocked_by` = work-start order; usually the same). Consumed by `finish-work` multi-PR mode; falls back to `blocked_by` when absent |
 | **parallel_group** | e.g. `G1` or serial |
 | **solo-merge** | Can land alone on green main? |
 
 Path-overlapping tickets must **not** share a parallel group. Shared APIs/types belong on Spec/ADR before fan-out.  
+**Implicit shared files:** engine-style repos carry files every bundled change touches even when no ticket lists them — plugin version manifests (`.claude-plugin/marketplace.json`, `plugins/*/.claude-plugin/plugin.json`) and the changelog. They do not count as path overlap for the gate; parallel tickets touching bundled content need not coordinate on version/changelog — version bump is deferred to the dev→main release boundary (ADR-005), not enforced per-PR on the integration branch.  
 Workspace: **shippable default is sibling worktree**. Parallel degree ≥ 2 → one sibling worktree per concurrent tkt. Dependent / path-overlapping tickets **pack into one worktree** (one PR: `Fixes` primary + `Refs` related). Independence gates stay required before multi-PR.
 
 **Same Spec does not force serial:** path-independent G1 tickets → multi-worktree parallel EXECUTE.
+
+### `merge_blocked_by` (merge-order DAG)
+
+`merge_blocked_by` is the **merge-order** DAG — the order PRs must *land* in — distinct from `blocked_by` (work-start order). They are usually the same, but not always:
+
+- **Stacked PRs:** B's branch is based on A's; A must merge first or B's diff won't clean.
+- **Logical deps:** B's code calls a symbol A introduces; landing B before A breaks the base.
+
+Set `merge_blocked_by` at split time when the ticket's PR is stacked on, or logically depends on, another ticket's PR. When absent, `finish-work` multi-PR mode falls back to `blocked_by` — so existing binders work without edits. Do **not** overload `blocked_by` for merge order; the two are auditable separately.
 
 ## POST_SPLIT_CHECK
 

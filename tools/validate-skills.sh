@@ -27,9 +27,14 @@ USER_FACING=(
   create-tickets
   create-pr
   finish-work
+  batch-work
+  run-e2e
+  verify-features
   generate-wiki
   review-code
   review-production
+  review-delivery
+  review-lineage
   create-adr
 )
 
@@ -46,6 +51,8 @@ LIFECYCLE_SIX=(
 QUALITY_SIDE_PATHS=(
   review-code
   review-production
+  review-delivery
+  review-lineage
 )
 
 need_heading() {
@@ -55,6 +62,14 @@ need_heading() {
     ERR=1
   fi
 }
+
+# Single-source accessor for the user-facing catalog (tkt-411): bats fixtures
+# and other consumers read this instead of hand-duplicating the list. Must run
+# BEFORE the validation side-effects below so it exits cleanly with no ERR.
+if [[ "${1:-}" == "--list-user-facing" ]]; then
+  printf '%s\n' "${USER_FACING[@]}"
+  exit 0
+fi
 
 for name in "${USER_FACING[@]}"; do
   f="${SKILLS_DIR}/${name}/SKILL.md"
@@ -168,6 +183,99 @@ for name in "${QUALITY_SIDE_PATHS[@]}"; do
     ERR=1
   fi
 done
+
+# Registration integrity: every directory under the skills root must be a
+# registered skill (USER_FACING) or a documented exemption, and — when a
+# plugin bundle tree sits beside the skills root — must have a resolving
+# symlink in plugins/lattice/skills/. Keyed off SKILLS_DIR like the rest of
+# the script so fixture trees (LATTICE_SKILLS_DIR) work, and tolerant of
+# consumer installs where no plugins/ tree exists.
+EXEMPT=(
+  _lattice-lib # internal library install-unit (anatomy/evals exempt above)
+)
+PLUGIN_SKILLS_DIR="$(dirname "$SKILLS_DIR")/plugins/lattice/skills"
+for dir in "$SKILLS_DIR"/*/; do
+  [[ -d "$dir" ]] || continue
+  name="$(basename "$dir")"
+  registered=0
+  for known in "${USER_FACING[@]}" "${EXEMPT[@]}"; do
+    if [[ "$name" == "$known" ]]; then
+      registered=1
+      break
+    fi
+  done
+  if [[ "$registered" -ne 1 ]]; then
+    echo "ERROR: skills/$name not registered — add it to USER_FACING in tools/validate-skills.sh (or the documented EXEMPT list)" >&2
+    ERR=1
+  fi
+  if [[ -d "$PLUGIN_SKILLS_DIR" ]]; then
+    link="${PLUGIN_SKILLS_DIR}/${name}"
+    if [[ ! -L "$link" ]]; then
+      echo "ERROR: plugin bundle missing symlink for skills/$name (expected $link -> ../../../skills/$name)" >&2
+      ERR=1
+    elif [[ ! -e "$link" ]]; then
+      echo "ERROR: plugin bundle symlink does not resolve: $link" >&2
+      ERR=1
+    fi
+  fi
+done
+
+# Registration surfaces (rev-20260827-033352Z F6): every USER_FACING skill must
+# be named in BOTH manifests' `keywords` arrays and appear somewhere in
+# plugins/lattice/README.md — surfaces without a validator rot. Each file is
+# checked only when it exists, so fixture trees (LATTICE_SKILLS_DIR) and
+# consumer installs without the monorepo packaging still validate.
+REPO_BASE="$(dirname "$SKILLS_DIR")"
+MARKETPLACE_JSON="${REPO_BASE}/.claude-plugin/marketplace.json"
+PLUGIN_JSON="${REPO_BASE}/plugins/lattice/.claude-plugin/plugin.json"
+PLUGIN_README="${REPO_BASE}/plugins/lattice/README.md"
+
+# Print the contents of every `"keywords": [ ... ]` array in a JSON file
+# (grep-style on purpose: no jq dependency, matches the rest of this script).
+keywords_block() {
+  sed -n '/"keywords"[[:space:]]*:[[:space:]]*\[/,/\]/p' "$1"
+}
+
+for name in "${USER_FACING[@]}"; do
+  if [[ -f "$MARKETPLACE_JSON" ]] && ! keywords_block "$MARKETPLACE_JSON" | grep -qF "\"${name}\""; then
+    echo "ERROR: .claude-plugin/marketplace.json keywords missing \"${name}\" — every user-facing skill registers on every surface" >&2
+    ERR=1
+  fi
+  if [[ -f "$PLUGIN_JSON" ]] && ! keywords_block "$PLUGIN_JSON" | grep -qF "\"${name}\""; then
+    echo "ERROR: plugins/lattice/.claude-plugin/plugin.json keywords missing \"${name}\" — every user-facing skill registers on every surface" >&2
+    ERR=1
+  fi
+  if [[ -f "$PLUGIN_README" ]] && ! grep -qF "$name" "$PLUGIN_README"; then
+    echo "ERROR: plugins/lattice/README.md does not mention ${name} — document every shipped unit" >&2
+    ERR=1
+  fi
+done
+
+# tkt-383: mode lint — scripts named as executables in a SKILL.md must be
+# executable (0755). Scope: only scripts referenced by path in a SKILL.md
+# (the same set `skill-scripts-exist` resolves). 16 `scripts/*` files are
+# legitimately non-executable (sourced libs, transition-api.py, verify-
+# mutation.sh) — those are never named as direct executables in a SKILL.md,
+# so they are not flagged. Uses `test -x` (filesystem mode) so it works in
+# both real repos and fixture trees. Handles cross-skill references (e.g.
+# `../_lattice-lib/scripts/stamp-pr-open.sh` in create-pr/SKILL.md) by
+# resolving the full relative path from the SKILL's own directory (review F1).
+while IFS= read -r skill_md; do
+  skill_dir="$(cd "$(dirname "$skill_md")" && pwd)"
+  # Grep for full script-path references: capture any path ending in
+  # scripts/<name>.sh or scripts/<name>.py, including cross-skill refs
+  # like ../_lattice-lib/scripts/name.sh and bare scripts/name.sh
+  scripts_refs=$(grep -oE '(?:\.\./)?(?:[a-zA-Z0-9_/.-]*/)?scripts/[a-zA-Z0-9_/.-]+\.(sh|py)' "$skill_md" 2>/dev/null | sort -u || true)
+  for ref in $scripts_refs; do
+    resolved=$(cd "$skill_dir" 2>/dev/null && realpath -q "$ref" 2>/dev/null || true)
+    [[ -n "$resolved" && -f "$resolved" ]] || continue
+    if [[ ! -x "$resolved" ]]; then
+      rel="${resolved#$ROOT/}"
+      echo "ERROR: SKILL-named script is not executable: $rel (referenced in ${skill_md#$ROOT/})" >&2
+      ERR=1
+    fi
+  done
+done < <(find "$SKILLS_DIR" -name SKILL.md -type f 2>/dev/null)
 
 if [[ "$ERR" -ne 0 ]]; then
   echo "validate-skills: FAILED" >&2

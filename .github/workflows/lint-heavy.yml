@@ -2,7 +2,7 @@ name: lint-heavy
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "skills/**"
       - "tools/**"
@@ -41,11 +41,23 @@ jobs:
         run: bash tools/validate-skills.sh
       - name: Validate plugin versions and cache identities
         env:
+          # PLUGIN_RELEASE_CHECK has two arms (tkt-239 documentation):
+          #   pull_request && base.ref==main  -> PREVENTER (pre-merge gate).
+          #     This is the arm that blocks a bundled-without-bump merge BEFORE
+          #     it reaches main. Make this job a REQUIRED status check via main
+          #     branch protection so a direct push / admin-merge cannot bypass it.
+          #   push && ref==refs/heads/main    -> TRIPWIRE (post-merge detector).
+          #     A push to main fires AFTER the merge landed, so it can only
+          #     report red on main post-hoc — not a gate. It exists to detect a
+          #     bypass of the PR preventer, not to prevent it.
           PLUGIN_VERSION_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PLUGIN_RELEASE_CHECK: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
           PLUGIN_INITIAL_PUBLISH: ${{ github.event_name == 'push' && github.event.created }}
         run: |
           if [[ "$PLUGIN_INITIAL_PUBLISH" == "true" ]]; then
             python3 tools/validate-plugin-versions.py --initial-publish
+          elif [[ "$PLUGIN_RELEASE_CHECK" == "true" ]]; then
+            python3 tools/validate-plugin-versions.py --base-ref "$PLUGIN_VERSION_BASE_REF" --release-check
           else
             python3 tools/validate-plugin-versions.py --base-ref "$PLUGIN_VERSION_BASE_REF"
           fi

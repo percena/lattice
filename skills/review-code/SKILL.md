@@ -65,6 +65,8 @@ metadata:
 
 **Related ≠ unbounded.** Prefer files in the diff, plus their direct interface consumers. Any related read: one-line why. Cap related exploration — trace one hop out from the change, not the entire call graph.
 
+**Sanctioned exception — release-boundary merge review** (ADR-010; see `references/policy.md` § Unit of analysis). A dev→main release merge (`origin/main...dev`, or `<last-release>...dev`) is an **allowed** larger-than-one-PR unit when the operator explicitly opts in (`--release-merge` / `--merge-review`, or `base=<release>` change set) — it is **not** refused as a "portfolio of unrelated PRs." Distinguish from unbounded default-branch "review everything" with no change set, which **remains refused** (target-order item #6). When invoked, **partition** the diff into subsystem slices (validator/scripts/CI/hooks/routing/skills/docs), **tier risk by file class** (`.lattice/**` + `docs/`/ADRs = low-risk bulk; `tools/`, `skills/**/scripts/`, `plugins/lattice/hooks/`, `.github/workflows/` = high-risk logic), run `ci-local.sh --release-check` as a first-class axis, and carry a coarser **release-blocking vs ship-as-is** finding bar.
+
 If the user explicitly requests architecture / whole-repo work: **do not** silently expand; redirect to `create-review` and/or a Spec.
 
 ## Inputs (target resolution)
@@ -76,7 +78,8 @@ Resolve in order (unless user overrides):
 3. **Dirty working tree** (staged, unstaged, **untracked**) → `review-context.py` with no args; announce unit clearly
 4. Clean feature branch → `review-context.py --branch HEAD --base <base>` or `git merge-base` + `git diff base...HEAD`
 5. Optional **date-range** only when user asks (`--since` / `--until`) — not the default unit
-6. **Refuse** default-branch “review everything” with no change set — ask for PR/branch/diff
+6. **Release-boundary merge review** (sanctioned exception, ADR-010): `origin/main...dev` (or `<last-release>...dev`) with explicit opt-in (`--release-merge` / `--merge-review`, or `base=<release>`). Partition into subsystem slices; tier risk by file class; run `ci-local.sh --release-check`; coarser **release-blocking vs ship-as-is** bar. See `references/policy.md`.
+7. **Refuse** default-branch “review everything” with no change set **and no opt-in** — ask for PR/branch/diff
 
 **Shippable cwd:** reading is fine anywhere. Writing tests/fixes defaults to a bound sibling worktree; a reasoned unbound workspace or explicitly authorized clean base-direct path is also allowed.
 
@@ -87,7 +90,7 @@ Large change sets: start with context script / status / `--stat` / file list; se
 ### 1. Orient (short)
 
 - Run context script when available; else title/body or branch; base or WT state; file list
-- Announce: `mode: review-code · unit: pr-N | working-tree | branch-diff | commit-range · files: K · stance: root-cause-light`
+- Announce: `mode: review-code · unit: pr-N | working-tree | branch-diff | commit-range | release-merge · files: K · stance: root-cause-light`
 
 ### 2. Stance and axes (root-cause light)
 
@@ -113,8 +116,10 @@ Skip deep threat modeling, load testing, full coverage matrices (`review-product
 
 Run CI/CD, syntax/lint, docs-sync, and interface-impact checks on the change set. These produce **candidate findings** that feed into the material-finding bar (Step 4). Load the relevant reference for each.
 
+**Release-boundary merge review only:** additionally run `bash tools/ci-local.sh --release-check` as a first-class axis (the ADR-005 version-increment gate). Partition the diff into subsystem slices (validator/scripts/CI/hooks/routing/skills/docs) and tier risk by file class (`.lattice/**` + `docs/`/ADRs = low-risk bulk skim; `tools/`, `skills/**/scripts/`, `plugins/lattice/hooks/`, `.github/workflows/` = high-risk logic) — do not deep-review each binder. Carry a coarser **release-blocking vs ship-as-is** finding bar.
+
 **CI/CD** (`references/ci-check.md`):
-- PR mode: `gh pr checks <PR_N> --json name,state,conclusion,link`
+- PR mode: `gh pr checks <PR_N> --json name,state,link`
 - Branch mode: `gh run list --branch <branch> --limit 10 --json databaseId,status,conclusion,name,event`
 - For failures: `gh run view <databaseId> --log-failed | head -50` — extract failing step + error
 - No `gh` or no workflows → one line "no CI runs available", not a finding
@@ -239,7 +244,7 @@ Do **not** invoke `finish-work` or claim merge is tool-blocked.
 | “Just auto-fix the lint errors while reviewing” | Hard stop — present, then fix only if user confirms |
 | “Report the problem, let the user find the fix” | Bad UX — always provide recommended solution + alternatives |
 | “Only check the diff files, ignore callers” | One-hop interface-adjacent code is in scope to detect breakage |
-| “No PR yet — audit the entire repo” | Need a change set; refuse unbounded |
+| “No PR yet — audit the entire repo” | Need a change set; refuse unbounded **unless** release-boundary opt-in (`--release-merge`) |
 | “create-review is the same as code review” | create-review = report/`rev`; this skill = change-set quality |
 | “Always add tests” | Only when user explicitly asks |
 | “Fail finish-work on findings” | Advice only; lifecycle gates unchanged |
@@ -283,3 +288,4 @@ Before claiming done:
 - [ ] **Docs sync checked** against README/docs/wiki/CLAUDE.md/SKILL.md for behavior/interface changes
 - [ ] **Hard stop** — no tree edits unless user explicitly requested tests/fixes
 - [ ] Did not gate or run finish-work / create-pr unless user also asked for those skills separately
+- [ ] If release-boundary merge review: `ci-local.sh --release-check` run; diff partitioned into subsystem slices; risk tiered by file class; findings classed release-blocking vs ship-as-is

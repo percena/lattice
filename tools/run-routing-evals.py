@@ -24,17 +24,24 @@ SKILLS_DIR = ROOT / "skills"
 CASES_DIR = ROOT / "evals" / "routing"
 
 # All user-facing skills with routing cases. Internal `_` packages are excluded.
+# Must stay set-equal to USER_FACING in tools/validate-skills.sh — asserted by
+# tools/tests/routing-catalog-parity.bats.
 CATALOG = [
     "start-work",
     "create-spec",
     "create-review",
     "create-tickets",
+    "batch-work",
     "create-pr",
     "finish-work",
     "generate-wiki",
     "create-adr",
+    "run-e2e",
+    "verify-features",
     "review-code",
     "review-production",
+    "review-delivery",
+    "review-lineage",
 ]
 
 LATIN_TOKEN_RE = re.compile(r"[a-z0-9]+", re.I)
@@ -157,13 +164,23 @@ def main() -> int:
     positive_total = 0
     rank1_hits = 0
     topk_hits = 0
+    per_skill_pos: dict[str, int] = {}
+    per_skill_rank1: dict[str, int] = {}
 
     for name in CATALOG:
         case = cases[name]
         if case.get("skill_name") != name:
             print(f"ERROR: {name}.json skill_name mismatch")
             errors += 1
-        for item in case.get("trigger", {}).get("positive", []):
+        positives = case.get("trigger", {}).get("positive", [])
+        per_skill_pos[name] = len(positives)
+        per_skill_rank1[name] = 0
+        # A zero-positive case file silently removes the skill from the gate:
+        # the global floor only ever sees the survivors. Fail loudly instead.
+        if not positives:
+            print(f"ERROR: {name}.json has zero trigger.positive prompts — the skill is uncovered by the routing gate")
+            errors += 1
+        for item in positives:
             prompt = item["prompt"]
             top_k = int(item.get("top_k", 3))
             ranked = rank_skills(prompt, skill_vecs, idf)
@@ -171,6 +188,7 @@ def main() -> int:
             order = [n for n, _ in ranked]
             if order and order[0] == name:
                 rank1_hits += 1
+                per_skill_rank1[name] += 1
             if name in order[:top_k]:
                 topk_hits += 1
             else:
@@ -205,6 +223,8 @@ def main() -> int:
         f"routing: positives={positive_total} rank1={rank1_hits} ({rank1_pct:.1f}%) "
         f"top_k_ok={topk_hits} ({topk_pct:.1f}%) warnings={warnings} errors={errors}"
     )
+    for name in CATALOG:
+        print(f"routing: {name}: positives={per_skill_pos[name]} rank1={per_skill_rank1[name]}")
     print(f"routing: floor min-rank1={args.min_rank1}%")
 
     if rank1_pct + 1e-9 < args.min_rank1:

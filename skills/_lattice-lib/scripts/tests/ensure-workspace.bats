@@ -25,40 +25,59 @@ teardown() {
 @test "branch mode with tkt bind creates and checks out bound branch" {
   run bash "$ENSURE" --mode branch --bind tkt --id 12 --slug demo-work
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"branch": "tkt-12-demo-work"'* ]]
+  printf '%s\n' "$output" | grep -qF '"branch": "tkt-12-demo-work"'
   [ "$(git branch --show-current)" = "tkt-12-demo-work" ]
+}
+
+@test "branch mode under strict warns that L2/L3 write-block (F2)" {
+  mkdir -p "$MAIN/.lattice"
+  printf 'profile: strict\n' >"$MAIN/.lattice/config.yaml"
+  git -C "$MAIN" add .lattice && git -C "$MAIN" commit -q -m cfg
+  run bash "$ENSURE" --mode branch --bind tkt --id 13 --slug demo 2>&1
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "L2/L3 write-block"
+  printf '%s\n' "$output" | grep -qF -- "--mode worktree"
+}
+
+@test "branch mode under light does not emit the L2/L3 write-block warning" {
+  mkdir -p "$MAIN/.lattice"
+  printf 'profile: light\n' >"$MAIN/.lattice/config.yaml"
+  git -C "$MAIN" add .lattice && git -C "$MAIN" commit -q -m cfg
+  run bash "$ENSURE" --mode branch --bind tkt --id 14 --slug demo 2>&1
+  [ "$status" -eq 0 ]
+  [ -z "$(printf '%s\n' "$output" | grep -F "L2/L3 write-block")" ]
 }
 
 @test "branch mode refuses dirty tree" {
   echo x > dirty.txt
   run bash "$ENSURE" --mode branch --bind tkt --id 12 --slug demo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"dirty"* ]]
+  printf '%s\n' "$output" | grep -qF "dirty"
 }
 
 @test "worktree mode refuses unbound branch names without an explicit reasoned escape" {
   run bash "$ENSURE" --mode worktree --branch improve/foo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must bind a ticket or Spec"* ]] || [[ "$output" == *"tkt-"* ]]
+  printf '%s\n' "$output" | grep -qF "must bind a ticket or Spec" || printf '%s\n' "$output" | grep -qF "tkt-"
 }
 
 @test "branch mode also refuses unbound branch names without an explicit reasoned escape" {
   run bash "$ENSURE" --mode branch --branch improve/foo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must bind a ticket or Spec"* ]] || [[ "$output" == *"tkt-"* ]]
+  printf '%s\n' "$output" | grep -qF "must bind a ticket or Spec" || printf '%s\n' "$output" | grep -qF "tkt-"
 }
 
 @test "unbound workspace escape requires a reason" {
   run bash "$ENSURE" --mode worktree --branch smoke-test --allow-unbound
   [ "$status" -eq 1 ]
-  [[ "$output" == *"requires --reason"* ]]
+  printf '%s\n' "$output" | grep -qF "requires --reason"
 }
 
 @test "reasoned unbound workspace escape succeeds and is visible in JSON" {
   run bash "$ENSURE" --mode worktree --branch improve/better-plan --allow-unbound --reason "PR and branch record owner, scope, and rollback"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"bound": false'* ]]
-  [[ "$output" == *'"escape_reason": "PR and branch record owner, scope, and rollback"'* ]]
+  printf '%s\n' "$output" | grep -qF '"bound": false'
+  printf '%s\n' "$output" | grep -qF '"escape_reason": "PR and branch record owner, scope, and rollback"'
   [ -d "$TEST_DIR/repo.worktrees/improve-better-plan" ]
 }
 
@@ -66,13 +85,13 @@ teardown() {
   git -C "$MAIN" branch release
   run bash "$ENSURE" --mode branch --branch release --base refs/heads/release --allow-unbound --reason "direct release work"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"protected/team-base branch"* ]]
+  printf '%s\n' "$output" | grep -qF "protected/team-base branch"
 }
 
 @test "worktree lands in sibling <repo>.worktrees pool by default" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug pool-check
   [ "$status" -eq 0 ]
-  [[ "$output" == *"repo.worktrees/tkt-7-pool-check"* ]]
+  printf '%s\n' "$output" | grep -qF "repo.worktrees/tkt-7-pool-check"
   [ -d "$TEST_DIR/repo.worktrees/tkt-7-pool-check" ]
   git -C "$TEST_DIR/repo.worktrees/tkt-7-pool-check" rev-parse --is-inside-work-tree
 }
@@ -88,32 +107,32 @@ teardown() {
 @test "type prefix produces feat/tkt-N-slug and dashes in path" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 9 --slug typed --type feat
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"branch": "feat/tkt-9-typed"'* ]]
+  printf '%s\n' "$output" | grep -qF '"branch": "feat/tkt-9-typed"'
   [ -d "$TEST_DIR/repo.worktrees/feat-tkt-9-typed" ]
 }
 
 @test "slug is normalized (case, spaces, punctuation)" {
   run bash "$ENSURE" --mode branch --bind tkt --id 3 --slug "My Fancy_Slug!!"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"branch": "tkt-3-my-fancy-slug"'* ]]
+  printf '%s\n' "$output" | grep -qF '"branch": "tkt-3-my-fancy-slug"'
 }
 
 @test "spc bind normalizes zero-padded id" {
   run bash "$ENSURE" --mode branch --bind spc --id 001 --slug model
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"branch": "spc-1-model"'* ]]
+  printf '%s\n' "$output" | grep -qF '"branch": "spc-1-model"'
 }
 
 @test "spc bind rejects id 0" {
   run bash "$ENSURE" --mode branch --bind spc --id 0 --slug fake
   [ "$status" -ne 0 ]
-  [[ "$output" == *"real Spec primary issue"* ]] || [[ "$output" == *"≥1"* ]]
+  printf '%s\n' "$output" | grep -qF "real Spec primary issue" || printf '%s\n' "$output" | grep -qF "≥1"
 }
 
 @test "pre-formed spc-0 branch is rejected" {
   run bash "$ENSURE" --mode worktree --branch spc-0-fake
   [ "$status" -eq 1 ]
-  [[ "$output" == *"spc-0"* ]] || [[ "$output" == *"spc-<n≥1>"* ]]
+  printf '%s\n' "$output" | grep -qF "spc-0" || printf '%s\n' "$output" | grep -qF "spc-<n≥1>"
 }
 
 @test "idempotent: re-running on existing branch succeeds" {
@@ -132,16 +151,16 @@ teardown() {
 
   run env LATTICE_SKIP_FETCH=1 bash "$ENSURE" --mode worktree --branch tkt-29-reuse --base main
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"reused_existing_branch": true'* ]]
-  [[ "$output" == *"\"base_start_oid\": \"$new\""* ]]
-  [[ "$output" == *"\"workspace_head_oid\": \"$old\""* ]]
+  printf '%s\n' "$output" | grep -qF '"reused_existing_branch": true'
+  printf '%s\n' "$output" | grep -qF "\"base_start_oid\": \"$new\""
+  printf '%s\n' "$output" | grep -qF "\"workspace_head_oid\": \"$old\""
   [ "$(git -C "$TEST_DIR/repo.worktrees/tkt-29-reuse" rev-parse HEAD)" = "$old" ]
 }
 
 @test "new branch workspace head matches resolved base start" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 30 --slug fresh-head
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"reused_existing_branch": false'* ]]
+  printf '%s\n' "$output" | grep -qF '"reused_existing_branch": false'
   # bats $output mixes streams; grab the JSON object line.
   base_oid=$(printf '%s\n' "$output" | python3 -c 'import sys,json,re; t=sys.stdin.read(); m=re.search(r"\{.*\}", t, re.S); d=json.loads(m.group()); print(d["base_start_oid"])')
   head_oid=$(printf '%s\n' "$output" | python3 -c 'import sys,json,re; t=sys.stdin.read(); m=re.search(r"\{.*\}", t, re.S); d=json.loads(m.group()); print(d["workspace_head_oid"])')
@@ -151,33 +170,33 @@ teardown() {
 @test "tkt bind rejects id 0" {
   run bash "$ENSURE" --mode branch --bind tkt --id 0 --slug fake
   [ "$status" -ne 0 ]
-  [[ "$output" == *"real GitHub issue"* ]] || [[ "$output" == *"≥1"* ]] || [[ "$output" == *">=1"* ]] || [[ "$output" == *"got: 0"* ]]
+  printf '%s\n' "$output" | grep -qF "real GitHub issue" || printf '%s\n' "$output" | grep -qF "≥1" || printf '%s\n' "$output" | grep -qF ">=1" || printf '%s\n' "$output" | grep -qF "got: 0"
 }
 
 @test "branch name tkt-0-* is rejected by bound pattern" {
   run bash "$ENSURE" --mode worktree --branch tkt-0-fake
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must bind"* ]] || [[ "$output" == *"tkt-"* ]]
+  printf '%s\n' "$output" | grep -qF "must bind" || printf '%s\n' "$output" | grep -qF "tkt-"
 }
 
 @test "pre-formed bound --branch without --bind is accepted" {
   run bash "$ENSURE" --mode worktree --branch tkt-15-preformed
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"branch": "tkt-15-preformed"'* ]]
+  printf '%s\n' "$output" | grep -qF '"branch": "tkt-15-preformed"'
   [ -d "$TEST_DIR/repo.worktrees/tkt-15-preformed" ]
 }
 
 @test "JSON includes cd_hint for worktree mode" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 20 --slug cd-hint
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"cd_hint":'* ]]
-  [[ "$output" == *"tkt-20-cd-hint"* ]]
+  printf '%s\n' "$output" | grep -qF '"cd_hint":'
+  printf '%s\n' "$output" | grep -qF "tkt-20-cd-hint"
 }
 
 @test "default base prefers explicit --base over origin HEAD" {
   run bash "$ENSURE" --mode branch --bind tkt --id 21 --slug base-flag --base main
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"base": "main"'* ]]
+  printf '%s\n' "$output" | grep -qF '"base": "main"'
 }
 
 @test "fully qualified explicit base ref controls the actual branch start" {
@@ -189,9 +208,9 @@ teardown() {
 
   run bash "$ENSURE" --mode worktree --bind tkt --id 25 --slug qualified-base --base refs/heads/release
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"base": "refs/heads/release"'* ]]
-  [[ "$output" == *'"base_start": "refs/heads/release"'* ]]
-  [[ "$output" == *"\"base_start_oid\": \"$release_oid\""* ]]
+  printf '%s\n' "$output" | grep -qF '"base": "refs/heads/release"'
+  printf '%s\n' "$output" | grep -qF '"base_start": "refs/heads/release"'
+  printf '%s\n' "$output" | grep -qF "\"base_start_oid\": \"$release_oid\""
   [ "$(git -C "$TEST_DIR/repo.worktrees/tkt-25-qualified-base" rev-parse HEAD)" = "$release_oid" ]
 }
 
@@ -206,15 +225,15 @@ teardown() {
 
   run env LATTICE_SKIP_FETCH=1 bash "$ENSURE" --mode worktree --bind tkt --id 27 --slug qualified-remote --base refs/remotes/origin/release
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"base_start": "refs/remotes/origin/release"'* ]]
-  [[ "$output" == *"\"base_start_oid\": \"$remote_oid\""* ]]
+  printf '%s\n' "$output" | grep -qF '"base_start": "refs/remotes/origin/release"'
+  printf '%s\n' "$output" | grep -qF "\"base_start_oid\": \"$remote_oid\""
   [ "$(git -C "$TEST_DIR/repo.worktrees/tkt-27-qualified-remote" rev-parse HEAD)" = "$remote_oid" ]
 }
 
 @test "missing explicit base fails instead of silently using current HEAD" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 26 --slug missing-base --base refs/heads/does-not-exist
   [ "$status" -eq 1 ]
-  [[ "$output" == *"resolved base is not available"* ]]
+  printf '%s\n' "$output" | grep -qF "resolved base is not available"
   [ ! -d "$TEST_DIR/repo.worktrees/tkt-26-missing-base" ]
 }
 
@@ -248,8 +267,8 @@ EOF
 
   run env PATH="$TEST_DIR/bin:$PATH" LATTICE_SKIP_FETCH=1 bash "$ENSURE" --mode worktree --bind tkt --id 24 --slug live-default
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"base": "main"'* ]]
-  [[ "$output" == *'"base_source": "integration-branch:user_branch"'* ]]
+  printf '%s\n' "$output" | grep -qF '"base": "main"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "integration-branch:user_branch"'
   [ "$(git -C "$TEST_DIR/repo.worktrees/tkt-24-live-default" rev-parse HEAD)" = "$(git -C "$MAIN" rev-parse main)" ]
 }
 
@@ -261,8 +280,8 @@ EOF
 
   run env PATH="$TEST_DIR/bin:$PATH" LATTICE_SKIP_FETCH=1 bash "$ENSURE" --mode worktree --bind tkt --id 24 --slug live-default
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"base": "dev"'* ]]
-  [[ "$output" == *'"base_source": "gh-default"'* ]]
+  printf '%s\n' "$output" | grep -qF '"base": "dev"'
+  printf '%s\n' "$output" | grep -qF '"base_source": "gh-default"'
   [ "$(git -C "$TEST_DIR/repo.worktrees/tkt-24-live-default" rev-parse HEAD)" = "$(git -C "$MAIN" rev-parse dev)" ]
 }
 
@@ -277,7 +296,7 @@ EOF
 
   run bash "$ENSURE" --mode worktree --bind tkt --id 30 --slug injected
   [ "$status" -eq 1 ]
-  [[ "$output" == *"must not start with '-'"* ]]
+  printf '%s\n' "$output" | grep -qF "must not start with '-'"
   [ ! -e "$TEST_DIR/pwned" ]
   [ ! -d "$TEST_DIR/repo.worktrees/tkt-30-injected" ]
 }
@@ -285,7 +304,7 @@ EOF
 @test "explicit --base with a malformed ref name is refused" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 31 --slug badbase --base "bad..name"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not a valid git ref name"* ]]
+  printf '%s\n' "$output" | grep -qF "not a valid git ref name"
 }
 
 @test "successful fetch makes a short base use the fresh remote tip instead of stale local branch" {
@@ -309,9 +328,9 @@ EOF
 
   run bash "$ENSURE" --mode worktree --bind tkt --id 28 --slug fresh-short-base --base dev
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"fetched": true'* ]]
-  [[ "$output" == *'"base_start": "refs/remotes/origin/dev"'* ]]
-  [[ "$output" == *"\"base_start_oid\": \"$remote_oid\""* ]]
+  printf '%s\n' "$output" | grep -qF '"fetched": true'
+  printf '%s\n' "$output" | grep -qF '"base_start": "refs/remotes/origin/dev"'
+  printf '%s\n' "$output" | grep -qF "\"base_start_oid\": \"$remote_oid\""
   [ "$(git -C "$TEST_DIR/repo.worktrees/tkt-28-fresh-short-base" rev-parse HEAD)" = "$remote_oid" ]
 }
 
@@ -322,8 +341,8 @@ EOF
   git -C "$MAIN" push -q -u origin main
   run env LATTICE_SKIP_FETCH=0 bash "$ENSURE" --mode worktree --bind tkt --id 33 --slug fetch-falsy --base main
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"fetched": true'* ]]
-  [[ "$output" != *"skip fetch"* ]]
+  printf '%s\n' "$output" | grep -qF '"fetched": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F "skip fetch")" ]
 }
 
 @test "LATTICE_SKIP_FETCH=false still fetches" {
@@ -333,7 +352,7 @@ EOF
   git -C "$MAIN" push -q -u origin main
   run env LATTICE_SKIP_FETCH=false bash "$ENSURE" --mode worktree --bind tkt --id 34 --slug fetch-false --base main
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"fetched": true'* ]]
+  printf '%s\n' "$output" | grep -qF '"fetched": true'
 }
 
 @test "LATTICE_SKIP_FETCH=true skips the fetch (case-insensitive truthy)" {
@@ -343,17 +362,17 @@ EOF
   git -C "$MAIN" push -q -u origin main
   run env LATTICE_SKIP_FETCH=TRUE bash "$ENSURE" --mode worktree --bind tkt --id 35 --slug fetch-skip --base main
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skip fetch"* ]]
-  [[ "$output" == *'"fetched": false'* ]]
+  printf '%s\n' "$output" | grep -qF "skip fetch"
+  printf '%s\n' "$output" | grep -qF '"fetched": false'
 }
 
 @test "failed worktree add removes the branch created this run (no residue)" {
   touch "$TEST_DIR/blocker"
   run bash "$ENSURE" --mode worktree --bind tkt --id 36 --slug residue --path "$TEST_DIR/blocker"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"worktree add failed"* ]]
-  [[ "$output" == *"removed just-created branch 'tkt-36-residue'"* ]]
-  ! git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-36-residue
+  printf '%s\n' "$output" | grep -qF "worktree add failed"
+  printf '%s\n' "$output" | grep -qF "removed just-created branch 'tkt-36-residue'"
+  if git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-36-residue; then false; fi
 }
 
 @test "failed worktree add never deletes a reused pre-existing branch" {
@@ -361,24 +380,24 @@ EOF
   touch "$TEST_DIR/blocker2"
   run bash "$ENSURE" --mode worktree --branch tkt-37-keep --path "$TEST_DIR/blocker2"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"worktree add failed"* ]]
-  [[ "$output" == *"left untouched"* ]]
+  printf '%s\n' "$output" | grep -qF "worktree add failed"
+  printf '%s\n' "$output" | grep -qF "left untouched"
   git -C "$MAIN" show-ref --verify --quiet refs/heads/tkt-37-keep
 }
 
 @test "worktree lattice_home points at worktree path when LATTICE_HOME unset" {
   run bash "$ENSURE" --mode worktree --bind tkt --id 22 --slug home-path
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"lattice_home":'* ]]
+  printf '%s\n' "$output" | grep -qF '"lattice_home":'
   # Must be the sibling worktree's .lattice, not the main checkout's
-  [[ "$output" == *"repo.worktrees/tkt-22-home-path/.lattice"* ]]
+  printf '%s\n' "$output" | grep -qF "repo.worktrees/tkt-22-home-path/.lattice"
 }
 
 @test "worktree honours explicit LATTICE_HOME env" {
   export LATTICE_HOME="$TEST_DIR/custom-lattice"
   run bash "$ENSURE" --mode worktree --bind tkt --id 23 --slug home-env
   [ "$status" -eq 0 ]
-  [[ "$output" == *"custom-lattice"* ]]
+  printf '%s\n' "$output" | grep -qF "custom-lattice"
   unset LATTICE_HOME
 }
 
@@ -386,14 +405,14 @@ EOF
   mkdir -p "$MAIN/inner"
   run bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug demo --path "$MAIN/inner"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not a worktree root"* ]]
+  printf '%s\n' "$output" | grep -qF "not a worktree root"
 }
 
 @test "existing non-git directory at the worktree path is rejected" {
   mkdir -p "$TEST_DIR/repo.worktrees/tkt-7-demo"
   run bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug demo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not a git worktree"* ]]
+  printf '%s\n' "$output" | grep -qF "not a git worktree"
 }
 
 @test "another repository's worktree at the bound path is never adopted" {
@@ -412,7 +431,7 @@ EOF
   cd "$MAIN"
   run env WORKTREE_ROOT="$SHARED" bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug demo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"belongs to another repository"* ]]
+  printf '%s\n' "$output" | grep -qF "belongs to another repository"
 }
 
 @test "existing worktree on the wrong branch is rejected with a stale hint" {
@@ -421,21 +440,21 @@ EOF
   git -C "$WT" checkout -q --detach
   run bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug demo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"expected 'tkt-7-demo'"* ]]
+  printf '%s\n' "$output" | grep -qF "expected 'tkt-7-demo'"
 }
 
 @test "idempotent: re-running on existing correct worktree succeeds" {
   bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug demo >/dev/null
   run bash "$ENSURE" --mode worktree --bind tkt --id 7 --slug demo
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"ok": true'* ]]
-  [[ "$output" == *'"branch": "tkt-7-demo"'* ]]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  printf '%s\n' "$output" | grep -qF '"branch": "tkt-7-demo"'
 }
 
 @test "new date-shaped spc bind fails closed" {
   run bash "$ENSURE" --mode branch --bind spc --id 2026-07-27 --slug demo
   [ "$status" -eq 1 ]
-  [[ "$output" == *"date-shaped spc id is no longer accepted"* ]]
+  printf '%s\n' "$output" | grep -qF "date-shaped spc id is no longer accepted"
 }
 
 @test "branch-create race: concurrent same-bind create is adopted as reuse" {
@@ -457,6 +476,25 @@ SHIMEOF
   chmod +x "$SHIM/git"
   run env PATH="$SHIM:$PATH" bash "$ENSURE" --mode worktree --bind tkt --id 38 --slug race --base main
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"reused_existing_branch": true'* ]]
-  [[ "$output" != *"could not create branch"* ]]
+  printf '%s\n' "$output" | grep -qF '"reused_existing_branch": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F "could not create branch")" ]
+}
+
+@test "symlinked entrypoint resolves back to trusted install, not a consumer fake (tkt-239)" {
+  # Place a fake _lattice-home.sh beside a symlink to ensure-workspace.sh.
+  # With resolve_script_dir, SCRIPT_DIR_ENSURE resolves through the symlink
+  # to the trusted repo scripts dir -> the REAL _lattice-home.sh is sourced
+  # and the consumer fake is NOT (in-process RCE prevention).
+  CONSUMER="$TEST_DIR/consumer/scripts"
+  SENTINEL="$TEST_DIR/fake-home-sourced"
+  mkdir -p "$CONSUMER"
+  ln -s "$ENSURE" "$CONSUMER/ensure-workspace.sh"
+  cat >"$CONSUMER/_lattice-home.sh" <<EOF
+#!/usr/bin/env bash
+printf 'fake\n' > "$SENTINEL"
+lattice_profile() { printf 'strict\n'; }
+EOF
+  run bash "$CONSUMER/ensure-workspace.sh" --mode branch --bind tkt --id 240 --slug symtest
+  [ "$status" -eq 0 ]
+  [ ! -f "$SENTINEL" ]
 }

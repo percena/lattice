@@ -8,9 +8,9 @@ Thanks for helping improve **Lattice** — the workflow engine monorepo (portabl
 | --- | --- |
 | Skills are the logic SoT | Edit `skills/<name>/` — do not fork skill bodies under `plugins/` |
 | Plugins package only | `plugins/lattice/skills/*` symlink to repo-root `skills/`; own `plugin.json` + hooks only |
-| One Claude plugin | `lattice@percena` packs all six lifecycle skills + `_lattice-lib` |
+| One Claude plugin | `lattice@percena` packs **every** shipped skill (lifecycle six, side-paths, optional skills, `_lattice-lib`) via `plugins/lattice/skills/` symlinks — enforced by the registration-integrity check in `tools/validate-skills.sh` |
 | Shared scripts | Lattice runtime helpers live in `skills/_lattice-lib/`. Maintainer tools live in `tools/` |
-| Doc/tool skills | `generate-*` (e.g. `generate-wiki`) stay optional, standalone, and do **not** depend on `_lattice-lib` or auto-pack into `lattice@percena`; `create-adr` is also optional/non-loop but **does** co-install `_lattice-lib` (writes durable `docs/adr/` L0 doc, uses `ensure-lattice` / `assert-shippable-cwd`) |
+| Doc/tool skills | `generate-*` (e.g. `generate-wiki`) stay optional, standalone, and do **not** depend on `_lattice-lib` (they are still symlinked into the plugin bundle like every shipped skill); `create-adr` is also optional/non-loop but **does** co-install `_lattice-lib` (writes durable `docs/adr/` L0 doc, uses `ensure-lattice` / `assert-shippable-cwd`) |
 | Dogfood Lattice | Prefer `/start-work` → … → `/create-pr` → `/finish-work` when changing this repo |
 
 ## What to read first
@@ -23,12 +23,9 @@ Thanks for helping improve **Lattice** — the workflow engine monorepo (portabl
 ## Local development
 
 ```bash
-# Skills from this checkout
-npx skills add . \
-  --skill _lattice-lib \
-  --skill start-work --skill create-spec --skill create-review \
-  --skill create-tickets --skill create-pr --skill finish-work \
-  -a claude-code -a codex -y
+# Skills from this checkout — no --skill flags = every shipped skill
+# (lifecycle six + side-paths + _lattice-lib; list stays in tools/validate-skills.sh USER_FACING)
+npx skills add . -a claude-code -a codex -y
 
 # Claude plugin from this checkout (note: --plugin-dir does not follow out-of-tree symlinks)
 claude --plugin-dir ./plugins/lattice
@@ -37,13 +34,35 @@ claude --plugin-dir ./plugins/lattice
 claude plugin validate .
 claude plugin validate plugins/lattice
 bash tools/validate-skills.sh
-python3 tools/validate-plugin-versions.py --base-ref origin/main
+# Dev validation (lenient: only checks version does not decrease):
+python3 tools/validate-plugin-versions.py --base-ref origin/dev
+# Release-boundary check (strict: bundled change requires version bump):
+# python3 tools/validate-plugin-versions.py --base-ref origin/main --release-check
 
 # Tests
 bats plugins/lattice/scripts/tests/
 # skill script suites:
 # bats skills/*/scripts/tests/   (as discovered in CI)
 ```
+
+## Adding a new skill
+
+"Register a new skill" spans many surfaces; missing any one of them ships a silent gap — every drifted surface in audit rev-20260827-033352Z F6 was exactly a surface this checklist used to omit. Work through the checklist, one surface per line — `bash tools/validate-skills.sh` enforces 1, 2, and 4–7; `tools/tests/routing-catalog-parity.bats` enforces 12:
+
+1. [ ] `skills/<name>/` — `SKILL.md` with frontmatter (`name:`, `description:`, `metadata.agents: "claude-code,codex"`) and anatomy headings (`## Common Rationalizations`, `## Red Flags`, `## Verification`)
+2. [ ] `tools/validate-skills.sh` — add the skill to `USER_FACING` (or, for internal install-units only, the documented `EXEMPT` list)
+3. [ ] `tools/tests/validate-skills.bats` — add the skill to the `build_green_tree` user-facing fixture list (the suite fails otherwise)
+4. [ ] Plugin bundle — `plugins/lattice/skills/<name>` symlink (3-level relative: `../../../skills/<name>`)
+5. [ ] `plugins/lattice/.claude-plugin/plugin.json` — description + `keywords` entry
+6. [ ] `.claude-plugin/marketplace.json` — plugin description + `keywords` entry (must agree with plugin.json)
+7. [ ] `plugins/lattice/README.md` — component table row, Skills bullet, install example
+8. [ ] `README.md` — skill table row
+9. [ ] `README.zh-CN.md` — mirrored skill table row
+10. [ ] `docs/getting-started.md` — skill table
+11. [ ] `llms.txt` — skills list one-liner
+12. [ ] Routing — `tools/run-routing-evals.py` `CATALOG` entry + `evals/routing/<name>.json` case (catalog parity with `USER_FACING` is bats-enforced)
+13. [ ] `skills/_lattice-lib/SKILL.md` — script-table row for any new `_lattice-lib` runtime script the skill ships
+14. [ ] Version bump at dev→main merge — `plugins/lattice/CHANGELOG.md` + plugin version (release-boundary enforcement via `--release-check`; dev merges are lenient)
 
 ## Testing
 
@@ -54,6 +73,16 @@ BATS_TEST_TMPDIR=$(mktemp -d) bats <suite-dir>
 ```
 
 New tests should prefer self-managed temp dirs (`mktemp -d` in `setup`, cleaned up in `teardown`) rather than adding new `BATS_TEST_TMPDIR` dependencies.
+
+### Assertion ergonomics (enforced by `tools/check-bats-assertions.py`)
+
+bash `set -e` never fires on a failing `[[ … ]]` (compound command) or `! cmd` (negation) outside a test body's last command — such assertions are silently decorative. Write assertions in errexit-effective forms:
+
+- content match: `printf '%s\n' "$output" | grep -qF 'literal'` (or `grep -qE` for regexes)
+- negative match: `[ -z "$(printf '%s\n' "$output" | grep -F 'literal')" ]` — never `grep -q` inside `$()`
+- exact/numeric/file tests: `[ "$a" = "$b" ]`, `[ "$n" -eq 2 ]`, `[ -f path ]`
+
+`python3 tools/check-bats-assertions.py` (wired into the `tools/tests` suite) fails on the banned forms.
 
 ## Pull requests
 

@@ -6,6 +6,28 @@ Detail contract — [finding-contract.md](./finding-contract.md).
 
 **One PR change set**, dirty working-tree change set that will become a PR, or clean `base...HEAD` on a feature branch. Minimal related context only.
 
+### Sanctioned exception — release-boundary merge review
+
+A **dev→main release merge** is a sanctioned, larger-than-one-PR unit (ADR-005): it bundles many PRs that the integration branch accumulated since the last release, and `ci-local.sh --release-check` is its canonical version-increment gate. Such a merge is **not** refused as a "portfolio of unrelated PRs" when the operator explicitly opts in via **`--release-merge`** / **`--merge-review`**, or by resolving the change set as `base=<release>` (`origin/main...dev`, or `<last-release>...dev`).
+
+| Accepted as the unit | Still refused |
+| --- | --- |
+| `origin/main...dev` (or `<last-release>...dev`) **with explicit opt-in** | Default-branch "review everything" with **no** change set / no opt-in |
+| A partitioned walk of that diff (subsystem slices) | Unbounded whole-repo architecture review |
+
+**Partition, don't linear-scan.** A release diff is large; partition it into **subsystem slices** (validator / scripts / CI / hooks / routing / skills / docs) and review each slice's logic, rather than one shallow linear pass that skips material findings.
+
+**Tier risk by file class** (do not treat all files uniformly):
+
+| Class | Risk | Treatment |
+| --- | --- | --- |
+| `.lattice/**` process artifacts (binders/specs/fixtures) + `docs/`/ADRs | low-risk bulk | skim for coherence/privacy only; do not deep-review each binder |
+| `tools/`, `skills/**/scripts/`, `plugins/lattice/hooks/`, `.github/workflows/` | high-risk logic | full material review per slice |
+
+**First-class axis:** run `bash tools/ci-local.sh --release-check` as a release-boundary axis (the ADR-005 version-increment gate); its result feeds the overall verdict alongside CI/CD, syntax/lint, docs-sync, and interface-impact.
+
+**Finding bar:** coarser than a single-PR review — classify each finding as **release-blocking** (must fix before dev→main merge) vs **ship-as-is** (document residual and merge). The single-PR `ship-as-is | fix-first | unclear` overall still applies, with `release-blocking` findings forcing `fix-first`.
+
 ## Context script (optional)
 
 Prefer stable collection via skill-local script (does not judge correctness):

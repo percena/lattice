@@ -18,6 +18,9 @@
 #
 set -euo pipefail
 
+# Fail fast with a friendly install hint if python3 is absent (spc-212 A2/D3).
+bash "$(dirname "${BASH_SOURCE[0]}")/../../_lattice-lib/scripts/ensure-python3.sh" || exit 1
+
 PR=""
 BODY_FILE=""
 BODY_STDIN=false
@@ -177,6 +180,7 @@ fi
 
 CLOSED=()
 ALREADY=()
+ALREADY_REASONS=()
 SKIPPED_EPIC=()
 FAILED=()
 
@@ -194,6 +198,7 @@ report() {
   export CF_EXPECTED_IDS="${EXPECTED_IDS[*]:-}"
   export CF_CLOSED="${CLOSED[*]:-}"
   export CF_ALREADY="${ALREADY[*]:-}"
+  export CF_ALREADY_REASONS="${ALREADY_REASONS[*]:-}"
   export CF_SKIPPED_EPIC="${SKIPPED_EPIC[*]:-}"
   export CF_FAILED="${FAILED[*]:-}"
   export CF_UNSUPPORTED="${UNSUPPORTED_REFS[*]:-}"
@@ -215,7 +220,19 @@ def nums(value):
 def words(value):
     return [item for item in (value or "").split() if item]
 
+def reason_map(value):
+    result = {}
+    for item in (value or "").split():
+        if "=" in item:
+            k, v = item.split("=", 1)
+            if k.strip().isdigit():
+                # Discard null/literal-empty values (tkt-302 defense-in-depth).
+                v = v if v not in ("null", "") else "unknown"
+                result[int(k)] = v
+    return result
+
 ok = os.environ.get("CF_OK") == "true"
+already_reasons = reason_map(os.environ.get("CF_ALREADY_REASONS"))
 payload = {
     "ok": ok,
     "status": "ok" if ok else "fail",
@@ -223,6 +240,7 @@ payload = {
     "expected_closing_ids": nums(os.environ.get("CF_EXPECTED_IDS")),
     "closed": nums(os.environ.get("CF_CLOSED")),
     "already_closed": nums(os.environ.get("CF_ALREADY")),
+    "already_closed_reasons": already_reasons,
     "skipped_epic": nums(os.environ.get("CF_SKIPPED_EPIC")),
     "failed": nums(os.environ.get("CF_FAILED")),
     "unsupported_references": words(os.environ.get("CF_UNSUPPORTED")),
@@ -252,8 +270,14 @@ else:
     if payload["dry_run"]:
         print("  dry_run: true")
     else:
-        print(f"  closed: {' '.join(map(str, payload['closed'])) or '(none)'}")
-        print(f"  already_closed: {' '.join(map(str, payload['already_closed'])) or '(none)'}")
+        closed_items = payload['closed']
+        print(f"  closed: {' '.join(map(str, closed_items)) or '(none)'}")
+        already_items = payload['already_closed']
+        if already_items and already_reasons:
+            items_str = ' '.join(f"{n} ({already_reasons.get(n, 'unknown')})" for n in already_items)
+        else:
+            items_str = ' '.join(map(str, already_items))
+        print(f"  already_closed: {items_str or '(none)'}")
         print(f"  skipped_epic: {' '.join(map(str, payload['skipped_epic'])) or '(none)'}")
         print(f"  failed: {' '.join(map(str, payload['failed'])) or '(none)'}")
     if payload.get("reason"):
@@ -341,6 +365,33 @@ print("ISSUE_EPIC="+("true" if "epic" in names else "false"))
   fi
   if [[ "$ISSUE_STATE" == "CLOSED" ]]; then
     ALREADY+=("$id")
+    # Fetch close reason for awareness (tkt-294). state_reason is not a
+    # gh issue view --json field on all gh versions; use REST.
+    close_reason=""
+    if [[ -n "$PR_URL" ]]; then
+      # Match last two path segments before /pull/ — handles both standard
+      # GitHub and GHE path-prefixed URLs (tkt-302).
+      # Extract hostname for --hostname flag on gh api (tkt-311 A1).
+      api_host=$(printf '%s' "$PR_URL" | sed -E 's#https?://([^/]+)/.*#\1#')
+      repo_base=$(printf '%s' "$PR_URL" | sed -E 's#https?://[^/]+/(.+)/pull/.*#\1#' | awk -F/ '{print $(NF-1)"/"$NF}')
+      if [[ -n "$repo_base" ]]; then
+        if ! close_reason=$("$GH_BIN" api "repos/${repo_base}/issues/${id}" --jq '.state_reason' ${api_host:+--hostname "$api_host"} 2>/dev/null); then
+          close_reason=""
+          echo "close-fixed-issues: WARNING — cannot fetch state_reason for issue #$id (REST API failed)" >&2
+        fi
+        # Defense-in-depth: discard null or error-body output (tkt-301).
+        case "$close_reason" in
+          completed|not_planned|reopened|duplicate|out_of_date) ;;
+          *) close_reason="" ;;
+        esac
+      fi
+    fi
+    if [[ -n "$close_reason" ]]; then
+      echo "close-fixed-issues: issue #$id already CLOSED (reason: $close_reason)" >&2
+    else
+      echo "close-fixed-issues: issue #$id already CLOSED" >&2
+    fi
+    ALREADY_REASONS+=("${id}=${close_reason:-unknown}")
     continue
   fi
   if [[ "$ISSUE_STATE" != "OPEN" ]]; then

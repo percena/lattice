@@ -1,7 +1,7 @@
 # tkt-16-ego-browser-run-e2e
 
 > **TL;DR:** ego-browser run-e2e reference layer — heredoc JS script template with assertion primitives + fail-loud auth
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-16 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/16 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | ego-browser run-e2e reference layer — heredoc JS + assert + fail-loud auth + JSON output |
 | spec | spc-12 — Lattice skill-gap bridge (path: ../../specs/spc-12-skill-gap-bridge.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-16-ego-browser-run-e2e |
 | worktree | sibling …/lattice.worktrees/tkt-16-ego-browser-run-e2e/ |
-| prs | (none) |
+| prs | pr-21 — https://github.com/percena/lattice/pull/21 |
 
 ## Acceptance (this slice)
 
@@ -65,4 +65,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-21 merged: 2026-08-25T08:46:20Z — https://github.com/percena/lattice/pull/21 (base merge)
+- issue #16 closed: 2026-08-25T08:46:26Z — https://github.com/percena/lattice/issues/16

@@ -153,6 +153,26 @@ def gh_json(args):
     except Exception as e:
         return None
 
+# stateReason is not a gh issue view --json field on all gh versions (same
+# asymmetry as baseRefOid — tkt-293). Fetch via REST, which is stable.
+CONTRADICTION_REASONS = {"not_planned", "duplicate", "out_of_date"}
+VALID_STATE_REASONS = {"completed", "not_planned", "reopened", "duplicate", "out_of_date"}
+
+def gh_state_reason(iid, repo_id, api_hostname=""):
+    if not repo_id:
+        return ""
+    api_args = ["gh", "api", f"repos/{repo_id}/issues/{iid}", "--jq", ".state_reason"]
+    # Pass --hostname for GHE instances (tkt-311 A1). For github.com the
+    # flag is a no-op (gh resolves the default host).
+    if api_hostname:
+        api_args += ["--hostname", api_hostname]
+    try:
+        out = subprocess.check_output(api_args, text=True, stderr=subprocess.DEVNULL).strip()
+        # Defense-in-depth: discard null or error-body output (tkt-301).
+        return out if out in VALID_STATE_REASONS else ""
+    except Exception:
+        return ""
+
 pr_data = gh_json(["pr", "view", pr, "--json", "number,title,body,state,headRefName,baseRefName,url,isDraft,mergeable"])
 if not pr_data:
     print("Error: cannot load PR", pr, file=sys.stderr)
@@ -162,6 +182,19 @@ body = pr_data.get("body") or ""
 title = pr_data.get("title") or ""
 head = pr_data.get("headRefName") or ""
 url = pr_data.get("url") or ""
+
+# Extract owner/repo from the PR URL for REST issue close-reason lookups (tkt-294).
+# Match the LAST two path segments before /pull/ to handle GHE path-prefixed
+# URLs like https://github.acme.io/org/team/repo/pull/1 (tkt-302).
+# Also extract the hostname for --hostname flag on gh api (tkt-311 A1).
+_repo_match = re.match(r'https?://([^/]+)/(.+)/pull/\d+', url)
+if _repo_match:
+    api_hostname = _repo_match.group(1)
+    _segments = _repo_match.group(2).split('/')
+    repo_id = '/'.join(_segments[-2:]) if len(_segments) >= 2 else _repo_match.group(2)
+else:
+    api_hostname = ""
+    repo_id = ""
 
 # Executable closing keywords (shared fence-aware extractor with close-fixed-issues).
 # Refs does not auto-close. Repository-qualified Fixes owner/repo#N stay non-local.
@@ -325,7 +358,17 @@ for iid in issue_ids:
         continue
     issues.append(data)
     if data.get("state") == "CLOSED":
-        info.append(f"issue #{iid} already CLOSED")
+        sr = gh_state_reason(iid, repo_id, api_hostname)
+        if sr and sr in CONTRADICTION_REASONS and iid in closing_ids:
+            warn.append(
+                f"issue #{iid} is closed as {sr.upper()} but PR #{pr} Fixes/Closes it — "
+                "reconcile close-reason vs the delivering PR (re-close as completed, or drop the Fixes/Retarget)"
+            )
+            info.append(f"issue #{iid} already CLOSED (reason: {sr}) — contradiction WARN emitted")
+        elif sr:
+            info.append(f"issue #{iid} already CLOSED (reason: {sr})")
+        else:
+            info.append(f"issue #{iid} already CLOSED (close-reason unavailable — REST fetch failed or repo_id unresolved)")
     ibody = data.get("body") or ""
     boxes = parse_boxes(ibody)
     issue_boxes[iid] = boxes

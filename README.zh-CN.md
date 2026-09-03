@@ -75,17 +75,20 @@ npx skills add percena/lattice -g -y
 | [`create-spec`](./skills/create-spec/) | 持久化带验收标准的 Lattice Spec（`spc-n`） | `/create-spec` |
 | [`create-review`](./skills/create-review/) | 持久化带显式 outcome 的 Lattice Review（`rev-YYYYMMDD-HHMMSSZ`） | `/create-review` |
 | [`create-tickets`](./skills/create-tickets/) | 将已锁定范围拆分为 GitHub issues + 活页夹 | `/create-tickets` |
-| [`batch-work`](./skills/batch-work/) | DAG 编排扇出：在多个 sibling 工作树上并行派发 `start-work` 代理，层间屏障同步 | `/batch-work` |
+| [`batch-work`](./skills/batch-work/) | DAG 编排的无人值守扇出：在多个 sibling 工作树上并行派发 `start-work` 代理，层间屏障同步 | `/batch-work` |
 | [`create-pr`](./skills/create-pr/) | 开启/更新格式规范的 GitHub PR | `/create-pr` |
-| [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、合并、清理 | `/finish-work` |
+| [`finish-work`](./skills/finish-work/) | 更新 base、对齐检查、默认开启的 mini-review 扫描、合并、清理 | `/finish-work` |
 | [`_lattice-lib`](./skills/_lattice-lib/) | 支撑上述技能的共享脚本（共装，非 slash 入口） | — |
 
-非交付循环——分四类，均不产生血缘节点：
+非交付循环——分七类，均不产生血缘节点：
 
 | 类别 | 技能 | 说明 |
 | --- | --- | --- |
 | PR 范围质量旁路 | [`review-code`](./skills/review-code/) · [`review-production`](./skills/review-production/) | 可选，在 `/create-pr` 前后；不依赖 `_lattice-lib` |
+| 链路审查旁路 | [`review-delivery`](./skills/review-delivery/) | 仅产出 artifact 的审查，面向一组已交付 ticket（Spec A* 保真度、跨 PR 连贯性、决策队列、逐 PR 发现）→ 带逐轴 attestation、按优先级排序的晨间摘要；共装 `_lattice-lib`；绝不执行合并，也绝非合并门禁 |
+| 血缘挖掘旁路 | [`review-lineage`](./skills/review-lineage/) | 周期性审计仓库实际交付了什么——运行数据（`lineage-metrics.sh` 快照与增量）、承诺-实现探针（`claim-probes.sh`）、历史——逐条对照代码树复核、按根因聚类、排序 → 产出带 insight 与票据草案的 `rev-`，交给 `create-tickets`；共装 `_lattice-lib`；绝不自行建 issue，绝不合并 |
 | E2e 参考模式 | [`run-e2e`](./skills/run-e2e/) | ego-browser heredoc JS story 模式；一次 Bash 调用一个 story，fail-loud 认证，结构化 JSON；非 runner，非循环入口 |
+| 运行时验证支线 | [`verify-features`](./skills/verify-features/) | 基于 `.lattice/feature-map.md` 的全功能 bug 排查——从 lineage 挖掘 oracle（Spec A* 即预期行为），在 `run-e2e` story 上有界分波执行，发现的 bug 以带复现步骤的 ticket 归档；共装 `_lattice-lib`；只发现不修复、绝不合并 |
 | 独立文档工具 | [`generate-wiki`](./skills/generate-wiki/) | `wiki/` + `llms.txt`；随时可跑；不依赖 `_lattice-lib` |
 | 带外伴生（`create-*` 家族） | [`create-adr`](./skills/create-adr/) | 写 `docs/adr/NNN`；共装 `_lattice-lib`；**非血缘节点**——与 `/create-spec`/`/create-review` 同 pass 同 worktree 调用（提升跨特性决策）；绝非循环入口或 Spec 替代品 |
 
@@ -95,6 +98,9 @@ npx skills add percena/lattice -g -y
 | --- | --- |
 | [getting-started](./docs/getting-started.md) | 安装、自动 ensure、profiles、日常路径、高级安装 |
 | [github-surface](./docs/github-surface.md) | kind + priority 标签、可选 Project 自动添加 |
+| [workflow-fsm](./docs/workflow-fsm.md) | 三台耦合状态机、迁移责任方、有界循环不变量 |
+| [day-phase](./docs/day-phase.md) | 有人值守的规划配方：需求 → 提案 rev → spec → adr → tickets |
+| [morning-triage](./docs/morning-triage.md) | 晨间分诊配方：夜间批次 digest → ratify → 处置 → 盖章 → 判定 → finish-work |
 | [CONTRIBUTING](./CONTRIBUTING.md) | 在本 monorepo 中修改技能/插件 |
 | [SECURITY](./SECURITY.md) | 漏洞报告 |
 | [CODE OF CONDUCT](./CODE_OF_CONDUCT.md) | 社区规范 |
@@ -103,6 +109,14 @@ npx skills add percena/lattice -g -y
 ## 环境要求
 
 `git`、`gh`、`jq`、`python3`（≥ 3.8）、`curl`——加一个能运行 [Agent Skills](https://agentskills.io/) 或 Claude Code 插件的智能体。Hook 测试需 `bats`。
+
+**仅使用 `python3` 标准库——无需 `pip`、无需虚拟环境、无任何第三方包。** Claude Code 自身并不安装 Python，因此部分平台需自行安装：
+
+- **macOS：** `xcode-select --install`（或 `brew install python`）——未安装 Command Line Tools 时 `/usr/bin/python3` 是个会弹 GUI 对话框的占位 stub。
+- **Arch：** `sudo pacman -S python`（约 2024 年起已从 `base` 移除）。
+- **Alpine / 最小 Docker 镜像：** `apk add python3`（或 Debian/Ubuntu/Fedora 用 `apt-get`/`dnf install python3`）。
+
+Lattice 脚本会检测 `python3` 缺失并打印对应平台的安装命令（`skills/_lattice-lib/scripts/ensure-python3.sh`）。
 
 ## 许可证
 

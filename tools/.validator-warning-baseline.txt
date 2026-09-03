@@ -1,0 +1,229 @@
+# Warning baseline (spc-254 A8/D3). One-way ratchet: only-decrease.
+# Format: <code>	<path>, path repo-root-relative so it is portable across checkouts.
+# Warnings whose signature is not in this file fail CI (new warnings fail separately).
+# Regenerate after resolving a baselined warning (remove its line).
+# Do NOT add lines for newly-introduced warnings — fix them instead.
+
+header_status_mismatch	.lattice/tickets/tkt-201-docs-hygiene-batch/README.md
+header_status_mismatch	.lattice/tickets/tkt-211-verify-after-mutate/README.md
+header_status_mismatch	.lattice/tickets/tkt-246-ci-bats-version-pin/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-10-readme-positioning-acknowledgements/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-105-verify-features-skill/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-106-run-e2e-upgrades/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-107-escaped-defect-metric/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-108-audit-recipe/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-114-train-linear-push/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-117-retire-train-validator-core/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-118-retire-train-skill-docs/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-119-ci-context-sensitive-base-ref/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-120-project-docs-train-retirement/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-121-validator-hardening/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-122-shell-portability/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-123-binder-fsm-observability/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-127-from-heads-local-source/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-13-duplicate-work-precheck/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-131-create-review-needs-decision-outcome/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-132-batch-work-watchdog-stuck/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-133-finish-work-train-residue/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-134-morning-triage-recipe/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-135-workflow-fsm-doc-fixes/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-136-fsm2-fsm4-policy-decision/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-137-fsm2-option-b-deferred-stamp/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-138-fsm4-option-a-ratify-sh/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-14-bug-repro-loop/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-143-finish-ledger-py39-compat/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-146-l1-pretooluse-branch-hook/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-147-l2-assert-strict-l3-write-hook/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-148-interactive-escape-docs/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-149-ratify-transaction/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-15-batch-work-skill/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-150-terminal-cancel/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-151-artifact-state-invariants/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-152-state-reconcile/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-155-validator-binder-dir-github-desync/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-159-ci-local-fail-loud/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-16-run-e2e-skill/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-160-tools-validators-hardening/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-161-docs-drift-sweep/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-162-gh-pr-detector-hardening/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-163-review-path-robustness/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-167-bats-assertion-ergonomics/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-174-fix-tkt-pending-dir-recognition/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-175-postmerge-review-followups/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-179-postmerge-review-fixes/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-181-docs-fsm-residue/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-184-bats-guard-heredoc-aware/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-188-batch-merge-gate/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-189-status-vocab-guard/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-190-supersede-trip-time-sweep/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-192-staleness-waterlevel/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-193-fix-cycles-owner/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-194-ci-gate-waiver/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-200-installed-tree-drift/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-213-python3-friendly-guard/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-227-run-e2e-platform-dispatcher/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-232-dev-ci-red/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-234-auto-trust-self-board/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-31-run-e2e-symlink-fix/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-32-check-dup-work-json-fix/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-33-batch-work-marker-fix/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-34-docs-sync-new-skills/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-35-split-lint-heavy/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-38-review-code-extended-axes/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-40-binder-syntaxlint-fix/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-43-policy-references/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-44-binder-fsm/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-45-workflow-docs/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-46-preferences/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-47-review-delivery/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-48-tickets-scan/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-49-reentry-edges/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-5-land-v7-action-bumps/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-50-batch-night/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-6-dependabot-groups-block/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-60-train-mode/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-61-skill-registration/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-62-ci-local/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-63-batch-ergonomics/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-64-merge-train-hardening/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-65-template-debts/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-7-adr-001-policy/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-73-binder-hygiene/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-74-deferred-validator/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-75-docs-backfill/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-8-close-dependabot-prs/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-80-prs-row-cleanup/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-81-helper-polish/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-82-zh-readme-sync/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-84-preference-capture/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-90-binder-lifecycle-closure/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-91-prs-row-grammar/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-92-ci-enforcement/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-93-dup-work-fail-loud/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-94-registration-surfaces/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-95-docs-truth/README.md
+missing_binder_timestamp	.lattice/tickets/tkt-96-observation-capture/README.md
+prs_row_format	.lattice/tickets/tkt-179-postmerge-review-fixes/README.md
+prs_row_format	.lattice/tickets/tkt-227-run-e2e-platform-dispatcher/README.md
+# spc-337 A1 / D4: legacy (pre-2026-09-02) terminal binders without a transition ledger — baselined, never rewritten; ratchet only shrinks
+closed_without_ledger_legacy	.lattice/tickets/tkt-10-readme-positioning-acknowledgements/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-10.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-105-verify-features-skill/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-105.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-106-run-e2e-upgrades/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-106.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-107-escaped-defect-metric/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-107.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-108-audit-recipe/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-108.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-114-train-linear-push/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-114.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-117-retire-train-validator-core/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-117.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-118-retire-train-skill-docs/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-118.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-119-ci-context-sensitive-base-ref/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-119.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-120-project-docs-train-retirement/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-120.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-121-validator-hardening/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-121.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-122-shell-portability/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-122.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-123-binder-fsm-observability/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-123.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-127-from-heads-local-source/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-127.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-13-duplicate-work-precheck/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-13.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-131-create-review-needs-decision-outcome/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-131.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-132-batch-work-watchdog-stuck/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-132.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-133-finish-work-train-residue/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-133.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-134-morning-triage-recipe/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-134.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-135-workflow-fsm-doc-fixes/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-135.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-136-fsm2-fsm4-policy-decision/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-136.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-137-fsm2-option-b-deferred-stamp/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-137.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-138-fsm4-option-a-ratify-sh/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-138.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-14-bug-repro-loop/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-14.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-143-finish-ledger-py39-compat/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-143.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-146-l1-pretooluse-branch-hook/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-146.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-147-l2-assert-strict-l3-write-hook/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-147.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-148-interactive-escape-docs/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-148.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-149-ratify-transaction/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-149.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-15-batch-work-skill/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-15.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-150-terminal-cancel/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-150.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-151-artifact-state-invariants/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-151.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-152-state-reconcile/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-152.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-155-validator-binder-dir-github-desync/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-155.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-159-ci-local-fail-loud/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-159.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-16-run-e2e-skill/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-16.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-160-tools-validators-hardening/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-160.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-161-docs-drift-sweep/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-161.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-162-gh-pr-detector-hardening/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-162.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-163-review-path-robustness/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-163.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-167-bats-assertion-ergonomics/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-167.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-174-fix-tkt-pending-dir-recognition/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-174.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-175-postmerge-review-followups/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-175.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-179-postmerge-review-fixes/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-179.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-181-docs-fsm-residue/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-181.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-184-bats-guard-heredoc-aware/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-184.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-188-batch-merge-gate/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-188.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-189-status-vocab-guard/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-189.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-190-supersede-trip-time-sweep/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-190.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-191-binder-timestamps/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-191.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-192-staleness-waterlevel/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-192.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-193-fix-cycles-owner/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-193.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-194-ci-gate-waiver/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-194.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-200-installed-tree-drift/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-200.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-201-docs-hygiene-batch/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-201.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-211-verify-after-mutate/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-211.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-213-python3-friendly-guard/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-213.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-216-post-review-fixes/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-216.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-219-spawn-ticket-process-helper/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-219.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-221-spawn-mode-flag-and-wiring/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-221.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-223-merge-blocked-by-field/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-223.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-224-finish-work-multi-pr-dag-merge/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-224.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-227-run-e2e-platform-dispatcher/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-227.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-232-dev-ci-red/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-232.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-234-auto-trust-self-board/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-234.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-236-ci-gate-merge-safety/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-236.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-237-state-lifecycle-verify-mutation/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-237.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-238-validator-reconcile-detection/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-238.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-239-gate-enforcement-hardening/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-239.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-240-routing-eval-robustness/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-240.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-241-release-hygiene-privacy/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-241.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-242-low-severity-hardening/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-242.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-243-review-skill-merge-review-mode/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-243.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-246-ci-bats-version-pin/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-246.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-255-transition-schema-ledger/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-255.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-258-recoverable-coordinator/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-258.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-259-evidence-proof-validator-migration/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-259.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-260-capability-matrix-docs/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-260.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-283-relocate-runtime-state-to-state-dir/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-283.jsonl (creat
+closed_without_ledger_legacy	.lattice/tickets/tkt-31-run-e2e-symlink-fix/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-31.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-32-check-dup-work-json-fix/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-32.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-33-batch-work-marker-fix/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-33.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-34-docs-sync-new-skills/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-34.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-35-split-lint-heavy/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-35.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-38-review-code-extended-axes/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-38.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-40-binder-syntaxlint-fix/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-40.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-43-policy-references/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-43.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-44-binder-fsm/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-44.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-45-workflow-docs/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-45.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-46-preferences/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-46.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-47-review-delivery/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-47.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-48-tickets-scan/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-48.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-49-reentry-edges/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-49.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-5-land-v7-action-bumps/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-5.jsonl (created
+closed_without_ledger_legacy	.lattice/tickets/tkt-50-batch-night/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-50.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-6-dependabot-groups-block/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-6.jsonl (created
+closed_without_ledger_legacy	.lattice/tickets/tkt-60-train-mode/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-60.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-61-skill-registration/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-61.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-62-ci-local/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-62.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-63-batch-ergonomics/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-63.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-64-merge-train-hardening/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-64.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-65-template-debts/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-65.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-7-adr-001-policy/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-7.jsonl (created
+closed_without_ledger_legacy	.lattice/tickets/tkt-73-binder-hygiene/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-73.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-74-deferred-validator/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-74.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-75-docs-backfill/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-75.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-8-close-dependabot-prs/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-8.jsonl (created
+closed_without_ledger_legacy	.lattice/tickets/tkt-80-prs-row-cleanup/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-80.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-81-helper-polish/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-81.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-82-zh-readme-sync/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-82.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-84-preference-capture/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-84.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-90-binder-lifecycle-closure/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-90.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-91-prs-row-grammar/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-91.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-92-ci-enforcement/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-92.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-93-dup-work-fail-loud/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-93.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-94-registration-surfaces/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-94.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-95-docs-truth/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-95.jsonl (create
+closed_without_ledger_legacy	.lattice/tickets/tkt-96-observation-capture/README.md	status 'closed' but no transition ledger .transition-ledger/tkt-96.jsonl (create
+# tkt-381: legacy binder field-table rows with stray extra columns (baselined).
+binder_row_extra_columns	.lattice/tickets/tkt-121-validator-hardening/README.md
+binder_row_extra_columns	.lattice/tickets/tkt-257-process-false-success-closure/README.md

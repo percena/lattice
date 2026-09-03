@@ -1,0 +1,14 @@
+# spc-270 A6.4: warning → error migration schedule. Format: <code>\t<error_at_version>
+# When the validator runs with --migration-version >= error_at_version, the
+# warning is upgraded to error (fails the run). Version 1 = current (no
+# warnings scheduled to error yet — entries below are forward commitments).
+# Add a line when a warning code is committed to become a hard error.
+# Example forward commitment (commented — not yet active):
+# legacy_open_status	2
+# spc-337 A1: legacy ledger-coverage misses are ratchet-exempt today; when the
+# legacy set is backfilled or accepted, lift the exemption and commit here:
+# closed_without_ledger_legacy	2
+# tkt-381: legacy binder field-table rows with stray extra columns are
+# ratchet-exempt today; when the legacy set is re-rowed or accepted, lift
+# the exemption and commit here:
+# binder_row_extra_columns	2

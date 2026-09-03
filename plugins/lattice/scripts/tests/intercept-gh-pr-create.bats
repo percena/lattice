@@ -31,17 +31,17 @@ payload_for_command() {
     '{tool_name:"Bash",session_id:$session_id,tool_input:{command:$command}}'
 }
 
-@test "advisory is the product default and allows bare gh pr create with guidance" {
+@test "advisory mode allows bare gh pr create with guidance" {
   run run_advisory_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"recommended path"* ]]
-  [[ "$output" == *"Hook mode: advisory"* ]]
+  printf '%s\n' "$output" | grep -qF "required path"
+  printf '%s\n' "$output" | grep -qF "Hook mode: advisory"
 }
 
-@test "unknown hook mode degrades to advisory" {
+@test "unknown hook mode degrades to strict" {
   run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}' | LATTICE_HOOK_MODE=unexpected '$HOOK_SCRIPT' 2>&1"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Hook mode: advisory"* ]]
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "Hook mode: strict"
 }
 
 # ============================================================
@@ -65,13 +65,13 @@ payload_for_command() {
 @test "blocks bare gh pr create" {
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"create-pr"* ]]
+  printf '%s\n' "$output" | grep -qF "create-pr"
 }
 
 @test "blocks gh pr create with flags (unquoted values)" {
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create --title foo --body bar\"}}"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"create-pr"* ]]
+  printf '%s\n' "$output" | grep -qF "create-pr"
 }
 
 @test "blocks documented repository flag placements around pr create" {
@@ -366,7 +366,7 @@ make_transcript() {
 
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"transcript_path\":\"${tf}\",\"tool_input\":{\"command\":\"gh pr create --title foo\"}}"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"create-pr"* ]]
+  printf '%s\n' "$output" | grep -qF "create-pr"
 }
 
 @test "rewind: marker but transcript has no create-pr load at all -> block" {
@@ -754,7 +754,7 @@ STUB
   # it to `gh pr create`. Strict mode must take the full path and block.
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"g\\u0068 pr create\"}}"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"create-pr"* ]]
+  printf '%s\n' "$output" | grep -qF "create-pr"
 }
 
 @test "session dir mtime refreshed even without a marker hit (GC keep-alive)" {

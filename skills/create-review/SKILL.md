@@ -1,6 +1,6 @@
 ---
 name: create-review
-description: "Write a durable Lattice Review note (rev-…) with findings and a required outcome (inform_only/spawn_*). Use when the user wants a design compare, dogfood note, postmortem, or architecture reconciling write-up under .lattice/reviews. Not for GitHub PR review comments or PR change-set bug/production checks (use review-code / review-production)."
+description: "Write a durable Lattice Review note (rev-…) with findings and a required outcome (inform_only/needs_decision/spawn_*). Use when the user wants a design compare, dogfood note, postmortem, or architecture reconciling write-up under .lattice/reviews. Not for GitHub PR review comments or PR change-set bug/production checks (use review-code / review-production)."
 allowed-tools: Bash Read Grep Glob AskUserQuestion
 metadata:
   agents: "claude-code,codex"
@@ -22,6 +22,7 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
 | --- | --- |
 | Homes, outcomes, lineage policy | `references/policy.md` |
 | Review file shape | `references/templates/review.md` |
+| Repo/system audit (fan-out, verify-then-report, enforcement coverage) | `references/audit-recipe.md` |
 | Delegation and accountable ownership | `../_lattice-lib/references/orchestration-patterns.md` |
 
 ## When to use / When NOT
@@ -36,9 +37,9 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
 
 
 1. **Self-contained** findings + recommendations; cite evidence paths.  
-1b. **Problem Audit (DEFAULT):** before solution Findings, audit validity / info sufficiency / hidden issues (`references/policy.md`). Insufficient **must-have** info → stop inventing solutions. Explicit one-line skip only when the question is already crisp.  
+1b. **Problem Audit (DEFAULT):** before solution Findings, audit validity / info sufficiency / hidden issues / existing-solution-meets-goal (`references/policy.md`). Insufficient **must-have** info → stop inventing solutions. Explicit one-line skip only when the question is already crisp. For decision-support reviews of kind `design` / `audit` that compare options, the review must include a **`## Comparison matrix`** section (rows = proposed option / status quo / alternatives; columns = cost, code-delta, risk, constraints, capability/feature tradeoffs); other kinds (`dogfood`, `research`) stay free-form.  
 2. **When concluding (INVARIANT):** set `status: concluded` and **exactly one** `outcome`:  
-   `inform_only` | `spawn_spec` | `spawn_tickets` | `spawn_fix` | `needs_grill`  
+   `inform_only` | `needs_decision` | `spawn_spec` | `spawn_tickets` | `spawn_fix` | `needs_grill`
 3. **Never** bind a shippable worktree to `rev-` alone (INVARIANT).  
 4. **related_*** edges use **bare ids** on L0 (`rev-YYYYMMDD-HHMMSSZ` or legacy `rev-N`); bloodline = L0 + GitHub.  
 5. **Homes:** `.lattice/reviews/` (flat — in-flight and historical together).  
@@ -48,6 +49,7 @@ Legacy `rev-<digits>` remains valid forever. Allocate via `next-artifact-id.sh -
    - **Review-only** (user only asked for a Review / `inform_only`; no Spec, ticket binder, or new ADR in the same request) → **team-base write OK** (`.lattice/reviews/`). Do **not** open a worktree just to record a Review; commit on `dev`/`main`/… is fine.  
    - **Review + Spec and/or ticket binder and/or new ADR** in the same pass defaults to **one** shippable worktree and co-created artifacts. A reasoned unbound workspace or explicitly authorized clean base-direct path is permitted.
    - Still **never** bind a shippable worktree to `rev-` alone. Spec / ticket binders / product code need a shippable path with default bind or explicit reasoned-unbound evidence.
+9. **Verify-then-report (DEFAULT — findings-class reviews):** a delegated sweep's claim enters Findings only after the accountable owner re-verifies it against the tree (exact file:line, command output); non-reproducing claims are dropped and the dropped count recorded in Method. Full recipe: `references/audit-recipe.md`.
 
 ## Flow
 
@@ -87,7 +89,7 @@ Front matter: `id: rev-${N}` (full bare id including `rev-` prefix + token).
 
 | Field | Notes |
 | --- | --- |
-| `kind` | design / research / dogfood / … |
+| `kind` | design / research / dogfood / audit (repo/system audit → `references/audit-recipe.md`) / … |
 | `status` | open → concluded |
 | `outcome` | required when concluded |
 | `related_specs` / `related_tickets` / `related_prs` | bare ids |
@@ -105,6 +107,7 @@ Front matter: `id: rev-${N}` (full bare id including `rev-` prefix + token).
 | `spawn_fix` | ticket + implement path (worktree with `tkt-` / `spc-` bind) |
 | `needs_grill` | `create-spec` (first-pass align); co-create if Spec is in this pass |
 | `inform_only` | stop (Review-only on base is fine) |
+| `needs_decision` | **not terminal** — the review surfaces in the `.lattice/reviews/needs-decision.md` triage queue; morning triage picks an option (or files spawn_* tickets), then the review's outcome is updated |
 
 ## Anti-patterns
 

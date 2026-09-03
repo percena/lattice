@@ -156,7 +156,7 @@ teardown() {
 @test "missing owner/project → exit 1" {
   run bash "$LIST"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"need --owner"* ]] || [[ "$output" == *"LATTICE_GITHUB_PROJECT"* ]]
+  printf '%s\n' "$output" | grep -qF "need --owner" || printf '%s\n' "$output" | grep -qF "LATTICE_GITHUB_PROJECT"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -166,14 +166,14 @@ teardown() {
   run bash "$LIST"
   [ "$status" -eq 0 ]
   # order preserved from items array after filters: 42 then 3
-  [[ "$output" == $'tkt-42\ntkt-3' ]] || [[ "$output" == $'tkt-42\ntkt-3\n' ]]
+  [ "$output" = $'tkt-42\ntkt-3' ] || [ "$output" = $'tkt-42\ntkt-3\n' ]
   grep -F -e "project item-list 13 --owner acme" "$GH_LOG"
   # Projects filter always quotes status (multi-word columns safe)
   grep -F -e '--query status:"Ready"' "$GH_LOG"
   # epic #10 and Done #7 and PR #99 must not appear
-  ! grep -q 'tkt-10' <<<"$output"
-  ! grep -q 'tkt-7' <<<"$output"
-  ! grep -q 'tkt-99' <<<"$output"
+  if grep -q 'tkt-10' <<<"$output"; then false; fi
+  if grep -q 'tkt-7' <<<"$output"; then false; fi
+  if grep -q 'tkt-99' <<<"$output"; then false; fi
 }
 
 @test "default output filters same-number items to the current repository" {
@@ -191,8 +191,8 @@ teardown() {
   export GH_JSON
   run bash "$LIST"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"tkt-88"* ]]
-  [[ "$output" == *"skipped 1 issue item(s) without repository identity"* ]]
+  [ -z "$(printf '%s\n' "$output" | grep -F "tkt-88")" ]
+  printf '%s\n' "$output" | grep -qF "skipped 1 issue item(s) without repository identity"
 }
 
 @test "repository matching is case-insensitive and can be explicit" {
@@ -208,7 +208,7 @@ teardown() {
   export LATTICE_GITHUB_PROJECT_NUMBER=13
   run bash "$LIST" --all-repositories
   [ "$status" -eq 1 ]
-  [[ "$output" == *"requires --json"* ]]
+  printf '%s\n' "$output" | grep -qF "requires --json"
 
   run bash "$LIST" --all-repositories --json
   [ "$status" -eq 0 ]
@@ -223,8 +223,8 @@ teardown() {
   export GH_REPOSITORY=""
   run bash "$LIST"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"cannot resolve current repository identity"* ]]
-  ! grep -q '^project item-list' "$GH_LOG"
+  printf '%s\n' "$output" | grep -qF "cannot resolve current repository identity"
+  if grep -q '^project item-list' "$GH_LOG"; then false; fi
 }
 
 @test "--status overrides default Ready" {
@@ -232,8 +232,8 @@ teardown() {
   export LATTICE_GITHUB_PROJECT_NUMBER=13
   run bash "$LIST" --status Done
   [ "$status" -eq 0 ]
-  [[ "$output" == *'tkt-7'* ]]
-  ! grep -q 'tkt-42' <<<"$output"
+  printf '%s\n' "$output" | grep -qF 'tkt-7'
+  if grep -q 'tkt-42' <<<"$output"; then false; fi
   grep -F -e '--query status:"Done"' "$GH_LOG"
 }
 
@@ -242,7 +242,7 @@ teardown() {
   export LATTICE_GITHUB_PROJECT_NUMBER=13
   run bash "$LIST" --owner
   [ "$status" -eq 1 ]
-  [[ "$output" == *"requires a value"* ]]
+  printf '%s\n' "$output" | grep -qF "requires a value"
   [ ! -s "$GH_LOG" ]
 }
 
@@ -260,7 +260,7 @@ teardown() {
   export LATTICE_TRIGGER_STATUS=Done
   run bash "$LIST"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'tkt-7'* ]]
+  printf '%s\n' "$output" | grep -qF 'tkt-7'
 }
 
 @test "--include-epic keeps epic label Issues" {
@@ -268,8 +268,8 @@ teardown() {
   export LATTICE_GITHUB_PROJECT_NUMBER=13
   run bash "$LIST" --include-epic
   [ "$status" -eq 0 ]
-  [[ "$output" == *'tkt-10'* ]]
-  [[ "$output" == *'tkt-42'* ]]
+  printf '%s\n' "$output" | grep -qF 'tkt-10'
+  printf '%s\n' "$output" | grep -qF 'tkt-42'
 }
 
 @test "--json emits structured candidates" {
@@ -307,7 +307,7 @@ EOF
   export GH_MODE=scope
   run bash "$LIST"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"project scope"* ]] || [[ "$output" == *"gh auth refresh"* ]]
+  printf '%s\n' "$output" | grep -qF "project scope" || printf '%s\n' "$output" | grep -qF "gh auth refresh"
 }
 
 @test "bad JSON shape → exit 1" {
@@ -324,9 +324,9 @@ EOF
   export GH_MODE=warn
   run bash "$LIST"
   [ "$status" -eq 0 ]
-  [[ "$output" == *'tkt-42'* ]]
-  [[ "$output" == *'tkt-3'* ]]
-  [[ "$output" != *"jq parse failed"* ]]
+  printf '%s\n' "$output" | grep -qF 'tkt-42'
+  printf '%s\n' "$output" | grep -qF 'tkt-3'
+  [ -z "$(printf '%s\n' "$output" | grep -F "jq parse failed")" ]
 }
 
 @test ".env quoted value keeps ' # ' inside quotes; trailing comment after quote dropped" {

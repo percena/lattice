@@ -1,0 +1,2 @@
+# A6.5 baseline: a warning that IS present in the fixture (baselined → passes)
+legacy_open_status	.lattice/tickets/tkt-2-demo/README.md	*

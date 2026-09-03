@@ -19,6 +19,7 @@
 #   --base <ref>           base branch/ref (default: config, GitHub, origin/HEAD, common refs)
 #   --path <worktree-path> override worktree path
 #   --type <kind>          optional type prefix (feat, fix, chore, docs, …)
+#   --no-stamp             skip the queued → in-progress binder stamp (see below)
 # Bind is the default for every shippable mode (worktree and branch):
 #   use --bind tkt|spc|spec --id <id> --slug <slug>
 #   or --branch that already matches tkt-<id>-* / spc-<n>-* (optional <type>/ prefix)
@@ -33,8 +34,41 @@
 # monorepo, and "recursive directory" pain when creating trees from an existing worktree.
 # Override with WORKTREE_ROOT if you prefer in-repo .worktrees (gitignored).
 #
+# Path-point stamp (spc-337 A3 / ADR-012 §1): a successful `--bind tkt --id N`
+# is the step every ticket passes through on its way to work, so it is the
+# writer of the `queued → in-progress` edge. When exactly one
+# <lattice_home>/tickets/tkt-N-*/README.md exists and its `| status |` is
+# `queued`, the bind commits the edge through transition-api.py (owner
+# `system`, reason `spawn`; ledger lands in the binder's own home). Any other
+# status (in-progress on a re-bind, pr-open, rework, parked, stuck, deferred,
+# closed) is left untouched; no binder → no-op; `--no-stamp` opts out; a stamp
+# failure warns on stderr and the bind still exits 0. The JSON reports
+# `stamped_in_progress`.
+#
 # stdout: single JSON object on success
 set -euo pipefail
+
+# Resolve the physical installed script directory, including when the
+# entrypoint itself was reached through a symlink (tkt-239 — same pattern as
+# ensure-lattice.sh / lattice-init.sh resolve_script_dir). The lexical
+# BASH_SOURCE directory would let a consumer checkout place a fake
+# resolve-integration-branch.sh / _lattice-home.sh beside a symlink to this
+# trusted script and source it in-process (RCE). Both _RIB and SCRIPT_DIR_ENSURE
+# below route through this resolver.
+resolve_script_dir() {
+  local source="$1"
+  local dir target
+  while [[ -L "$source" ]]; do
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    target="$(readlink "$source")"
+    if [[ "$target" == /* ]]; then
+      source="$target"
+    else
+      source="$dir/$target"
+    fi
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
 
 MODE=""
 BRANCH=""
@@ -45,6 +79,7 @@ BIND_ID=""
 SLUG=""
 ALLOW_UNBOUND=false
 ESCAPE_REASON=""
+NO_STAMP=false
 
 usage() {
   cat >&2 <<'EOF'
@@ -54,6 +89,7 @@ Usage:
 
 Options: --base <ref>  --path <worktree-path>  --type <kind>
          --allow-unbound --reason <why/equivalent evidence>
+         --no-stamp  (skip the queued → in-progress binder stamp on tkt bind)
 
 Bind (default): --bind tkt|spc|spec --id <id> --slug <slug>
   or --branch matching tkt-<id>-* / spc-<n>-* (optional <type>/ prefix).
@@ -76,6 +112,7 @@ while [[ $# -gt 0 ]]; do
     --type) TYPE_PREFIX="${2:-}"; shift 2 ;;
     --allow-unbound) ALLOW_UNBOUND=true; shift ;;
     --reason) ESCAPE_REASON="${2:-}"; shift 2 ;;
+    --no-stamp) NO_STAMP=true; shift ;;
     -h|--help) usage ;;
     *) echo "Unknown arg: $1" >&2; usage ;;
   esac
@@ -228,7 +265,7 @@ fi
 # when on one, or fork-point infer when on a temp branch — BEFORE the blind
 # gh-default fallback. Fixes the dev-vs-main merge-target bug.
 if [[ -z "$BASE" ]]; then
-  _RIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/resolve-integration-branch.sh"
+  _RIB="$(resolve_script_dir "${BASH_SOURCE[0]}")/resolve-integration-branch.sh"
   if [[ -f "$_RIB" ]]; then
     _UB=$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null || true)
     _RIB_JSON=$(bash "$_RIB" --repo-root "$REPO_ROOT" --user-branch "${_UB:-}" --head "${_UB:-}" --json 2>/dev/null || true)
@@ -457,6 +494,27 @@ if [[ "$MODE" == "branch" ]]; then
     echo "Error: working tree is dirty; use --mode worktree or clean/stash first." >&2
     exit 1
   fi
+  # Under strict profile, a --mode branch lives on the main clone as a non-base
+  # branch. L2 (assert-shippable-cwd) now fails that, and L3 (Write hook) blocks
+  # shippable writes on it (spc-145/ADR-006). Warn loudly so the escape is not
+  # mistaken for a usable workspace; prefer --mode worktree. Resolve profile
+  # inline (lattice_profile is sourced later).
+  _BRANCH_PROFILE="${LATTICE_PROFILE:-}"
+  if [[ -z "$_BRANCH_PROFILE" ]]; then
+    for _cfg in "$REPO_ROOT/.lattice/config.yaml" "$LATTICE_HOME/config.yaml"; do
+      [[ -f "$_cfg" ]] || continue
+      _line=$(grep -E '^[[:space:]]*profile:[[:space:]]*' "$_cfg" 2>/dev/null | head -1 || true)
+      if [[ -n "$_line" ]]; then
+        _BRANCH_PROFILE=$(printf '%s' "$_line" | sed -E 's/^[[:space:]]*profile:[[:space:]]*//; s/[[:space:]]*[#].*$//; s/["'"'"']//g' | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+        break
+      fi
+    done
+  fi
+  case "$_BRANCH_PROFILE" in light|strict) ;; *) _BRANCH_PROFILE="strict" ;; esac
+  if [[ "$_BRANCH_PROFILE" == "strict" ]]; then
+    echo "ensure-workspace: profile=strict — WARNING: --mode branch sits on the main clone; L2/L3 write-block shippable writes on it." >&2
+    echo "  Each shippable write needs assert-shippable-cwd --allow-base-write --reason \"user-authorized: <why>\". Prefer --mode worktree." >&2
+  fi
   CURRENT=$(git branch --show-current 2>/dev/null || true)
   # Quiet on success, but keep stderr so a failed checkout says why.
   if [[ "$CURRENT" == "$BRANCH" ]]; then
@@ -560,7 +618,7 @@ export ENSURE_BOUND="$IS_BOUND"
 export ENSURE_ESCAPE_REASON="$ESCAPE_REASON"
 
 # Profile — informational; worktree remains the default.
-SCRIPT_DIR_ENSURE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR_ENSURE="$(resolve_script_dir "${BASH_SOURCE[0]}")"
 ENSURE_PROFILE="strict"
 if [[ -f "$SCRIPT_DIR_ENSURE/_lattice-home.sh" ]]; then
   # shellcheck source=/dev/null
@@ -576,6 +634,52 @@ if [[ "$ENSURE_PROFILE" == "light" && "$MODE" == "branch" ]]; then
 elif [[ "$ENSURE_PROFILE" == "strict" && "$MODE" == "branch" ]]; then
   echo "ensure-workspace: profile=strict — --mode branch is user escape hatch; default remains worktree" >&2
 fi
+
+# --- Path-point stamp: queued → in-progress (spc-337 A3 / ADR-012 §1) ---------
+# The bind is the writer of this edge. Runs AFTER the workspace exists and
+# BEFORE the JSON is emitted so the result is reportable. Never changes the
+# exit code: a stamp failure is a stderr warning, the bind already succeeded.
+STAMPED_IN_PROGRESS=false
+stamp_in_progress() {
+  local id="$1" home="$2"
+  local api="$SCRIPT_DIR_ENSURE/transition-api.py"
+  local binder="" d n=0 status
+  [[ -d "$home/tickets" ]] || return 0
+  # tkt-<id>-* matches the id segment exactly (the trailing dash stops
+  # tkt-3- from matching tkt-33-…). Exactly one directory, else no-op.
+  for d in "$home/tickets/tkt-${id}-"*/; do
+    [[ -d "$d" ]] || continue
+    n=$((n + 1))
+    binder="${d%/}/README.md"
+  done
+  if [[ "$n" -ne 1 || ! -f "$binder" ]]; then
+    return 0
+  fi
+  status=$(grep -m1 -E '^\| *status *\|' "$binder" 2>/dev/null \
+    | awk -F'|' '{ v=$3; gsub(/^[ \t]+|[ \t]+$/, "", v); print v }' || true)
+  # Only the queued → in-progress edge belongs to the bind. A re-bind sees
+  # in-progress (no-op, idempotent); pr-open / rework / parked / stuck /
+  # deferred / closed hold state other path points own — untouched.
+  [[ "$status" == "queued" ]] || return 0
+  if [[ ! -f "$api" ]]; then
+    echo "ensure-workspace: WARNING — transition-api.py missing beside this script; queued → in-progress not stamped for tkt-$id" >&2
+    return 0
+  fi
+  # stdout is reserved for the JSON contract: route the API's "committed:"
+  # line to stderr.
+  if python3 "$api" commit "tkt-$id" in-progress system spawn --binder "$binder" >&2; then
+    STAMPED_IN_PROGRESS=true
+  else
+    echo "ensure-workspace: WARNING — queued → in-progress stamp FAILED for tkt-$id (bind succeeded; binder: $binder)." >&2
+    echo "  Re-run the transition: python3 $(printf '%q' "$api") commit tkt-$id in-progress system spawn --binder $(printf '%q' "$binder")" >&2
+  fi
+}
+if [[ "$BIND" == "tkt" && "$NO_STAMP" == false ]]; then
+  stamp_in_progress "$BIND_ID" "$LATTICE_HOME"
+elif [[ "$BIND" == "tkt" ]]; then
+  echo "ensure-workspace: --no-stamp — queued → in-progress stamp skipped for tkt-$BIND_ID" >&2
+fi
+export ENSURE_STAMPED_IN_PROGRESS="$STAMPED_IN_PROGRESS"
 
 # Agent-facing hint: shippable writes must use this path (cwd / -C / working_directory).
 if [[ "$MODE" == "worktree" ]]; then
@@ -610,5 +714,6 @@ print(json.dumps({
   "profile": os.environ.get("ENSURE_PROFILE") or "strict",
   "bound": os.environ.get("ENSURE_BOUND") == "true",
   "escape_reason": os.environ.get("ENSURE_ESCAPE_REASON") or None,
+  "stamped_in_progress": os.environ.get("ENSURE_STAMPED_IN_PROGRESS") == "true",
 }))
 PY

@@ -1,7 +1,7 @@
 # tkt-15-batch-work-skill
 
 > **TL;DR:** New batch-work skill — DAG orchestration on sibling worktrees using parallel_group + independence gates
-> **Kind:** feat · **Status:** open · **Priority:** P2
+> **Kind:** feat · **Priority:** P2
 > **Path:** spc-12 → tkt-15 → (pr-…)
 
 | Field | Value |
@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/15 |
-| status | open |
+| status | closed |
 | adopted | false |
 | summary | batch-work skill — DAG orchestration on sibling worktrees + BATCH_WORK=1 merge block |
 | spec | spc-12 — Lattice skill-gap bridge (path: ../../specs/spc-12-skill-gap-bridge.md) |
@@ -23,7 +23,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-15-batch-work-skill |
 | worktree | sibling …/lattice.worktrees/tkt-15-batch-work-skill/ |
-| prs | (none) |
+| prs | pr-20 — https://github.com/percena/lattice/pull/20 |
 
 ## Acceptance (this slice)
 
@@ -62,4 +62,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-20 merged: 2026-08-25T08:45:35Z — https://github.com/percena/lattice/pull/20 (base merge)
+- issue #15 closed: 2026-08-25T08:45:41Z — https://github.com/percena/lattice/issues/15

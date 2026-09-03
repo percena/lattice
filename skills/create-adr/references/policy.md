@@ -31,6 +31,28 @@ boundary.
 6. **Status** lives in the ADR file (`Proposed` / `Accepted` / `Superseded by ADR-NNN` / partial supersede notes). Prefer **supersede over delete**.
 7. ADR is **out of band** of lineage (`spec → ticket → pr`); cite as `ADR-NNN` or path, never as a lineage edge.
 
+## Reversing / replacing decisions (status-quo gate)
+
+When an ADR **supersedes another ADR or replaces existing infrastructure** (author-declared trigger), the following become **INVARIANT (not optional)** — the status quo must be weighed as a real alternative against the real goal, not dismissed by "the user wants to change":
+
+1. **`## Goal` is required** — the **underlying problem to solve**, distinct from `## Context` (which describes the proposed solution/situation). Forces the author to separate goal from means.
+2. **`## Considered Options` is required** and MUST include a **"keep status quo"** row evaluated **against `## Goal`**. Dismissing the status quo requires a reason tied to the goal, not the author's intent to change.
+3. A reversing decision that omits Goal, omits Considered Options, or dismisses the status quo without a goal-tied reason is **not shippable** — the checklist fails it.
+
+**For non-reversing minimal ADRs**, the Nygard-minimal behavior stays: Goal and Considered Options remain optional. The reversing trigger is author-declared (supersede an ADR, or "replaces component X"); when in doubt, the author flips `## Goal` / `## Considered Options` on rather than off.
+
+## Reversing decision → preceding `rev-` (DEFAULT gate)
+
+When an ADR **supersedes another ADR or replaces existing infrastructure**, a preceding `create-review` (`rev-…`) evaluation carrying the up-front comparison is **required by default** (DEFAULT, not INVARIANT — a trivial reversal may skip). If skipped, the author records an explicit one-line skip reason in `## Status history` or `## Notes`. The skip must be explicit, never silent — this connects `create-review`'s Problem Audit (validity / info sufficiency / hidden issues / **existing-solution-meets-goal**) into the decision path so it cannot be bypassed by jumping straight to `create-adr` → `create-tickets` → `start-work` → code.
+
+**Grandfather clause:** this gate applies to ADRs **created under this rule**. Existing Accepted ADRs are grandfathered as-is — do **not** back-fill `## Goal` / status-quo rows onto historical ADRs when superseding them; the superseding ADR carries the new gate, the superseded one stays an immutable audit trail.
+
+| Reversing decision | Precursor |
+| --- | --- |
+| Supersedes an ADR | `rev-…` by default; explicit skip reason if omitted |
+| Replaces existing infrastructure | `rev-…` by default; explicit skip reason if omitted |
+| Non-reversing minimal ADR | no precursor required |
+
 ## When to write an ADR
 
 | Write ADR | Keep in Spec.Decisions only |

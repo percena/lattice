@@ -1,7 +1,7 @@
 # tkt-34-docs-sync-new-skills
 
 > **TL;DR:** Sync README, README.zh-CN, getting-started, CHANGELOG, plugin.json for new skills (batch-work, run-e2e) and feature additions
-> **Kind:** docs · **Status:** open · **Priority:** P2
+> **Kind:** docs · **Priority:** P2
 
 | Field | Value |
 | --- | --- |
@@ -21,7 +21,7 @@
 | **primary_ticket** | tkt-31 |
 | **related_tickets** | tkt-31, tkt-32, tkt-33 |
 | **worktree_bind** | tkt-31-run-e2e-symlink-fix (shared) |
-| prs | (none) · pr-36 — https://github.com/percena/lattice/pull/36 |
+| prs | pr-36 — https://github.com/percena/lattice/pull/36 |
 
 ## Acceptance (this slice)
 
