@@ -10,7 +10,7 @@ summary: "4 个 workflow 改进：ticket 自治度 0-4 评分 + 断路器超限�
 created: 2026-09-03
 updated: 2026-09-03
 tickets: [tkt-434, tkt-435, tkt-436, tkt-437]
-prs: []
+prs: [pr-438]
 reviews: []
 supersedes: []
 superseded_by: null

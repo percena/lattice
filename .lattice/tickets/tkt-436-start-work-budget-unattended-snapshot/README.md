@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-436-start-work-budget-unattended-snapshot |
 | worktree | sibling |
-| prs | (none) |
+| prs | pr-438 — https://github.com/percena/lattice/pull/438 |
 
 ## Acceptance (this slice)
 

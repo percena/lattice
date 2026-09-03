@@ -34,7 +34,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-434-autonomy-field |
 | worktree | sibling |
-| prs | (none) |
+| prs | pr-438 — https://github.com/percena/lattice/pull/438 |
 
 ## Acceptance (this slice)
 
