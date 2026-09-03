@@ -6,11 +6,11 @@
 | issue | #431 |
 | spec | spc-430 (parent spc-427) |
 | covers | A1, A2 |
-| status | pr-open |
+| status | closed |
 | kind | test |
 | priority | P3 |
 | created | 2026-09-03 |
-| updated | 2026-09-03T03:04:37Z |
+| updated | 2026-09-03T03:24:30Z |
 
 ## Why
 
@@ -63,3 +63,8 @@ one-PR, one worktree, one session. No parallel group (N=1).
 ## Notes
 
 - 2026-09-03 — red-run disposition: lattice-artifacts fail = transient/pre-existing (validator exits 1 on legacy binder timestamp warnings tkt-5..96, predates this PR; tkt-431 binder compliant). bats pass (5m38s). Not introduced by this change.
+
+## Finish
+
+- pr-432 merged: 2026-09-03T03:22:50Z — https://github.com/percena/lattice/pull/432 (base merge)
+- issue #431 closed: 2026-09-03T03:23:27Z (reason: completed) — https://github.com/percena/lattice/issues/431
