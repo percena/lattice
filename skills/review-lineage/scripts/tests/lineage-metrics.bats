@@ -499,9 +499,11 @@ PY
   # The fixture config.yaml has `profile: strict` but NO lineage.ratchet_cutoff
   # key → CREATED_AFTER stays empty (old 0/0 behavior preserved).
   grep -q 'profile:' "$HOME_DIR/config.yaml"
-  ! grep -q 'ratchet_cutoff' "$HOME_DIR/config.yaml"
+  run grep -q 'ratchet_cutoff' "$HOME_DIR/config.yaml"
+  [ "$status" -ne 0 ]
   run bash "$LM" --home "$HOME_DIR" --json --no-snapshot --snapshot-dir "$SNAP"
   [ "$status" -eq 0 ]
   # The planted positive-test value must NOT appear (config parse produced nothing).
-  ! grep -q '2021-01-01' <<<"$output"
+  run grep -q '2021-01-01' <<<"$output"
+  [ "$status" -ne 0 ]
 }
