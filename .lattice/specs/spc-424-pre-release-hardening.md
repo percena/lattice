@@ -4,7 +4,7 @@ id: spc-424
 slug: pre-release-hardening
 title: Pre-release state machine hardening — 6 verified fixes from dev branch review
 kind: fix
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Fix 6 verified correctness/hygiene gaps in the state machine stamp path found during pre-release dev branch review: finish-stamp closed→closed repair bug, _rollback_ledger silent swallow, cmd_record finally inconsistency, ensure-workspace status regex, ADR-013 status, GHA workflow_dispatch."
@@ -45,12 +45,12 @@ A critical pre-release review of the dev branch (before merge to main) examined 
 
 ## Acceptance
 
-- [ ] **A1** `finish-stamp.py` ledger repair: when binder is already `closed` and `ledger_last_to` is empty (no ledger file), `record_from` uses `"open"` (not `"closed"`) → records `open→closed` (legal legacy edge). Fault test: already-closed binder with no ledger → finish-stamp exits 0 with a ledger entry, not exit 1 with "record CLI failed."
-- [ ] **A2** `transition-api.py` `_rollback_ledger`: on rollback failure, prints a stderr warning naming the ticket and the dangling entry. The function still returns None (best-effort) but the failure is no longer silent.
-- [ ] **A3** `transition-api.py` `cmd_record` finally: both `fcntl.flock(LOCK_UN)` and `os.close(lock_fd)` wrapped in individual `try/except OSError: pass` — consistent with `_append_ledger_locked`.
-- [ ] **A4** `ensure-workspace.sh` status regex: `grep -m1 -E '^\| *status *\|'` (was `^\| status \|`). A binder with `|status| queued |` or `| **status** | queued |` now matches and stamps. Existing standard-format binders unchanged.
-- [ ] **A5** ADR-013 Status: `Accepted` (was `Proposed`).
-- [ ] **A6** `finish-stamp.yml` has `workflow_dispatch:` with `inputs.pr` (int, required) and `inputs.repo` (string, required) — operator can manually re-trigger the safety net for a PR that lost the race.
+- [x] **A1** `finish-stamp.py` ledger repair: when binder is already `closed` and `ledger_last_to` is empty (no ledger file), `record_from` uses `"open"` (not `"closed"`) → records `open→closed` (legal legacy edge). Fault test: already-closed binder with no ledger → finish-stamp exits 0 with a ledger entry, not exit 1 with "record CLI failed."
+- [x] **A2** `transition-api.py` `_rollback_ledger`: on rollback failure, prints a stderr warning naming the ticket and the dangling entry. The function still returns None (best-effort) but the failure is no longer silent.
+- [x] **A3** `transition-api.py` `cmd_record` finally: both `fcntl.flock(LOCK_UN)` and `os.close(lock_fd)` wrapped in individual `try/except OSError: pass` — consistent with `_append_ledger_locked`.
+- [x] **A4** `ensure-workspace.sh` status regex: `grep -m1 -E '^\| *status *\|'` (was `^\| status \|`). A binder with `|status| queued |` or `| **status** | queued |` now matches and stamps. Existing standard-format binders unchanged.
+- [x] **A5** ADR-013 Status: `Accepted` (was `Proposed`).
+- [x] **A6** `finish-stamp.yml` has `workflow_dispatch:` with `inputs.pr` (int, required) and `inputs.repo` (string, required) — operator can manually re-trigger the safety net for a PR that lost the race.
 
 ## Non-goals
 
