@@ -3,14 +3,14 @@ id: spc-441
 slug: hardening-sweep
 title: "Project-wide hardening — security, CI, test & maintainability sweep"
 kind: chore
-status: locked
+status: done
 mode: C
 priority: P2
 summary: "Fix expression injection, eliminate eval+python3, add macOS CI, test untested hook, add CODEOWNERS, refactor duplication"
 created: 2026-09-03
 updated: 2026-09-03
 tickets: [tkt-442, tkt-443, tkt-444, tkt-445, tkt-446, tkt-447, tkt-448, tkt-449]
-prs: []
+prs: [pr-450, pr-451, pr-452, pr-453, pr-454, pr-455, pr-456, pr-457]
 reviews: []
 supersedes: []
 superseded_by: null
