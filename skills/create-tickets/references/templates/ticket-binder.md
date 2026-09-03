@@ -2,7 +2,7 @@
 
 <!-- Binder is a thin recovery card (not a second issue tracker).
      required: kind, priority, github, status, created/updated, acceptance, primary_ticket / worktree_bind when shipping
-     recommended: covers, spec, summary/TL;DR, Path
+     recommended: covers, spec, summary/TL;DR, Path, autonomy
      optional (parallel / C): blocked_by, merge_blocked_by, parallel_group, paths, solo_merge, related_tickets -->
 
 > **TL;DR:** <one sentence slice — standalone>
@@ -17,7 +17,7 @@
 | github | https://github.com/<org>/<repo>/issues/<id> | issue URL — trailing number must match dir `tkt-N` (validator: mismatch → `binder_dir_github_mismatch` error; placeholder on numeric dir → `phantom_binder_smell` warning). Pre-creation placeholder: `(to be created)` / `pending` / `(none…)`. Use `tkt-pending-<slug>` dir until the issue number exists, then rename to `tkt-N-<slug>` |
 | status | queued | working: queued \| in-progress \| parked \| stuck \| pr-open \| rework \| deferred · terminal: closed (finish-ledger stamps it; merged vs closed-without-merge read from ## Finish mergedAt) · legacy: open (coarse — validator warns) |
 | fix_cycles | 0 | review-fix cycles on this PR (ADR-004 §5 cap ≤2; validator warns >2). Stamped by `bump-fix-cycle.sh` (`_lattice-lib/scripts/`) on each pr-open → rework → pr-open round — the scripted owner (spc-186 A6); do NOT hand-edit. Third rework holds at 2 and forces `deep-review` (human); `--extend-budget --reason` is the operator-adjudicated escape. Missing row = 0 (lazy migration — never fails) |
-| wait_reason | (none) | when status is stuck: unblock (needs an answer/env fix — human) \| re-scope (needs Spec/ticket revision → M1 — planning defect). when status is deferred: fuse-halt (batch fuse tripped; re-schedule later) \| blocked-by-failure (a blocked_by dependency failed) \| spec-superseded (this ticket's Spec was superseded — spec-supersede.sh stamped it at supersede time; re-plan under the superseding Spec or cancel). Routes morning triage: two dispositions per state. Missing/`(none)` = the stuck/deferred ticket is unspecified (validator fails — tkt-151 A3) |
+| wait_reason | (none) | when status is stuck: unblock (needs an answer/env fix — human) \| re-scope (needs Spec/ticket revision → M1 — planning defect). when status is deferred: fuse-halt (batch fuse tripped; re-schedule later) \| budget-exhausted (budget circuit breaker tripped; re-schedule later — spc-433) \| blocked-by-failure (a blocked_by dependency failed) \| spec-superseded (this ticket's Spec was superseded — spec-supersede.sh stamped it at supersede time; re-plan under the superseding Spec or cancel). Routes morning triage: two dispositions per state. Missing/`(none)` = the stuck/deferred ticket is unspecified (validator fails — tkt-151 A3) |
 | created | <YYYY-MM-DDTHH:MM:SSZ> | ISO-8601 UTC, seconds precision (`YYYY-MM-DDTHH:MM:SSZ`). Stamped once at binder creation (create-tickets); never bumped. Missing row → validator warn (lazy migration — historical binders predate the row); a present-but-malformed value → error (spc-186 A4). Time-in-state baseline for A5 staleness |
 | updated | <YYYY-MM-DDTHH:MM:SSZ> | ISO-8601 UTC, seconds precision. Bumped by each status-stamping script (stamp-pr-open, finish-ledger, ratify) atomically with the status flip in the same locked write; equals `created` at creation. Missing row → validator warn (lazy migration); malformed → error (spc-186 A4). In-flight age = now − `updated` (A5 water-level) |
 | adopted | false | true — **true** when GH issue body is hand-created / append-only; land uses binder-first Acceptance |
@@ -29,6 +29,7 @@
 | parallel_group | G1 \| (serial) |
 | paths | approx globs this slice may touch |
 | solo_merge | yes \| no |
+| autonomy | 4 | ticket-level autonomy score 0-4 (0-indexed per lattice convention). 0=Day-Interactive (needs human architecture/UI confirmation) \| 1=low (may need 1-2 confirmations) \| 2=medium (mostly self-sufficient) \| 3=high (clear acceptance criteria, good test coverage) \| 4=full (docs/tests/pure functions, auto-mergeable). Set at split time by create-tickets; batch-work uses `--min-autonomy` (default 3) to filter night-executable tickets. Scoring rubric: `../_lattice-lib/references/autonomy-rubric.md`. Missing row → default 2 (medium) for backward compat — validator warns if absent on C-mode tickets |
 | **primary_ticket** | tkt-<id> (this issue) — owner of the ship when this tree has one PR |
 | **related_tickets** | (none \| tkt-… sub/Refs tickets on the same PR) |
 | **worktree_bind** | `tkt-<id>-<slug>` \| `spc-<n>-<slug>` \| full branch name (open-time bind; rebind optional) |

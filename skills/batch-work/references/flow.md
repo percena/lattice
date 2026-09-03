@@ -14,6 +14,12 @@ Detailed step recipes for the `batch-work` skill. The `SKILL.md` is the protocol
 --report <path>        Write Markdown report to <path> (always also stdout)
 --dry-run              Print DAG + layer assignment + spawn-mode; exit before any spawn
 --ram-threshold <GB>   Skip spawn if available RAM below this (default 10; 0 disables)
+--min-autonomy <0-4>  Filter tickets whose binder autonomy field is below this level
+                       (DEFAULT 3). Filtered tickets stay queued (never-spawned reason:
+                       autonomy-below-threshold). 0 disables filtering.
+--budget <min>,<retries>  Per-batch wall-clock + retry ceiling (DEFAULT 60,5).
+                       At each layer barrier, cumulative elapsed > budget minutes OR
+                       total retries > ceiling → trip circuit breaker. 0,0 disables.
 --base <ref>           Base ref override passed to ensure-workspace.sh
 --with-review          After the last layer's barrier, chain review-delivery on the batch
                        report (bounded fix loop for material findings; advice-only)
@@ -28,6 +34,9 @@ batch_timebox_S: 30        # per-ticket wall-clock timebox, minutes, mode S
 batch_timebox_M: 60        # mode M
 batch_timebox_C: 120       # mode C
 batch_fuse_threshold: 50   # layer failed+stuck percentage that trips the fuse
+batch_budget_minutes: 60   # per-batch wall-clock ceiling (spc-433 decision 2; 0 disables)
+batch_budget_retries: 5    # per-batch retry ceiling across all tickets (0 disables)
+batch_min_autonomy: 3      # night-batch autonomy filter threshold (0=disabled; spc-433 decision 5)
 ```
 
 ## RESOLVE TICKETS
@@ -35,8 +44,9 @@ batch_fuse_threshold: 50   # layer failed+stuck percentage that trips the fuse
 For each id in `--ids` (or, under `--groups`, **every** binder under `.lattice/tickets/` — not only those with a `parallel_group` set; tickets with no `parallel_group` are assigned to a default serial layer, see BUILD DAG):
 
 1. Locate `.lattice/tickets/tkt-<id>-*/README.md`. If missing → fail closed: "ticket <id> has no binder; run create-tickets first".
-2. Parse the binder frontmatter/table for: `github`, `parallel_group`, `blocked_by`, `paths`, `worktree_bind`, `primary_ticket`.
+2. Parse the binder frontmatter/table for: `github`, `parallel_group`, `blocked_by`, `paths`, `worktree_bind`, `primary_ticket`, `autonomy`.
 3. Derive `<slug>` from the binder directory name (`tkt-<id>-<slug>`).
+4. **Autonomy filter** (spc-433): if `--min-autonomy` (DEFAULT `batch_min_autonomy: 3`) is set and the ticket's `autonomy` field is below the threshold, record never-spawned reason `autonomy-below-threshold` and exclude from the DAG. The ticket stays `queued` (still schedulable later for day-interactive). Tickets without an `autonomy` row default to 2 (medium) per `autonomy-rubric.md` — below default threshold 3, so legacy binders are filtered unless `--min-autonomy 0` overrides. Print filtered tickets in the dry-run report.
 
 ## BUILD DAG
 
@@ -210,7 +220,16 @@ At every wave/layer barrier:
    - **Graceful-drain** in-flight agents: let each finish its current attempt and write its ledgers; **no mid-write kills**. Apply the watchdog timebox as the outer bound on the drain.
    - Record every never-spawned ticket as `fuse-halted` in the report. **Stamp its binder `status: deferred` + `wait_reason: fuse-halt`** (ADR-004 amd tkt-136 Option B) so the SoT reflects "not schedulable"; `deferred → queued` remains a human transition (re-schedule into a later batch). No new enum values — `deferred` already exists.
    - Emit the partial REPORT (all completed results + the trip: layer, ratio, threshold) and stop the batch.
-3. Ratio ≤ threshold → continue normally.
+3. Ratio ≤ threshold → continue to **budget check** (below).
+4. **Budget circuit breaker** (spc-433): if `--budget` (DEFAULT `batch_budget_minutes: 60`, `batch_budget_retries: 5`) is set:
+   - Compute cumulative wall-clock elapsed since batch start and total retry count across all tickets in this layer.
+   - If `elapsed > budget_minutes` OR `total_retries > budget_retries` → **trip**:
+     - **Halt** all subsequent waves and layers — budget exhausted.
+     - **Graceful-drain** in-flight agents (same drain path as fuse trip: finish current attempt, write ledgers, no mid-write kills).
+     - Record every never-spawned ticket as `budget-exhausted` in the report. **Stamp its binder `status: deferred` + `wait_reason: budget-exhausted`** (parallels `fuse-halt`; `deferred → queued` remains a human transition).
+     - Emit the partial REPORT (all completed results + the trip: elapsed, budget, retries) and stop the batch.
+   - Within budget → continue normally.
+5. Both fuse and budget hold → continue to next wave/layer.
 
 ## PROCESS-MODE SPAWN (`--spawn-mode process`)
 
@@ -317,10 +336,12 @@ Report-status vocabulary (`ok | failed | stuck | blocked-by-failure | workspace-
 | --- | --- | --- | --- |
 | `not-selected` | `queued` (unchanged) | `(none)` | Ticket was not in the `--ids` set, or `--groups` never reached it (e.g. an earlier-layer fuse halted before its layer). No agent spawned, no worktree created. |
 | `workspace-failed` | `queued` (unchanged) | `(none)` | `ensure-workspace.sh` failed for this ticket; no agent spawned. Worktree may be partially created — orchestrator does not retry. |
+| `autonomy-below-threshold` | `queued` (unchanged) | `(none)` | Ticket's binder `autonomy` field is below `--min-autonomy` (DEFAULT 3). Filtered at RESOLVE TICKETS before DAG build. Ticket is still schedulable for day-interactive (spc-433). |
 | `fuse-halted` | `deferred` | `fuse-halt` | Fuse tripped at a layer barrier **before** this ticket's wave/layer spawned. Distinct from `blocked-by-failure` (a dependency *failed*): here the *system* halted. |
+| `budget-exhausted` | `deferred` | `budget-exhausted` | Budget circuit breaker tripped at a layer barrier (cumulative elapsed > budget OR total retries > ceiling) **before** this ticket's wave/layer spawned. Parallels `fuse-halted`: system-wide halt, not per-ticket failure (spc-433). |
 | `blocked-by-failure` | `deferred` | `blocked-by-failure` | A ticket in this ticket's `blocked_by` set failed; the dependency is unsatisfied. Distinct from `fuse-halted`: a specific prior ticket failed, not a system-wide halt. |
 
-`not-selected` and `workspace-failed` leave the binder at `queued` (the ticket is still schedulable into a later batch with no repair); `fuse-halted` and `blocked-by-failure` stamp `deferred` (the ticket is *not* schedulable until a human re-queues it — `deferred → queued` is a manual transition). These four are mutually exclusive and exhaustive over the never-spawned space; a ticket that spawned and crashed is `failed`/`stuck`, never a never-spawned reason.
+`not-selected`, `workspace-failed`, and `autonomy-below-threshold` leave the binder at `queued` (the ticket is still schedulable into a later batch with no repair); `fuse-halted`, `budget-exhausted`, and `blocked-by-failure` stamp `deferred` (the ticket is *not* schedulable until a human re-queues it — `deferred → queued` is a manual transition). These six are mutually exclusive and exhaustive over the never-spawned space; a ticket that spawned and crashed is `failed`/`stuck`, never a never-spawned reason.
 
 ## Failure-isolation contract
 

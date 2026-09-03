@@ -40,6 +40,17 @@ When the failed/stuck ratio of a batch **layer** exceeds the threshold (DEFAULT 
 - **Halt subsequent layers** — do not launch the next layer into a broken base.
 - **Graceful-drain running agents** — let in-flight tickets finish their current attempt and write their ledgers; no mid-write kills.
 
+## Budget circuit breaker — policy (spc-433; batch-work wiring)
+
+When the cumulative batch wall-clock or retry count exceeds the budget ceiling (DEFAULT 60 minutes / 5 retries, tunable in `.lattice/config.yaml` `batch_budget_minutes` / `batch_budget_retries`; `0` disables), the batch has consumed its allocated resources:
+
+- **Halt subsequent layers** — budget exhausted, not a failure but a resource ceiling.
+- **Graceful-drain running agents** — same drain path as the fuse: finish current attempt, write ledgers, no mid-write kills.
+- **Stamp never-spawned tickets** `deferred` + `wait_reason: budget-exhausted` (parallels `fuse-halt`).
+- Distinct from the **fuse**: fuse trips on *failure ratio* (systemic breakage); budget trips on *resource consumption* (ceiling reached). Both may trip at the same barrier; report both if so.
+
+The budget circuit breaker is **per-batch**, not per-ticket. Per-ticket timebox remains `batch_timebox_S/M/C`. The budget is the outer bound on the entire batch run — useful for night-batch scenarios where you need the batch to finish within a fixed window regardless of individual ticket outcomes.
+
 ## Stuck-with-ledger — the success framing
 
 A ticket stopped under this policy delivers:

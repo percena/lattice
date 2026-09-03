@@ -66,9 +66,9 @@ Fuzzy / empty Acceptance → **create-spec** (no ticket fiction).
 - **Why:** path-overlap → one-PR; independent concurrent EXECUTE → multi-PR
 
 ### Proposed tickets
-| # | title | covers | paths (approx) | blocked_by | parallel_group | solo-merge |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | … | A1 | skills/foo/… | none | G1 | yes |
+| # | title | covers | paths (approx) | blocked_by | parallel_group | solo-merge | autonomy |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | … | A1 | skills/foo/… | none | G1 | yes | 4 |
 
 Spec primary / parent: #N (= spc-N, label:epic) — link each delivery child as GH sub-issue (including a single child)
 Foundation serial (optional): …
@@ -115,6 +115,8 @@ Anything irreversible or cross-contract is **never** `agent-decides` — it is `
 The same **go / edit rows** reply covers dispositions. Must-ask items the user does not resolve become binder `## Pending decisions` (question · context · default-if-unanswered) at binder-write time — the night agent parks & pivots on them, never blocks.
 
 **Author `## Approach` per ticket:** 5–10 line implementation sketch + touch-set (files this slice edits), written now with global context — it is chain source #1 for the night agent's decision resolution.
+
+**Set `autonomy` per ticket (spc-433):** assign a 0-4 score during the split-time scan. The score scopes which anticipated decision points may be `agent-decides` — a ticket with `autonomy: 0` forces all cross-contract items to `must-ask`; `autonomy: 4` permits self-decision on reversible local items even without explicit pre-resolution. Rubric: `../../_lattice-lib/references/autonomy-rubric.md`. Default when unclear: 2 (medium). `batch-work --min-autonomy` (default 3) filters tickets below threshold from night-batch execution.
 
 ## 2.5 POST_SPLIT_CHECK (when Spec has `A*`)
 
@@ -177,6 +179,7 @@ mkdir -p "$DIR/assets"
 ```
 
 - Fill `## Approach` + `## Anticipated decisions` from the §2.2 scan; user-unresolved must-ask items → `## Pending decisions`.
+- Set binder `autonomy` field (0-4) from the §2.2 scan — scoping which decision points may be `agent-decides` in unattended mode.
 - Rename `tkt-pending-<slug>` → `tkt-N-<slug>` if needed. **Never** pre-guess the number — create the issue first, capture N from the URL, then rename. The validator (`validate-lattice-artifacts.py`) errors when dir N ≠ github issue N, and warns `phantom_binder_smell` when a numeric dir carries a placeholder `github` field (tkt-155).
 - Spec front matter `tickets: […, tkt-N]` bare ids.
 - id = GitHub issue number always. The binder `github` field URL must point to that same issue.

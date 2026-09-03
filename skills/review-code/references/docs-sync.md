@@ -50,6 +50,27 @@ doc-path · what code changed · what doc should say · recommendation
 
 If all checked docs are accurate: one line in the Docs sync subsection: `docs in sync`.
 
+## Auto-Decided highlighting (spc-433 A5)
+
+When the diff contains `// Auto-Decided:` or `# Auto-Decided:` comment markers (format per `decision-policy.md` §Auto-Decided tag), collect and surface them as a dedicated **priority-review** subsection:
+
+```
+### Auto-Decided lines
+file-path:line · reason (from comment)
+…
+```
+
+These are **not** material findings by default — they are self-decisions made during unattended (`--unattended`) execution that the morning human must ratify. Treat each as a dig-deeper prompt:
+
+1. Read the code context around the `Auto-Decided` line.
+2. Check the binder `## Decision journal` for the cited chain source.
+3. If the decision looks wrong → escalate to a material finding (correctness axis).
+4. If the decision looks reasonable → mark as reviewed, no action.
+
+If no `Auto-Decided` markers found: `Auto-Decided: none (clean)`.
+
+Cross-check: if the PR body has a `## Auto-Decided` section, verify it matches the code markers. Missing markers (code says Auto-Decided but PR body doesn't list it) = **low** finding (docs-sync gap).
+
 ## Not a finding
 
 - Docs that don't exist and aren't required (e.g., no `wiki/` directory) → skip silently.
