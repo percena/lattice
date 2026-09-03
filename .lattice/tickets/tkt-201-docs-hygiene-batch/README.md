@@ -1,6 +1,6 @@
 # tkt-201 — Docs + small-script hygiene batch
 
-> **Status:** queued · kind chore · priority P2 · covers spc-186 A7
+> **Status:** closed · kind chore · priority P2 · covers spc-186 A7
 
 ## Field table
 

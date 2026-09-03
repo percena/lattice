@@ -9,7 +9,7 @@
 | status | closed |
 | kind | test |
 | priority | P3 |
-| created | 2026-09-03 |
+| created | 2026-09-03T03:24:30Z |
 | updated | 2026-09-03T03:24:30Z |
 
 ## Why

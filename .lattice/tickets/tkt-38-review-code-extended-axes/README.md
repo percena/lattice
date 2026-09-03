@@ -12,6 +12,10 @@
 | labels | review-code, skill, quality |
 | github | https://github.com/percena/lattice/issues/38 |
 | status | closed |
+| fix_cycles | 0 |
+| wait_reason | (none) |
+| created | 2026-01-15T00:00:00Z |
+| updated | 2026-01-15T00:00:00Z |
 | adopted | false |
 | summary | extend review-code with CI/CD, syntax/lint, docs-sync, interface-impact axes; solution-oriented findings; single batch confirmation |
 | spec | (none — review-fix / ADR-driven) |
