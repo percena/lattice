@@ -10,7 +10,7 @@ priority: P3
 summary: "Fix 3 pre-existing issues from spc-424 review: _rollback_ledger unlocked RMW race, lock teardown 3x duplication, lineage-metrics post-ratchet coverage 0/0."
 created: 2026-09-03
 updated: 2026-09-03
-tickets: []
+tickets: [tkt-428]
 prs: []
 reviews: []
 supersedes: []
