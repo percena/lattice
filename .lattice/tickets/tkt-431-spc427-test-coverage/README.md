@@ -28,9 +28,9 @@ Both fixes are correct (verified by code reading + 35/24 bats green). Risk = fut
 
 ## Acceptance (mirrors spc-430)
 
-- [ ] **A1** rename-failure fault test passes on current code; **fails** if spc-427 A1 lock is removed (regression guard)
-- [ ] **A2** config.yaml ratchet_cutoff shell test (positive: key present → created_after flows through; negative: key absent → empty → 0/0 backward-compatible) passes
-- [ ] **A3** full suites green: `bats transition-api.bats` (35+) and `bats lineage-metrics.bats` (24+), no regressions
+- [x] **A1** rename-failure fault test passes on current code; **fails** if spc-427 A1 lock is removed (regression guard)
+- [x] **A2** config.yaml ratchet_cutoff shell test (positive: key present → created_after flows through; negative: key absent → empty → 0/0 backward-compatible) passes
+- [x] **A3** full suites green: `bats transition-api.bats` (35+) and `bats lineage-metrics.bats` (24+), no regressions
 
 ## Approach
 
