@@ -1,0 +1,6 @@
+# Require maintainer review for security-sensitive paths.
+# See: spc-441 A5
+
+/.github/workflows/              @M1n9X
+/plugins/lattice/hooks/          @M1n9X
+/tools/                          @M1n9X
