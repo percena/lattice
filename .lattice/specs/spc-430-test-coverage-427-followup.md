@@ -10,7 +10,7 @@ priority: P3
 summary: "Two test-coverage gaps surfaced by the v0.5.0 release review: spc-427 A1 _rollback_ledger concurrency race has no fault test (spec acceptance promised one), and spc-427 A3 lineage-metrics.sh config.yaml ratchet_cutoff shell-level parse is untested. Both fixes are already shipped and verified by code reading; this Spec guards them with automated tests."
 created: 2026-09-03
 updated: 2026-09-03
-tickets: []
+tickets: [tkt-431]
 prs: []
 reviews: []
 supersedes: []
