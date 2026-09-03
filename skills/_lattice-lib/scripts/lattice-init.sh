@@ -178,6 +178,9 @@ tickets/**/assets/*
 !tickets/**/assets/.gitkeep
 lineage/
 BOARD.md
+# spc-433: context snapshots are temporary state (gitignored);
+# .lattice/blocked/ is NOT gitignored — blocked reports are durable evidence
+snapshots/
 # --- end Lattice .lattice/ temp subclass ---
 EOF
 }

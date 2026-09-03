@@ -244,3 +244,17 @@ EOF
   printf '%s\n' "$output" | grep -qF "python3 is required"
   [ ! -d "$TEST_DIR/repo/.lattice" ]
 }
+
+@test "tkt-461 A9: fresh init ignores .lattice/snapshots/ (spc-433 gitignore generator parity)" {
+  git -C "$TEST_DIR/repo" init -q -b main
+  bash "$INIT" --root "$TEST_DIR/repo" --write-gitignore >/dev/null
+  grep -qF 'snapshots/' "$TEST_DIR/repo/.lattice/.gitignore"
+  mkdir -p "$TEST_DIR/repo/.lattice/snapshots" "$TEST_DIR/repo/.lattice/blocked"
+  printf 'card\n' >"$TEST_DIR/repo/.lattice/snapshots/tkt-1.md"
+  printf '{}\n' >"$TEST_DIR/repo/.lattice/blocked/tkt-1.json"
+  run git -C "$TEST_DIR/repo" check-ignore -q .lattice/snapshots/tkt-1.md
+  [ "$status" -eq 0 ]
+  # blocked/ reports are durable evidence — NOT ignored
+  run git -C "$TEST_DIR/repo" check-ignore -q .lattice/blocked/tkt-1.json
+  [ "$status" -ne 0 ]
+}

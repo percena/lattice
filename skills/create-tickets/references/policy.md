@@ -20,7 +20,7 @@ Shipped with `create-tickets`. No monorepo docs required.
 
 | Owns | Does not own |
 | --- | --- |
-| Delivery meta batch (slices, covers, ship, parallel) | First-pass product/方案 grill → **`create-spec`** |
+| Delivery meta batch (slices, covers, ship, parallel) | First-pass product/solution grill → **`create-spec`** |
 | Issues + binders + Spec.tickets edges | Product implementation |
 | **POST_SPLIT_CHECK** Spec↔tickets fidelity | Merge-time checkbox check (`finish-work`) |
 

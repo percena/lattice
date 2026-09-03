@@ -161,6 +161,14 @@ After ensure: all shippable Write/Edit/`git`/`gh` target returned **path**.
 
 No `/implement` skill. The host owns integration and verification; read/write fan-out is allowed with disjoint ownership.
 
+**spc-433 flags (same contract as `../SKILL.md` step 7; the M/C path honours them too):**
+
+| Flag / step | Contract |
+| --- | --- |
+| `--budget <min>,<retries>` | per-**ticket** outer bound over the `batch_timebox_*` timebox; retries = `## Attempts` entries across sessions; trip → `stuck` + `wait_reason: unblock` (transition-api), `.lattice/blocked/<tkt>-debug-dump.json`, `[BLOCKED]` draft PR via `create-pr`, `git clean`. Distinct from batch-work's per-batch `--budget` (never-spawned → `deferred` + `budget-exhausted`) |
+| `--unattended` | decision-policy chain is the total function (resolve-or-park); `Auto-Decided:` markers + `## Auto-Decided` PR section + journal; autonomy < 2 upgrades `agent-decides` → `must-ask` |
+| Context snapshot | after each EXECUTE round write `.lattice/snapshots/<tkt>.md` (`## Delivered` / `## Deviations` / `## Pending`); resume reads it first; gitignored by `lattice-init` |
+
 When done: VERIFY → **`create-pr`**.
 
 ## Response style (HINT)

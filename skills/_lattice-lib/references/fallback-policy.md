@@ -51,6 +51,8 @@ When the cumulative batch wall-clock or retry count exceeds the budget ceiling (
 
 The budget circuit breaker is **per-batch**, not per-ticket. Per-ticket timebox remains `batch_timebox_S/M/C`. The budget is the outer bound on the entire batch run — useful for night-batch scenarios where you need the batch to finish within a fixed window regardless of individual ticket outcomes.
 
+**Two `--budget` flags, two semantics (spc-458 D2):** batch-work `--budget` is this per-batch ceiling and stamps *never-spawned* tickets `deferred` + `budget-exhausted`; start-work `--budget` is a *per-ticket* outer bound whose trip stamps the running ticket `stuck` + `wait_reason: unblock` (the watchdog edge) — see `start-work/SKILL.md` step 7. A ticket is never stamped `budget-exhausted` by start-work, and batch-work never stamps `stuck` for a budget trip.
+
 ## Stuck-with-ledger — the success framing
 
 A ticket stopped under this policy delivers:

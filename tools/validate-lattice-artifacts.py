@@ -32,6 +32,9 @@ Checks (selected, not exhaustive):
   - Spec/ticket id shape for current files (spc-N / tkt-N bare decimal;
     `tkt-pending-<slug>` dirs are a recognized transient state — exempt
     from `malformed_ticket_id`)
+  - ticket ``autonomy`` row (spc-433): a present value outside 0-4 fails
+    (``autonomy_out_of_range``); a missing row on a C-mode Spec-bound ticket
+    created after spc-433 landed warns (``autonomy_missing``, lazy migration)
   - ``covers`` A* ids that do not exist on the parent Spec Acceptance
   - one-sided local edges: ticket lists Spec but Spec.tickets omits the ticket
     (when both files exist under the scanned homes)
@@ -313,6 +316,17 @@ FIX_CYCLES_RE = re.compile(r"^\|\s*fix_cycles\s*\|\s*([0-9]+)\s*\|", re.I | re.M
 BINDER_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 CREATED_TABLE_RE = re.compile(r"^\|\s*created\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
 UPDATED_TABLE_RE = re.compile(r"^\|\s*updated\s*\|\s*([^|]+?)\s*\|", re.I | re.M)
+# spc-433 / tkt-461 A8: ticket autonomy score (0-4, autonomy-rubric.md) and
+# the binder's Spec reference (`| spec | spc-N — … |`) used to scope the
+# missing-row warning to C-mode Spec-bound tickets.
+AUTONOMY_TABLE_RE = re.compile(r"^\|\s*autonomy\s*\|\s*([^|]*?)\s*\|", re.I | re.M)
+SPEC_ROW_RE = re.compile(r"^\|\s*spec\s*\|\s*(spc-[1-9][0-9]*)\b", re.I | re.M)
+# Lazy-migration boundary (mirrors the ledger ratchet): binders created before
+# spc-433's template landed (#438 merged 2026-09-03T09:58Z) never carried the
+# `autonomy` row. The boundary sits at noon UTC that day because the last
+# pre-template binder (tkt-428, created 10:30Z by an in-flight create-tickets
+# run) postdates the merge; binders created after it are expected to carry it.
+AUTONOMY_CUTOFF = "2026-09-03T12:00:00Z"
 # A timestamp value that is a placeholder (not yet stamped): the template's
 # `<YYYY-MM-DDTHH:MM:SSZ>` fill-in hint, `(pending)`, `(none)`, empty. These
 # are treated as MISSING (warning), not malformed — an agent who has not yet
@@ -1079,6 +1093,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
     spec_accept: dict[str, set[str]] = {}
     spec_prs_map: dict[str, set[str]] = {}
     spec_status_map: dict[str, str | None] = {}
+    spec_mode_map: dict[str, str] = {}
     ticket_prs: dict[str, set[str]] = {}
 
     for path in iter_specs(home):
@@ -1109,6 +1124,7 @@ def validate_home(home: Path) -> list[dict[str, str]]:
         sp_st = spec_status(text)
         if check_id:
             spec_status_map[check_id] = sp_st
+            spec_mode_map[check_id] = str(fm.get("mode", "")).strip().strip("'\"").upper()
         if sp_st is not None and sp_st not in SPEC_STATUS_OK:
             findings.append(
                 {
@@ -1354,6 +1370,51 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                     ),
                 }
             )
+        # Autonomy score (spc-433 A1 / tkt-461 A8). A present row must be an
+        # integer 0-4 (error — the value drives batch-work's night filter and
+        # start-work's unattended decision scope). An absent/placeholder row on
+        # a C-mode Spec-bound ticket created after spc-433 landed warns
+        # (`autonomy_missing`, lazy migration for earlier binders; ticket-only
+        # and S/M tickets never warn — the rubric default 2 applies).
+        _am = AUTONOMY_TABLE_RE.search(_tb)
+        _aval = _am.group(1).strip() if _am else ""
+        if _aval and not TS_PLACEHOLDER_RE.fullmatch(_aval):
+            if not re.fullmatch(r"[0-4]", _aval):
+                findings.append(
+                    {
+                        "code": "autonomy_out_of_range",
+                        "path": str(path),
+                        "detail": (
+                            f"autonomy row {_aval!r} is not an integer 0-4 "
+                            "(autonomy-rubric.md; consumed by batch-work "
+                            "--min-autonomy and start-work --unattended)"
+                        ),
+                    }
+                )
+        else:
+            _sm = SPEC_ROW_RE.search(_tb)
+            _spec_ref = _sm.group(1) if _sm else ""
+            _cm = CREATED_TABLE_RE.search(_tb)
+            _created_val = _cm.group(1).strip() if _cm else ""
+            if (
+                _spec_ref
+                and spec_mode_map.get(_spec_ref, "") == "C"
+                and BINDER_TS_RE.fullmatch(_created_val) is not None
+                and _created_val >= AUTONOMY_CUTOFF
+            ):
+                findings.append(
+                    {
+                        "code": "autonomy_missing",
+                        "level": "warning",
+                        "path": str(path),
+                        "detail": (
+                            f"C-mode ticket under {_spec_ref} has no autonomy "
+                            "row (0-4; create-tickets sets it at split time — "
+                            "batch-work treats a missing row as 2, below the "
+                            "default night threshold 3; spc-433)"
+                        ),
+                    }
+                )
         # Header **Status:** copy vs field-table status. The template dropped
         # the header copy (field table is SoT); a stale survivor that
         # contradicts the table is dual-maintenance drift. Legacy-coarse

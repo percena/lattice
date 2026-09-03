@@ -148,7 +148,7 @@ After ADOPT_CHECK: COMMITTED from issue (read-only) + binder + optional Spec →
 
 | Phase | Host |
 | --- | --- |
-| First-pass product/方案 align | **`create-spec`** (PCA batch) |
+| First-pass product/solution align | **`create-spec`** (PCA batch) |
 | Delivery meta + POST_SPLIT_CHECK | **`create-tickets`** |
 | Workspace + EXECUTE / resume | **`start-work`** (this skill) |
 | Mid-EXECUTE new principals | **`start-work`** explicit batch (not fully silent) |
