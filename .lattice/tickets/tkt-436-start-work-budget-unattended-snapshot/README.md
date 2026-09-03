@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/436 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:00:00Z |
-| updated | 2026-09-03T16:00:00Z |
+| updated | 2026-09-03T09:59:30Z |
 | adopted | false |
 | summary | start-work --budget + --unattended mode + .lattice/snapshots/ context cards |
 | spec | spc-433 — Vibe Coding 流程优化 (path: ../../specs/spc-433-vibe-coding-flow-optimization.md) |
@@ -105,4 +105,7 @@ A3 is split: this ticket covers start-work --budget (single-ticket timeout + blo
 
 ## Finish
 
-- (none yet)
+
+- pr-438 merged: 2026-09-03T09:58:13Z — https://github.com/percena/lattice/pull/438 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #436 closed: 2026-09-03T09:58:41Z (reason: completed) — https://github.com/percena/lattice/issues/436
