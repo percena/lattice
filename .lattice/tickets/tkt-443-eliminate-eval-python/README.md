@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2** No `eval "$(python3` or `eval "$(printf.*python3` remains in any `.sh` file; all existing bats tests pass
+- [x] **A2** No `eval "$(python3` or `eval "$(printf.*python3` remains in any `.sh` file; all existing bats tests pass
 
 ## Approach
 

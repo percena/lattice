@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A4** intercept-gh-issue-create.bats exists with tests covering block, allow, and advisory paths
+- [x] **A4** intercept-gh-issue-create.bats exists with tests covering block, allow, and advisory paths
 
 ## Approach
 

@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A3** lattice-scripts.yml and plugin-hooks.yml run bats on both ubuntu-latest and macos-latest; all tests pass
+- [x] **A3** lattice-scripts.yml and plugin-hooks.yml run bats on both ubuntu-latest and macos-latest; all tests pass
 
 ## Approach
 
