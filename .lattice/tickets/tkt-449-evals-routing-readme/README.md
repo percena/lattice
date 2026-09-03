@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A8** evals/routing/README.md exists and documents the eval tiers and how to run them
+- [x] **A8** evals/routing/README.md exists and documents the eval tiers and how to run them
 
 ## Approach
 

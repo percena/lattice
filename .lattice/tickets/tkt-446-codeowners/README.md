@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A5** .github/CODEOWNERS exists with entries for plugins/lattice/hooks/, .github/workflows/, and tools/
+- [x] **A5** .github/CODEOWNERS exists with entries for plugins/lattice/hooks/, .github/workflows/, and tools/
 
 ## Approach
 

@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A6** Walk-up loop in alignment-check.sh, ci-gate-check.sh, queue-health.sh replaced by a shared function call; all bats tests pass
+- [x] **A6** Walk-up loop in alignment-check.sh, ci-gate-check.sh, queue-health.sh replaced by a shared function call; all bats tests pass
 
 ## Approach
 
