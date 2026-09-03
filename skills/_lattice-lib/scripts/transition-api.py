@@ -366,11 +366,7 @@ def cmd_commit(args: list) -> int:
               file=sys.stderr)
         return 3
     finally:
-        try:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        except OSError:
-            pass
-        os.close(lock_fd)
+        _release_lock_fd(lock_fd)
 
 
 def _resolve_metric(edge, reason: str) -> "str | None":
@@ -522,6 +518,20 @@ def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
     return commit_transaction(binder, new_text, entry)
 
 
+def _release_lock_fd(lock_fd: int) -> None:
+    """Release a flock and close the fd, swallowing individual OSError on each
+    (so a LOCK_UN failure does not skip os.close → fd leak). Spc-427 A2:
+    extracted from 3 duplicated finally blocks."""
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+    except OSError:
+        pass
+    try:
+        os.close(lock_fd)
+    except OSError:
+        pass
+
+
 def _append_ledger_locked(lp: Path, entry: dict) -> None:
     """Append one JSONL entry under the per-ticket flock (review F7). The
     binder dir lock already serializes this ticket's writers; this flock
@@ -536,17 +546,21 @@ def _append_ledger_locked(lp: Path, entry: dict) -> None:
         with lp.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
     finally:
-        try:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        except OSError:
-            pass
-        os.close(lock_fd)
+        _release_lock_fd(lock_fd)
 
 
 def _rollback_ledger(lp: Path, entry: dict) -> None:
     """Best-effort removal of the just-appended line so a failed rename leaves
-    no misleading record. Idempotent: if the line is gone, this is a no-op."""
+    no misleading record. Idempotent: if the line is gone, this is a no-op.
+
+    Spc-427 A1: re-acquires the per-ticket flock before the read-modify-write
+    so a concurrent recorder's entry is not silently dropped by write_text
+    clobbering the file with a stale in-memory snapshot."""
+    lockp = lock_path(entry["ticket"], lp.parent.parent)
+    lockp.parent.mkdir(parents=True, exist_ok=True)
+    lock_fd = os.open(str(lockp), os.O_CREAT | os.O_WRONLY, 0o644)
     try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
         lines = lp.read_text(encoding="utf-8").splitlines()
         needle = json.dumps(entry, separators=(",", ":"))
         if lines and lines[-1].strip() == needle:
@@ -559,6 +573,8 @@ def _rollback_ledger(lp: Path, entry: dict) -> None:
         # None); the caller already knows the transaction failed (exit 3).
         print(f"transition-api: WARNING — rollback failed for {lp.name}: {exc}; "
               f"ledger may have a dangling entry", file=sys.stderr)
+    finally:
+        _release_lock_fd(lock_fd)
 
 
 def cmd_legal(args: list) -> int:
@@ -648,17 +664,7 @@ def cmd_record(args: list) -> int:
         with lp.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
     finally:
-        # A3 fix (spc-424): wrap both in individual try/except (consistent with
-        # _append_ledger_locked lines 538-543). If LOCK_UN raises, os.close is
-        # still called — no fd leak.
-        try:
-            fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        except OSError:
-            pass
-        try:
-            os.close(lock_fd)
-        except OSError:
-            pass
+        _release_lock_fd(lock_fd)
     print(f"recorded: {ticket} {frm} -> {to} ({owner})")
     return 0
 
