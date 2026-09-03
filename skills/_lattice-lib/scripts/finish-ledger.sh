@@ -274,7 +274,7 @@ print(d.get("state") or "")
 print(d.get("mergedAt") or "")
 print(d.get("url") or "")
 ')
-  { IFS= read -r GH_PR_STATE; IFS= read -r GH_PR_MERGED_AT; IFS= read -r GH_PR_URL; } <<< "$_parsed"
+  { IFS= read -r GH_PR_STATE; IFS= read -r GH_PR_MERGED_AT; IFS= read -r GH_PR_URL; } <<< "$_parsed" || true
   [[ -z "$PR_STATE" ]] && PR_STATE="$GH_PR_STATE"
   [[ -z "$MERGED_AT" ]] && MERGED_AT="$GH_PR_MERGED_AT"
   PR_URL="$GH_PR_URL"
@@ -330,7 +330,7 @@ d = json.load(sys.stdin)
 print(d.get("state") or "")
 print(d.get("closedAt") or "")
 ')
-      { IFS= read -r GH_ISSUE_STATE; IFS= read -r GH_ISSUE_CLOSED_AT; } <<< "$_parsed"
+      { IFS= read -r GH_ISSUE_STATE; IFS= read -r GH_ISSUE_CLOSED_AT; } <<< "$_parsed" || true
       CLOSED_AT="$GH_ISSUE_CLOSED_AT"
       [[ "$GH_ISSUE_STATE" == "CLOSED" ]] && ISSUE_CLOSED=true
       # state_reason is not a gh issue view --json field on all gh versions

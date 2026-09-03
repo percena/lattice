@@ -357,7 +357,7 @@ names = {str(item.get("name") or "").lower() for item in labels if isinstance(it
 print(d.get("state") or "")
 print("true" if "epic" in names else "false")
 ')
-  { IFS= read -r ISSUE_STATE; IFS= read -r ISSUE_EPIC; } <<< "$_parsed"
+  { IFS= read -r ISSUE_STATE; IFS= read -r ISSUE_EPIC; } <<< "$_parsed" || true
 
   if [[ "$ISSUE_EPIC" == true ]]; then
     SKIPPED_EPIC+=("$id")

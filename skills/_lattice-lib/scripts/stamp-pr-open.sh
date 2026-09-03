@@ -277,7 +277,7 @@ d = json.load(sys.stdin)
 print(d.get("url") or "")
 print(d.get("state") or "")
 ')
-{ IFS= read -r GH_PR_URL; IFS= read -r GH_PR_STATE; } <<< "$_parsed"
+{ IFS= read -r GH_PR_URL; IFS= read -r GH_PR_STATE; } <<< "$_parsed" || true
 PR_URL="$GH_PR_URL"
 if [[ -z "$PR_URL" ]]; then
   echo "Error: PR #$PR_N has no URL in gh output" >&2

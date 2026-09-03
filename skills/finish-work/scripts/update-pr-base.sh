@@ -128,7 +128,7 @@ print(val((repo.get("defaultBranchRef") or {}).get("name") or ""))
   IFS= read -r URL
   IFS= read -r REPOSITORY
   IFS= read -r DEFAULT_BRANCH
-} <<< "$_parsed"
+} <<< "$_parsed" || true
 
 # Extract hostname from the PR URL for the --hostname flag on gh api (tkt-325,
 # mirrors the #311 fix in alignment-check.sh / close-fixed-issues.sh /
@@ -157,7 +157,7 @@ d = json.load(sys.stdin)
 print(d.get("ref") or "")
 print(d.get("sha") or "")
 ')
-{ IFS= read -r BASE_BRANCH; IFS= read -r BASE_OID; } <<< "$_parsed"
+{ IFS= read -r BASE_BRANCH; IFS= read -r BASE_OID; } <<< "$_parsed" || true
 
 if [[ -z "$PR_NODE_ID" || -z "$HEAD_BRANCH" || -z "$HEAD_OID" || -z "$HEAD_REPOSITORY" || -z "$BASE_BRANCH" || -z "$BASE_OID" || -z "$REPOSITORY" || -z "$DEFAULT_BRANCH" ]]; then
   echo "{\"ok\": false, \"pr\": $PR, \"action\": \"stop\", \"reason\": \"incomplete_identity\"}"
@@ -258,7 +258,7 @@ push = json.loads(sys.argv[2])
 print(fetch.get("nameWithOwner") or "")
 print(push.get("nameWithOwner") or "")
 ' "$origin_fetch_repo_json" "$origin_push_repo_json")
-  { IFS= read -r ORIGIN_FETCH_REPOSITORY; IFS= read -r ORIGIN_PUSH_REPOSITORY; } <<< "$_parsed"
+  { IFS= read -r ORIGIN_FETCH_REPOSITORY; IFS= read -r ORIGIN_PUSH_REPOSITORY; } <<< "$_parsed" || true
   if [[ -z "$ORIGIN_FETCH_URL" || -z "$ORIGIN_PUSH_URL" || "$ORIGIN_FETCH_REPOSITORY" != "$REPOSITORY" || "$ORIGIN_PUSH_REPOSITORY" != "$REPOSITORY" ]]; then
     echo "{\"ok\": false, \"pr\": $PR, \"action\": \"rebase\", \"reason\": \"origin_repository_mismatch\", \"repository\": $(json_escape "$REPOSITORY"), \"originFetchRepository\": $(json_escape "$ORIGIN_FETCH_REPOSITORY"), \"originPushRepository\": $(json_escape "$ORIGIN_PUSH_REPOSITORY"), \"originFetchUrl\": $(json_escape "$ORIGIN_FETCH_URL"), \"originPushUrl\": $(json_escape "$ORIGIN_PUSH_URL")}"
     echo "Error: origin fetch/push resolve to ${ORIGIN_FETCH_REPOSITORY:-unknown}/${ORIGIN_PUSH_REPOSITORY:-unknown}, not $REPOSITORY; refusing local rebase" >&2
@@ -494,7 +494,7 @@ print(view.get("mergeable") or "")
 print(view.get("mergeStateStatus") or "")
 print(view.get("headRefOid") or "")
 ' "$view2")
-  { IFS= read -r MERGEABLE2; IFS= read -r MERGE_STATE; IFS= read -r HEAD_OID2; } <<< "$_parsed"
+  { IFS= read -r MERGEABLE2; IFS= read -r MERGE_STATE; IFS= read -r HEAD_OID2; } <<< "$_parsed" || true
   if [[ -n "$HEAD_OID2" && "$MERGE_STATE" != "UNKNOWN" && -n "$MERGE_STATE" ]]; then
     break
   fi
