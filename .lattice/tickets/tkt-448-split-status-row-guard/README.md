@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A7** L3 status-row guard logic is in a separate file sourced by the main hook; both existing test files pass
+- [x] **A7** L3 status-row guard logic is in a separate file sourced by the main hook; both existing test files pass
 
 ## Approach
 

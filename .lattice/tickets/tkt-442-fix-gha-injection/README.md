@@ -28,7 +28,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** No `${{ inputs.* }}` or `${{ github.event.* }}` appears directly in any `run:` block — all route through `env:`
+- [x] **A1** No `${{ inputs.* }}` or `${{ github.event.* }}` appears directly in any `run:` block — all route through `env:`
 
 ## Approach
 
