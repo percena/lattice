@@ -183,3 +183,74 @@ MD
   [ "$status" -ne 0 ]
   printf '%s\n' "$output" | grep -qiE "ERROR.*(git add|NOT staged|staging)"
 }
+
+@test "A1-fix: already closed + no ledger → open→closed repair (not closed→closed)" {
+  # spc-424 A1: binder already stamped to closed (e.g. by a prior partial run
+  # that wrote the binder but failed before recording the ledger). No ledger
+  # file exists. No anomaly line in ## Finish. finish-stamp should use the
+  # legal `open→closed` legacy edge (transition_table.py:157).
+  cat >"$BINDER" <<'MD'
+# tkt-7-demo
+
+| field | value |
+| --- | --- |
+| status | closed |
+| prs | pr-42 — https://github.com/percena/lattice/pull/42 |
+| updated | 2026-08-01T00:00:00Z
+
+## Acceptance
+
+- [ ] **A1** thing
+
+## Finish
+
+- pr-42 merged: 2026-08-15T12:00:00Z — https://github.com/percena/lattice/pull/42 (base merge)
+MD
+  # No ledger file exists at all
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm "base"
+  run python3 "$FS" --binder "$BINDER" --pr 42 \
+    --merged-at 2026-08-15T12:00:00Z --pr-state MERGED \
+    --pr-url "https://github.com/percena/lattice/pull/42"
+  [ "$status" -eq 0 ]
+  # Ledger was created with open→closed (NOT closed→closed which would fail)
+  [ -f "$LEDGER" ]
+  [ "$(last_ledger_field from)" = "open" ]
+  [ "$(last_ledger_field to)" = "closed" ]
+  printf '%s\n' "$output" | grep -qF "ledger repair"
+}
+
+@test "A1-fix: already closed + anomaly line → recovered prior status (not open)" {
+  # spc-424 A1 (review #2): binder has an anomaly line from a prior direct-jump
+  # stamp. finish-stamp should recover the prior status from the anomaly line
+  # and record `queued→closed` (preserving FSM sojourn history), NOT fabricate
+  # `open→closed` which erases the direct-jump signal.
+  cat >"$BINDER" <<'MD'
+# tkt-7-demo
+
+| field | value |
+| --- | --- |
+| status | closed |
+| prs | pr-42 — https://github.com/percena/lattice/pull/42 |
+| updated | 2026-08-01T00:00:00Z
+
+## Acceptance
+
+- [ ] **A1** thing
+
+## Finish
+
+- pr-42 merged: 2026-08-15T12:00:00Z — https://github.com/percena/lattice/pull/42 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+MD
+  # No ledger file exists
+  git -C "$REPO" add -A && git -C "$REPO" commit -qm "base"
+  run python3 "$FS" --binder "$BINDER" --pr 42 \
+    --merged-at 2026-08-15T12:00:00Z --pr-state MERGED \
+    --pr-url "https://github.com/percena/lattice/pull/42"
+  [ "$status" -eq 0 ]
+  [ -f "$LEDGER" ]
+  # Recovered prior status from anomaly line → queued→closed (NOT open→closed)
+  [ "$(last_ledger_field from)" = "queued" ]
+  [ "$(last_ledger_field to)" = "closed" ]
+  printf '%s\n' "$output" | grep -qF "ledger repair"
+}

@@ -278,7 +278,20 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
 
     # --- Append ledger via record CLI (only on actual flip or repair) ---
     if flip_happened or ledger_needs_repair:
-        record_from = prior_status if flip_happened else (ledger_last_to or prior_status)
+        # A1 fix (spc-424): when repairing a missing ledger for an already-closed
+        # binder, prior_status is "closed" (read from the binder we already wrote)
+        # and closed→closed is NOT a legal edge. If ledger_last_to is empty (no
+        # ledger at all), try to recover the true prior status from the binder's
+        # own `anomaly: prior status X` line (written by lines 156-160 for direct
+        # jumps and side-state merges). If no anomaly line exists, fall back to
+        # "open" — the legal legacy edge (transition_table.py:157).
+        recovered_prior = ""
+        if not flip_happened and not ledger_last_to:
+            anom_m = re.search(r'anomaly:.*prior status `([^`]+)`', text)
+            if anom_m:
+                recovered_prior = anom_m.group(1)
+        record_from = (prior_status if flip_happened
+                       else (ledger_last_to or recovered_prior or "open"))
         rc = subprocess.run([
             sys.executable, ta_path, "record", ticket_id,
             record_from, "closed", "human", reason,
