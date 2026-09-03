@@ -10,7 +10,7 @@ priority: P2
 summary: "Fix 6 verified correctness/hygiene gaps in the state machine stamp path found during pre-release dev branch review: finish-stamp closed→closed repair bug, _rollback_ledger silent swallow, cmd_record finally inconsistency, ensure-workspace status regex, ADR-013 status, GHA workflow_dispatch."
 created: 2026-09-03
 updated: 2026-09-03
-tickets: []
+tickets: [tkt-425]
 prs: []
 reviews: []
 supersedes: []
