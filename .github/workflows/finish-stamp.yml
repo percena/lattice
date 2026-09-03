@@ -48,15 +48,23 @@ jobs:
     steps:
       - name: Resolve event inputs
         id: evt
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PR: ${{ inputs.pr }}
+          INPUT_REPO: ${{ inputs.repo }}
+          INPUT_BASE: ${{ inputs.base }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GH_REPOSITORY: ${{ github.repository }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "pr=${{ inputs.pr }}" >> "$GITHUB_OUTPUT"
-            echo "repo=${{ inputs.repo }}" >> "$GITHUB_OUTPUT"
-            echo "base=${{ inputs.base }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "pr=$INPUT_PR" >> "$GITHUB_OUTPUT"
+            echo "repo=$INPUT_REPO" >> "$GITHUB_OUTPUT"
+            echo "base=$INPUT_BASE" >> "$GITHUB_OUTPUT"
           else
-            echo "pr=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-            echo "repo=${{ github.repository }}" >> "$GITHUB_OUTPUT"
-            echo "base=${{ github.event.pull_request.base.ref }}" >> "$GITHUB_OUTPUT"
+            echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "repo=$GH_REPOSITORY" >> "$GITHUB_OUTPUT"
+            echo "base=$PR_BASE_REF" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout merge base
@@ -68,7 +76,9 @@ jobs:
       - name: Verify local stamp + repair ledger (safety net)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAMP_PR: ${{ steps.evt.outputs.pr }}
+          STAMP_REPO: ${{ steps.evt.outputs.repo }}
         run: |
           python3 skills/_lattice-lib/scripts/finish-stamp-ci.py \
-            --pr ${{ steps.evt.outputs.pr }} \
-            --repo ${{ steps.evt.outputs.repo }}
+            --pr "$STAMP_PR" \
+            --repo "$STAMP_REPO"
