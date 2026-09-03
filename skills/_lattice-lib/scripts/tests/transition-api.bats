@@ -391,3 +391,97 @@ PY
   # And NOT under the cwd.
   [ ! -s "$repo/sub/dir/.lattice/.transition-ledger/tkt-41.jsonl" ]
 }
+
+# --- spc-430 A1: rollback path coverage (rename-failure → _rollback_ledger) --
+# spc-427 A1 added a flock to _rollback_ledger so a concurrent recorder's entry
+# is not clobbered by write_text. The existing fault test (ledger-write fail)
+# never reaches _rollback_ledger (invoked only on rename failure). These two
+# tests close that gap: (1) the rename→rollback path runs and preserves a
+# concurrent entry; (2) _rollback_ledger acquires the per-ticket flock — a
+# deterministic regression guard that fails if the spc-427 A1 lock is removed.
+
+@test "spc-430 A1: rename failure rolls back the failed commit entry; concurrent recorder's entry preserved" {
+  B=$(make_binder tkt-44)
+  # Prior legal transition queued -> in-progress (so in-progress -> parked legal)
+  python3 "$API" commit tkt-44 in-progress system spawn >/dev/null
+  ledger="$LATTICE_HOME/.transition-ledger/tkt-44.jsonl"
+  # A concurrent recorder appends an entry to the same ledger BEFORE the
+  # failed commit's rollback runs (queued -> in-progress is always legal).
+  python3 "$API" record tkt-44 queued in-progress bg concurrent >/dev/null
+  # Inject a rename failure in-process and call commit_transaction directly so
+  # os.replace raises → _rollback_ledger runs (the previously-untested path).
+  python3 - "$API" "$B" "$ledger" <<'PY'
+import os, sys, json, importlib.util
+from pathlib import Path
+api_path, binder_path, ledger_path_ = sys.argv[1:4]
+spec = importlib.util.spec_from_file_location("ta", api_path)
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+binder = Path(binder_path)
+lp = Path(ledger_path_)
+# The commit's own entry (in-progress -> parked). The exact metric value does
+# not matter — append and rollback share the SAME dict so the needle matches.
+entry = {
+  "ts": "2026-09-03T00:00:05Z", "ticket": "tkt-44", "from": "in-progress",
+  "to": "parked", "owner": "fg", "reason": "park", "guard": "none",
+  "escape_used": False, "force_side_state_reason": None, "trace": None,
+  "metric": "normal",
+}
+new_text = binder.read_text(encoding="utf-8").replace("| in-progress |", "| parked |")
+_real = os.replace
+os.replace = lambda *a, **k: (_ for _ in ()).throw(OSError("injected rename failure"))
+try:
+    rc = ta.commit_transaction(binder, new_text, entry)
+finally:
+    os.replace = _real
+assert rc == 3, f"expected exit 3 (transaction aborted), got {rc}"
+lines = lp.read_text(encoding="utf-8").splitlines()
+# The concurrent recorder's entry must survive the rollback.
+assert any('"reason":"concurrent"' in l for l in lines), f"concurrent entry clobbered: {lines}"
+# The failed commit's own entry must have been rolled back (removed).
+assert not any('"reason":"park"' in l for l in lines), f"failed commit entry not rolled back: {lines}"
+PY
+}
+
+@test "spc-430 A1: _rollback_ledger acquires the per-ticket flock (regression guard — fails if spc-427 A1 lock removed)" {
+  B=$(make_binder tkt-45)
+  # One entry so the ledger exists and _rollback_ledger has something to read.
+  python3 "$API" record tkt-45 queued in-progress sys spawn >/dev/null
+  ledger="$LATTICE_HOME/.transition-ledger/tkt-45.jsonl"
+  # Resolve the exact lock path transition-api uses (state-home sidecar).
+  LOCKP=$(python3 - "$API" "$LATTICE_HOME" <<'PY'
+import sys, importlib.util
+spec = importlib.util.spec_from_file_location("ta", sys.argv[1])
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+print(ta.lock_path("tkt-45", sys.argv[2]))
+PY
+)
+  mkdir -p "$(dirname "$LOCKP")"
+  # Background: hold the per-ticket flock for ~2s (separate process so the
+  # lock is genuinely contended — flock is per-process on BSD/macOS).
+  ( python3 - "$LOCKP" <<'PY'
+import sys, os, fcntl, time
+fd = os.open(sys.argv[1], os.O_CREAT | os.O_WRONLY, 0o644)
+fcntl.flock(fd, fcntl.LOCK_EX)
+time.sleep(2)
+fcntl.flock(fd, fcntl.LOCK_UN)
+os.close(fd)
+PY
+  ) &
+  BG=$!
+  sleep 0.5  # let the background holder acquire the lock first
+  # Foreground: _rollback_ledger must block on the flock (~1.5s) then complete.
+  # Without the spc-427 A1 lock (regression) it completes in <0.1s → assert fails.
+  python3 - "$API" "$ledger" <<'PY'
+import sys, json, time, importlib.util
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("ta", sys.argv[1])
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+lp = Path(sys.argv[2])
+entry = json.loads(lp.read_text(encoding="utf-8").strip())
+start = time.time()
+ta._rollback_ledger(lp, entry)
+elapsed = time.time() - start
+assert elapsed > 1.0, f"_rollback_ledger did not block on flock (elapsed={elapsed:.2f}s) — spc-427 A1 lock removed?"
+PY
+  wait "$BG" 2>/dev/null || true
+}
