@@ -59,7 +59,10 @@ Touch-set:
 
 ## Decision journal
 
-(append-only during execution)
+- autonomy field values 0-4 → 0-indexed integers (source: spec decision 1)
+- field table position → after solo_merge, before primary_ticket (source: agent-judgment — execution-disposition peers)
+- scoring rubric location → new file autonomy-rubric.md in _lattice-lib/references/ (source: agent-judgment — co-located with decision-policy.md)
+- validator enforcement → deferred to follow-up; field is recommended not required (source: must-ask resolved as deferred — cross-contract with _lattice-lib validator)
 
 ## Pending decisions
 

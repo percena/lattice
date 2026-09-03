@@ -2,7 +2,7 @@
 
 <!-- Binder is a thin recovery card (not a second issue tracker).
      required: kind, priority, github, status, created/updated, acceptance, primary_ticket / worktree_bind when shipping
-     recommended: covers, spec, summary/TL;DR, Path
+     recommended: covers, spec, summary/TL;DR, Path, autonomy
      optional (parallel / C): blocked_by, merge_blocked_by, parallel_group, paths, solo_merge, related_tickets -->
 
 > **TL;DR:** <one sentence slice — standalone>
@@ -29,6 +29,7 @@
 | parallel_group | G1 \| (serial) |
 | paths | approx globs this slice may touch |
 | solo_merge | yes \| no |
+| autonomy | 4 | ticket-level autonomy score 0-4 (0-indexed per lattice convention). 0=Day-Interactive (needs human architecture/UI confirmation) \| 1=low (may need 1-2 confirmations) \| 2=medium (mostly self-sufficient) \| 3=high (clear acceptance criteria, good test coverage) \| 4=full (docs/tests/pure functions, auto-mergeable). Set at split time by create-tickets; batch-work uses `--min-autonomy` (default 3) to filter night-executable tickets. Scoring rubric: `../_lattice-lib/references/autonomy-rubric.md`. Missing row → default 2 (medium) for backward compat — validator warns if absent on C-mode tickets |
 | **primary_ticket** | tkt-<id> (this issue) — owner of the ship when this tree has one PR |
 | **related_tickets** | (none \| tkt-… sub/Refs tickets on the same PR) |
 | **worktree_bind** | `tkt-<id>-<slug>` \| `spc-<n>-<slug>` \| full branch name (open-time bind; rebind optional) |

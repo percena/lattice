@@ -50,7 +50,7 @@ Each GitHub Issue + local binder pair must stand alone:
 | **Issue title** | Plain human summary |
 | **Issue labels** | kind + priority (M/C): e.g. `feat,P2` |
 | **Issue body** | Preview, Why, Scope (this slice), Acceptance, Lineage/refs |
-| **Binder README** | kind, priority, links, acceptance, worktree name |
+| **Binder README** | kind, priority, links, acceptance, worktree name, autonomy |
 
 **Reference Spec** with id + path; do not paste the full Spec.
 
@@ -109,6 +109,7 @@ Each ticket must declare (templates):
 | **merge_blocked_by** | Merge-order dep (`none` or `#N`) — #N must MERGE before this ticket's PR lands (distinct from `blocked_by` = work-start order; usually the same). Consumed by `finish-work` multi-PR mode; falls back to `blocked_by` when absent |
 | **parallel_group** | e.g. `G1` or serial |
 | **solo-merge** | Can land alone on green main? |
+| **autonomy** | 0-4 score: how much an agent may self-decide in unattended mode. 0=Day-Interactive (human-only) \| 4=full (auto-mergeable). Set at split time; `batch-work --min-autonomy` (default 3) filters night-batch. Rubric: `../_lattice-lib/references/autonomy-rubric.md` |
 
 Path-overlapping tickets must **not** share a parallel group. Shared APIs/types belong on Spec/ADR before fan-out.  
 **Implicit shared files:** engine-style repos carry files every bundled change touches even when no ticket lists them — plugin version manifests (`.claude-plugin/marketplace.json`, `plugins/*/.claude-plugin/plugin.json`) and the changelog. They do not count as path overlap for the gate; parallel tickets touching bundled content need not coordinate on version/changelog — version bump is deferred to the dev→main release boundary (ADR-005), not enforced per-PR on the integration branch.  
