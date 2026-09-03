@@ -27,12 +27,12 @@ Fix 6 verified correctness/hygiene gaps in the state machine stamp path found du
 
 ## Acceptance
 
-- [ ] A1: finish-stamp.py ledger repair uses `open→closed` when ledger empty + binder already closed (not `closed→closed`)
-- [ ] A2: _rollback_ledger prints stderr warning on rollback failure (not silent pass)
-- [ ] A3: cmd_record finally wrapped in try/except (consistent with _append_ledger_locked)
-- [ ] A4: ensure-workspace.sh status regex matches `|status|` and `| **status** |` (was too strict)
-- [ ] A5: ADR-013 Status = Accepted
-- [ ] A6: finish-stamp.yml has workflow_dispatch with inputs.pr + inputs.repo
+- [x] A1: finish-stamp.py ledger repair uses `open→closed` when ledger empty + binder already closed (not `closed→closed`)
+- [x] A2: _rollback_ledger prints stderr warning on rollback failure (not silent pass)
+- [x] A3: cmd_record finally wrapped in try/except (consistent with _append_ledger_locked)
+- [x] A4: ensure-workspace.sh status regex matches `|status|` and `| **status** |` (was too strict)
+- [x] A5: ADR-013 Status = Accepted
+- [x] A6: finish-stamp.yml has workflow_dispatch with inputs.pr + inputs.repo
 
 ## Notes
 
