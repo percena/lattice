@@ -51,12 +51,12 @@ superseded_by: null
 
 ## Acceptance
 
-- [ ] **A1** create-tickets 产出的 ticket binder 包含 `autonomy` 字段（0-4 整数），并有自评规则文档
-- [ ] **A2** batch-work 在拉起夜间调度时，按 `--min-autonomy` 阈值（默认 3）过滤 ticket；低于阈值的 ticket 告警跳过并输出提示
-- [ ] **A3** start-work / batch-work 支持 `--budget <minutes>,<retries>` 参数；超限后自动执行熔断流程（debug-dump → [BLOCKED] draft PR → `.lattice/blocked/<tkt>.json` → git clean → 拉起下一条）
-- [ ] **A4** start-work 支持 `--unattended` 标志；该模式下 System Prompt 注入"遇歧义自主决策 + `Auto-Decided:` 注释 + ADR 记录"规则，严禁中断等待用户输入
-- [ ] **A5** review-code 在审阅时默认高亮 `Auto-Decided` 标记的代码行，列入重点审阅清单
-- [ ] **A6** 任务执行完一轮后生成 `.lattice/snapshots/<tkt>.md` 卡片（三字段：本次交付摘要 / 偏离声明 / 待决问题）；start-work resume 时优先读取快照卡片而非从头解析 binder
+- [x] **A1** create-tickets 产出的 ticket binder 包含 `autonomy` 字段（0-4 整数），并有自评规则文档
+- [x] **A2** batch-work 在拉起夜间调度时，按 `--min-autonomy` 阈值（默认 3）过滤 ticket；低于阈值的 ticket 告警跳过并输出提示
+- [x] **A3** start-work / batch-work 支持 `--budget <minutes>,<retries>` 参数；超限后自动执行熔断流程（debug-dump → [BLOCKED] draft PR → `.lattice/blocked/<tkt>.json` → git clean → 拉起下一条）
+- [x] **A4** start-work 支持 `--unattended` 标志；该模式下 System Prompt 注入"遇歧义自主决策 + `Auto-Decided:` 注释 + ADR 记录"规则，严禁中断等待用户输入
+- [x] **A5** review-code 在审阅时默认高亮 `Auto-Decided` 标记的代码行，列入重点审阅清单
+- [x] **A6** 任务执行完一轮后生成 `.lattice/snapshots/<tkt>.md` 卡片（三字段：本次交付摘要 / 偏离声明 / 待决问题）；start-work resume 时优先读取快照卡片而非从头解析 binder
 
 ## Non-goals
 

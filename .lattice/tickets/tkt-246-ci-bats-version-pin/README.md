@@ -1,6 +1,6 @@
 # tkt-246 — CI bats 1.10.0 vs local 1.13.0 pin
 
-> **Status:** in-progress · kind bug · priority P1 · ticket-only (no Spec parent)
+> **Status:** closed · kind bug · priority P1 · ticket-only (no Spec parent)
 
 ## Field table
 

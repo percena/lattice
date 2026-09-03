@@ -1,6 +1,6 @@
 # tkt-211 — Batch-work verify-after-mutate discipline
 
-> **Status:** in-progress · kind feat · priority P1 · ticket-only (no Spec parent)
+> **Status:** closed · kind feat · priority P1 · ticket-only (no Spec parent)
 
 ## Field table
 
