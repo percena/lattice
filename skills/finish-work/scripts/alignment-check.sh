@@ -62,29 +62,15 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Resolve _lattice-lib only (legacy lattice-lib dual-resolve dropped)
-LIB_SCRIPTS=""
-for cand in \
-  "${LATTICE_LIB_SCRIPTS:-}" \
-  "${SCRIPT_DIR}/../../_lattice-lib/scripts" \
-  "${SCRIPT_DIR}/../../../skills/_lattice-lib/scripts"
-do
-  [[ -n "$cand" && -f "$cand/_lattice-home.sh" ]] || continue
-  LIB_SCRIPTS="$cand"
-  break
+# Bootstrap _lattice-home.sh (can't call shared funcs before sourcing)
+for _c in "${LATTICE_LIB_SCRIPTS:-}" "${SCRIPT_DIR}/../../_lattice-lib/scripts" "${SCRIPT_DIR}/../../../skills/_lattice-lib/scripts"; do
+  [[ -n "$_c" && -f "$_c/_lattice-home.sh" ]] && { source "$_c/_lattice-home.sh"; break; }
 done
-if [[ -n "$LIB_SCRIPTS" && -f "$LIB_SCRIPTS/_lattice-home.sh" ]]; then
-  # shellcheck source=/dev/null
-  source "$LIB_SCRIPTS/_lattice-home.sh"
-  lattice_export_roots 2>/dev/null || true
-  if [[ -z "$HOME_DIR" ]]; then
-    HOME_DIR=$(lattice_default_home 2>/dev/null || echo "")
-  fi
-fi
-if [[ -z "$HOME_DIR" ]]; then
+# Shared HOME_DIR resolution (tkt-447: deduplicates export_roots + default_home + fallback)
+source_lattice_home_and_resolve "$SCRIPT_DIR" 2>/dev/null || {
   ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
   HOME_DIR="${LATTICE_HOME:-$ROOT/.lattice}"
-fi
+}
 
 # Profile: light softens Acceptance HARD → WARN
 AC_PROFILE="strict"

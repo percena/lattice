@@ -70,26 +70,14 @@ fi
 # Resolve lattice home (same priority as ci-gate-check.sh / alignment-check.sh).
 if [[ -z "$HOME_DIR" ]]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  LIB_SCRIPTS=""
-  for cand in \
-    "${LATTICE_LIB_SCRIPTS:-}" \
-    "${SCRIPT_DIR}" \
-    "${SCRIPT_DIR}/../../_lattice-lib/scripts"
-  do
-    [[ -n "$cand" && -f "$cand/_lattice-home.sh" ]] || continue
-    LIB_SCRIPTS="$cand"
-    break
-  done
-  if [[ -n "$LIB_SCRIPTS" && -f "$LIB_SCRIPTS/_lattice-home.sh" ]]; then
-    # shellcheck source=/dev/null
-    source "$LIB_SCRIPTS/_lattice-home.sh"
-    lattice_export_roots 2>/dev/null || true
-    HOME_DIR=$(lattice_default_home 2>/dev/null || echo "")
-  fi
-fi
-if [[ -z "$HOME_DIR" ]]; then
-  ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-  HOME_DIR="${LATTICE_HOME:-$ROOT/.lattice}"
+  # _lattice-home.sh is in the same directory — source directly
+  # shellcheck source=_lattice-home.sh
+  source "$SCRIPT_DIR/_lattice-home.sh"
+  # Shared HOME_DIR resolution (tkt-447)
+  source_lattice_home_and_resolve "$SCRIPT_DIR" 2>/dev/null || {
+    ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    HOME_DIR="${LATTICE_HOME:-$ROOT/.lattice}"
+  }
 fi
 
 TICKETS_DIR="$HOME_DIR/tickets"

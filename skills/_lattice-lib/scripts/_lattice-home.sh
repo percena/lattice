@@ -135,3 +135,46 @@ lattice_profile() {
 lattice_profile_is_light() {
   [[ "$(lattice_profile)" == "light" ]]
 }
+
+# ---------------------------------------------------------------------------
+# Resolve _lattice-lib/scripts path from a caller's SCRIPT_DIR.
+# Usage: resolve_lattice_lib_scripts "/path/to/caller/dir" [extra_candidates...]
+# Sets LIB_SCRIPTS to the resolved path; returns 1 if not found.
+# ---------------------------------------------------------------------------
+resolve_lattice_lib_scripts() {
+  local caller_dir="${1:?resolve_lattice_lib_scripts: caller dir required}"
+  shift
+  LIB_SCRIPTS=""
+  local cand
+  for cand in \
+    "${LATTICE_LIB_SCRIPTS:-}" \
+    "$caller_dir" \
+    "$caller_dir/../../_lattice-lib/scripts" \
+    "$caller_dir/../../../skills/_lattice-lib/scripts" \
+    "$@"
+  do
+    [[ -n "$cand" && -f "$cand/_lattice-home.sh" ]] || continue
+    LIB_SCRIPTS="$cand"
+    return 0
+  done
+  return 1
+}
+
+# Source _lattice-home.sh from a caller's SCRIPT_DIR + resolve HOME_DIR.
+# Usage: source_lattice_home_and_resolve "/path/to/caller/dir"
+# After call: LIB_SCRIPTS, HOME_DIR, LATTICE_REPO_ROOT, LATTICE_MAIN_ROOT set.
+source_lattice_home_and_resolve() {
+  local caller_dir="${1:?source_lattice_home_and_resolve: caller dir required}"
+  if ! resolve_lattice_lib_scripts "$caller_dir"; then
+    return 1
+  fi
+  # shellcheck source=/dev/null
+  source "$LIB_SCRIPTS/_lattice-home.sh"
+  lattice_export_roots 2>/dev/null || true
+  HOME_DIR=$(lattice_default_home 2>/dev/null || echo "")
+  if [[ -z "$HOME_DIR" ]]; then
+    local root
+    root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+    HOME_DIR="${LATTICE_HOME:-$root/.lattice}"
+  fi
+}
