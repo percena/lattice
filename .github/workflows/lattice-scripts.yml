@@ -24,7 +24,11 @@ concurrency:
 
 jobs:
   bats:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,8 +43,13 @@ jobs:
           git clone --depth 1 --branch v1.13.0 https://github.com/bats-core/bats-core.git /tmp/bats-core
           sudo /tmp/bats-core/install.sh /usr/local
           bats --version
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install jq python3 2>/dev/null || true
       - name: Run skill script tests (all suites discovered)
         run: |
-          mapfile -t suites < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
+          suites=()
+          while IFS= read -r d; do suites+=("$d"); done < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
           echo "suites: ${suites[*]}"
           bats "${suites[@]}"
