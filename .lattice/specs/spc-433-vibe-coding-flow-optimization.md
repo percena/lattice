@@ -9,7 +9,7 @@ priority: P2
 summary: "4 个 workflow 改进：ticket 自治度 0-4 评分 + 断路器超限熔断 + 无人值守推测执行 + 上下文快照卡片"
 created: 2026-09-03
 updated: 2026-09-03
-tickets: []
+tickets: [tkt-434, tkt-435, tkt-436, tkt-437]
 prs: []
 reviews: []
 supersedes: []
