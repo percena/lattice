@@ -12,25 +12,39 @@ name: finish-stamp
 on:
   pull_request:
     types: [closed]
+  # A6 fix (spc-424): manual re-trigger for lost push races. If all three push
+  # paths lose the race, the next pull_request:closed won't re-fire (already
+  # closed). This trigger lets an operator manually re-run the safety net.
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to stamp"
+        required: true
+        type: number
+      repo:
+        description: "owner/name (e.g. percena/lattice)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: finish-stamp-${{ github.event.pull_request.number }}
+  group: finish-stamp-${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
   verify-and-repair:
     # Only merged PRs carry terminal ledger evidence worth stamping.
-    if: github.event.pull_request.merged == true
+    # workflow_dispatch bypasses the merged check (manual re-trigger).
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout merge base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.ref }}
+          ref: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           fetch-depth: 2
 
       - name: Verify local stamp + repair ledger (safety net)
@@ -38,5 +52,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 skills/_lattice-lib/scripts/finish-stamp-ci.py \
-            --pr ${{ github.event.pull_request.number }} \
-            --repo ${{ github.repository }}
+            --pr ${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.pull_request.number }} \
+            --repo ${{ github.event_name == 'workflow_dispatch' && inputs.repo || github.repository }}

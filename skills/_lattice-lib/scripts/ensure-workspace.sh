@@ -655,7 +655,7 @@ stamp_in_progress() {
   if [[ "$n" -ne 1 || ! -f "$binder" ]]; then
     return 0
   fi
-  status=$(grep -m1 -E '^\| status \|' "$binder" 2>/dev/null \
+  status=$(grep -m1 -E '^\| *status *\|' "$binder" 2>/dev/null \
     | awk -F'|' '{ v=$3; gsub(/^[ \t]+|[ \t]+$/, "", v); print v }' || true)
   # Only the queued → in-progress edge belongs to the bind. A re-bind sees
   # in-progress (no-op, idempotent); pr-open / rework / parked / stuck /

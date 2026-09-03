@@ -552,8 +552,14 @@ def _rollback_ledger(lp: Path, entry: dict) -> None:
         if lines and lines[-1].strip() == needle:
             lp.write_text("\n".join(lines[:-1]) + ("\n" if len(lines) > 1 else ""),
                           encoding="utf-8")
-    except OSError:
-        pass
+    except OSError as exc:
+        # A2 fix (spc-424): was silent `pass` — a failed rollback leaves a dangling
+        # ledger entry while commit_transaction reports "unchanged." Log to stderr
+        # so the inconsistency is visible, not silent. Still best-effort (returns
+        # None); the caller already knows the transaction failed (exit 3).
+        import sys
+        print(f"transition-api: WARNING — rollback failed for {lp.name}: {exc}; "
+              f"ledger may have a dangling entry", file=sys.stderr)
 
 
 def cmd_legal(args: list) -> int:
@@ -643,8 +649,17 @@ def cmd_record(args: list) -> int:
         with lp.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
     finally:
-        fcntl.flock(lock_fd, fcntl.LOCK_UN)
-        os.close(lock_fd)
+        # A3 fix (spc-424): wrap both in individual try/except (consistent with
+        # _append_ledger_locked lines 538-543). If LOCK_UN raises, os.close is
+        # still called — no fd leak.
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        except OSError:
+            pass
+        try:
+            os.close(lock_fd)
+        except OSError:
+            pass
     print(f"recorded: {ticket} {frm} -> {to} ({owner})")
     return 0
 

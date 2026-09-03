@@ -1,6 +1,6 @@
 # ADR 013: Post-merge ledger stamping — belt-and-suspenders (simplified local stamp + GHA safety net)
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-02
 - **Deciders:** operator, Claude
 - **Related:** `spc-398` A4, `#416` (bug ticket), tkt-402 (PR #404, #405 — failed patches)
