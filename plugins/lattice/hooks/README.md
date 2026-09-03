@@ -4,7 +4,10 @@ Claude-only enforcement layer registered in `hooks.json`. Every hook is
 **fail-open on ambiguity** (missing `jq`/`git`/`python3`, unparseable input,
 unknown tool) and prints its reason to stderr; a block is `exit 2`. The skills
 stay correct without hooks (Codex / `npx skills`). `LATTICE_HOOK_MODE=advisory`
-turns the `gh`/branch blocks into nudges — see `../README.md` § Hooks.
+turns the three `gh` intercepts (`pr create` / `pr merge` / `issue create`) into
+nudges; it does **not** relax L1 (`intercept-git-branch-create`) or L3
+(`intercept-shippable-write`), which always block under `profile: strict` and
+have their own audited escapes (tkt-460) — see `../README.md` § Hooks.
 
 | Hook | Event | Rule | Escape |
 | --- | --- | --- | --- |
