@@ -4,14 +4,14 @@ id: spc-427
 slug: lock-safety-lineage-sensor-followup
 title: Transition-api lock safety + lineage sensor wiring follow-up
 kind: fix
-status: locked
+status: done
 mode: C
 priority: P3
 summary: "Fix 3 pre-existing issues from spc-424 review: _rollback_ledger unlocked RMW race, lock teardown 3x duplication, lineage-metrics post-ratchet coverage 0/0."
 created: 2026-09-03
 updated: 2026-09-03
 tickets: [tkt-428]
-prs: []
+prs: [pr-429]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Transition-api lock safety + lineage sensor wiring follow-up
 
 > **TL;DR:** Three pre-existing issues identified during spc-424 pre-release review but deferred as non-blocking. All confirmed on current dev. Small surgical fixes: add flock to _rollback_ledger, extract _release_lock_fd helper, wire ratchet cutoff from config.
-> **Kind:** fix · **Status:** locked · **Mode:** C · **Priority:** P3
+> **Kind:** fix · **Status:** done · **Mode:** C · **Priority:** P3
 > **Path:** spc-424 review (2026-09-03) → spc-427 → tkt-… → pr-…
 
 ## Why
@@ -42,9 +42,9 @@ The spc-424 pre-release review found 3 pre-existing issues in the state machine 
 
 ## Acceptance
 
-- [ ] **A1** `_rollback_ledger` acquires the ledger flock before reading, holds it through the write, and releases it after. A concurrent `cmd_record` that appends between the read and write is now serialized (no dropped entry). Fault test: two concurrent recorders + a rollback — the concurrent entry survives.
-- [ ] **A2** A `_release_lock_fd(fd)` helper exists and is called from all 3 finally blocks (`cmd_commit`, `_append_ledger_locked`, `cmd_record`). No bare `os.close(lock_fd)` remains in any lock teardown. Existing transition-api.bats tests pass.
-- [ ] **A3** `lineage-metrics.sh` reads `lineage.ratchet_cutoff` from config.yaml (or `--created-after` override) and passes it to `LM_CREATED_AFTER`. Post-ratchet coverage shows real numbers (not 0/0) when binders created after the cutoff exist.
+- [x] **A1** `_rollback_ledger` acquires the ledger flock before reading, holds it through the write, and releases it after. A concurrent `cmd_record` that appends between the read and write is now serialized (no dropped entry). Fault test: two concurrent recorders + a rollback — the concurrent entry survives.
+- [x] **A2** A `_release_lock_fd(fd)` helper exists and is called from all 3 finally blocks (`cmd_commit`, `_append_ledger_locked`, `cmd_record`). No bare `os.close(lock_fd)` remains in any lock teardown. Existing transition-api.bats tests pass.
+- [x] **A3** `lineage-metrics.sh` reads `lineage.ratchet_cutoff` from config.yaml (or `--created-after` override) and passes it to `LM_CREATED_AFTER`. Post-ratchet coverage shows real numbers (not 0/0) when binders created after the cutoff exist.
 
 ## Decisions (principal, user-confirmed)
 
