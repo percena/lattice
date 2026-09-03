@@ -33,8 +33,8 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A2** batch-work 在拉起夜间调度时，按 `--min-autonomy` 阈值（默认 3）过滤 ticket；低于阈值的 ticket 告警跳过并输出提示
-- [ ] **A3** (batch-work portion) start-work / batch-work 增加 `--budget` 参数；超限后自动执行熔断流程（debug-dump → [BLOCKED] draft PR → `.lattice/blocked/<tkt>.json` → git clean → 拉起下一条）
+- [x] **A2** batch-work 在拉起夜间调度时，按 `--min-autonomy` 阈值（默认 3）过滤 ticket；低于阈值的 ticket 告警跳过并输出提示
+- [x] **A3** (batch-work portion) start-work / batch-work 增加 `--budget` 参数；超限后自动执行熔断流程（debug-dump → [BLOCKED] draft PR → `.lattice/blocked/<tkt>.json` → git clean → 拉起下一条）
 
 ## Approach
 

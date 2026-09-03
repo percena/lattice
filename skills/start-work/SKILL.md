@@ -2,7 +2,7 @@
 name: start-work
 description: "Start or resume work on a ticket/Spec: light classify, load locked binders, ensure sibling worktree, hand off to implement (or setup-only stop). Use when starting work, continuing tkt-N/spc-N, ensuring workspace, or one-shot orchestrate. Not for opening a PR, merging, or first-pass product align alone (use create-spec)."
 allowed-tools: Bash Read Grep Glob AskUserQuestion
-argument-hint: "[tkt-N | spc-N | setup-only | #N]"
+argument-hint: "[tkt-N | spc-N | setup-only | #N] [--budget <min>,<retries>] [--unattended]"
 metadata:
   agents: "claude-code,codex"
 ---
@@ -94,7 +94,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 ## S path (short)
 
 1. INTAKE + CLASSIFY → announce mode. If ticket has `bug` label or Reproduction Steps in binder → classify as **bug-class** (triggers Phase 0c/1b loop in step 7).  
-2. If `tkt-N` / `spc-N` **with locked L0** → **resume** (load binder/Spec, skip re-grill). Resume honors the binder `status` FSM (SoT — `docs/workflow-fsm.md` or portable `_lattice-lib/references/workflow-fsm-reference.md`, ADR-004 §6):
+2. If `tkt-N` / `spc-N` **with locked L0** → **resume** (load binder/Spec, skip re-grill). **Context snapshot first (spc-433 A6):** if `.lattice/snapshots/<tkt>.md` exists, read it before loading the full binder — it is the 30-second context reload card (Delivered / Deviations / Pending). Resume honors the binder `status` FSM (SoT — `docs/workflow-fsm.md` or portable `_lattice-lib/references/workflow-fsm-reference.md`, ADR-004 §6):
    - `rework` — PR returned with findings. Load the findings (binder + PR review threads / review-delivery digest) as the **new brief**; EXECUTE the fixes on the **same branch/PR** (address-review shape, fix cycle ≤2). Do not open a second PR; on push, status returns to `pr-open`.
    - `parked` (ratified) — the **ratify** action calls `ratify.sh` (`../_lattice-lib/scripts/ratify.sh`), which writes the decision into `## Decision journal` **and** flips `parked → queued` in a single git commit (ADR-004 amd tkt-136 Option A — crash window narrowed, not eliminated). Resume implements from the recorded decision; do not re-ask it. Still-`parked` binders without a ratified entry stay parked — surface, don't guess.
    - `stuck` — never silently retry (Attempts ledger + caps carry across sessions, `fallback-policy.md`). Three exits, **operator-chosen**: **unblock** (answer/env fix) → re-queue (`wait_reason: unblock`); **re-scope** (scope-escape signal = planning defect) → Spec/ticket revision via `create-spec`/`create-tickets` (`wait_reason: re-scope`, routed to M1); **cancel** → `status: closed` without merge, stamped via `finish-ledger.sh --cancel --reason "<text>" (--closed-at <ts> | --issue M) --binder <path>` (no PR row, no `mergedAt`; requires human reason + firm close time or a gh-verified CLOSED issue). Stamp the binder `wait_reason` row so morning triage can route the two dispositions.
@@ -107,6 +107,9 @@ bash "$LIB/assert-shippable-cwd.sh" || {
 7. EXECUTE under the accountable owner **unless** setup-only → stop with `/start-work tkt-N` hint. Bounded delegation is allowed.
    - DEFAULT: no forced TDD; use the bound workspace unless an escape is explicit; new irreversible axis → PCA batch.
    - DEFAULT: mid-EXECUTE decisions resolve via `../_lattice-lib/references/decision-policy.md` (chain first-hit; reversible+local → journal; else park & pivot); unattended fallback follows `../_lattice-lib/references/fallback-policy.md`.
+   - **`--budget <min>,<retries>` (spc-433):** per-ticket wall-clock + retry ceiling (DEFAULT 60 min / 5 retries, overridable per run). At trip: stamp `status: stuck` + `wait_reason: unblock` via `transition-api.py` (`in-progress → stuck` edge); generate `.lattice/blocked/<tkt>-debug-dump.json` (context, last error, attempt count); call `finish-work` to create `[BLOCKED]` draft PR; `git clean` reset. The binder `## Attempts` ledger + status FSM + transition ledger constitute the durable failure handoff — no new snapshot mechanism needed. Per-ticket timebox from `batch_timebox_*` config keys still applies as the inner bound; `--budget` is the outer bound.
+   - **`--unattended` (spc-433):** activates the decision-policy.md resolution chain as the **total function** (resolve-or-park, never block). System prompt injection: "遇到歧义自主选置信度最高方案，在代码中打 `// Auto-Decided: <reason>` 注释 + PR body 设 `## Auto-Decided` section + 记录 ADR。严禁中断等待用户输入。" SKILL.md "Non-interactive / CI: do not invent PCA answers — fail closed" becomes the active mode, not an edge case. The binder `autonomy` field (0-4, spc-433) scopes which `## Anticipated decisions` items may be `agent-decides`: items on tickets with autonomy < 2 are upgraded to `must-ask` and parked. All `Auto-Decided` actions are journaled per decision-policy.md.
+   - **Context snapshot (spc-433 A6):** after EXECUTE completes a round (before VERIFY or handoff), write `.lattice/snapshots/<tkt>.md` with 3 sections: `## Delivered` (what was done), `## Deviations` (what was auto-decided or deviated from spec), `## Pending` (open questions for human). On resume (Step 2), if snapshot exists, read it **first** before loading full binder — it is the 30-second context reload card. Snapshots are gitignored (temporary state); `.lattice/blocked/` reports are committed (durable evidence).
    - DEFAULT: operator states a durable work preference mid-session → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`decision-policy.md` §Capture duty).
    - DEFAULT: defect noticed outside the ticket's `paths` → write `- NOTICED: <path> — <one line> (out-of-paths, <date>)` to the binder `## Notes` at notice time, then move on — never expand scope, never silently drop (`decision-policy.md` §Observation duty).
    - **Bug-class tickets** (ticket has `bug` label or Reproduction Steps): run the reproduce → fix → re-verify loop:
@@ -172,7 +175,7 @@ Multi-ticket ≠ multi-PR — declare ship **before** EXECUTE (`full-flow.md`).
 ## Loading constraints
 
 - Team base: read/orchestrate only by default; shippable writes require a workspace or the explicit clean base-direct escape.
-- Non-interactive / CI: do not invent PCA answers — fail closed or setup-only.
+- Non-interactive / CI: do not invent PCA answers — fail closed or setup-only. **`--unattended` (spc-433):** activates decision-policy.md resolution chain (resolve-or-park, never block); `Auto-Decided:` comments + ADR journal replace blocking prompts. Autonomy field (0-4) scopes which items may be `agent-decides`.
 - Classification, authority, workspace evidence, and ticket policy retain one explicit accountable owner; delegation must not create split ownership.
 
 ## Response style

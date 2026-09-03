@@ -69,6 +69,16 @@ Every self-decision gets a binder `## Decision journal` entry that **cites which
 | Chain source (by number + quote/path) | "5 — codebase convention (`lib/errors.py`)" |
 | Reversibility call | "reversible, ticket-local" |
 
+## Auto-Decided tag — spc-433
+
+When `start-work --unattended` is active, every `agent-decides` resolution also gets:
+
+- A code comment at the decision point: `// Auto-Decided: <one-line reason>` (or `# Auto-Decided:` for Python/Shell)
+- A `## Auto-Decided` section in the PR body aggregating all auto-decisions with file:line + reason + chain source
+- `review-code` highlights all `Auto-Decided:` lines as priority-review items in the docs-sync axis (spc-433 A5)
+
+The tag makes self-decisions grep-able (`grep -rn 'Auto-Decided:' .`) and visible to the morning human without reading the full Decision journal. The binder `autonomy` field (0-4, `autonomy-rubric.md`) scopes which items may be `agent-decides` in unattended mode — items on tickets with autonomy < 2 are upgraded to `must-ask` and parked.
+
 ## Defaults and hints
 
 | Label | Rule |

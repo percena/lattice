@@ -77,13 +77,14 @@ NONTERMINAL_RE = re.compile(rf"(?:{NONTERMINAL_ALT})")
 # here so the validator's vendored copy stays parity-equal (bats test).
 # stuck: unblock | re-scope (FSM-2b / tkt-132).
 # deferred: fuse-halt | blocked-by-failure (ADR-004 amd tkt-136 Option B --
-# batch-work stamps these at trip time) | spec-superseded (spc-186 A3 --
-# spec-supersede trip-time sweep stamps a superseded Spec's still-active child
-# binders at supersede time, generalizing the tkt-136/137 trip-time honesty
-# principle to spec supersede). A contradictory value (stuck + fuse-halt,
-# deferred + unblock) fails -- the reason must match the status.
+# batch-work stamps these at trip time) | budget-exhausted (spc-433 -- budget
+# circuit breaker stamps at trip time; parallels fuse-halt) | spec-superseded
+# (spc-186 A3 -- spec-supersede trip-time sweep stamps a superseded Spec's
+# still-active child binders at supersede time, generalizing the tkt-136/137
+# trip-time honesty principle to spec supersede). A contradictory value (stuck
+# + fuse-halt, deferred + unblock) fails -- the reason must match the status.
 STUCK_REASONS = frozenset({"unblock", "re-scope"})
-DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "spec-superseded"})
+DEFERRED_REASONS = frozenset({"fuse-halt", "blocked-by-failure", "budget-exhausted", "spec-superseded"})
 
 
 def is_terminal(status: str) -> bool:

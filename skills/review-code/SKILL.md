@@ -133,6 +133,7 @@ Run CI/CD, syntax/lint, docs-sync, and interface-impact checks on the change set
 - Only when the diff alters behavior/interface/commands/config (not pure refactor)
 - Check existing README, `docs/`, `wiki/`, `CLAUDE.md`, `SKILL.md`, `docs/adr/`, API specs against the diff's intent
 - Stale = doc doesn't mention or contradicts the new behavior
+- **Auto-Decided highlighting (spc-433 A5):** scan diff for `Auto-Decided:` comment markers; surface as priority-review subsection for human ratification. Cross-check PR body `## Auto-Decided` section matches code markers.
 
 **Interface/contract impact** (`references/interface-impact.md`):
 - Identify changed signatures, exports, API endpoints, config keys, CLI flags, types, DB schema in the diff

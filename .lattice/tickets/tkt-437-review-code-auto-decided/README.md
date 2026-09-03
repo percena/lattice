@@ -33,7 +33,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A5** review-code 在审阅时默认高亮 `Auto-Decided` 标记的代码行，列入重点审阅清单
+- [x] **A5** review-code 在审阅时默认高亮 `Auto-Decided` 标记的代码行，列入重点审阅清单
 
 ## Approach
 

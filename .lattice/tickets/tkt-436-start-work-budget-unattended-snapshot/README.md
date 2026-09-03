@@ -33,9 +33,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A3** (start-work portion) start-work 增加 `--budget` 参数（默认 60min / 5 retries）；超限后自动：打包 debug-dump → 调用 finish-work 生成 [BLOCKED] Draft PR → 写 `.lattice/blocked/<tkt>.json` 阻碍报告 → git clean 重置环境
-- [ ] **A4** start-work 支持 `--unattended` 标志；该模式下 System Prompt 注入"遇歧义自主决策 + `Auto-Decided:` 注释 + ADR 记录"规则，严禁中断等待用户输入
-- [ ] **A6** 任务执行完一轮后生成 `.lattice/snapshots/<tkt>.md` 卡片（三字段：本次交付摘要 / 偏离声明 / 待决问题）；start-work resume 时优先读取快照卡片
+- [x] **A3** (start-work portion) start-work 增加 `--budget` 参数（默认 60min / 5 retries）；超限后自动：打包 debug-dump → 调用 finish-work 生成 [BLOCKED] Draft PR → 写 `.lattice/blocked/<tkt>.json` 阻碍报告 → git clean 重置环境
+- [x] **A4** start-work 支持 `--unattended` 标志；该模式下 System Prompt 注入"遇歧义自主决策 + `Auto-Decided:` 注释 + ADR 记录"规则，严禁中断等待用户输入
+- [x] **A6** 任务执行完一轮后生成 `.lattice/snapshots/<tkt>.md` 卡片（三字段：本次交付摘要 / 偏离声明 / 待决问题）；start-work resume 时优先读取快照卡片
 
 ## Approach
 
