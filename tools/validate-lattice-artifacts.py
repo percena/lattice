@@ -149,11 +149,11 @@ LEGAL_EDGES_FULL: tuple[tuple, ...] = (
      "trivial direct PR (jump over in-progress)",
      None, "WARN journal entry", "direct-jumps", False),
     ("queued", "deferred", "system|human",
-     "fuse-halt | blocked-by-failure | deliberate deschedule",
+     "fuse-halt | blocked-by-failure | budget-exhausted | deliberate deschedule",
      "deschedule at trip time",
      None, "deferred + wait_reason stamp", "deferred-count", False),
     ("in-progress", "deferred", "system|human",
-     "spec-supersede trip-time sweep | fuse-halt | deliberate deschedule",
+     "spec-supersede trip-time sweep | fuse-halt | budget-exhausted | deliberate deschedule",
      "deschedule at trip time (in-flight work obsoleted)",
      None, "deferred + wait_reason stamp", "deferred-count", False),
     # A deferred binder re-stamped by a spec-supersede sweep (its wait_reason

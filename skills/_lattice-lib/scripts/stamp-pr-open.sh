@@ -403,7 +403,7 @@ elif status_vocab.is_side_state(prior):
             f"A pr-open stamp would silently lose the {prior} signal "
             f"(parked=decision pending / stuck=needs investigation / "
             f"rework=PR returned / deferred=spec-superseded|blocked-by-failure|"
-            f"fuse-halt). To override: --force-side-state "
+            f"budget-exhausted|fuse-halt). To override: --force-side-state "
             f"--reason \"<operator-adjudicated rationale>\"",
             file=sys.stderr,
         )
