@@ -18,7 +18,7 @@
 | status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
-| created | 2026-09-03T16:00:00Z |
+| created | 2026-09-03T09:59:23Z |
 | updated | 2026-09-03T09:59:23Z |
 | adopted | false |
 | summary | Add autonomy 0-4 field to binder template + create-tickets flow + policy |
