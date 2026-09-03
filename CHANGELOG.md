@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-03
+
+Patch release covering the lock-safety fix, lineage sensor wiring, and follow-up test coverage that landed after the `v0.5.0` tag was cut (spc-427, spc-369, spc-430; #429, #432). dev→main promotion was already in sync; this release cuts the tag at the post-merge HEAD so the cache-busting version (ADR-005) matches the bundled content.
+
+### Fixed
+
+- **`_rollback_ledger` race + lock safety (tkt-428, spc-427, #429)** — the rollback ledger no longer loses entries under a race between the lock helper and concurrent transition writes; lock acquisition is now validated and the lineage sensor is wired so `review-lineage` audits reflect the corrected ledger state. Fixes a regression surface introduced by the transition-ledger relocation (ADR-011).
+
+### Added
+
+- **Test coverage for spc-427 (tkt-431, spc-430, #432)** — rollback race fault test (reproduces the pre-fix race and asserts the post-fix invariant) and a config shell parse test covering the lock helper's env/flag parsing. Lands the `spc-430` coverage follow-up.
+
+### Changed
+
+- **review-lineage marked done (spc-369)** — verified across three production audits (A1–A4 pass); spec closed.
+
 ## [0.3.0] - 2026-08-27
 
 Runtime verification loop (spc-104, rev-20260827-042618Z; #105–#108): released as a shared train cut — #105 owns the bump and this entry; the round's other bundled PRs carry byte-identical version files. Stacked on the 0.2.4 round (#97–#103). This is the first dev→main promotion (main was 0.1.9); the merge-time bullets below — including the release-train retirement — land with 0.3.0 on main.
