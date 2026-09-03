@@ -1,7 +1,7 @@
 # tkt-428-lock-safety-lineage-sensor
 
 | field | value |
-| status | queued |
+| status | closed |
 | priority | P3 |
 | labels | bug, P3 |
 | github | https://github.com/percena/lattice/issues/428 |
@@ -9,7 +9,7 @@
 | covers | A1, A2, A3 |
 | prs | pr-429 — https://github.com/percena/lattice/pull/429 |
 | created | 2026-09-03T10:30:00Z |
-| updated | 2026-09-03T10:30:00Z |
+| updated | 2026-09-03T02:19:40Z |
 | wait_reason | (none) |
 
 ## Summary
@@ -36,4 +36,7 @@ Fix 3 pre-existing issues from spc-424 review: _rollback_ledger unlocked RMW rac
 
 ## Finish
 
-- (none yet)
+
+- pr-429 merged: 2026-09-03T02:18:48Z — https://github.com/percena/lattice/pull/429 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #428 closed: 2026-09-03T02:18:58Z (reason: completed) — https://github.com/percena/lattice/issues/428
