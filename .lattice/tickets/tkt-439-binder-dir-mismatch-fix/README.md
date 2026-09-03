@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/439 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:30:00Z |
-| updated | 2026-09-03T16:30:00Z |
+| updated | 2026-09-03T10:15:47Z |
 | adopted | false |
 | summary | Fix tkt-35/38 dir mismatch + duplicate_ticket_id + 3 header_status_mismatch |
 | covers | (none — ticket-only) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | tkt-439-binder-dir-mismatch-fix |
 | worktree | sibling |
-| prs | (none) |
+| prs | pr-440 — https://github.com/percena/lattice/pull/440 |
 
 ## Acceptance (this slice)
 
@@ -56,4 +56,7 @@ Pre-existing CI failure on dev. Not introduced by spc-433.
 
 ## Finish
 
-- (none yet)
+
+- pr-440 merged: 2026-09-03T10:15:20Z — https://github.com/percena/lattice/pull/440 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #439 closed: 2026-09-03T10:15:36Z (reason: completed) — https://github.com/percena/lattice/issues/439
