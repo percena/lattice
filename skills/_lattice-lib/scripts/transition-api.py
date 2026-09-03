@@ -557,7 +557,6 @@ def _rollback_ledger(lp: Path, entry: dict) -> None:
         # ledger entry while commit_transaction reports "unchanged." Log to stderr
         # so the inconsistency is visible, not silent. Still best-effort (returns
         # None); the caller already knows the transaction failed (exit 3).
-        import sys
         print(f"transition-api: WARNING — rollback failed for {lp.name}: {exc}; "
               f"ledger may have a dangling entry", file=sys.stderr)
 

@@ -25,6 +25,11 @@ on:
         description: "owner/name (e.g. percena/lattice)"
         required: true
         type: string
+      base:
+        description: "Base branch the PR merged into (e.g. dev, main)"
+        required: false
+        type: string
+        default: dev
 
 permissions:
   contents: write
@@ -41,10 +46,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Resolve event inputs
+        id: evt
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "pr=${{ inputs.pr }}" >> "$GITHUB_OUTPUT"
+            echo "repo=${{ inputs.repo }}" >> "$GITHUB_OUTPUT"
+            echo "base=${{ inputs.base }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "repo=${{ github.repository }}" >> "$GITHUB_OUTPUT"
+            echo "base=${{ github.event.pull_request.base.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout merge base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+          ref: ${{ steps.evt.outputs.base }}
           fetch-depth: 2
 
       - name: Verify local stamp + repair ledger (safety net)
@@ -52,5 +70,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 skills/_lattice-lib/scripts/finish-stamp-ci.py \
-            --pr ${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.pull_request.number }} \
-            --repo ${{ github.event_name == 'workflow_dispatch' && inputs.repo || github.repository }}
+            --pr ${{ steps.evt.outputs.pr }} \
+            --repo ${{ steps.evt.outputs.repo }}
