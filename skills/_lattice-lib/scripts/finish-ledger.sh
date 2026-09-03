@@ -267,16 +267,14 @@ if $NEED_GH_PR; then
     exit 1
   fi
   # One parse, three values; keeps state and dates from disagreeing across calls.
-  eval "$(printf '%s' "$PR_JSON" | python3 -c '
-import json, shlex, sys
+  _parsed=$(printf '%s' "$PR_JSON" | python3 -c '
+import json, sys
 d = json.load(sys.stdin)
-def emit(name, value):
-    normalized = "" if value is None else str(value)
-    print(f"{name}={shlex.quote(normalized)}")
-emit("GH_PR_STATE", d.get("state") or "")
-emit("GH_PR_MERGED_AT", d.get("mergedAt") or "")
-emit("GH_PR_URL", d.get("url") or "")
-')"
+print(d.get("state") or "")
+print(d.get("mergedAt") or "")
+print(d.get("url") or "")
+')
+  { IFS= read -r GH_PR_STATE; IFS= read -r GH_PR_MERGED_AT; IFS= read -r GH_PR_URL; } <<< "$_parsed" || true
   [[ -z "$PR_STATE" ]] && PR_STATE="$GH_PR_STATE"
   [[ -z "$MERGED_AT" ]] && MERGED_AT="$GH_PR_MERGED_AT"
   PR_URL="$GH_PR_URL"
@@ -326,15 +324,13 @@ if [[ -n "$ISSUE_M" ]]; then
   elif $GH_USABLE; then
     ISSUE_JSON=$(gh issue view "$ISSUE_M" ${GH_ARGS[@]+"${GH_ARGS[@]}"} --json state,closedAt 2>/dev/null || true)
     if [[ -n "$ISSUE_JSON" ]]; then
-      eval "$(printf '%s' "$ISSUE_JSON" | python3 -c '
-import json, shlex, sys
+      _parsed=$(printf '%s' "$ISSUE_JSON" | python3 -c '
+import json, sys
 d = json.load(sys.stdin)
-def emit(name, value):
-    normalized = "" if value is None else str(value)
-    print(f"{name}={shlex.quote(normalized)}")
-emit("GH_ISSUE_STATE", d.get("state") or "")
-emit("GH_ISSUE_CLOSED_AT", d.get("closedAt") or "")
-')"
+print(d.get("state") or "")
+print(d.get("closedAt") or "")
+')
+      { IFS= read -r GH_ISSUE_STATE; IFS= read -r GH_ISSUE_CLOSED_AT; } <<< "$_parsed" || true
       CLOSED_AT="$GH_ISSUE_CLOSED_AT"
       [[ "$GH_ISSUE_STATE" == "CLOSED" ]] && ISSUE_CLOSED=true
       # state_reason is not a gh issue view --json field on all gh versions

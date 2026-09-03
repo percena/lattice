@@ -271,15 +271,13 @@ if [[ -z "$PR_JSON" ]]; then
   echo "Error: could not read PR #$PR_N (gh auth? wrong repo?)" >&2
   exit 1
 fi
-eval "$(printf '%s' "$PR_JSON" | python3 -c '
-import json, shlex, sys
+_parsed=$(printf '%s' "$PR_JSON" | python3 -c '
+import json, sys
 d = json.load(sys.stdin)
-def emit(name, value):
-    normalized = "" if value is None else str(value)
-    print(f"{name}={shlex.quote(normalized)}")
-emit("GH_PR_URL", d.get("url") or "")
-emit("GH_PR_STATE", d.get("state") or "")
-')"
+print(d.get("url") or "")
+print(d.get("state") or "")
+')
+{ IFS= read -r GH_PR_URL; IFS= read -r GH_PR_STATE; } <<< "$_parsed" || true
 PR_URL="$GH_PR_URL"
 if [[ -z "$PR_URL" ]]; then
   echo "Error: PR #$PR_N has no URL in gh output" >&2
