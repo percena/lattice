@@ -485,3 +485,103 @@ assert elapsed > 1.0, f"_rollback_ledger did not block on flock (elapsed={elapse
 PY
   wait "$BG" 2>/dev/null || true
 }
+
+@test "tkt-459 A3: commit with fewer than 4 positional args prints usage and exits 3 (no traceback, no exit-1 collision)" {
+  run python3 "$API" commit tkt-1 closed
+  [ "$status" -eq 3 ]
+  printf '%s\n' "$output" | grep -qF "usage: transition-api.py commit"
+  run bash -c "printf '%s\n' \"\$1\" | grep -c Traceback" _ "$output"
+  [ "$output" = "0" ]
+}
+
+@test "tkt-459 A3: commit temp file is dot-prefixed (gitignored) and removed on rename failure" {
+  B=$(make_binder tkt-46)
+  python3 "$API" commit tkt-46 in-progress system spawn >/dev/null
+  python3 - "$API" "$B" <<'PY'
+import os, sys, importlib.util
+from pathlib import Path
+api_path, binder_path = sys.argv[1:3]
+spec = importlib.util.spec_from_file_location("ta", api_path)
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+binder = Path(binder_path)
+entry = {"ts": "2026-09-03T00:00:05Z", "ticket": "tkt-46", "from": "in-progress",
+         "to": "parked", "owner": "fg", "reason": "park", "guard": "none",
+         "escape_used": False, "force_side_state_reason": None, "trace": None,
+         "metric": "normal"}
+new_text = binder.read_text(encoding="utf-8").replace("| in-progress |", "| parked |")
+_real = os.replace
+os.replace = lambda *a, **k: (_ for _ in ()).throw(OSError("injected rename failure"))
+try:
+    rc = ta.commit_transaction(binder, new_text, entry)
+finally:
+    os.replace = _real
+assert rc == 3, rc
+PY
+  run bash -c "ls -A '$(dirname "$B")' | grep -c 'tmp$'"
+  [ "$output" = "0" ]
+  grep -q '| status | in-progress |' "$B"
+  # The new name matches the repo's `.lattice/**/.*.tmp` ignore; the old
+  # `README.README.md.tmp` did not (tracked-visible residue).
+  run git -C "$REPO_ROOT" check-ignore -q .lattice/tickets/tkt-46-slice/.transition-api.1.tmp
+  [ "$status" -eq 0 ]
+  run git -C "$REPO_ROOT" check-ignore -q .lattice/tickets/tkt-46-slice/README.README.md.tmp
+  [ "$status" -ne 0 ]
+}
+
+@test "tkt-459 A3: _rollback_ledger removes the entry when it is NOT the last line and keeps the others" {
+  python3 "$API" record tkt-47 queued in-progress sys first >/dev/null
+  python3 "$API" record tkt-47 in-progress pr-open agent second >/dev/null
+  ledger="$LATTICE_HOME/.transition-ledger/tkt-47.jsonl"
+  python3 - "$API" "$ledger" <<'PY'
+import sys, json, importlib.util
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("ta", sys.argv[1])
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+lp = Path(sys.argv[2])
+first = json.loads(lp.read_text(encoding="utf-8").splitlines()[0])
+ta._rollback_ledger(lp, first)
+lines = lp.read_text(encoding="utf-8").splitlines()
+assert len(lines) == 1, lines
+assert '"reason":"second"' in lines[0], lines
+PY
+}
+
+@test "tkt-459 A3: _rollback_ledger warns (stderr) when the entry is absent instead of silently no-op-ing" {
+  python3 "$API" record tkt-48 queued in-progress sys only >/dev/null
+  ledger="$LATTICE_HOME/.transition-ledger/tkt-48.jsonl"
+  run python3 - "$API" "$ledger" <<'PY'
+import sys, json, importlib.util
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("ta", sys.argv[1])
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+lp = Path(sys.argv[2])
+ghost = {"ts": "2026-01-01T00:00:00Z", "ticket": "tkt-48", "from": "queued", "to": "parked",
+         "owner": "x", "reason": "ghost", "guard": None, "escape_used": False,
+         "force_side_state_reason": None, "trace": None, "metric": None}
+ta._rollback_ledger(lp, ghost)
+print("lines=" + str(len(lp.read_text(encoding="utf-8").splitlines())))
+PY
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "WARNING"
+  printf '%s\n' "$output" | grep -qF "found no matching entry"
+  printf '%s\n' "$output" | grep -qF "lines=1"
+}
+
+@test "tkt-459 A2: build_entry is the single source for record — CLI record and build_entry agree on guard/trace/metric" {
+  run python3 "$API" record tkt-49 queued in-progress sys spawn --dry-run
+  [ "$status" -eq 0 ]
+  python3 - "$API" "$output" <<'PY'
+import sys, json, importlib.util
+spec = importlib.util.spec_from_file_location("ta", sys.argv[1])
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+cli = json.loads(sys.argv[2])
+rc, e = ta.build_entry("tkt-49", "queued", "in-progress", "sys", "spawn")
+assert rc == 0
+for k in ("guard", "trace", "metric", "from", "to", "owner", "reason", "ticket"):
+    assert cli[k] == e[k], (k, cli[k], e[k])
+rc, e = ta.build_entry("tkt-49", "closed", "queued", "sys", "x")
+assert rc == 1 and e is None
+rc, e = ta.build_entry("tkt-49", "parked", "pr-open", "sys", "x")
+assert rc == 2 and e is None
+PY
+}

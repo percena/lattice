@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/459 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:51:19Z |
+| updated | 2026-09-03T16:56:31Z |
 | adopted | false |
 | summary | Fix pr-N substring discovery, ledger-before-rename ordering, transition-api guards, finish-commit untracked, CI validator step |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -33,10 +33,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `finish-stamp-ci.py` discovers binders by `\bpr-N\b` (pr-44 ≠ pr-440, bats-proven); push/fetch failure exits non-zero; commit uses the staged set, not `-- .lattice/`.
-- [ ] **A2** `finish-stamp.py` appends the ledger edge before the binder rename and removes it on rename failure; `finish-stamp.bats` + `finish-ledger.bats` green.
-- [ ] **A3** `transition-api.py commit` arity guard → usage + exit 3; `_rollback_ledger` finds the entry anywhere and warns when absent; temp file `.transition-api.*.tmp` unlinked on failure; `transition-api.bats` green.
-- [ ] **A4** `finish-commit.sh` uses `--untracked-files=no`; `finish-stamp.yml` runs the artifact validator before push.
+- [x] **A1** `finish-stamp-ci.py` discovers binders by `\bpr-N\b` (pr-44 ≠ pr-440, bats-proven); push/fetch failure exits non-zero; commit uses the staged set, not `-- .lattice/`.
+- [x] **A2** `finish-stamp.py` appends the ledger edge before the binder rename and removes it on rename failure; `finish-stamp.bats` + `finish-ledger.bats` green.
+- [x] **A3** `transition-api.py commit` arity guard → usage + exit 3; `_rollback_ledger` finds the entry anywhere and warns when absent; temp file `.transition-api.*.tmp` unlinked on failure; `transition-api.bats` green.
+- [x] **A4** `finish-commit.sh` uses `--untracked-files=no`; `finish-stamp.yml` runs the artifact validator before push.
 
 ## Approach
 
@@ -55,6 +55,10 @@ Touch-set: see `paths` row.
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-03 rename-failure rollback in finish-stamp.py → extracted `build_entry()` in transition-api.py and call `_append_ledger_locked` / `_rollback_ledger` in-process instead of the `record` subprocess (source: agent-judgment, reversible, ticket-local; avoids a third copy of the entry builder — chain source: `transition-api.py cmd_record`).
+- 2026-09-03 finish-stamp-ci push/fetch failure exit code → 1 (source: pre-resolved spc-458 A1).
+- 2026-09-03 validator-before-push → implemented as `--validator-script/--validator-baseline` flags on finish-stamp-ci.py rather than a separate workflow step, so the push is guarded in the same process that made the commit and consumer repos can pass their own validator (source: agent-judgment, reversible).
+- 2026-09-03 `finish-commit.bats` "stranded unstaged" fixture planted an UNTRACKED file; re-modelled as a tracked-modified binder (the real tkt-360 symptom) so the test still guards the class after `--untracked-files=no` (source: agent-judgment).
 
 ## Pending decisions
 
@@ -62,7 +66,7 @@ Touch-set: see `paths` row.
 
 ## Attempts
 
-- (none)
+- attempt 1 · 2026-09-03 · direct fix per Approach · suites: finish-stamp-ci 6/6, finish-stamp 9/9, finish-commit 7/7, finish-ledger 58/58, transition-api 42/42, stamp-pr-open 27/27, ensure-workspace-stamp 10/10, transition-parity 8/8 (local bats 1.2.1, root) · ci-local full run pending
 
 ## Notes
 

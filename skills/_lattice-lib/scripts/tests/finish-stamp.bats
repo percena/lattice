@@ -254,3 +254,33 @@ MD
   [ "$(last_ledger_field to)" = "closed" ]
   printf '%s\n' "$output" | grep -qF "ledger repair"
 }
+
+@test "tkt-459 A2: refused ledger edge leaves the binder unflipped (ledger before rename, fail-close)" {
+  # `bogus` is not a status in the vocabulary, so bogus→closed is not a legal
+  # edge. Before tkt-459 the binder was already renamed to `closed` when the
+  # record step refused — exactly the snapshot-mismatch class ADR-013 targets.
+  write_fresh_binder "bogus" "(none yet)"
+  run python3 "$FS" --binder "$BINDER" --pr 42 \
+    --merged-at 2026-08-15T12:00:00Z --pr-state MERGED \
+    --pr-url "https://github.com/percena/lattice/pull/42"
+  [ "$status" -ne 0 ]
+  printf '%s\n' "$output" | grep -qF "ledger edge refused"
+  grep -q '| status | bogus |' "$BINDER"
+  run grep -c 'pr-42 merged' "$BINDER"
+  [ "$output" = "0" ]
+  [ ! -s "$LEDGER" ]
+  # no temp residue beside the binder
+  run bash -c "ls -A '$BINDER_DIR' | grep -c '\.tmp$'"
+  [ "$output" = "0" ]
+}
+
+@test "tkt-459 A2: normal stamp still records the ledger edge exactly once (ordering change is behavior-preserving)" {
+  write_fresh_binder "pr-open" "(none yet)"
+  run python3 "$FS" --binder "$BINDER" --pr 42 \
+    --merged-at 2026-08-15T12:00:00Z --pr-state MERGED \
+    --pr-url "https://github.com/percena/lattice/pull/42"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "recorded ledger entry (pr-open → closed)"
+  [ "$(wc -l <"$LEDGER" | tr -d ' ')" = "1" ]
+  grep -q '| status | closed |' "$BINDER"
+}
