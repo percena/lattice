@@ -13,7 +13,7 @@
 | status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
-| created | 2026-09-03T16:30:00Z |
+| created | 2026-09-03T10:15:47Z |
 | updated | 2026-09-03T10:15:47Z |
 | adopted | false |
 | summary | Fix tkt-35/38 dir mismatch + duplicate_ticket_id + 3 header_status_mismatch |
