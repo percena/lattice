@@ -7,7 +7,7 @@
 | github | https://github.com/percena/lattice/issues/428 |
 | spec | spc-427 |
 | covers | A1, A2, A3 |
-| prs | (none yet) |
+| prs | pr-429 — https://github.com/percena/lattice/pull/429 |
 | created | 2026-09-03T10:30:00Z |
 | updated | 2026-09-03T10:30:00Z |
 | wait_reason | (none) |
@@ -24,9 +24,9 @@ Fix 3 pre-existing issues from spc-424 review: _rollback_ledger unlocked RMW rac
 
 ## Acceptance
 
-- [ ] A1: _rollback_ledger acquires flock before read, holds through write, releases after
-- [ ] A2: _release_lock_fd helper exists, called from all 3 sites, no bare os.close remains
-- [ ] A3: lineage-metrics.sh reads ratchet_cutoff from config.yaml, post-ratchet coverage shows real numbers
+- [x] A1: _rollback_ledger acquires flock before read, holds through write, releases after
+- [x] A2: _release_lock_fd helper exists, called from all 3 sites, no bare os.close remains
+- [x] A3: lineage-metrics.sh reads ratchet_cutoff from config.yaml, post-ratchet coverage shows real numbers
 
 ## Notes
 

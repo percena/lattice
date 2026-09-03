@@ -110,6 +110,11 @@ export LM_MODE="$MODE"
 export LM_WRITE="$WRITE_SNAPSHOT"
 export LM_LIB="$LIB/lib"
 export LM_SELF_LIB="$SCRIPT_DIR/lib"
+# Spc-427 A3: if --created-after not passed, read ratchet_cutoff from config.yaml
+if [[ -z "$CREATED_AFTER" && -f "$HOME_DIR/config.yaml" ]]; then
+  CREATED_AFTER=$(grep -E '^[[:space:]]*ratchet_cutoff:' "$HOME_DIR/config.yaml" 2>/dev/null \
+    | head -1 | sed 's/.*ratchet_cutoff:[[:space:]]*//' | tr -d '"' || true)
+fi
 export LM_CREATED_AFTER="$CREATED_AFTER"
 
 python3 - <<'PY'

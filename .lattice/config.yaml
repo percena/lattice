@@ -32,3 +32,8 @@ profile: strict
 # queue_health:
 #   pr_open_hours: 36     # pr-open age (hours) beyond which the digest flags it
 #   side_state_total: 5   # parked+stuck+deferred count beyond which the digest flags it
+# lineage: review-lineage sensor tunables (spc-427 A3).
+# ratchet_cutoff: the ADR-012 §4 date — binders created on/after this date
+# are measured for post-ratchet ledger coverage. Override with --created-after.
+lineage:
+  ratchet_cutoff: "2026-09-02"
