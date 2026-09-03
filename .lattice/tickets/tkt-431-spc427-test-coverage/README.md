@@ -6,11 +6,11 @@
 | issue | #431 |
 | spec | spc-430 (parent spc-427) |
 | covers | A1, A2 |
-| status | queued |
+| status | pr-open |
 | kind | test |
 | priority | P3 |
 | created | 2026-09-03 |
-| updated | 2026-09-03 |
+| updated | 2026-09-03T03:04:37Z |
 
 ## Why
 
@@ -47,6 +47,10 @@ Both fixes are correct (verified by code reading + 35/24 bats green). Risk = fut
 | concurrency timing in bats | agent-decides | `cmd_record &` + `wait`; the flock serializes so the bg entry lands before/after rollback deterministically. |
 | config.yaml parse test shape | agent-decides | plant file + run `--md --no-snapshot` + grep output, or `--json` + jq python. |
 | regression-guard assertion (fails without lock) | pre-resolved | confirmed in spc-430 Decision 2; the test must fail when the A1 lock is reverted. |
+
+## Decision journal
+
+- 2026-09-03T03:04:37Z — direct jump: queued → pr-open (in-progress stamp skipped; PR #432) [WARN — signal logged, not silently lost]
 
 ## Pending decisions
 
