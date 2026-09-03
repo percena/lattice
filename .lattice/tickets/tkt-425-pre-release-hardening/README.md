@@ -1,7 +1,7 @@
 # tkt-425-pre-release-hardening
 
 | field | value |
-| status | queued |
+| status | closed |
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/425 |
@@ -9,7 +9,7 @@
 | covers | A1, A2, A3, A4, A5, A6 |
 | prs | pr-426 — https://github.com/percena/lattice/pull/426 |
 | created | 2026-09-03T09:15:00Z |
-| updated | 2026-09-03T09:15:00Z |
+| updated | 2026-09-03T01:35:53Z |
 | wait_reason | (none) |
 
 ## Summary
@@ -42,4 +42,7 @@ Fix 6 verified correctness/hygiene gaps in the state machine stamp path found du
 
 ## Finish
 
-- (none yet)
+
+- pr-426 merged: 2026-09-03T01:34:33Z — https://github.com/percena/lattice/pull/426 (base merge)
+- anomaly: direct jump — prior status `queued` before terminal merge; in-progress/pr-open stamps were skipped (ADR-012 §3; metric direct-jump)
+- issue #425 closed: 2026-09-03T01:34:54Z (reason: completed) — https://github.com/percena/lattice/issues/425
