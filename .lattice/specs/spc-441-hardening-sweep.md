@@ -9,7 +9,7 @@ priority: P2
 summary: "Fix expression injection, eliminate eval+python3, add macOS CI, test untested hook, add CODEOWNERS, refactor duplication"
 created: 2026-09-03
 updated: 2026-09-03
-tickets: []
+tickets: [tkt-442, tkt-443, tkt-444, tkt-445, tkt-446, tkt-447, tkt-448, tkt-449]
 prs: []
 reviews: []
 supersedes: []
@@ -20,7 +20,7 @@ superseded_by: null
 
 > **TL;DR:** Full-project review surfaced 2 security issues (GHA expression injection, fragile eval+python3), CI gaps (no macOS matrix, untested hook), and maintainability debt (CODEOWNERS, code duplication, large hook file, missing docs). This spec covers all confirmed findings.
 > **Kind:** chore · **Status:** locked · **Mode:** C · **Priority:** P2
-> **Path:** spc-441 → tkt-… → pr-…
+> **Path:** spc-441 → tkt-442..449 → pr-…
 
 ## Why
 
