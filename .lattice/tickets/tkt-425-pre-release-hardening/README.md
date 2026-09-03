@@ -7,7 +7,7 @@
 | github | https://github.com/percena/lattice/issues/425 |
 | spec | spc-424 |
 | covers | A1, A2, A3, A4, A5, A6 |
-| prs | (none yet) |
+| prs | pr-426 — https://github.com/percena/lattice/pull/426 |
 | created | 2026-09-03T09:15:00Z |
 | updated | 2026-09-03T09:15:00Z |
 | wait_reason | (none) |

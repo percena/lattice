@@ -11,7 +11,7 @@ summary: "Fix 6 verified correctness/hygiene gaps in the state machine stamp pat
 created: 2026-09-03
 updated: 2026-09-03
 tickets: [tkt-425]
-prs: []
+prs: [pr-426]
 reviews: []
 supersedes: []
 superseded_by: null
