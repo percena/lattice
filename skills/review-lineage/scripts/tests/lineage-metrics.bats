@@ -480,3 +480,28 @@ assert "with_ledger" in cpr2 and "terminal" in cpr2 and "pct" in cpr2, cpr2
 assert cpr2["created_after"] == "2020-01-01", cpr2
 PY
 }
+
+# ---------------------------------------------------------------------------
+# spc-430 A2: lineage-metrics.sh reads ratchet_cutoff from config.yaml
+# (the shell-level grep+sed parse added by spc-427 A3 — only the Python API
+# lm.collect(created_after=…) was tested above, not the shell wrapper wiring.)
+# ---------------------------------------------------------------------------
+
+@test "spc-430 A2: lineage-metrics.sh reads ratchet_cutoff from config.yaml when --created-after absent" {
+  printf 'lineage:\n  ratchet_cutoff: "2021-01-01"\n' > "$HOME_DIR/config.yaml"
+  run bash "$LM" --home "$HOME_DIR" --json --no-snapshot --snapshot-dir "$SNAP"
+  [ "$status" -eq 0 ]
+  # coverage_post_ratchet.created_after must reflect the planted config value.
+  grep -Eq '"created_after"[[:space:]]*:[[:space:]]*"2021-01-01"' <<<"$output"
+}
+
+@test "spc-430 A2: no ratchet_cutoff key → created_after not set (backward-compatible degrade)" {
+  # The fixture config.yaml has `profile: strict` but NO lineage.ratchet_cutoff
+  # key → CREATED_AFTER stays empty (old 0/0 behavior preserved).
+  grep -q 'profile:' "$HOME_DIR/config.yaml"
+  ! grep -q 'ratchet_cutoff' "$HOME_DIR/config.yaml"
+  run bash "$LM" --home "$HOME_DIR" --json --no-snapshot --snapshot-dir "$SNAP"
+  [ "$status" -eq 0 ]
+  # The planted positive-test value must NOT appear (config parse produced nothing).
+  ! grep -q '2021-01-01' <<<"$output"
+}
