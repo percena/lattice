@@ -1,0 +1,557 @@
+{
+  "schema": 1,
+  "generated_at": "2026-09-03T02:10:05Z",
+  "home": ".lattice",
+  "binders_total": 193,
+  "status_histogram": {
+    "closed": 192,
+    "queued": 1
+  },
+  "ledger_coverage": {
+    "terminal": 192,
+    "with_ledger": 74,
+    "missing": [
+      "tkt-10",
+      "tkt-105",
+      "tkt-106",
+      "tkt-107",
+      "tkt-108",
+      "tkt-114",
+      "tkt-117",
+      "tkt-118",
+      "tkt-119",
+      "tkt-120",
+      "tkt-121",
+      "tkt-122",
+      "tkt-123",
+      "tkt-127",
+      "tkt-13",
+      "tkt-131",
+      "tkt-132",
+      "tkt-133",
+      "tkt-134",
+      "tkt-135",
+      "tkt-136",
+      "tkt-137",
+      "tkt-138",
+      "tkt-14",
+      "tkt-143",
+      "tkt-146",
+      "tkt-147",
+      "tkt-148",
+      "tkt-149",
+      "tkt-15",
+      "tkt-150",
+      "tkt-151",
+      "tkt-152",
+      "tkt-155",
+      "tkt-159",
+      "tkt-16",
+      "tkt-160",
+      "tkt-161",
+      "tkt-162",
+      "tkt-163",
+      "tkt-167",
+      "tkt-174",
+      "tkt-175",
+      "tkt-179",
+      "tkt-181",
+      "tkt-184",
+      "tkt-188",
+      "tkt-189",
+      "tkt-190",
+      "tkt-191",
+      "tkt-192",
+      "tkt-193",
+      "tkt-194",
+      "tkt-200",
+      "tkt-201",
+      "tkt-211",
+      "tkt-213",
+      "tkt-216",
+      "tkt-219",
+      "tkt-221",
+      "tkt-223",
+      "tkt-224",
+      "tkt-227",
+      "tkt-232",
+      "tkt-234",
+      "tkt-236",
+      "tkt-237",
+      "tkt-238",
+      "tkt-239",
+      "tkt-240",
+      "tkt-241",
+      "tkt-242",
+      "tkt-243",
+      "tkt-246",
+      "tkt-255",
+      "tkt-258",
+      "tkt-259",
+      "tkt-260",
+      "tkt-283",
+      "tkt-31",
+      "tkt-32",
+      "tkt-33",
+      "tkt-34",
+      "tkt-35",
+      "tkt-38",
+      "tkt-40",
+      "tkt-43",
+      "tkt-44",
+      "tkt-45",
+      "tkt-46",
+      "tkt-47",
+      "tkt-48",
+      "tkt-49",
+      "tkt-5",
+      "tkt-50",
+      "tkt-6",
+      "tkt-60",
+      "tkt-61",
+      "tkt-62",
+      "tkt-63",
+      "tkt-64",
+      "tkt-65",
+      "tkt-7",
+      "tkt-73",
+      "tkt-74",
+      "tkt-75",
+      "tkt-8",
+      "tkt-80",
+      "tkt-81",
+      "tkt-82",
+      "tkt-84",
+      "tkt-90",
+      "tkt-91",
+      "tkt-92",
+      "tkt-93",
+      "tkt-94",
+      "tkt-95",
+      "tkt-96"
+    ],
+    "direct_jumps": 12,
+    "missing_count": 118,
+    "pct": 38.5
+  },
+  "direct_jumps": {
+    "count": 12,
+    "tickets": [
+      "tkt-272",
+      "tkt-274",
+      "tkt-275",
+      "tkt-276",
+      "tkt-323",
+      "tkt-324",
+      "tkt-325",
+      "tkt-326",
+      "tkt-327",
+      "tkt-335",
+      "tkt-418",
+      "tkt-425"
+    ]
+  },
+  "edges": {
+    "ledger_files": 74,
+    "entries": 182,
+    "modelled": 26,
+    "walked_count": 8,
+    "never_walked_count": 18,
+    "unmodelled_count": 0,
+    "histogram": {
+      "pr-open->closed": 61,
+      "in-progress->pr-open": 44,
+      "queued->in-progress": 25,
+      "queued->pr-open": 21,
+      "queued->closed": 12,
+      "pr-open->rework": 9,
+      "rework->in-progress": 9,
+      "in-progress->closed": 1
+    },
+    "walked": [
+      "in-progress->closed",
+      "in-progress->pr-open",
+      "pr-open->closed",
+      "pr-open->rework",
+      "queued->closed",
+      "queued->in-progress",
+      "queued->pr-open",
+      "rework->in-progress"
+    ],
+    "never_walked": [
+      "deferred->closed",
+      "deferred->deferred",
+      "deferred->pr-open",
+      "deferred->queued",
+      "in-progress->deferred",
+      "in-progress->parked",
+      "in-progress->stuck",
+      "open->closed",
+      "parked->closed",
+      "parked->pr-open",
+      "parked->queued",
+      "pr-open->pr-open",
+      "queued->deferred",
+      "rework->closed",
+      "rework->pr-open",
+      "stuck->closed",
+      "stuck->pr-open",
+      "stuck->queued"
+    ],
+    "unmodelled": []
+  },
+  "fix_cycles_histogram": {
+    "(none)": 122,
+    "0": 63,
+    "1": 7,
+    "2": 1
+  },
+  "fix_cycles_gt0": 8,
+  "side_states": {
+    "parked": 0,
+    "stuck": 0,
+    "rework": 0,
+    "deferred": 0,
+    "total": 0
+  },
+  "wait_reasons": {},
+  "sections": {
+    "attempts": 6,
+    "pending_decisions": 4,
+    "decision_journal": 81
+  },
+  "noticed": {
+    "count": 44,
+    "items": [
+      {
+        "ticket": "tkt-105",
+        "line": "NOTICED: .lattice/config.yaml template (lattice-init.sh heredoc) — documents batch tunables but not `e2e_env` or the verify-features wave/crawl bounds the skill reads; follow-up doc row needed (out-of-paths, 2026-08-27)"
+      },
+      {
+        "ticket": "tkt-201",
+        "line": "NOTICED: github-issue-parent-add.sh passes issue number `187` where the GraphQL mutation expects a node global id; `addSubIssue` fails with \"Could not resolve to a node with the global id of '187'\". **Resolved in this ticket** — added defensive guard rejecting purely-numeric extracted ids; GraphQL path skips to REST when the `id` field is a database id, not a node id."
+      },
+      {
+        "ticket": "tkt-271",
+        "line": "NOTICED: `skills/_lattice-lib/scripts/tests/{stamp-pr-open,ratify,bump-fix-cycle,spec-supersede}.bats` write a real `.lattice/.transition-ledger/tkt-7.jsonl`/`tkt-9.jsonl` into the repo home (not a tmp dir) and leave it as untracked residue after a suite run — out-of-paths test hygiene, 2026-08-31. Not folded into this slice; a later sweep ticket is the disposition. (These are removed from the working tree before commit; they are untracked and never ship.)"
+      },
+      {
+        "ticket": "tkt-271",
+        "line": "NOTICED: `tools/ci-local.sh --fast` `lattice-artifacts` step FAILs on the dev base — pre-existing spec drift unrelated to this slice: spc-277 (status=done but Acceptance boxes A1-A6 unchecked) + spc-282 (spec `prs` omits the child PR union) + a spec-header status mismatch. 0 transition-ledger findings (the backfill reconciled). Out-of-paths (`.lattice/specs/spc-27[78]*`), 2026-09-01; a later spec-hygiene sweep is the disposition, not this agent's detour."
+      },
+      {
+        "ticket": "tkt-271",
+        "line": "NOTICED: `skills/_lattice-lib/scripts/tests/{stamp-pr-open,ratify,bump-fix-cycle}.bats` write a real `.lattice/.transition-ledger/tkt-7.jsonl` into the repo home (not a tmp dir) and leave it as untracked residue after a suite run — out-of-paths test hygiene, 2026-08-31. Not folded into this slice; a later sweep ticket is the disposition."
+      },
+      {
+        "ticket": "tkt-275",
+        "line": "NOTICED: skills/_lattice-lib/scripts/finish-ledger.sh — commit_transaction IO failure swallowed as warn+exit0 (out-of-paths, 2026-09-01); related to the finish-ledger cancel-entry bug."
+      },
+      {
+        "ticket": "tkt-275",
+        "line": "NOTICED: plugins/lattice/scripts/detect-git-branch-op.py — `git branch -f` force-create classified op=none (strict-profile bypass); `git checkout <treeish> -- <path>` file-restore misclassified as branch-switch (out-of-paths, 2026-09-01)."
+      },
+      {
+        "ticket": "tkt-275",
+        "line": "NOTICED: skills/finish-work/scripts/update-pr-base.sh — base-OID REST fetch omits --hostname (GHE host gap, #311 follow-up; out-of-paths, 2026-09-01)."
+      },
+      {
+        "ticket": "tkt-317",
+        "line": "NOTICED: `skills/_lattice-lib/scripts/stamp-pr-open.sh` (~line 506) and `bump-fix-cycle.sh` (~line 460) carry the SAME staging bug this ticket fixes for finish-ledger.sh (write binder via commit_transaction/os.replace but stage only the JSONL, never `git add` the binder). Out-of-paths (2026-09-01) — follow-up ticket, not this agent's detour."
+      },
+      {
+        "ticket": "tkt-317",
+        "line": "NOTICED: `finish-ledger.sh` gh api `state_reason` fetch (line ~351) is single-shot with no retry; a first-run failure means no `(reason: ...)` recorded AND the anomaly detector (line ~498, `state_reason and state_reason != \"completed\"`) short-circuits to False, silently missing a close-reason contradiction. Deeper root cause; out-of-paths (2026-09-01) — separate ticket."
+      },
+      {
+        "ticket": "tkt-317",
+        "line": "NOTICED: no bats test exercises the new idempotency guard or the `git add \"$BINDER\"` staging line (2026-09-01). Existing 50 tests + manual validator cover regression risk; a focused test with a gh api mock is a follow-up."
+      },
+      {
+        "ticket": "tkt-338",
+        "line": "NOTICED: skills/_lattice-lib/scripts/tests/transition-api.bats:22 + finish-ledger.bats:52 — chmod-000 fault-injection tests fail when run as root (root ignores mode bits); pre-existing on clean dev, environmental (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-338",
+        "line": "NOTICED: .lattice/.transition-ledger/tkt-257-process-false-success-closure.jsonl — slug-named legacy ledger whose last entry is pr-open while the binder is closed; replay skips it because `_binder_for_ticket` cannot resolve the slug stem (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-338",
+        "line": "NOTICED: skills/finish-work/scripts/ci-gate-check.sh — `gh pr checks --json name,state,conclusion,link` requests a field gh 2.92 does not have (`conclusion`); the hard CI gate exits 2 \"cannot load gh pr checks\" on every run (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-339",
+        "line": "NOTICED: `skills/batch-work/references/flow.md:134` and `skills/batch-work/SKILL.md:96` still brief spawned agents to \"stamp the binder status in-progress on start\" by prose. With this slice the bind already commits `queued → in-progress`; a second `commit … in-progress` is refused (no `in-progress → in-progress` edge) and a hand edit is refused by the L3 hook. The brief text should say \"the bind stamped it\" (batch-work paths — not widened here)."
+      },
+      {
+        "ticket": "tkt-339",
+        "line": "NOTICED: hook double-stamp idempotency is asserted through the recording shim (two calls, same PR); the real no-op-on-second-call behaviour is stamp-pr-open's own contract/suite (unchanged, spc-337 non-goal)."
+      },
+      {
+        "ticket": "tkt-339",
+        "line": "NOTICED: `skills/create-pr/SKILL.md` Short path step 2 already resolves `$SKILL_ROOT`; after-pr-open.sh resolves `_lattice-lib` relative to its own install dir (`resolve-lattice-lib.sh`), so it also works when invoked by absolute path outside the skill flow."
+      },
+      {
+        "ticket": "tkt-340",
+        "line": "NOTICED: plugins/lattice/README.md — § Hooks table lists six hooks but omits `intercept-shippable-write` (L3) and `intercept-git-branch-create` (L1); the new `plugins/lattice/hooks/README.md` is the complete per-hook reference until that table is synced (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-340",
+        "line": "NOTICED: skills/start-work/references/policy.md — L3 row (line ~85) describes only the location gate; it does not mention the `L3-status-row` rule / transition escape landed by tkt-340 (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-340",
+        "line": "NOTICED: skills/_lattice-lib/scripts/transition-api.py — `commit --help` / `--help` is not handled (`unknown command: --help`; `commit --help` raises an unpacking ValueError traceback instead of usage) (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-341",
+        "line": "NOTICED: skills/finish-work/scripts/ci-gate-check.sh — on gh 2.92 it fails \"cannot load gh pr checks\" because it requests `--json name,state,conclusion,link` and `conclusion` is not a `gh pr checks` JSON field; the script fix is a separate ticket (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-342",
+        "line": "NOTICED: `skills/finish-work/SKILL.md` / `references/flow.md` (owned by tkt-341) describe `batch-merge-gate.sh` only for `--remove --reason`; a one-line mention that `--status` now reports `batch_id` and that the marker is created by `--create` (so an unexpected marker at finish time names its owning batch) would help operator triage. No functional dependency — the gate's `--check`/`--remove` behaviour is unchanged."
+      },
+      {
+        "ticket": "tkt-342",
+        "line": "NOTICED: `skills/finish-work/SKILL.md` lines ~64/89/113 still say the marker lives at \"the repo MAIN clone `.lattice/`\"; since ADR-011 / spc-282 A1 it lives at the out-of-repo state home (`$XDG_STATE_HOME/lattice/<repo-fingerprint>/`). Prose-only drift for tkt-341's owner; not touched here."
+      },
+      {
+        "ticket": "tkt-356",
+        "line": "NOTICED: .lattice/.transition-ledger/tkt-357.jsonl — finish-ledger.sh stamped binder closed but did not append pr-open→closed ledger entry (transition_ledger_snapshot_mismatch); recorded the missing transition to unblock CI (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-370",
+        "line": "NOTICED: skills/_lattice-lib/scripts/lib/queue_health.py — `_FIELD_ROW_RE` value group is `.*?` up to the LAST `|`, so a 3-column field table row `| status | closed | |` parses as status `closed |`; 15 closed binders (tkt-121, tkt-191, tkt-192, tkt-194, …) are thereby NOT counted as terminal by `scan_binders` (coverage denominator 149, not 164). One-line fix: capture `([^|]*?)` (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-370",
+        "line": "NOTICED: .lattice/.transition-ledger/356.jsonl + 357.jsonl — bind/spawn stamp (`queued → in-progress`, reason `spawn`) wrote ledgers keyed by the bare issue number (`\"ticket\":\"356\"`) instead of `tkt-356`; `scan_binders` cannot associate them with the binders, so the same tickets still count as \"missing ledger\" (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-370",
+        "line": "NOTICED: .lattice/specs/spc-104, spc-270, spc-337 — front-matter `prs` cite Spec-creation/planning PRs (pr-109/112, pr-312, pr-343) no child binder carries; harmless, but `prs` semantics (\"delivery PRs\" vs \"all PRs touching the Spec\") are undocumented in ADR-011 L0 (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-371",
+        "line": "NOTICED: skills/_lattice-lib/scripts/stamp-pr-open.sh — tracked as mode 100644 (not executable) while `create-pr/SKILL.md` names `../_lattice-lib/scripts/stamp-pr-open.sh`; `after-pr-open.sh` invokes it via `bash …` so it works, but the \"executable script\" claim is false (probe `skill-scripts-exist`) (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-371",
+        "line": "NOTICED: skills/review-code/scripts/review-context.py — mode 100644 while `review-code/SKILL.md` names `$SKILL_ROOT/scripts/review-context.py` (probe `skill-scripts-exist`) (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-371",
+        "line": "NOTICED: skills/finish-work/references/flow.md:45, skills/review-code/SKILL.md:122, skills/review-code/references/ci-check.md:14 — still spell `gh pr checks … --json name,state,conclusion,link`; `conclusion` is not a `gh pr checks` field on gh 2.92 (tkt-338/tkt-341 NOTICED, now mechanised by probe `retired-paths-absent`) (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-371",
+        "line": "NOTICED: .lattice/specs — 14 of 16 `status: done` Specs have checked A* items that cite no test/PR/ticket evidence (84 items; e.g. spc-145 A1–A6/A8, spc-254 A1–A3/A5–A7); rev-20260902-015425Z F6 \"`done` is self-reported\" measured (probe `spec-done-acceptance-cites-evidence`) (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-371",
+        "line": "NOTICED: tools/validate-skills.sh — a skill directory cannot exist without full registration (USER_FACING + plugin symlink + keywords + README); a multi-ticket skill delivery (spc-369 W0 → W2) therefore needs an EXEMPT bridge; consider an `INCUBATING=(…)` list with a Spec citation so W0 slices do not touch the validator (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-372",
+        "line": "NOTICED: skills/_lattice-lib/scripts/reconcile-state.sh — spc-369 Out-of-scope and the tkt-372 brief describe an optional `reconcile-state.sh --gh` sensor, but the script only accepts `--binder <path> [--repo] [--json]`; the SKILL documents the per-binder form (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-372",
+        "line": "NOTICED: skills/review-lineage/scripts/claim-probes.sh — `--json` truncates the `evidence` field the same way `--md` does (200 chars + `…`), so a consumer that wants the full drift list must re-run the probe one-liner; an `--evidence-full` flag or untruncated JSON would let Step 2 skip the re-run (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-372",
+        "line": "NOTICED: skills/review-lineage/scripts/lineage-metrics.sh — usage line says `--since <ref|ISO|Nd>` but the L3 archaeology commands in method.md need the git-native form (`--since='30 days ago'`); `_since_to_args` converts `Nd` internally, fine, but a `--print-git-args` (or documenting the conversion) would keep the SKILL's git commands and the sensor's window identical (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-372",
+        "line": "NOTICED: docs/adr/011-consumer-repo-footprint-hygiene.md:74 — Verification bullet \"a fresh-clone simulation test … lands in the test suite\" names no bats file; `adr-verification-refs-resolve` cannot probe an unnamed test, so the claim is unguarded (rev-20260902-080545Z Appendix A1) (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-373",
+        "line": "NOTICED: skills/_lattice-lib/SKILL.md:17 and :73 — co-install roster omits review-lineage (llms.txt / plugin README now list it); out-of-paths for tkt-373 (2026-09-02)"
+      },
+      {
+        "ticket": "tkt-373",
+        "line": "NOTICED: tools/tests/validators-hardening.bats:69 — catalog size hard-coded (14 → 15); a new user-facing skill breaks CI until edited (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-373",
+        "line": "NOTICED: tools/tests/validate-skills.bats:41 — USER_FACING is hand-duplicated in the bats fixture list; a new user-facing skill silently breaks the suite until both are edited (out-of-paths for the lint itself; tkt-373 edited the line, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-419",
+        "line": "NOTICED: finish-stamp.bats (tkt-418 A9 test suite) is absent — #418 shipped without it. Out-of-paths (tkt-418 scope); follow-up ticket needed if test coverage is required. (out-of-paths, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-419",
+        "line": "NOTICED: finish-stamp.py A3 idempotency violated — `stamp_updated` was applied unconditionally before the `written` check, so already-closed binders always staged a timestamp bump (GHA would push noise commits). Fixed in tkt-419 because A6 (GHA safety net) requires a truly idempotent stamp (A3) to avoid noise on every `pull_request:closed`. Fix: compute `content_changed` before the updated-stamp bump; only apply `stamp_updated` when the binder content actually changed. 30/30 existing bats tests pass. (cross-ticket fix, 2026-09-02)"
+      },
+      {
+        "ticket": "tkt-93",
+        "line": "NOTICED: skills/_lattice-lib/scripts/check-duplicate-work.sh — byte-range CJK classifier under LC_ALL=C treats any non-ASCII (emoji) as CJK: spurious cjk-gap noise when python3 absent + 2-emoji titles count as 2 shared tokens (pre-existing; pre-merge review of pr-99) (out-of-paths, 2026-08-27)"
+      },
+      {
+        "ticket": "tkt-93",
+        "line": "NOTICED: skills/_lattice-lib/scripts/check-duplicate-work.sh — --json mode emits usage text (not JSON) on bad args; `--title --json` swallows the flag as a value; no-token early exit emits the legacy JSON shape without coverage_gaps/surfaces_checked keys (pre-existing shapes; pre-merge review of pr-99) (out-of-paths, 2026-08-27)"
+      },
+      {
+        "ticket": "tkt-94",
+        "line": "NOTICED: tools/validate-skills.sh — plugin-README mention check is bare substring (a URL containing the name satisfies it); keywords_block sed range would over-extend on a single-line keywords array; no name==lattice guard on adjacent manifests — all lenient-direction only (pre-merge review of pr-98) (out-of-paths, 2026-08-27)"
+      }
+    ]
+  },
+  "escape_traces": {
+    "total": 2,
+    "by_rule": {
+      "batch-merge-gate": 2
+    },
+    "items": [
+      {
+        "ticket": "tkt-216",
+        "rule_id": "batch-merge-gate"
+      },
+      {
+        "ticket": "tkt-338",
+        "rule_id": "batch-merge-gate"
+      }
+    ]
+  },
+  "git": {
+    "available": true,
+    "base": "dev",
+    "since": "30d",
+    "error": null,
+    "commits_total": 17,
+    "pr_merges": 6,
+    "direct_commits": 11,
+    "finish_stamps": 4,
+    "direct_ratio": 0.647,
+    "fix_recurrence": {
+      "files": [],
+      "files_count": 0,
+      "subject_classes": {
+        "fix(tkt-": 2
+      }
+    }
+  },
+  "coverage_post_ratchet": {
+    "with_ledger": 47,
+    "terminal": 47,
+    "pct": 100.0,
+    "created_after": "2026-09-02"
+  },
+  "specs": {
+    "total": 22,
+    "by_status": {
+      "done": 19,
+      "locked": 3
+    },
+    "done_with_open_acceptance_count": 0,
+    "done_with_open_acceptance": [],
+    "prs_mismatch_count": 3,
+    "prs_missing_in_spec_count": 0,
+    "prs_mismatch": [
+      {
+        "spec": "spc-104",
+        "spec_prs": [
+          "pr-109",
+          "pr-110",
+          "pr-111",
+          "pr-112",
+          "pr-113"
+        ],
+        "binder_prs": [
+          "pr-110",
+          "pr-111",
+          "pr-113"
+        ],
+        "tickets": [
+          "tkt-105",
+          "tkt-106",
+          "tkt-107"
+        ],
+        "missing_in_spec": [],
+        "extra_in_spec": [
+          "pr-109",
+          "pr-112"
+        ]
+      },
+      {
+        "spec": "spc-270",
+        "spec_prs": [
+          "pr-296",
+          "pr-312",
+          "pr-316",
+          "pr-318",
+          "pr-320",
+          "pr-321",
+          "pr-322"
+        ],
+        "binder_prs": [
+          "pr-296",
+          "pr-316",
+          "pr-318",
+          "pr-320",
+          "pr-321",
+          "pr-322"
+        ],
+        "tickets": [
+          "tkt-271",
+          "tkt-272",
+          "tkt-273",
+          "tkt-274",
+          "tkt-275",
+          "tkt-276"
+        ],
+        "missing_in_spec": [],
+        "extra_in_spec": [
+          "pr-312"
+        ]
+      },
+      {
+        "spec": "spc-337",
+        "spec_prs": [
+          "pr-343",
+          "pr-344",
+          "pr-345",
+          "pr-346",
+          "pr-347",
+          "pr-348",
+          "pr-354",
+          "pr-355",
+          "pr-358",
+          "pr-359"
+        ],
+        "binder_prs": [
+          "pr-344",
+          "pr-345",
+          "pr-346",
+          "pr-347",
+          "pr-348",
+          "pr-354",
+          "pr-355",
+          "pr-358",
+          "pr-359"
+        ],
+        "tickets": [
+          "tkt-338",
+          "tkt-339",
+          "tkt-340",
+          "tkt-341",
+          "tkt-342",
+          "tkt-349",
+          "tkt-350",
+          "tkt-352",
+          "tkt-353",
+          "tkt-356",
+          "tkt-357"
+        ],
+        "missing_in_spec": [],
+        "extra_in_spec": [
+          "pr-343"
+        ]
+      }
+    ]
+  }
+}
