@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: Vibe Coding 流程优化 — 自治度评分 + 断路器 + 推测执行 + 上下文快照
 
 > **TL;DR:** 给 lattice 的 ticket/workflow 增加昼夜调度智能：自治度评分（0-4）让夜间批处理只跑安全 ticket，断路器防单点卡死，推测执行让无人值守不停摆，上下文快照压缩多轨切换成本。
-> **Kind:** feat · **Status:** draft · **Mode:** C · **Priority:** P2
+> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P2
 > **Path:** spc-433 → (tickets pending) → (prs pending)
 
 ## Why
