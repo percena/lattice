@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/459 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:56:31Z |
+| updated | 2026-09-03T17:19:39Z |
 | adopted | false |
 | summary | Fix pr-N substring discovery, ledger-before-rename ordering, transition-api guards, finish-commit untracked, CI validator step |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-459-finish-stamp-transition-api-correctness` |
 | worktree | sibling `…/lattice.worktrees/tkt-459-finish-stamp-transition-api-correctness/` |
-| prs | (none) |
+| prs | pr-465 — https://github.com/percena/lattice/pull/465 |
 
 ## Acceptance (this slice)
 
