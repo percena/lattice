@@ -349,14 +349,15 @@ for id in "${IDS[@]}"; do
   }
   ISSUE_STATE=""
   ISSUE_EPIC=false
-  eval "$(printf '%s' "$issue_meta" | python3 -c '
-import json,sys,shlex
-d=json.load(sys.stdin)
-labels=d.get("labels") or []
-names={str(item.get("name") or "").lower() for item in labels if isinstance(item,dict)}
-print("ISSUE_STATE="+shlex.quote(d.get("state") or ""))
-print("ISSUE_EPIC="+("true" if "epic" in names else "false"))
-')"
+  _parsed=$(printf '%s' "$issue_meta" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+labels = d.get("labels") or []
+names = {str(item.get("name") or "").lower() for item in labels if isinstance(item, dict)}
+print(d.get("state") or "")
+print("true" if "epic" in names else "false")
+')
+  { IFS= read -r ISSUE_STATE; IFS= read -r ISSUE_EPIC; } <<< "$_parsed"
 
   if [[ "$ISSUE_EPIC" == true ]]; then
     SKIPPED_EPIC+=("$id")

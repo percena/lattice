@@ -91,34 +91,44 @@ repo_json=$(gh repo view --json nameWithOwner,defaultBranchRef 2>/dev/null) || {
 }
 
 # One structured parse for PR identity + one for repository identity.
-eval "$(python3 -c '
-import json, shlex, sys
+_parsed=$(python3 -c '
+import json, sys
 view = json.loads(sys.argv[1])
 repo = json.loads(sys.argv[2])
 
-def emit(name, value):
-    if isinstance(value, bool):
-        text = "true" if value else "false"
-    elif value is None:
-        text = ""
-    else:
-        text = str(value)
-    print(f"{name}={shlex.quote(text)}")
+def val(v):
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    return str(v) if v is not None else ""
 
-emit("HEAD_BRANCH", view.get("headRefName") or "")
-emit("PR_NODE_ID", view.get("id") or "")
-emit("HEAD_OID", view.get("headRefOid") or "")
-emit("HEAD_REPOSITORY", (view.get("headRepository") or {}).get("nameWithOwner") or "")
-emit("IS_CROSS_REPOSITORY", bool(view.get("isCrossRepository")))
-emit("BASE_BRANCH", view.get("baseRefName") or "")
-emit("MERGEABLE", view.get("mergeable") or "")
-emit("MERGE_STATE_INITIAL", view.get("mergeStateStatus") or "")
-emit("STATE", view.get("state") or "")
-emit("IS_DRAFT", bool(view.get("isDraft")))
-emit("URL", view.get("url") or "")
-emit("REPOSITORY", repo.get("nameWithOwner") or "")
-emit("DEFAULT_BRANCH", (repo.get("defaultBranchRef") or {}).get("name") or "")
-' "$view_json" "$repo_json")"
+print(val(view.get("headRefName") or ""))
+print(val(view.get("id") or ""))
+print(val(view.get("headRefOid") or ""))
+print(val((view.get("headRepository") or {}).get("nameWithOwner") or ""))
+print(val(bool(view.get("isCrossRepository"))))
+print(val(view.get("baseRefName") or ""))
+print(val(view.get("mergeable") or ""))
+print(val(view.get("mergeStateStatus") or ""))
+print(val(view.get("state") or ""))
+print(val(bool(view.get("isDraft"))))
+print(val(view.get("url") or ""))
+print(val(repo.get("nameWithOwner") or ""))
+print(val((repo.get("defaultBranchRef") or {}).get("name") or ""))
+' "$view_json" "$repo_json")
+{ IFS= read -r HEAD_BRANCH
+  IFS= read -r PR_NODE_ID
+  IFS= read -r HEAD_OID
+  IFS= read -r HEAD_REPOSITORY
+  IFS= read -r IS_CROSS_REPOSITORY
+  IFS= read -r BASE_BRANCH
+  IFS= read -r MERGEABLE
+  IFS= read -r MERGE_STATE_INITIAL
+  IFS= read -r STATE
+  IFS= read -r IS_DRAFT
+  IFS= read -r URL
+  IFS= read -r REPOSITORY
+  IFS= read -r DEFAULT_BRANCH
+} <<< "$_parsed"
 
 # Extract hostname from the PR URL for the --hostname flag on gh api (tkt-325,
 # mirrors the #311 fix in alignment-check.sh / close-fixed-issues.sh /
@@ -141,12 +151,13 @@ base_json=$(gh api "repos/${REPOSITORY}/pulls/${PR}" ${API_HOST:+--hostname "$AP
   exit 1
 }
 rm -f "$_base_err"
-eval "$(printf '%s' "$base_json" | python3 -c '
-import json, shlex, sys
+_parsed=$(printf '%s' "$base_json" | python3 -c '
+import json, sys
 d = json.load(sys.stdin)
-print("BASE_BRANCH=" + shlex.quote(d.get("ref") or ""))
-print("BASE_OID=" + shlex.quote(d.get("sha") or ""))
-')"
+print(d.get("ref") or "")
+print(d.get("sha") or "")
+')
+{ IFS= read -r BASE_BRANCH; IFS= read -r BASE_OID; } <<< "$_parsed"
 
 if [[ -z "$PR_NODE_ID" || -z "$HEAD_BRANCH" || -z "$HEAD_OID" || -z "$HEAD_REPOSITORY" || -z "$BASE_BRANCH" || -z "$BASE_OID" || -z "$REPOSITORY" || -z "$DEFAULT_BRANCH" ]]; then
   echo "{\"ok\": false, \"pr\": $PR, \"action\": \"stop\", \"reason\": \"incomplete_identity\"}"
@@ -240,13 +251,14 @@ if [[ "$REBASE" == "true" ]]; then
   ORIGIN_PUSH_URL=$(git remote get-url --push origin 2>/dev/null || true)
   origin_fetch_repo_json=$(gh repo view "$ORIGIN_FETCH_URL" --json nameWithOwner 2>/dev/null || echo '{}')
   origin_push_repo_json=$(gh repo view "$ORIGIN_PUSH_URL" --json nameWithOwner 2>/dev/null || echo '{}')
-  eval "$(python3 -c '
-import json, shlex, sys
+  _parsed=$(python3 -c '
+import json, sys
 fetch = json.loads(sys.argv[1])
 push = json.loads(sys.argv[2])
-print("ORIGIN_FETCH_REPOSITORY=" + shlex.quote(fetch.get("nameWithOwner") or ""))
-print("ORIGIN_PUSH_REPOSITORY=" + shlex.quote(push.get("nameWithOwner") or ""))
-' "$origin_fetch_repo_json" "$origin_push_repo_json")"
+print(fetch.get("nameWithOwner") or "")
+print(push.get("nameWithOwner") or "")
+' "$origin_fetch_repo_json" "$origin_push_repo_json")
+  { IFS= read -r ORIGIN_FETCH_REPOSITORY; IFS= read -r ORIGIN_PUSH_REPOSITORY; } <<< "$_parsed"
   if [[ -z "$ORIGIN_FETCH_URL" || -z "$ORIGIN_PUSH_URL" || "$ORIGIN_FETCH_REPOSITORY" != "$REPOSITORY" || "$ORIGIN_PUSH_REPOSITORY" != "$REPOSITORY" ]]; then
     echo "{\"ok\": false, \"pr\": $PR, \"action\": \"rebase\", \"reason\": \"origin_repository_mismatch\", \"repository\": $(json_escape "$REPOSITORY"), \"originFetchRepository\": $(json_escape "$ORIGIN_FETCH_REPOSITORY"), \"originPushRepository\": $(json_escape "$ORIGIN_PUSH_REPOSITORY"), \"originFetchUrl\": $(json_escape "$ORIGIN_FETCH_URL"), \"originPushUrl\": $(json_escape "$ORIGIN_PUSH_URL")}"
     echo "Error: origin fetch/push resolve to ${ORIGIN_FETCH_REPOSITORY:-unknown}/${ORIGIN_PUSH_REPOSITORY:-unknown}, not $REPOSITORY; refusing local rebase" >&2
@@ -475,13 +487,14 @@ MERGE_STATE=""
 HEAD_OID2=""
 for attempt in 1 2 3 4 5; do
   view2=$(gh pr view "$PR" --json mergeable,mergeStateStatus,headRefOid 2>/dev/null || echo '{}')
-  eval "$(python3 -c '
-import json, shlex, sys
+  _parsed=$(python3 -c '
+import json, sys
 view = json.loads(sys.argv[1])
-print("MERGEABLE2=" + shlex.quote(view.get("mergeable") or ""))
-print("MERGE_STATE=" + shlex.quote(view.get("mergeStateStatus") or ""))
-print("HEAD_OID2=" + shlex.quote(view.get("headRefOid") or ""))
-' "$view2")"
+print(view.get("mergeable") or "")
+print(view.get("mergeStateStatus") or "")
+print(view.get("headRefOid") or "")
+' "$view2")
+  { IFS= read -r MERGEABLE2; IFS= read -r MERGE_STATE; IFS= read -r HEAD_OID2; } <<< "$_parsed"
   if [[ -n "$HEAD_OID2" && "$MERGE_STATE" != "UNKNOWN" && -n "$MERGE_STATE" ]]; then
     break
   fi
