@@ -3,7 +3,7 @@ id: spc-433
 slug: vibe-coding-flow-optimization
 title: "Vibe Coding 流程优化 — 自治度评分 + 断路器 + 推测执行 + 上下文快照"
 kind: feat
-status: draft
+status: locked
 mode: C
 priority: P2
 summary: "4 个 workflow 改进：ticket 自治度 0-4 评分 + 断路器超限熔断 + 无人值守推测执行 + 上下文快照卡片"
@@ -67,7 +67,7 @@ superseded_by: null
 ## Decisions (principal, user-confirmed)
 
 1. **自治度编号从 0 开始**（0=Day-Interactive, 1=低自治, 2=中自治, 3=高自治, 4=全自治），与 lattice 优先级从 0 开始编号的惯例一致。— user-confirmed
-2. **断路器默认预算**：30 分钟 / 5 次重试，可通过 `--budget` 覆盖。— recommended
+2. **断路器默认预算**：60 分钟 / 5 次重试，可通过 `--budget` 覆盖。— user-confirmed
 3. **Auto-Decided 标签格式**：代码中使用 `// Auto-Decided: <reason>` 注释格式，PR body 中设 `## Auto-Decided` section 汇总。— recommended
 4. **上下文快照存储路径**：`.lattice/snapshots/<tkt>.md`，与 binder 同级但不入 binder 目录（快照是临时态，binder 是持久态）。— recommended
 5. **夜间自治度准入阈值默认 3**：≥3 才进入夜间 batch-work 调度。<3 的告警跳过。— recommended
