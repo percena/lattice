@@ -68,7 +68,7 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
                "deschedule at trip time",
                None, "deferred + wait_reason stamp", "deferred-count"),
     Transition("in-progress", "deferred", "system|human",
-               "spec-supersede trip-time sweep | fuse-halt | deliberate deschedule",
+               "spec-supersede trip-time sweep | fuse-halt | budget-exhausted | deliberate deschedule",
                "deschedule at trip time (in-flight work obsoleted)",
                None, "deferred + wait_reason stamp", "deferred-count"),
     # A deferred binder re-stamped by a spec-supersede sweep (its wait_reason
