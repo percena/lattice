@@ -1,6 +1,6 @@
 ---
 name: _lattice-lib
-description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the fourteen user-facing Lattice skills."
+description: "Internal shared Lattice library install-unit (workspace, init, upload, ids + portable policy). Not a workflow entrypoint — do not invoke as a user skill. Leading underscore marks internal package. Install beside the fifteen user-facing Lattice skills."
 user-invocable: false
 disable-model-invocation: true
 metadata:
@@ -10,11 +10,11 @@ metadata:
 
 # `_lattice-lib` (library install-unit)
 
-**Not a navigation skill.** User surface is the fourteen user-facing skills — the lifecycle six:
+**Not a navigation skill.** User surface is the fifteen user-facing skills — the lifecycle six:
 
 `start-work` · `create-spec` · `create-review` · `create-tickets` · `create-pr` · `finish-work`
 
-plus the optional companions and side-paths: `batch-work`, `create-adr`, `run-e2e`, `verify-features`, `review-code`, `review-production`, `review-delivery`, `generate-wiki`. Of those, `batch-work`, `create-adr`, `review-delivery`, and `verify-features` also co-install this library (per README); the others do not depend on it.
+plus the optional companions and side-paths: `batch-work`, `create-adr`, `run-e2e`, `verify-features`, `review-code`, `review-production`, `review-delivery`, `review-lineage`, `generate-wiki`. Of those, `batch-work`, `create-adr`, `review-delivery`, `review-lineage`, and `verify-features` also co-install this library (per README — `review-lineage` hard-fails without it); the others do not depend on it.
 
 This package is an **install unit** for shared scripts + portable policy so partial installs and relative `../start-work` paths are unnecessary. Leading **`_`** = internal shared package.
 
@@ -42,6 +42,9 @@ This package is an **install unit** for shared scripts + portable policy so part
 | `resolve-integration-branch.sh` | Resolve the integration branch a feature worktree should PR into |
 | `ratify.sh` | Single-commit ratification of a parked binder decision (journal entry + `parked → queued` in one commit) |
 | `bump-fix-cycle.sh` | Scripted owner of `fix_cycles` + the `pr-open → rework` transition (cap ≤2; third rework forces `deep-review`; `--extend-budget` escape) — spc-186 A6/A8 |
+| `transition-api.py` | The binder status chokepoint (ADR-012 §1): `commit <tkt> <to> <owner> <reason>` validates the edge + coupled `wait_reason`, rewrites the status row and appends the per-ticket ledger in one locked transaction; `record` (ledger-only), `legal`, `replay-ledger` |
+| `finish-stamp.py` / `finish-stamp-ci.py` | Post-merge stamp (ADR-013): local pure-Python stamp called by `finish-ledger.sh`; the GHA safety-net orchestrator run by `finish-stamp.yml` |
+| `finish-commit.sh` | Commits the staged finish set and asserts the post-commit `.lattice` index is clean (tkt-360 A2) |
 
 **Consumer bootstrap:** skills call `ensure-lattice.sh` at entry. Users never run init scripts.  
 **L0 pollution guard (DEFAULT):** before shippable Spec / ticket binder / product code / new ADR writes, agents run `assert-shippable-cwd.sh` (or only write after `ensure-workspace` + `cd` into worktree). A clean base checkout may pass only through `--allow-base-write --reason` after explicit user authorization. **`create-review` Review-only is exempt**; same-pass co-create defaults to one shippable worktree.

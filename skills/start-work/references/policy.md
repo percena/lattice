@@ -217,7 +217,7 @@ Path: Review → (optional Spec) → Ticket → worktree. Never Review → workt
 
 Priority: `P0`–`P3` (default **P2**). Labels on M/C issues: **one kind + one priority**.  
 Issue titles: plain language — no required `[Bug]` brackets.  
-Bootstrap labels: `create-tickets` → `scripts/sync-github-labels.sh`.
+Bootstrap labels: `create-tickets` → `../../create-tickets/scripts/sync-github-labels.sh`.
 
 ## Branch / worktree
 

@@ -55,7 +55,10 @@ setup() {
   export -f step_symlinks
   local tdir="${BATS_TEST_TMPDIR:-$(mktemp -d)}"
   mkdir -p "$tdir/locked"
-  chmod 000 "$tdir/locked" 2>/dev/null || { chmod 755 "$tdir/locked" 2>/dev/null || true; skip "cannot chmod 000 (running as root?)"; }
+  # tkt-462 A14: for uid 0 chmod 000 SUCCEEDS but does not restrict, so the
+  # old "chmod failed → skip" guard never fired and the test failed instead.
+  if [ "$(id -u)" -eq 0 ]; then skip "chmod 000 is ineffective for root"; fi
+  chmod 000 "$tdir/locked" 2>/dev/null || { chmod 755 "$tdir/locked" 2>/dev/null || true; skip "cannot chmod 000"; }
   run bash -c "cd '$tdir' && step_symlinks"
   chmod 755 "$tdir/locked" 2>/dev/null || true
   [ "$status" -eq 1 ]

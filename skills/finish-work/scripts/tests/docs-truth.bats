@@ -15,7 +15,7 @@
 # Pure grep over checked-in prose; no temp dirs, no network, no gh.
 
 setup_file() {
-  SKILL_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
+  SKILL_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
   export SKILL_MD="$SKILL_DIR/SKILL.md"
   export FLOW_MD="$SKILL_DIR/references/flow.md"
   [ -f "$SKILL_MD" ] || { echo "missing $SKILL_MD" >&2; return 1; }

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **spc-433 — Vibe Coding flow optimization (tkt-434..437, #438)** — ticket `autonomy` score (0–4, `autonomy-rubric.md`), batch-work `--min-autonomy` night filter and per-batch `--budget` circuit breaker (`wait_reason: budget-exhausted`), start-work `--budget` / `--unattended` + `Auto-Decided:` markers, context snapshot cards (`.lattice/snapshots/`, gitignored), review-code Auto-Decided highlighting.
+- **spc-441 — hardening sweep (tkt-442..449, #450–#457)** — GHA inputs routed through env vars, `eval "$(python3 …)"` eliminated, macOS runner in the bats matrix, `intercept-gh-issue-create` tests, `CODEOWNERS`, shared `resolve_lattice_lib_scripts`, L3 status-row guard split into `lib/status-row-guard.sh`, `evals/routing/README.md`.
+- **spc-458 — review follow-up (tkt-459..463)** — stamp-path correctness (`finish-stamp-ci.py` word-boundary `pr-N` discovery + fail-loud push, ledger-before-rename in `finish-stamp.py`, `transition-api.py` arity guard / rollback / temp-file fixes, `finish-commit.sh` ignores untracked files, validator gate before the GHA safety-net push); hook truthfulness (`LATTICE_HOOK_MODE=advisory` documented as gh-intercept-only, strict-mode two-tier pre-filter ≈150 ms → ≈25 ms per hook, `pretooluse-bats-check.py` exit 2); spc-433 closure (validator `autonomy_out_of_range` / `autonomy_missing`, `lattice-init` emits `snapshots/`, `batch-work/scripts/autonomy-filter.py`, one `--budget` semantics per skill, `budget-exhausted` in the FSM docs); docs drift + test plumbing; bats-core pinned by commit SHA via `tools/.bats-pin`, ci-local base-baseline parity, macOS bats hang in `next-artifact-id.sh` fixed.
+
+### Fixed
+
+- **tkt-439 (#440)** — binder dir/github mismatch (`tkt-35` impostor → `tkt-38`), `header_status_mismatch`, malformed timestamp (dev CI red).
+
 ## [0.5.1] - 2026-09-03
 
 Patch release covering the lock-safety fix, lineage sensor wiring, and follow-up test coverage that landed after the `v0.5.0` tag was cut (spc-427, spc-369, spc-430; #429, #432). dev→main promotion was already in sync; this release cuts the tag at the post-merge HEAD so the cache-busting version (ADR-005) matches the bundled content.
@@ -21,6 +31,34 @@ Patch release covering the lock-safety fix, lineage sensor wiring, and follow-up
 ### Changed
 
 - **review-lineage marked done (spc-369)** — verified across three production audits (A1–A4 pass); spec closed.
+
+## [0.5.0] - 2026-09-03
+
+Lock-safety follow-up cut (spc-427, spc-369; #429). Tagged `v0.5.0` at the dev→main promotion (ADR-005 release boundary); `v0.5.1` re-cut the tag at the post-merge HEAD so the bundled content matched.
+
+### Fixed
+
+- **Lock safety + lineage sensor wiring (tkt-428, spc-427, #429)** — `_rollback_ledger` re-acquires the per-ticket flock before its read-modify-write (a concurrent recorder's entry is no longer clobbered); `_release_lock_fd` extracted from three duplicated `finally` blocks; the review-lineage `coverage_post_ratchet` sensor reads `lineage.ratchet_cutoff` from `.lattice/config.yaml`.
+
+### Changed
+
+- **review-lineage (spc-369)** — verified across three production audits (A1–A4 pass); Spec closed.
+
+## [0.4.0] - 2026-09-03
+
+Post-merge ledger stamping + pre-release hardening (spc-416, spc-424; #417–#426). Second dev→main promotion.
+
+### Added
+
+- **`finish-stamp.py` (tkt-418, spc-416, #420)** — the 732-line bash+Python hybrid in `finish-ledger.sh` replaced by a pure-Python stamp: idempotent no-op when already closed, Mode C ledger repair, cancel path, fail-loud staging (ADR-013 Option E+ Layer 1).
+- **GHA post-merge safety net (tkt-419, spc-416, #421)** — `finish-stamp.yml` + `finish-stamp-ci.py` verify the local stamp on `pull_request: closed`, repair ledger discontinuity, and push as `github-actions[bot]` (Layer 2); A3 idempotency fix so a re-run never emits a timestamp-bump commit.
+- **`finish-stamp.bats` (tkt-422, spc-416, #423)** — five dry-run scenarios (normal, direct jump, idempotent, Mode C repair, staging failure).
+- **PreToolUse `.bats` write hook (tkt-400, spc-398, #407)**, **`ci-local.sh --fast` assertion guard (tkt-401, #408)**, **dev branch protection: `bats` + `lattice-artifacts` required (tkt-399, #406)**, **`lineage-metrics` `fix_recurrence` + `--created-after` post-ratchet coverage (tkt-385, #414)**.
+
+### Fixed
+
+- **Six pre-release state-machine hardening fixes (tkt-425, spc-424, #426)** — already-closed binder repair (`open → closed`, anomaly-line prior recovery), rollback warning instead of silent `pass`, `workflow_dispatch` re-trigger for lost push races, and related idempotency edges.
+- **NOTICED drains (tkt-386 #413; tkt-409/411/412 #417)** — 42 backlog lines dispositioned; `config.yaml` docs, single-source fixtures, opt-in evidence probe.
 
 ## [0.3.0] - 2026-08-27
 
@@ -158,3 +196,7 @@ Release train for `spc-42` (attention loop): one identical version cut carried b
 - Reject symlinked or out-of-worktree asset uploads unless an outside path is explicitly approved.
 - Resolve optional label synchronization only from the physical trusted sibling skill install, including when the initializer entrypoint is reached through a symlink; never execute a consumer-repository fallback.
 - Reject symlinked `.lattice` managed paths and symlinked `.gitignore` targets before initialization writes.
+
+[Unreleased]: https://github.com/percena/lattice/compare/v0.5.1...dev
+[0.5.1]: https://github.com/percena/lattice/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/percena/lattice/compare/v0.1.0...v0.5.0

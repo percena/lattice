@@ -3,14 +3,14 @@ id: spc-458
 slug: review-followup
 title: "Review follow-up — finish-stamp/transition-api correctness, hook truthfulness, spc-433 closure, docs drift"
 kind: chore
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Fix verified defects from the 2026-09-03 full-repo review not covered by spc-441: stamp-path bugs, hook doc/code drift, spc-433 mechanism gap, docs drift"
 created: 2026-09-03
-updated: 2026-09-03
+updated: 2026-09-04
 tickets: [tkt-459, tkt-460, tkt-461, tkt-462, tkt-463]
-prs: []
+prs: [pr-465, pr-466, pr-467, pr-468, pr-469]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -19,8 +19,8 @@ superseded_by: null
 # Spec: Review follow-up — finish-stamp/transition-api correctness, hook truthfulness, spc-433 closure, docs drift
 
 > **TL;DR:** A five-way parallel audit of the repo (dev @ 80f3701, re-verified at 046144d) confirmed 30+ defects. spc-441 already owns the security/CI/test sweep (tkt-442..449); this Spec owns everything else that survived manual re-verification — two HIGH stamp-path bugs, hook docs that contradict the code, spc-433 acceptance criteria that shipped as prose only, and documentation drift.
-> **Kind:** chore · **Status:** locked · **Mode:** C · **Priority:** P1
-> **Path:** spc-458 → tkt-459..463 → (prs pending)
+> **Kind:** chore · **Status:** done · **Mode:** C · **Priority:** P1
+> **Path:** spc-458 → tkt-459..463 → pr-465..469 (all merged 2026-09-04; #464 closed as superseded)
 
 ## Why
 
@@ -52,21 +52,21 @@ Source: review session 2026-09-03 (this conversation; findings recorded in the t
 
 ## Acceptance
 
-- [ ] **A1** `finish-stamp-ci.py` discovers binders by `\bpr-N\b`, exits non-zero on push/fetch failure, commits the staged set; `finish-stamp-ci.bats` covers pr-44 vs pr-440 and the return codes.
-- [ ] **A2** `finish-stamp.py` writes the ledger edge before the binder rename and rolls it back on rename failure; `finish-stamp.bats` + `finish-ledger.bats` green.
-- [ ] **A3** `transition-api.py commit` arity guard (usage + exit 3); `_rollback_ledger` searches the whole file and warns when absent; temp file `.transition-api.*.tmp`, unlinked on failure; `transition-api.bats` green.
-- [ ] **A4** `finish-commit.sh` clean assertion ignores untracked files; `finish-stamp.yml` runs the artifact validator before pushing.
-- [ ] **A5** `tools/hooks/pretooluse-bats-check.py` exits 2 on a banned form; docstring + `tools/README.md` state exit contract and registration.
-- [ ] **A6** hooks README, plugin README, `CLAUDE.md`, finish-work SKILL row, `plugin.json`, `marketplace.json` state the true default (strict) and the true scope of `LATTICE_HOOK_MODE=advisory`.
-- [ ] **A7** strict mode pre-filters on the jq-decoded command; escaped-`gh` bats case still classified; non-gh Bash call costs < 50 ms per hook.
-- [ ] **A8** validator: `autonomy` out of 0–4 → error; absent on C-mode tickets → warning; fixtures both ways; template claim true.
-- [ ] **A9** `lattice-init.sh` emits `snapshots/`; bats asserts.
-- [ ] **A10** `skills/batch-work/scripts/autonomy-filter.py` + tests; flow.md RESOLVE TICKETS calls it.
-- [ ] **A11** budget semantics stated once per skill without contradiction; `budget-exhausted` in `docs/workflow-fsm.md` + `workflow-fsm-reference.md`; no Chinese prose in shipped skill files; `full-flow.md` §7 updated.
-- [ ] **A12** one skill count; co-install list + script table complete; `deep-review` documented as a triage class.
-- [ ] **A13** every relative link in shipped SKILL/reference files resolves; CHANGELOG 0.4.0/0.5.0 sections + `[Unreleased]` bullets.
-- [ ] **A14** `docs-truth.bats` under CI discovery; chmod-000 tests skip for uid 0.
-- [ ] **A15** bats-core pinned by commit SHA in both workflows; `ci-local.sh` mirrors the base-baseline comparison.
+- [x] **A1** `finish-stamp-ci.py` discovers binders by `\bpr-N\b`, exits non-zero on push/fetch failure, commits the staged set; `finish-stamp-ci.bats` covers pr-44 vs pr-440 and the return codes.
+- [x] **A2** `finish-stamp.py` writes the ledger edge before the binder rename and rolls it back on rename failure; `finish-stamp.bats` + `finish-ledger.bats` green.
+- [x] **A3** `transition-api.py commit` arity guard (usage + exit 3); `_rollback_ledger` searches the whole file and warns when absent; temp file `.transition-api.*.tmp`, unlinked on failure; `transition-api.bats` green.
+- [x] **A4** `finish-commit.sh` clean assertion ignores untracked files; `finish-stamp.yml` runs the artifact validator before pushing.
+- [x] **A5** `tools/hooks/pretooluse-bats-check.py` exits 2 on a banned form; docstring + `tools/README.md` state exit contract and registration.
+- [x] **A6** hooks README, plugin README, `CLAUDE.md`, finish-work SKILL row, `plugin.json`, `marketplace.json` state the true default (strict) and the true scope of `LATTICE_HOOK_MODE=advisory`.
+- [x] **A7** strict mode pre-filters on the jq-decoded command; escaped-`gh` bats case still classified; non-gh Bash call costs < 50 ms per hook.
+- [x] **A8** validator: `autonomy` out of 0–4 → error; absent on C-mode tickets → warning; fixtures both ways; template claim true.
+- [x] **A9** `lattice-init.sh` emits `snapshots/`; bats asserts.
+- [x] **A10** `skills/batch-work/scripts/autonomy-filter.py` + tests; flow.md RESOLVE TICKETS calls it.
+- [x] **A11** budget semantics stated once per skill without contradiction; `budget-exhausted` in `docs/workflow-fsm.md` + `workflow-fsm-reference.md`; no Chinese prose in shipped skill files; `full-flow.md` §7 updated.
+- [x] **A12** one skill count; co-install list + script table complete; `deep-review` documented as a triage class.
+- [x] **A13** every relative link in shipped SKILL/reference files resolves; CHANGELOG 0.4.0/0.5.0 sections + `[Unreleased]` bullets.
+- [x] **A14** `docs-truth.bats` under CI discovery; chmod-000 tests skip for uid 0.
+- [x] **A15** bats-core pinned by commit SHA in both workflows; `ci-local.sh` mirrors the base-baseline comparison.
 
 ## Non-goals
 
@@ -92,6 +92,8 @@ Source: review session 2026-09-03 (this conversation; findings recorded in the t
 
 - The other active session may merge spc-441 PRs while this Spec is in flight; each start-work re-bases on current dev (`update-pr-base.sh`).
 - The main clone carries another session's staged finish-ledger for tkt-442; this Spec's finish-commit steps must not sweep it silently (check `git diff --cached` before each `finish-commit.sh`).
+- **Resolved 2026-09-04:** delivered through pr-465..469; the other session finished spc-441 first, so the tkt-463 stack order inverted (#466 merged first carrying the spec + binders; #464 closed as superseded).
+- **Surfaced during delivery (NOTICED, follow-up ticket candidates):** (1) dev branch protection requires the `bats` context but both bats workflows are path-filtered, so a `.lattice/`-only PR can never turn it green — #464 needed admin; the durable fix is running the workflows on every PR with a `changes` job that skips the matrix when no code paths changed and an aggregate `bats` that accepts `skipped` (tkt-463 added the aggregate job but not the always-run trigger). (2) The finish-ledger step pushes a stamp commit straight to protected `dev` ("Bypassed rule violations" on every finish) — by design (ADR-013) but worth an ADR note. (3) The macOS matrix surfaced three portability defects (BSD `tr` with an infinite producer, missing `timeout(1)`, `/private/var` realpath) fixed in tkt-463; other scripts were not swept for `timeout(1)`.
 - Follow-up Spec candidates recorded, not delivered: lock timeout/portability; `lib/binder_fields.py` + `lib/locking.py` extraction (8 status parsers, 4 lock copies); L1/L3 advisory policy; skill-marker TTL; warning-baseline ratchet; git tag backfill.
 
 ## References
@@ -103,5 +105,5 @@ Source: review session 2026-09-03 (this conversation; findings recorded in the t
 
 - Primary: [#458](https://github.com/percena/lattice/issues/458)
 - Tickets: tkt-459, tkt-460, tkt-461, tkt-462, tkt-463
-- PRs: (pending)
+- PRs: pr-466 (tkt-463 + spec/binders), pr-465 (tkt-459), pr-467 (tkt-460), pr-468 (tkt-461), pr-469 (tkt-462); pr-464 closed as superseded
 - Reviews: (none)

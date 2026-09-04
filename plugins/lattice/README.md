@@ -33,10 +33,10 @@ Part of the [`percena`](../../README.md) marketplace.
 ### Skills only (Claude + Codex)
 
 ```bash
-# every shipped skill (all 15 units: 14 user-facing + _lattice-lib)
+# every shipped skill (all 16 units: 15 user-facing + _lattice-lib)
 npx skills add percena/lattice -a claude-code -a codex -g -y
 
-# or explicit (all 15 units):
+# or explicit (all 16 units):
 npx skills add percena/lattice \
   --skill _lattice-lib \
   --skill start-work --skill create-spec --skill create-review \

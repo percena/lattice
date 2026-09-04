@@ -58,7 +58,7 @@ stateDiagram-v2
     stuck --> queued: unblock
     pr --> rework: findings returned (new brief)
     rework --> ip: fix cycle (fix_cycles ≤2; then ip→pr on push)
-    rework --> deep-review: third rework return (cap-exit, human — no auto-retry)
+    note right of rework : third rework return — fix_cycles holds at 2 and the CAP-HIT trace forces the deep-review TRIAGE CLASS (human). deep-review is not an M2 status (status_vocab.py has none); the binder stays rework. No auto-retry.
     stuck --> [*]: re-scope → M1 (Spec/ticket revision)
     pr --> closed: human merge (day)
     stuck --> closed: cancel
@@ -135,7 +135,7 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | stuck → M1 | re-scope: **Spec revision** / ticket revision — `wait_reason: re-scope` | human |
 | pr-open → rework | PR returned with findings (findings become the new brief); `bump-fix-cycle.sh` is the procedural stamp point — stamps `status: rework` + bumps `fix_cycles` atomically (spc-186 A6). Called by finish-work mini-review Hold and review-delivery `--with-review` fix loop | system |
 | rework → in-progress | re-enters the queue, address-review shape; `fix_cycles` row stamps the round (ADR-004 §5 cap ≤2). The path is `rework → in-progress → (implement fix) → pr-open` — there is no direct `rework → pr-open`; on push, `in-progress → pr-open` fires (the existing transition), and `fix_cycles` increments | system |
-| rework → deep-review (cap-exit) | **third rework return** — `fix_cycles` would exceed the ≤2 cap. `bump-fix-cycle.sh` holds `fix_cycles` at 2, stamps `rework`, and journals a CAP-HIT trace that FORCES the `deep-review` triage class (human) before any further fix cycle — **no auto-retry** (ADR-007 §4 five-piece hard rule; spc-186 A6). Escape: `--extend-budget --reason "<operator-adjudicated rationale>"` authorizes one more cycle (human, double-confirm; no agent self-adjudication) | human |
+| rework cap-exit (no status change; `deep-review` is a triage class, not an M2 status) | **third rework return** — `fix_cycles` would exceed the ≤2 cap. `bump-fix-cycle.sh` holds `fix_cycles` at 2, stamps `rework`, and journals a CAP-HIT trace that FORCES the `deep-review` triage class (human) before any further fix cycle — **no auto-retry** (ADR-007 §4 five-piece hard rule; spc-186 A6). Escape: `--extend-budget --reason "<operator-adjudicated rationale>"` authorizes one more cycle (human, double-confirm; no agent self-adjudication) | human |
 | pr-open → pr-open (verdict voided) | materially changed rebase → re-review; clean rebase carries the verdict | system |
 | pr-open → closed (merged) | **merge** — day only; `finish-ledger.sh` stamps `mergedAt` (a PR closed without merge lands the same edge as a cancel, no `mergedAt`) | human |
 | queued → closed | **cancel** (`finish-ledger.sh --cancel --reason`) — or a MERGED PR observed from `queued`: **direct jump**, metric `direct-jump`, `anomaly:` line (stamps skipped; ADR-012 §3) | human |

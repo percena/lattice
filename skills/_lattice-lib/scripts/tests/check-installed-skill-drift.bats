@@ -153,6 +153,9 @@ run_check() {
 @test "unreadable subdir does not abort the drift check and leaks no mktemp (tkt-242 L3)" {
   # An unreadable subdir makes find exit nonzero; under pipefail+set -e that
   # used to abort the rel_files pipeline and leak the repo_set/inst_set mktemp.
+  # tkt-462 A14: chmod 000 does not restrict uid 0 — the unreadable-subdir
+  # scenario cannot be produced as root; skip rather than fail.
+  if [ "$(id -u)" -eq 0 ]; then skip "chmod 000 is ineffective for root"; fi
   mkdir -p "$REPO_SKILLS/start-work/secret"
   printf 'hidden\n' >"$REPO_SKILLS/start-work/secret/file.txt"
   chmod 000 "$REPO_SKILLS/start-work/secret"

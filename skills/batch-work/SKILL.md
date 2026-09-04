@@ -15,7 +15,7 @@ This skill is **not** a port of ERP's `batch-implement`. It reuses Lattice's exi
 
 **Runtime path:** before executing skill-owned files, set `LATTICE_SKILL_ROOT` to the absolute directory containing this loaded `SKILL.md` (Claude may already provide `CLAUDE_SKILL_DIR`). Never infer it from consumer cwd.
 
-Templates: co-installed `create-tickets` `references/templates/ticket-binder.md` (no local copy). Do **not** require monorepo `docs/` to run.
+Templates: co-installed `create-tickets` `../create-tickets/references/templates/ticket-binder.md` (no local copy). Do **not** require monorepo `docs/` to run.
 
 ## Load on demand
 
