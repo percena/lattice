@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/461 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-04T01:31:43Z |
+| updated | 2026-09-04T02:24:37Z |
 | adopted | false |
 | summary | Give spc-433 the validator check, gitignore generator, autonomy filter script and one consistent budget semantics it promised |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -87,4 +87,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-468 merged: 2026-09-04T02:24:22Z — https://github.com/percena/lattice/pull/468 (base merge)
+- issue #461 closed: 2026-09-04T02:24:30Z (reason: completed) — https://github.com/percena/lattice/issues/461
