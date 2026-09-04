@@ -163,7 +163,7 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 
 | Rationalization | Reality |
 | --- | --- |
-| "CI green — bare gh pr merge" | finish-work adds base + alignment + cleanup; hooks advise by default and block only in strict mode |
+| "CI green — bare gh pr merge" | finish-work adds base + alignment + cleanup; the `gh pr merge` hook blocks by default (strict) and only `LATTICE_HOOK_MODE=advisory` downgrades it to a nudge |
 | "Boss said ship now — skip alignment" | Alignment HARD gaps block merge; chat is not L0 |
 | "Leave remote; repo auto-deletes" | Often false (`delete_branch_on_merge` off); cleanup-workspace must delete remote |
 | "gh --delete-branch already ran" | Fails if worktree still checks out head; §4 still required |

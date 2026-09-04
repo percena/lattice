@@ -41,12 +41,32 @@ intercept_gh_pr_main() {
     hook_mode=$(printf '%s' "${LATTICE_HOOK_MODE:-strict}" | tr '[:upper:]' '[:lower:]')
     case "$hook_mode" in advisory|strict) ;; *) hook_mode="strict" ;; esac
 
-    # Cheap pre-filter (advisory mode only): if "gh" appears nowhere in the
-    # raw hook JSON, bail before spawning jq/python3. JSON \u escapes can
-    # encode "gh" without the literal bytes (jq would decode them), so a
-    # crafted payload CAN slip past this — skipping only an advisory nudge.
-    # Strict mode never takes the shortcut, so its guard is unaffected.
-    if [[ "$hook_mode" != strict && "$hook_data" != *gh* ]]; then
+    # Tier-1 pre-filter on the RAW payload (both modes, tkt-460 A7): if the
+    # bytes "gh" appear nowhere AND the payload carries no `\u` escape, the
+    # decoded command cannot contain "gh" either — JSON's only escape that
+    # yields letters is `\uXXXX`; `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`
+    # never do. Bail before spawning jq/python3 (~14 ms instead of ~150 ms
+    # per hook on every non-gh Bash call). A payload WITH `\u` escapes falls
+    # through to the tier-2 decoded check below, so a crafted `\u0067h` still
+    # reaches the classifier. (Pre-tkt-460 this shortcut was advisory-only
+    # because it ignored the escape case.)
+    if [[ "$hook_data" != *gh* && "$hook_data" != *'\u'* ]]; then
+        exit 0
+    fi
+
+    # Tier-2 pre-filter on the jq-DECODED command (tkt-460 A7), BEFORE the
+    # metadata pass so an escaped non-gh call pays exactly one jq spawn. jq has
+    # already resolved JSON \u escapes, so unlike the raw-payload shortcut
+    # above this cannot be fooled by an escaped "gh" — a command that contains
+    # no "gh" bytes after decoding can never be classified as a gh mutation by
+    # the strip + detect passes below. Skipping them removes two python3 spawns
+    # per hook from every non-gh Bash call in strict mode (~150 ms → ~40 ms);
+    # the guard on real gh commands is unchanged. Non-Bash tools carry no
+    # `tool_input.command`, so they exit here too (the tool_name check below
+    # remains as the documented contract). The command is queried on its own
+    # because it legitimately contains newlines.
+    command=$(printf '%s' "$hook_data" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
+    if [[ "$command" != *gh* ]]; then
         exit 0
     fi
 
@@ -68,8 +88,6 @@ intercept_gh_pr_main() {
         IFS= read -r agent_id
         IFS= read -r transcript_path
     } <<<"$meta"
-    # The command is queried separately: it legitimately contains newlines.
-    command=$(printf '%s' "$hook_data" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
     if [[ "$tool_name" != "Bash" ]]; then
         exit 0

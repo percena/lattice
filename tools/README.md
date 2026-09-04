@@ -11,6 +11,7 @@ Consumers who install Lattice skills do not need them.
 | `validate-plugin-versions.py` | Plugin/marketplace SemVer + bundle change gate (release-boundary enforced via `--release-check`; dev landings lenient per ADR-005) |
 | `run-routing-evals.py` | Tier-2 routing catalog ranking |
 | `run-behavioral-evals.py` | Behavioral eval runner / corpus validate |
+| `hooks/pretooluse-bats-check.py` | Optional Claude Code PreToolUse hook: refuses a `Write`/`Edit` that would introduce a banned bats assertion form (same rules as `check-bats-assertions.py`); exit 2 = block |
 
 Runtime shared scripts live in `skills/_lattice-lib/scripts/`.
 
@@ -29,3 +30,26 @@ and every bats suite CI discovers (each run with the `BATS_TEST_TMPDIR` shim
 for older local bats). Steps never abort the run: each records pass/FAIL/skip,
 a summary table prints at the end, and the exit code is nonzero if any step
 failed. `--fast` skips the bats suites (the slow step).
+
+## `hooks/pretooluse-bats-check.py` (optional, maintainer-only)
+
+Not part of the `lattice` plugin (`plugins/lattice/hooks/hooks.json`) — it is a
+repo-maintainer convenience that runs `check-bats-assertions.py` at write time
+so a banned assertion form is refused before CI sees it. Register it yourself in
+`.claude/settings.json` (gitignored here) or `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Write|Edit",
+        "hooks": [ { "type": "command",
+                     "command": "python3 /absolute/path/to/lattice/tools/hooks/pretooluse-bats-check.py" } ] }
+    ]
+  }
+}
+```
+
+Exit contract: `2` blocks the write and feeds the findings to the model; `0`
+allows. Non-`.bats` paths and unparseable payloads always allow (fail-open).
+Tests: `tools/tests/pretooluse-bats-check.bats`.
