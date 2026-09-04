@@ -1,0 +1,6 @@
+# bats-core pin — single source for lattice-scripts.yml, plugin-hooks.yml and
+# tools/ci-local.sh (tkt-463 A15). `tag` is what humans read; `sha` is what CI
+# verifies before running install.sh under sudo (tags are mutable, commits are
+# not). Update both together: git ls-remote https://github.com/bats-core/bats-core.git 'refs/tags/vX.Y.Z^{}'
+tag=v1.13.0
+sha=3bca150ec86275d6d9d5a4fd7d48ab8b6c6f3d87

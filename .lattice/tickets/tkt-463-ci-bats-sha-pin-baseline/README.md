@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/463 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:51:19Z |
+| updated | 2026-09-04T00:01:41Z |
 | adopted | false |
 | summary | Pin bats-core by commit SHA in both workflows; ci-local mirrors the artifacts base-baseline comparison |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -33,7 +33,7 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A15** both workflows clone bats-core, `git checkout <pinned-sha>` and fail if `git rev-parse v1.13.0` ≠ pin before `install.sh`; `ci-local.sh` fetches `origin/<base>:tools/.validator-warning-baseline.txt` and passes `--baseline` like `artifacts.yml`; `ci-local.bats` covers the new step.
+- [x] **A15** both workflows clone bats-core, `git checkout <pinned-sha>` and fail if `git rev-parse v1.13.0` ≠ pin before `install.sh`; `ci-local.sh` fetches `origin/<base>:tools/.validator-warning-baseline.txt` and passes `--baseline` like `artifacts.yml`; `ci-local.bats` covers the new step.
 
 ## Approach
 
@@ -48,6 +48,8 @@ Touch-set: see `paths`. Wait for #451 (macOS matrix) to merge, then rebase.
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-04 pin location → `tools/.bats-pin` (`tag=` + `sha=`) read by both workflows (verify `git rev-parse HEAD` == sha before `sudo install.sh`) and by ci-local.sh for BATS_PIN (source: agent-judgment per Anticipated decisions; single-sourced, reversible).
+- 2026-09-04 NOTICED-drain folded in (blocking): the macOS bats matrix (#451) hung every lattice-scripts run since 16:49Z at `next-artifact-id.bats` "rev claim collision" — BSD `tr -dc … </dev/urandom | head -c 3` never exits when SIGPIPE is ignored (GitHub macOS runner) → 20-min job timeout → required `bats` check red on every PR touching skills/tools. Fixed `rand_suffix` with a bounded `od -N6` producer + a portable watchdog regression test (source: agent-judgment; spc-441 Risks anticipated "BSD vs GNU differences" as a follow-up).
 
 ## Pending decisions
 
@@ -55,11 +57,11 @@ Touch-set: see `paths`. Wait for #451 (macOS matrix) to merge, then rebase.
 
 ## Attempts
 
-- (none)
+- attempt 1 · 2026-09-04 · pin file + workflow sha verify + ci-local base-baseline step + macOS hang fix · suites: next-artifact-id 12/12 (+1), ci-local (tkt-463 tests) 2/2, shellcheck OK, ci-local --fast all green (bats parity degraded: local 1.2.1)
 
 ## Notes
 
-- Stacked after #451; if #451 has not merged when tkt-459..462 ship, this ticket stays `queued` (spc-458 Decision 5).
+- #451 merged 2026-09-03T16:49Z, so this ticket proceeded (spc-458 Decision 5 not needed). It is the critical path for every other spc-458 PR because of the macOS hang.
 
 ## References
 
