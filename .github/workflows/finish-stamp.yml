@@ -79,6 +79,10 @@ jobs:
           STAMP_PR: ${{ steps.evt.outputs.pr }}
           STAMP_REPO: ${{ steps.evt.outputs.repo }}
         run: |
+          # tkt-459 A4: GITHUB_TOKEN pushes trigger no workflows, so artifacts.yml
+          # never sees a bot stamp — run the validator before the push instead.
           python3 skills/_lattice-lib/scripts/finish-stamp-ci.py \
             --pr "$STAMP_PR" \
-            --repo "$STAMP_REPO"
+            --repo "$STAMP_REPO" \
+            --validator-script tools/validate-lattice-artifacts.py \
+            --validator-baseline tools/.validator-warning-baseline.txt
