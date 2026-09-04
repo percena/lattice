@@ -19,7 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  bats:
+  bats-matrix:
+    name: bats (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -57,3 +58,20 @@ jobs:
       - name: Run lattice hook tests
         working-directory: plugins/lattice
         run: bats --print-output-on-failure scripts/tests/
+
+  # tkt-463: dev branch protection requires a check literally named `bats`.
+  # The matrix (#451) renamed the reporting checks to `bats (<os>)`, so the
+  # required context never reported and every PR sat BLOCKED. This aggregate
+  # job is the single `bats` context; it fails if any matrix leg did not succeed.
+  bats:
+    needs: bats-matrix
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Aggregate lattice hook test matrix
+        env:
+          RESULT: ${{ needs.bats-matrix.result }}
+        run: |
+          echo "bats-matrix result: $RESULT"
+          [ "$RESULT" = "success" ]

@@ -57,6 +57,8 @@ Touch-set: see `paths`. Wait for #451 (macOS matrix) to merge, then rebase.
 
 ## Attempts
 
+- attempt 4 · 2026-09-04 · CI fully green, PR still BLOCKED: branch protection requires the context `bats`, but the #451 matrix reports `bats (ubuntu-latest)` / `bats (macos-latest)` — the required name never reports (why #440/#464 needed admin). Added an aggregate `bats` job (`needs: bats-matrix`, fails unless the matrix succeeded) in both workflows; no repo-settings change.
+
 - attempt 3 · 2026-09-04 · `--print-output-on-failure` revealed the macOS cause: `timeout "$PROBE_TIMEOUT_SEC" bash helper --probe` — no GNU `timeout` on macOS → every probe 'dead' → spawned-but-dead. Added `run_with_timeout` (timeout → gtimeout → bash watchdog) in run-process-wave.sh + 2 tests (watchdog kill, probe without timeout(1) on PATH). Product-code portability bug surfaced by the spc-441 macOS matrix, drained here as it blocks the required check.
 
 - attempt 2 · 2026-09-04 · PR #466 CI: macOS job now completes (hang fixed) but batch-work wave tests A1/A2/A6 + coordinator A5 wiring failed on BOTH runners — surrogate `nohup sleep 1` vs several python3 startups before the 0.3s grace probe → `spawned-but-dead` on slow runners (never reproducible locally, incl. bats 1.13 + non-root). Surrogates now sleep 4s. Also carried the two dev reds (spc-441 spec done-state, SC2154) so this PR can be the first to merge.
