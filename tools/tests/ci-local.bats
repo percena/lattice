@@ -169,3 +169,32 @@ EOF
   printf '%s\n' "$output" | grep -qiE 'installed-skill drift check runs only in dev mode'
   printf '%s\n' "$output" | grep -qF 'pass/FAIL/skip/degraded'
 }
+
+# ===================== tkt-463 A15: bats pin single source + base-baseline parity =====================
+
+@test "tkt-463: BATS_PIN is read from tools/.bats-pin (single source shared with both workflows)" {
+  local file_tag script_pin
+  file_tag="$(sed -n 's/^tag=v//p' "$REPO_ROOT/tools/.bats-pin")"
+  [ -n "$file_tag" ]
+  grep -qE '^sha=[0-9a-f]{40}$' "$REPO_ROOT/tools/.bats-pin"
+  # extract the resolver + fallback block from ci-local.sh and evaluate it
+  script_pin="$(ROOT="$REPO_ROOT" bash -c "$(sed -n '/^BATS_PIN="/,/^fi$/p' "$CI_LOCAL"); printf '%s' \"\$BATS_PIN\"")"
+  [ "$script_pin" = "$file_tag" ]
+  # both workflows read the same file and verify the sha before install.sh
+  grep -qF 'BATS_PIN_FILE: tools/.bats-pin' "$REPO_ROOT/.github/workflows/lattice-scripts.yml"
+  grep -qF 'BATS_PIN_FILE: tools/.bats-pin' "$REPO_ROOT/.github/workflows/plugin-hooks.yml"
+  grep -qF 'rev-parse HEAD' "$REPO_ROOT/.github/workflows/lattice-scripts.yml"
+  grep -qF 'rev-parse HEAD' "$REPO_ROOT/.github/workflows/plugin-hooks.yml"
+}
+
+@test "tkt-463: lattice-artifacts step compares against the BASE-ref baseline when one resolves (artifacts.yml parity)" {
+  eval "$(sed -n '/^step_artifacts()/,/^}$/p' "$CI_LOCAL")"
+  export -f step_artifacts
+  run bash -c "cd '$REPO_ROOT' && BASE_REF=HEAD BASE_REF_OK=1 step_artifacts"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF 'baseline: base-ref HEAD'
+  # no base ref → feature-file fallback, still runs the validator
+  run bash -c "cd '$REPO_ROOT' && BASE_REF='' BASE_REF_OK=0 step_artifacts"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF 'baseline: feature file'
+}

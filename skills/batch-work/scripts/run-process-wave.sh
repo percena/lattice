@@ -132,6 +132,26 @@ EOF
 now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 now_epoch() { date +%s; }
 
+# run_with_timeout <seconds> <cmd…> — GNU `timeout` when present (Linux),
+# `gtimeout` (brew coreutils), else a bash watchdog. tkt-463: macOS ships no
+# `timeout`, so every `timeout N bash helper --probe` failed and the wave
+# reported every spawn as spawned-but-dead on the macOS CI matrix.
+run_with_timeout() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$secs" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$secs" "$@"
+  else
+    "$@" & local cmd_pid=$!
+    ( sleep "$secs"; kill "$cmd_pid" 2>/dev/null ) & local wd_pid=$!
+    local rc=0
+    wait "$cmd_pid" 2>/dev/null || rc=$?
+    kill "$wd_pid" 2>/dev/null; wait "$wd_pid" 2>/dev/null || true
+    return "$rc"
+  fi
+}
+
 get_available_ram_gb() {
   if [[ "$(uname -s)" == "Darwin" ]]; then
     local ps ps_free inactive speculative pagesize
@@ -524,7 +544,7 @@ run_wave() {
         # after a short grace; a dead PID here is `spawned-but-dead`, not a
         # silent completed. Mirrors the spawn helper's own grace re-check.
         sleep "${SPAWN_GRACE_SEC:-0.3}"
-        if timeout "${PROBE_TIMEOUT_SEC:-8}" bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
+        if run_with_timeout "${PROBE_TIMEOUT_SEC:-8}" bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
           echo "spawned: ${M_TICKET[j]} pid=$pid" >&2
         else
           STATUS[j]="spawned-but-dead"; ENDS[j]=$(now_epoch)
@@ -570,7 +590,7 @@ barrier_poll() {
       [[ "${STATUS[i]}" == "running" ]] || continue
       any_running=1
       local pid="${PIDS[i]}"
-      if timeout "${PROBE_TIMEOUT_SEC:-8}" bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
+      if run_with_timeout "${PROBE_TIMEOUT_SEC:-8}" bash "$spawn_helper" --probe "$pid" 2>/dev/null | grep -q "^alive:"; then
         # still alive — check timebox
         local elapsed=$(( $(now_epoch) - STARTS[i] ))
         local limit=$(( M_TIMEBOX[i] * 60 ))

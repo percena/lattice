@@ -144,8 +144,18 @@ have() { command -v "$1" > /dev/null 2>&1; }
 # to silently use any PATH bats: it checks `bats --version` against this pin
 # and reports DEGRADED on mismatch (suites still run, but local results may
 # not predict GitHub CI). Both .github/workflows/lattice-scripts.yml and
-# plugin-hooks.yml pin v1.13.0 — keep this in sync with them.
+# plugin-hooks.yml read the same pin from tools/.bats-pin (tkt-463 A15), so
+# the three consumers cannot drift; the literal below is only the fallback
+# when the pin file is unreadable.
 BATS_PIN="1.13.0"
+BATS_PIN_FILE="$ROOT/tools/.bats-pin"
+bats_pin_from_file() {
+  # Print the `tag=vX.Y.Z` value of $BATS_PIN_FILE without the leading v.
+  sed -n 's/^tag=v\{0,1\}//p' "$BATS_PIN_FILE" 2>/dev/null | head -n 1
+}
+if _pin_file_ver="$(bats_pin_from_file)" && [ -n "$_pin_file_ver" ]; then
+  BATS_PIN="$_pin_file_ver"
+fi
 
 # Echo the installed bats version string (e.g. "Bats 1.13.0") or empty.
 bats_installed_version() {
@@ -282,7 +292,31 @@ fi
 # --- steps -------------------------------------------------------------------
 
 run_step "validate-skills" bash tools/validate-skills.sh
-run_step "lattice-artifacts" python3 tools/validate-lattice-artifacts.py
+# tkt-463 A15: mirror artifacts.yml — compare feature warnings against the
+# BASE-branch baseline (spc-270 A6.3) so a PR that adds a warning AND adds it
+# to its own baseline file is red here exactly as it is in CI. Falls back to
+# the feature baseline when the base ref cannot supply one.
+step_artifacts() {
+  local base_baseline="" tmp
+  if [ -n "$BASE_REF" ] && [ "$BASE_REF_OK" -eq 1 ]; then
+    tmp="$(mktemp "${TMPDIR:-/tmp}/ci-local-base-baseline.XXXXXX")"
+    if git show "${BASE_REF}:tools/.validator-warning-baseline.txt" > "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      base_baseline="$tmp"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+  if [ -n "$base_baseline" ]; then
+    echo "    baseline: base-ref ${BASE_REF} tools/.validator-warning-baseline.txt (artifacts.yml parity)"
+    python3 tools/validate-lattice-artifacts.py --baseline "$base_baseline"
+    local rc=$?
+    rm -f "$base_baseline"
+    return $rc
+  fi
+  echo "    baseline: feature file (no base-ref baseline available)"
+  python3 tools/validate-lattice-artifacts.py
+}
+run_step "lattice-artifacts" step_artifacts
 
 if [ "$BASE_REF_OK" -eq 0 ]; then
   record "plugin-versions" FAIL "unresolvable --base-ref: $BASE_REF"

@@ -88,11 +88,19 @@ if [[ "$KIND" == "rev" ]]; then
   fi
 
   rand_suffix() {
-    # Always exactly three [a-z0-9] chars. Isolate the
-    # urandom pipeline so pipefail/SIGPIPE cannot yield empty/short suffixes.
+    # Always exactly three [a-z0-9] chars. Isolate the pipeline so
+    # pipefail/SIGPIPE cannot yield empty/short suffixes.
+    #
+    # tkt-463: the input MUST be bounded. The previous form streamed
+    # /dev/urandom into `tr -dc … | head -c 3`; when SIGPIPE is ignored (bats
+    # under GitHub's macOS runner) BSD `tr` never notices the closed pipe and
+    # reads urandom forever — the lattice-scripts macOS job hung at
+    # next-artifact-id.bats "rev claim collision" until the 20-min job timeout.
+    # `od -N6` reads exactly six bytes → twelve hex chars ⊂ [a-z0-9]; no
+    # infinite producer, no reliance on SIGPIPE delivery.
     local out=""
     set +e
-    out=$(set +o pipefail 2>/dev/null; LC_ALL=C tr -dc 'a-z0-9' </dev/urandom 2>/dev/null | head -c 3)
+    out=$(set +o pipefail 2>/dev/null; LC_ALL=C od -An -N6 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n' | head -c 3)
     set -e
     if [[ "${#out}" -ne 3 ]]; then
       out=$(printf '%03d' "$((RANDOM % 1000))")

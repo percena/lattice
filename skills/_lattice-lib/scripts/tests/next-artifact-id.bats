@@ -127,3 +127,18 @@ spc_out() {
   printf '%s\n' "$output" | grep -qE '^[0-9]{8}-[0-9]{6}Z(-[a-z0-9]+)?$'
   [ -d "$TEST_HOME/repo/.lattice/.ids/rev-${output}" ]
 }
+
+@test "tkt-463: rev claim collision terminates even when SIGPIPE is ignored (macOS BSD tr hang regression)" {
+  # GitHub's macOS runner executes bats with SIGPIPE ignored; the old
+  # `tr -dc … </dev/urandom | head -c 3` producer then never exits on BSD tr.
+  # Bounded watchdog (portable bash — no `timeout` on macOS): the two claims
+  # must finish within 20s or the test fails instead of hanging the job.
+  bash -c 'trap "" PIPE; "$0" --kind rev --home "$1" --claim >/dev/null 2>&1; "$0" --kind rev --home "$1" --claim >/dev/null 2>&1' "$NEXT_ID" "$TEST_HOME" &
+  local pid=$! waited=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge 20 ]; then kill "$pid" 2>/dev/null; pkill -P "$pid" 2>/dev/null; false; fi
+    sleep 1; waited=$((waited + 1))
+  done
+  wait "$pid"
+  [ "$(ls -1 "$TEST_HOME/.ids" | grep -c '^rev-')" -ge 2 ]
+}

@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
     *) shift ;;
   esac
 done
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"
@@ -118,14 +118,21 @@ while [[ $# -gt 0 ]]; do
 done
 # Write the exit/result artifact the worker would have written (spc-254 A1).
 if [[ -n "${BATCH_RESULT_FILE:-}" && "${FAKE_EXIT:-0}" != "none" ]]; then
+  # tkt-463: `if`, not `[[ ]] &&` — under bash 3.2 (macOS) a failing && list
+  # as the group's last command trips `set -e` and the helper dies before
+  # spawning its surrogate.
   { printf 'exit=%s\n' "${FAKE_EXIT:-0}"
-    [[ -n "${FAKE_PR:-}" ]] && printf 'pr=%s\n' "${FAKE_PR}"
-    [[ -n "${FAKE_OID:-}" ]] && printf 'oid=%s\n' "${FAKE_OID}"
+    if [[ -n "${FAKE_PR:-}" ]]; then printf 'pr=%s\n' "${FAKE_PR}"; fi
+    if [[ -n "${FAKE_OID:-}" ]]; then printf 'oid=%s\n' "${FAKE_OID}"; fi
   } > "$BATCH_RESULT_FILE"
 fi
 # Surrogate sleeps past the grace probe (alive at grace → `running`) then
 # settles at the barrier so classify_node runs (not spawned-but-dead).
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+# tkt-463: 4s, not 1s — the wave runs several python3 startups (coordinator
+# record-spawn, transition-api) BEFORE its 0.3s grace probe; on GitHub runners
+# that exceeded 1s, the surrogate was already dead and every A1/A2/A6 test
+# collapsed to spawned-but-dead (both ubuntu and macOS, PR #466).
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"
@@ -393,7 +400,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in --cwd) cwd="$2"; shift 2 ;; --brief-file) brief="$2"; shift 2 ;; --state-file) state="$2"; shift 2 ;; *) shift ;; esac
 done
 [[ -n "${BATCH_RESULT_FILE:-}" ]] && printf 'exit=NaN\npr=\noid=\n' > "$BATCH_RESULT_FILE"
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"
@@ -603,4 +610,39 @@ n = next((x for x in nodes if x.get("ticket") == "tkt-FC2"), {})
 assert n.get("status") == "transition_failed", (n, nodes)
 assert "tkt-FC2" not in (d.get("settled_tickets") or []), d.get("settled_tickets")
 PY
+}
+
+@test "tkt-463: run_with_timeout falls back to a bash watchdog when timeout(1) is absent (macOS)" {
+  eval "$(sed -n '/^run_with_timeout()/,/^}$/p' "$WAVE")"
+  export -f run_with_timeout
+  # A PATH with only bash/sleep/kill-capable binaries and NO timeout/gtimeout.
+  local nb="$TEST_DIR/nobin"; mkdir -p "$nb"
+  for t in bash sleep true; do ln -s "$(command -v $t)" "$nb/$t"; done
+  run bash -c "PATH='$nb' run_with_timeout 5 bash -c 'echo alive: 1'"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "alive: 1"
+  # the watchdog really kills an overrunning command (exit non-zero, < 5s)
+  local t0 t1; t0=$(date +%s)
+  run bash -c "PATH='$nb' run_with_timeout 1 sleep 5"
+  t1=$(date +%s)
+  [ "$status" -ne 0 ]
+  [ $((t1 - t0)) -lt 4 ]
+}
+
+@test "tkt-463: grace probe reports a live surrogate as spawned even without timeout(1) on PATH" {
+  fast_helper="$TEST_DIR/fast.sh"
+  build_fast_helper "$fast_helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-M\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  local nb="$TEST_DIR/nobin2"; mkdir -p "$nb"
+  for t in bash sleep true date sed grep mktemp rm mkdir cat awk sort head tail tr wc uname python3 env nohup kill ls cut dirname basename touch; do
+    b="$(command -v $t 2>/dev/null || true)"; [ -n "$b" ] && ln -sf "$b" "$nb/$t"
+  done
+  run env PATH="$nb" bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" --verify-helper "$VERIFY" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "spawned: tkt-M"
+  run bash -c "printf '%s\n' \"\$1\" | grep -c 'spawned-but-dead: tkt-M'" _ "$output"
+  [ "$output" = "0" ]
 }
