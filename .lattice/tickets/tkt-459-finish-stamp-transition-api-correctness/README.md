@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/459 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T17:19:39Z |
+| updated | 2026-09-04T01:50:15Z |
 | adopted | false |
 | summary | Fix pr-N substring discovery, ledger-before-rename ordering, transition-api guards, finish-commit untracked, CI validator step |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -94,4 +94,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-465 merged: 2026-09-04T01:50:00Z — https://github.com/percena/lattice/pull/465 (base merge)
+- issue #459 closed: 2026-09-04T01:50:08Z (reason: completed) — https://github.com/percena/lattice/issues/459
