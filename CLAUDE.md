@@ -51,5 +51,8 @@ deviate, STOP and ask first.
 - **If coupling makes per-ticket worktree impractical** → use `batch-work`
   skill, or ASK the user first. Do not silently open a serial single-branch.
 
-The hooks default to `strict` (block). To temporarily override for one shell:
-`export LATTICE_HOOK_MODE=advisory` (nudge-only, does not block).
+The `gh` intercept hooks (`pr create` / `pr merge` / `issue create`) default to
+`strict` (block). To temporarily downgrade **those three** to nudge-only for one
+shell: `export LATTICE_HOOK_MODE=advisory`. This does not relax the L1
+branch-create or L3 shippable-write hooks above — their escapes are the audited
+`--allow-unbound` / `--allow-base-write` paths.

@@ -75,7 +75,10 @@ def discover_binders(tickets_dir, pr_num, head_ref, closing_issues):
         except OSError:
             continue
         pm = re.search(r'\|\s*prs\s*\|\s*(.*?)\s*\|', text, re.DOTALL)
-        if pm and f"pr-{pr_num}" in pm.group(1):
+        # tkt-459 A1: word-boundary match — a bare substring test made `pr-44`
+        # discover pr-440/pr-441 binders and stamp them closed (same canon as
+        # binder_rows.merge_row).
+        if pm and re.search(rf"\bpr-{int(pr_num)}\b", pm.group(1)):
             binders.add(str(b))
 
     return sorted(binders)
@@ -128,8 +131,11 @@ def staged_lattice_files():
     return [f for f in r.stdout.strip().splitlines() if f.startswith(".lattice/")]
 
 
-def commit_and_push(base_ref, pr_num, dry_run):
-    """Commit staged .lattice/ changes and push to base_ref. Returns rc."""
+def commit_and_push(base_ref, pr_num, dry_run, validator=None):
+    """Commit staged .lattice/ changes and push to base_ref. Returns rc
+    (0 pushed/nothing, 1 failed, 2 race — caller re-stamps + retries).
+    `validator` (optional argv list) runs after the commit and before the
+    push; a non-zero validator aborts the push (tkt-459 A4)."""
     staged = staged_lattice_files()
     if not staged:
         print("finish-stamp-ci: no staged changes — local stamp already landed or nothing to repair")
@@ -146,10 +152,21 @@ def commit_and_push(base_ref, pr_num, dry_run):
                     "41898282+github-actions[bot]@users.noreply.github.com"], check=True)
 
     msg = f"chore(ci): GHA safety-net ledger stamp — pr-{pr_num} merged"
-    cr = run(["git", "commit", "-m", msg, "--", ".lattice/"])
+    # tkt-459 A1: commit the STAGED set only. `git commit -- .lattice/` commits
+    # the working-tree content of every tracked file under .lattice/, sweeping
+    # in unrelated unstaged edits the stamp never staged.
+    cr = run(["git", "commit", "-m", msg])
     if cr.returncode != 0:
         print(f"finish-stamp-ci: git commit failed: {cr.stderr}", file=sys.stderr)
         return 1
+
+    if validator is not None:
+        vrc = run_validator(validator)
+        if vrc != 0:
+            print("finish-stamp-ci: artifact validator FAILED on the stamped tree — "
+                  "NOT pushing (the safety-net commit stays local to the runner)",
+                  file=sys.stderr)
+            return 1
 
     push = run(["git", "push", "origin", f"HEAD:{base_ref}"])
     if push.returncode == 0:
@@ -161,11 +178,29 @@ def commit_and_push(base_ref, pr_num, dry_run):
     print(f"finish-stamp-ci: push failed (race?) — fetching {base_ref} and re-verifying")
     fetch = run(["git", "fetch", "origin", f"{base_ref}:refs/remotes/origin/{base_ref}"])
     if fetch.returncode != 0:
-        print(f"finish-stamp-ci: fetch failed: {fetch.stderr}", file=sys.stderr)
-        return 0  # non-fatal — local stamp or next run will handle
+        # tkt-459 A1: was `return 0` ("non-fatal") — a green workflow with an
+        # unstamped merge is exactly the silent-failure class the safety net
+        # exists to catch. Fail loud; the operator re-dispatches the workflow.
+        print(f"finish-stamp-ci: fetch failed: {fetch.stderr} — safety-net stamp NOT landed",
+              file=sys.stderr)
+        return 1
 
     run(["git", "reset", "--hard", f"origin/{base_ref}"])
     return 2  # signal: re-stamp + retry push (handled by caller)
+
+
+def run_validator(validator):
+    """Run the artifact validator command (list argv) from the repo root before
+    pushing a safety-net commit (tkt-459 A4). GITHUB_TOKEN pushes trigger no
+    workflows, so `artifacts.yml` never sees a bot stamp — this is the only
+    gate a safety-net commit passes through. Returns the validator's rc."""
+    print(f"finish-stamp-ci: validating stamped tree: {' '.join(validator)}")
+    r = run(validator)
+    if r.stdout:
+        sys.stdout.write(r.stdout)
+    if r.stderr:
+        sys.stderr.write(r.stderr)
+    return r.returncode
 
 
 def main():
@@ -174,7 +209,16 @@ def main():
     p.add_argument("--repo", required=True, help="owner/name")
     p.add_argument("--lattice-home", default=".lattice")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--validator-script", default="",
+                   help="artifact validator to run before pushing (e.g. tools/validate-lattice-artifacts.py); a non-zero exit aborts the push")
+    p.add_argument("--validator-baseline", default="",
+                   help="optional --baseline file passed to --validator-script")
     args = p.parse_args()
+    validator = None
+    if args.validator_script:
+        validator = [sys.executable, args.validator_script]
+        if args.validator_baseline:
+            validator += ["--baseline", args.validator_baseline]
 
     pr = gh_json(["pr", "view", str(args.pr), "--repo", args.repo,
                   "--json", "state,mergedAt,url,baseRefName,headRefName,body,closingIssuesReferences"])
@@ -216,7 +260,9 @@ def main():
             print(f"  finish-ledger FAILED (rc={rc}) for {binder} — continuing to other binders",
                   file=sys.stderr)
 
-    rc = commit_and_push(base_ref, args.pr, args.dry_run)
+    rc = commit_and_push(base_ref, args.pr, args.dry_run, validator)
+    if rc == 1:
+        return 1
     if rc == 2:
         # Race retry: re-run stamps on fresh remote, commit + push again
         print("finish-stamp-ci: re-stamping on fresh remote (idempotent)")
@@ -233,12 +279,21 @@ def main():
         subprocess.run(["git", "config", "user.email",
                         "41898282+github-actions[bot]@users.noreply.github.com"], check=True)
         msg = f"chore(ci): GHA safety-net ledger stamp — pr-{args.pr} merged"
-        run(["git", "commit", "-m", msg, "--", ".lattice/"])
+        cr = run(["git", "commit", "-m", msg])
+        if cr.returncode != 0:
+            print(f"finish-stamp-ci: retry commit failed: {cr.stderr}", file=sys.stderr)
+            return 1
+        if validator is not None and run_validator(validator) != 0:
+            print("finish-stamp-ci: artifact validator FAILED on the re-stamped tree — NOT pushing",
+                  file=sys.stderr)
+            return 1
         push = run(["git", "push", "origin", f"HEAD:{base_ref}"])
         if push.returncode != 0:
+            # tkt-459 A1: a lost retry is a real failure — surface it instead of
+            # a green run (operator re-dispatches finish-stamp.yml).
             print(f"finish-stamp-ci: retry push also failed: {push.stderr} — "
-                  "local stamp or next run will handle", file=sys.stderr)
-            return 0
+                  "safety-net stamp NOT landed", file=sys.stderr)
+            return 1
         print(f"finish-stamp-ci: pushed safety-net stamp to {base_ref} (retry)")
     return 0
 

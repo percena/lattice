@@ -18,7 +18,7 @@
 Working: `queued | in-progress | parked | stuck | pr-open | rework | deferred`
 Terminal: `closed` — merged vs closed-without-merge is read from the `## Finish` ledger's `mergedAt`.
 
-The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6). `stamp-pr-open.sh` refuses to overwrite a side state (`parked`/`stuck`/`rework`) with `pr-open` without an explicit `--force-side-state --reason` override. A direct `queued → pr-open` jump is allowed but WARN-journaled. Terminal edges are explicit per source (no `any → closed` wildcard — spc-337 A2): `pr-open → closed` (merge), `queued|in-progress → closed` (cancel, or a merged PR that skipped the stamps = **direct jump**, `anomaly:` line + metric `direct-jump`), side state `→ closed` (cancel, or merge anomaly). Every scripted flip appends to `.lattice/.transition-ledger/<tkt>.jsonl` resolved from the binder's own home; a terminal binder without a ledger is `closed_without_ledger` (ADR-012 §4).
+The binder field-table **`status`** is the single source of truth for M2 state (ADR-004 §6). `stamp-pr-open.sh` refuses to overwrite a side state (`parked`/`stuck`/`rework`/`deferred`) with `pr-open` without an explicit `--force-side-state --reason` override. A direct `queued → pr-open` jump is allowed but WARN-journaled. Terminal edges are explicit per source (no `any → closed` wildcard — spc-337 A2): `pr-open → closed` (merge), `queued|in-progress → closed` (cancel, or a merged PR that skipped the stamps = **direct jump**, `anomaly:` line + metric `direct-jump`), side state `→ closed` (cancel, or merge anomaly). Every scripted flip appends to `.lattice/.transition-ledger/<tkt>.jsonl` resolved from the binder's own home; a terminal binder without a ledger is `closed_without_ledger` (ADR-012 §4).
 
 ## Entry edges
 
@@ -48,8 +48,9 @@ The binder field-table **`status`** is the single source of truth for M2 state (
 
 ## Trip-time stamping
 
-Fuse-halt and blocked-by-failure stamp `deferred`+reason at trip time.
-Watchdog-timeout/abandonment stamps `stuck`+`wait_reason: unblock`.
+Fuse-halt, blocked-by-failure and budget-exhausted (batch-work per-batch `--budget`, spc-433) stamp `deferred`+reason at trip time.
+Watchdog-timeout/abandonment and a start-work per-ticket `--budget` trip stamp `stuck`+`wait_reason: unblock`.
+Deferred reasons: `fuse-halt | blocked-by-failure | budget-exhausted | spec-superseded` (`status_vocab.DEFERRED_REASONS`); a `deferred → deferred` reason-supersede self-loop and the `pr-open → pr-open` rebase-void self-loop are legal (`transition_table.py`).
 `parked → queued` ratification via `ratify.sh` (single-commit).
 
 ---

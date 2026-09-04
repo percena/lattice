@@ -792,3 +792,36 @@ STUB
   run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"sudo echo gh pr create\"}}"
   [ "$status" -eq 0 ]
 }
+
+# ============================================================
+# tkt-460 A7 — strict-mode decoded pre-filter
+# ============================================================
+
+@test "tkt-460 A7: strict mode still blocks a JSON-escaped gh (\\u0067h pr create) — pre-filter runs on the decoded command" {
+  # Raw payload contains no literal "gh" bytes; jq decodes g → g.
+  run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"\\u0067h pr create\"}}"
+  [ "$status" -eq 2 ]
+  printf '%s\n' "$output" | grep -qF "create-pr"
+}
+
+@test "tkt-460 A7: strict mode allows a non-gh command WITHOUT spawning python3 (pre-filter short-circuit)" {
+  FAKE_BIN="${BATS_TEST_TMPDIR:-$(mktemp -d)}/fakebin-$$"
+  mkdir -p "$FAKE_BIN"
+  MARK="$FAKE_BIN/python3-was-called"
+  REAL_PY="$(command -v python3)"   # resolve BEFORE the PATH override (no shim recursion)
+  printf '#!/usr/bin/env bash\ntouch "%s"\nexec "%s" "$@"\n' "$MARK" "$REAL_PY" >"$FAKE_BIN/python3"
+  chmod +x "$FAKE_BIN/python3"
+  run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"ls -la /tmp\"}}' | PATH='$FAKE_BIN:$PATH' LATTICE_HOOK_MODE=strict '$HOOK_SCRIPT' 2>&1"
+  [ "$status" -eq 0 ]
+  [ ! -e "$MARK" ]
+  # …and the same shim IS consulted for a real gh command (guard unchanged)
+  run bash -c "echo '{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"gh pr create\"}}' | PATH='$FAKE_BIN:$PATH' LATTICE_HOOK_MODE=strict '$HOOK_SCRIPT' 2>&1"
+  [ "$status" -eq 2 ]
+  [ -e "$MARK" ]
+  rm -rf "$FAKE_BIN"
+}
+
+@test "tkt-460 A7: a payload with \\u escapes but no gh after decoding is allowed (tier-2 reached, classifier not tripped)" {
+  run run_hook "{\"tool_name\":\"Bash\",\"session_id\":\"${TEST_SESSION}\",\"tool_input\":{\"command\":\"echo caf\\u00e9\"}}"
+  [ "$status" -eq 0 ]
+}

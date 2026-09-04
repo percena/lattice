@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/461 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:51:19Z |
+| updated | 2026-09-04T02:24:37Z |
 | adopted | false |
 | summary | Give spc-433 the validator check, gitignore generator, autonomy filter script and one consistent budget semantics it promised |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,14 +29,14 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-461-spc433-closure-mechanisms` |
 | worktree | sibling `…/lattice.worktrees/tkt-461-spc433-closure-mechanisms/` |
-| prs | (none) |
+| prs | pr-468 — https://github.com/percena/lattice/pull/468 |
 
 ## Acceptance (this slice)
 
-- [ ] **A8** validator: `autonomy` present and not an integer 0–4 → error `autonomy_out_of_range`; absent on a `mode: C` Spec-bound ticket → warning `autonomy_missing` (baselined for existing binders); pass/fail fixtures; ticket-binder template claim now true.
-- [ ] **A9** `lattice_dotlattice_gitignore()` emits `snapshots/`; `lattice-init.bats` asserts a fresh init ignores `.lattice/snapshots/x.md`.
-- [ ] **A10** `skills/batch-work/scripts/autonomy-filter.py --min-autonomy N --home <lattice-home> <tkt-ids…>` prints JSON `{selected:[], skipped:[{id, autonomy, reason:"autonomy-below-threshold"}]}`; missing row → 2; `--min-autonomy 0` selects all; bats coverage; `flow.md` RESOLVE TICKETS step 4 names it as the scripted step.
-- [ ] **A11** start-work `--budget` (per-ticket → `stuck`/`unblock`) and batch-work `--budget` (per-batch → `deferred`/`budget-exhausted`) are each stated once, cross-referenced, without contradiction; `budget-exhausted` added to `docs/workflow-fsm.md` (M2 rows + Trip-time stamping) and `workflow-fsm-reference.md` (+ `deferred` in the side-state guard list); the Chinese prompt block in `start-work/SKILL.md` is English; `full-flow.md` §7 carries the three spc-433 bullets; spc-433 Risks section gets a dated resolution note.
+- [x] **A8** validator: `autonomy` present and not an integer 0–4 → error `autonomy_out_of_range`; absent on a `mode: C` Spec-bound ticket → warning `autonomy_missing` (baselined for existing binders); pass/fail fixtures; ticket-binder template claim now true.
+- [x] **A9** `lattice_dotlattice_gitignore()` emits `snapshots/`; `lattice-init.bats` asserts a fresh init ignores `.lattice/snapshots/x.md`.
+- [x] **A10** `skills/batch-work/scripts/autonomy-filter.py --min-autonomy N --home <lattice-home> <tkt-ids…>` prints JSON `{selected:[], skipped:[{id, autonomy, reason:"autonomy-below-threshold"}]}`; missing row → 2; `--min-autonomy 0` selects all; bats coverage; `flow.md` RESOLVE TICKETS step 4 names it as the scripted step.
+- [x] **A11** start-work `--budget` (per-ticket → `stuck`/`unblock`) and batch-work `--budget` (per-batch → `deferred`/`budget-exhausted`) are each stated once, cross-referenced, without contradiction; `budget-exhausted` added to `docs/workflow-fsm.md` (M2 rows + Trip-time stamping) and `workflow-fsm-reference.md` (+ `deferred` in the side-state guard list); the Chinese prompt block in `start-work/SKILL.md` is English; `full-flow.md` §7 carries the three spc-433 bullets; spc-433 Risks section gets a dated resolution note.
 
 ## Approach
 
@@ -55,6 +55,11 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-03 `autonomy_missing` severity → warning, scoped to C-mode Spec-bound tickets with `created` ≥ 2026-09-03T12:00:00Z (source: pre-resolved spc-458 Agent-assumed + agent-judgment on the boundary: the baseline file forbids adding new warnings, and tkt-428 — created 10:30Z by an in-flight create-tickets run — was the last pre-template binder; the noon cutoff exempts it without baselining).
+- 2026-09-03 C-mode detection → Spec front matter `mode:` reached through the binder `| spec | spc-N … |` row; no spec row or unresolvable spec → no warning (source: agent-judgment, reversible).
+- 2026-09-03 `budget-exhausted` on `in-progress → deferred` in prose → mirrored from `transition_table.py:70` (source: pre-resolved).
+- 2026-09-03 `autonomy-filter.py` placement → `skills/batch-work/scripts/` (self-contained stdlib regex, same first-table rule as the validator) rather than `_lattice-lib/lib` (source: agent-judgment; batch-work already co-installs the lib but the filter has no other consumer).
+- 2026-09-03 `--budget` semantics → start-work per-ticket (`stuck`/`unblock`), batch-work per-batch (`deferred`/`budget-exhausted`), stated in both skills + fallback-policy + FSM docs; spc-433 Risks gets a dated Resolution note instead of an acceptance rewrite (source: pre-resolved spc-458 D2 + create-spec supersede law).
 
 ## Pending decisions
 
@@ -62,7 +67,7 @@
 
 ## Attempts
 
-- (none)
+- attempt 1 · 2026-09-03 · direct fix per Approach · suites: lattice-artifacts 71/71 (+2), lattice-init 18/18 (+1), autonomy-filter 5/5 (new), transition-parity 8/8, batch-work docs-truth 4/4, finish-work docs-truth 8/8, validate-skills OK, routing evals OK; repo validator OK (217 baselined, 0 new)
 
 ## Notes
 
@@ -82,4 +87,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-468 merged: 2026-09-04T02:24:22Z — https://github.com/percena/lattice/pull/468 (base merge)
+- issue #461 closed: 2026-09-04T02:24:30Z (reason: completed) — https://github.com/percena/lattice/issues/461

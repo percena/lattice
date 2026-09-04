@@ -4,8 +4,17 @@
 Receives the tool input as JSON on stdin. For Write tool calls targeting
 a .bats file, writes the content to a temp file and runs
 check-bats-assertions.py on it. If the checker finds banned forms
-(bare [[ ]], bare ! cmd, grep -q inside [ -z "$(...)" ]), exits 1 to
-block the write and prints the findings.
+(bare [[ ]], bare ! cmd, grep -q inside [ -z "$(...)" ]), exits 2 to
+block the write and prints the findings to stderr.
+
+Exit contract (Claude Code PreToolUse): exit 2 = block (stderr is fed back to
+the model); exit 0 = allow; any other non-zero is a NON-blocking error. The
+first version exited 1 while printing "BLOCKED" — the write went through
+(tkt-460 A5).
+
+Registration: this is a maintainer tool, not a plugin hook, so it is NOT in
+plugins/lattice/hooks/hooks.json. Wire it into your own settings, e.g.
+`.claude/settings.json` (gitignored in this repo) — see tools/README.md.
 
 For Edit tool calls, the hook reads the existing file + applies the edit
 in-memory, then checks the result. This catches banned forms introduced
@@ -15,6 +24,7 @@ tkt-400 / spc-398 A2.
 """
 import json
 import os
+import subprocess
 import sys
 import tempfile
 
@@ -61,14 +71,16 @@ def main():
     try:
         os.write(fd, content.encode("utf-8"))
         os.close(fd)
-        rc = os.system(f"python3 {checker} {tmp} > /dev/null 2>&1")
-        if rc != 0:
+        res = subprocess.run([sys.executable, checker, tmp],
+                             capture_output=True, text=True)
+        if res.returncode != 0:
             # Show findings (suppress "OK" output)
-            os.system(f"python3 {checker} {tmp} >&2")
+            sys.stderr.write(res.stdout)
+            sys.stderr.write(res.stderr)
             print(f"\nPreToolUse: BLOCKED — banned assertion form(s) in {file_path}", file=sys.stderr)
             print("Fix: replace bare [[ ]] with grep -qE, bare ! cmd with [ ... ],", file=sys.stderr)
             print("and grep -q inside [ -z \"$(...)\" ] with grep -qE at terminal position.", file=sys.stderr)
-            sys.exit(1)  # block the write
+            sys.exit(2)  # block the write (PreToolUse: only exit 2 blocks)
     finally:
         os.unlink(tmp)
 

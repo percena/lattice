@@ -46,7 +46,7 @@ stateDiagram-v2
     state "pr-open" as pr
     [*] --> queued
     queued --> ip: spawn / bind
-    queued --> deferred: fuse-halt stamps at trip time (ADR-004 amd tkt-136)
+    queued --> deferred: fuse-halt / budget-exhausted stamp at trip time (ADR-004 amd tkt-136; spc-433)
     queued --> deferred: spec-superseded stamps at supersede time (spc-186 A3)
     ip --> deferred: spec-superseded stamps at supersede time (spc-186 A3)
     deferred --> queued: re-schedule
@@ -123,8 +123,8 @@ Owner legend: **human** (attention-contract white-list, §3) · **agent** (deleg
 | State → State | Trigger | Owner |
 | --- | --- | --- |
 | queued → in-progress | batch-work spawn / start-work bind | system |
-| queued → deferred | fuse-halt / blocked-by-failure stamps `deferred`+reason at trip time (ADR-004 amd tkt-136 Option B); or deliberate human deschedule | system / human |
-| in-progress → deferred | spec-supersede trip-time sweep stamps a superseded Spec's in-flight child `deferred`+`spec-superseded` (tkt-190); or fuse-halt / deliberate deschedule of in-flight work | system / human |
+| queued → deferred | fuse-halt / blocked-by-failure / budget-exhausted (batch budget ceiling, spc-433) stamps `deferred`+reason at trip time (ADR-004 amd tkt-136 Option B); or deliberate human deschedule | system / human |
+| in-progress → deferred | spec-supersede trip-time sweep stamps a superseded Spec's in-flight child `deferred`+`spec-superseded` (tkt-190); or fuse-halt / budget-exhausted / deliberate deschedule of in-flight work | system / human |
 | deferred → deferred (reason-supersede) | a spec-supersede sweep re-stamps an already-`deferred` binder, superseding its prior `wait_reason` with `spec-superseded` (status self-loop, wait_reason change — analogous to the `pr-open → pr-open` rebase-void self-loop) | system |
 | deferred → queued | re-scheduled into a later batch | human |
 | in-progress → pr-open | `create-pr` opens the PR | agent |
@@ -204,4 +204,4 @@ The binder field-table **`status`** is the single source of truth for M2 state (
 
 **Ledger coverage (spc-337 A1 / ADR-012 §4):** every scripted status flip appends to `.lattice/.transition-ledger/<tkt>.jsonl`, resolved from the binder's own Lattice home (never cwd). A terminal binder without a ledger is `closed_without_ledger` — a validator error for binders created on/after `2026-09-02T00:00:00Z`, a baselined warning before. `queue-health.sh --section` reports coverage and the direct-jump count next to the ADR-007 §8 escape counts; the L3 Write/Edit hook refuses direct edits to the `status` row (ADR-012 §2).
 
-**Trip-time stamping:** fuse-halt and blocked-by-failure stamp `deferred`+reason at trip time; watchdog-timeout/abandonment stamps `stuck`+`wait_reason: unblock` (FSM-2b). The binder SoT is honest about schedulability across runs. `parked → queued` ratification is performed by `ratify.sh` (`_lattice-lib/scripts/`) — single git commit for journal entry + status flip (crash window narrowed, not eliminated). Amendment history in ADR-004.
+**Trip-time stamping:** fuse-halt, blocked-by-failure and budget-exhausted (batch-work per-batch budget, spc-433) stamp `deferred`+reason at trip time; watchdog-timeout/abandonment — and a start-work per-ticket `--budget` trip (spc-433, spc-458 D2) — stamp `stuck`+`wait_reason: unblock` (FSM-2b). The binder SoT is honest about schedulability across runs. `parked → queued` ratification is performed by `ratify.sh` (`_lattice-lib/scripts/`) — single git commit for journal entry + status flip (crash window narrowed, not eliminated). Amendment history in ADR-004.
