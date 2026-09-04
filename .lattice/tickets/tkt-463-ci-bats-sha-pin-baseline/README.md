@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/463 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-04T00:06:18Z |
+| updated | 2026-09-04T01:30:31Z |
 | adopted | false |
 | summary | Pin bats-core by commit SHA in both workflows; ci-local mirrors the artifacts base-baseline comparison |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -83,4 +83,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-466 merged: 2026-09-04T01:30:15Z — https://github.com/percena/lattice/pull/466 (base merge)
+- issue #463 closed: 2026-09-04T01:30:23Z (reason: completed) — https://github.com/percena/lattice/issues/463
