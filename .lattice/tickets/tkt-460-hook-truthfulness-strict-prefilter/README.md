@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/460 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-04T01:31:22Z |
+| updated | 2026-09-04T02:07:24Z |
 | adopted | false |
 | summary | Hook docs/description match code; pretooluse hook exits 2; strict-mode jq pre-filter removes ~1s/Bash-call tax |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -83,4 +83,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-467 merged: 2026-09-04T02:07:09Z — https://github.com/percena/lattice/pull/467 (base merge)
+- issue #460 closed: 2026-09-04T02:07:17Z (reason: completed) — https://github.com/percena/lattice/issues/460
