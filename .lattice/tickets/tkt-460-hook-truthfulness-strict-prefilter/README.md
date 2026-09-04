@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/460 |
-| status | queued |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:51:19Z |
+| updated | 2026-09-04T01:31:22Z |
 | adopted | false |
 | summary | Hook docs/description match code; pretooluse hook exits 2; strict-mode jq pre-filter removes ~1s/Bash-call tax |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,13 +29,13 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-460-hook-truthfulness-strict-prefilter` |
 | worktree | sibling `…/lattice.worktrees/tkt-460-hook-truthfulness-strict-prefilter/` |
-| prs | (none) |
+| prs | pr-467 — https://github.com/percena/lattice/pull/467 |
 
 ## Acceptance (this slice)
 
-- [ ] **A5** `tools/hooks/pretooluse-bats-check.py` exits 2 on a banned form; docstring and `tools/README.md` state the exit contract and how to register it (settings.json snippet).
-- [ ] **A6** `plugins/lattice/hooks/README.md`, `plugins/lattice/README.md`, `CLAUDE.md`, `skills/finish-work/SKILL.md` (rationalization row), `plugin.json`, `marketplace.json` state: default is strict (block); `LATTICE_HOOK_MODE=advisory` downgrades only the three `gh` intercepts; L1/L3 always block.
-- [ ] **A7** `intercept-gh-pr-common.sh` strict mode skips the python passes when the jq-decoded `tool_input.command` has no `gh` token; bats proves a `gh pr create` payload is still classified; existing `intercept-gh-pr-*.bats` green; measured cost on `ls -la` < 50 ms per hook.
+- [x] **A5** `tools/hooks/pretooluse-bats-check.py` exits 2 on a banned form; docstring and `tools/README.md` state the exit contract and how to register it (settings.json snippet).
+- [x] **A6** `plugins/lattice/hooks/README.md`, `plugins/lattice/README.md`, `CLAUDE.md`, `skills/finish-work/SKILL.md` (rationalization row), `plugin.json`, `marketplace.json` state: default is strict (block); `LATTICE_HOOK_MODE=advisory` downgrades only the three `gh` intercepts; L1/L3 always block.
+- [x] **A7** `intercept-gh-pr-common.sh` strict mode skips the python passes when the jq-decoded `tool_input.command` has no `gh` token; bats proves a `gh pr create` payload is still classified; existing `intercept-gh-pr-*.bats` green; measured cost on `ls -la` < 50 ms per hook.
 
 ## Approach
 
@@ -53,6 +53,9 @@ Touch-set: see `paths` row.
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-03 registration of `pretooluse-bats-check.py` → document-only in `tools/README.md` (settings.json snippet); not added to plugin hooks.json (source: pre-resolved spc-458 Out of scope — maintainer tool, not a plugin hook).
+- 2026-09-03 strict pre-filter design → two tiers: tier-1 raw-payload check `no "gh" bytes AND no "\u" escape` (sound because `\uXXXX` is JSON's only letter-producing escape) exits in ~14 ms without jq; tier-2 jq-decoded `tool_input.command` check before the metadata pass. Measured strict non-gh cost 150 ms → 22–28 ms per hook; the ticket's < 50 ms bar needed tier-1 because jq alone costs ~53 ms on this host (source: agent-judgment, reversible; chain source `intercept-gh-pr-common.sh` comment block lines 44-51).
+- 2026-09-03 `pretooluse-bats-check.py` `os.system(f"python3 {checker} {tmp}")` → `subprocess.run([...])` while touching the exit code (source: agent-judgment; removes a shell round-trip on an agent-derived path, same class the repo fixed in #453).
 
 ## Pending decisions
 
@@ -60,7 +63,7 @@ Touch-set: see `paths` row.
 
 ## Attempts
 
-- (none)
+- attempt 1 · 2026-09-03 · direct fix per Approach · suites: intercept-gh-pr-create 83/83, intercept-gh-pr-merge 39/39, intercept-gh-issue-create 15/15, intercept-git-branch-create 21/21, intercept-shippable-write 14/14, pretooluse-bats-check 4/4, validate-skills OK, validate-plugin-versions OK · timing strict non-gh: 154 → 22–28 ms/hook
 
 ## Notes
 

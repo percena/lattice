@@ -112,7 +112,15 @@ or in `~/.claude/settings.json` env (applies to every session):
 ```
 
 Any value other than `advisory`/`strict` falls back to strict. Advisory mode is
-available for sessions that want nudge-only enforcement. The hooks recognize
+available for sessions that want nudge-only enforcement.
+
+**Scope (tkt-460):** `LATTICE_HOOK_MODE` governs only the three `gh` intercepts
+(`intercept-gh-pr-create`, `intercept-gh-pr-merge`, `intercept-gh-issue-create`).
+The L1 branch-create and L3 shippable-write hooks never read it — they block
+whenever `profile: strict` applies, and their escapes are the audited
+`ensure-workspace.sh --allow-unbound --reason …` /
+`assert-shippable-cwd.sh --allow-base-write --reason …` paths (or
+`profile: light` in `.lattice/config.yaml`). The hooks recognize
 documented `gh`/`pr`/`issue` repository-flag placements, but are not a shell
 security sandbox and remain fail-open when parsing itself is unavailable or
 indeterminate (including `python3` missing — see spc-212). In strict mode,

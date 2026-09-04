@@ -1,7 +1,7 @@
 {
   "name": "lattice",
   "version": "0.5.1",
-  "description": "Lattice workflow for Claude Code: six lifecycle skills (start-work, create-spec, create-review, create-tickets, create-pr, finish-work) plus batch-work (parallel fan-out), _lattice-lib, create-adr, run-e2e, verify-features, generate-wiki, review-delivery (chain review + morning digest), review-lineage (periodic lineage mining \u2192 insights + ticket drafts), and review-code/review-production side-paths. Optional hooks advise on bare gh pr create/merge; LATTICE_HOOK_MODE=strict opts into marker gates.",
+  "description": "Lattice workflow for Claude Code: six lifecycle skills (start-work, create-spec, create-review, create-tickets, create-pr, finish-work) plus batch-work (parallel fan-out), _lattice-lib, create-adr, run-e2e, verify-features, generate-wiki, review-delivery (chain review + morning digest), review-lineage (periodic lineage mining \u2192 insights + ticket drafts), and review-code/review-production side-paths. Optional hooks block bare gh pr create/merge and gh issue create by default (strict) unless the owning skill is active; LATTICE_HOOK_MODE=advisory downgrades them to nudges.",
   "author": {
     "name": "Percena"
   },
