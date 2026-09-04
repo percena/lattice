@@ -209,3 +209,14 @@ PY
   run docs_m2_owner_pairs
   [ "$status" -eq 0 ]
 }
+
+# ---------------------------------------------------------------------------
+# tkt-474 A5: static regression test — the FSM doc path must appear in the
+# lattice-scripts.yml workflow filters so docs-only FSM changes trigger CI.
+# ---------------------------------------------------------------------------
+
+@test "tkt-474 A5: docs/workflow-fsm.md is in lattice-scripts.yml workflow path filters" {
+  WORKFLOW="$REPO_ROOT/.github/workflows/lattice-scripts.yml"
+  [ -f "$WORKFLOW" ]
+  grep -qF 'docs/workflow-fsm.md' "$WORKFLOW"
+}

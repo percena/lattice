@@ -49,6 +49,7 @@ import time
 import fcntl
 import subprocess
 import tempfile
+import uuid
 from pathlib import Path
 
 # Resolve the lib sibling so this works whether invoked from a skill cwd or a
@@ -298,6 +299,94 @@ def _validate_coupled_wait_reason(to: str, wait_reason: str | None) -> tuple[boo
     return True, ""
 
 
+def _ledger_rev(ticket: str, home: "Path | str | None" = None) -> int:
+    """Current revision = line count of the per-ticket ledger (0 if absent)."""
+    lp = ledger_path(ticket, home)
+    if not lp.is_file():
+        return 0
+    return sum(1 for line in lp.read_text(encoding="utf-8").splitlines() if line.strip())
+
+
+def _find_entry_by_opid(ticket: str, opid: str,
+                        home: "Path | str | None" = None) -> "dict | None":
+    """Return the ledger entry with the given operation_id, or None."""
+    lp = ledger_path(ticket, home)
+    if not lp.is_file():
+        return None
+    for line in lp.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("operation_id") == opid:
+            return entry
+    return None
+
+
+def recover_crash(binder: Path, ticket: str) -> "str | None":
+    """Scan for crash residue and recover if possible (tkt-472 A3).
+
+    Crash windows:
+      W1: SIGKILL after temp write, before ledger append → temp exists, no
+          matching ledger entry → delete temp.
+      W2: SIGKILL after ledger append, before rename → temp exists, ledger has
+          entry with matching operation_id, binder not updated → complete rename.
+      W3: SIGKILL after rename → binder + ledger consistent → clean leftover temps.
+
+    The operation_id is embedded in the temp filename:
+      `.transition-api.<operation_id>.tmp`
+
+    Returns the recovered operation_id if a W2 recovery completed the rename,
+    None otherwise."""
+    binder_dir = binder.parent
+    tmps = list(binder_dir.glob(".transition-api.*.tmp"))
+    if not tmps:
+        return None
+    home = home_for_binder(binder)
+    recovered_opid = None
+    for tmp in tmps:
+        stem = tmp.stem  # .transition-api.<opid>
+        parts = stem.split(".", 3)  # ['', 'transition-api', '<opid>']
+        if len(parts) < 3:
+            tmp.unlink(missing_ok=True)
+            continue
+        opid = parts[2]
+        existing = _find_entry_by_opid(ticket, opid, home)
+        if existing is None:
+            # W1: crash before ledger append. Safe to discard.
+            tmp.unlink(missing_ok=True)
+            print(f"recovery: discarded orphaned temp for {ticket} "
+                  f"(op {opid[:8]}… — pre-ledger crash)")
+            continue
+        binder_status = _read_field(binder.read_text(encoding="utf-8"), "status")
+        if binder_status == existing.get("to"):
+            # W3: rename already completed. Clean temp.
+            tmp.unlink(missing_ok=True)
+            continue
+        # W2: ledger appended but rename didn't complete. Verify temp matches.
+        tmp_status = _read_field(tmp.read_text(encoding="utf-8"), "status")
+        if tmp_status == existing.get("to"):
+            try:
+                os.replace(tmp, binder)
+                recovered_opid = opid
+                print(f"recovery: completed interrupted rename for {ticket} "
+                      f"({binder_status} → {tmp_status}, op {opid[:8]}…)")
+            except OSError as exc:
+                print(f"recovery: WARNING — could not complete rename for "
+                      f"{ticket}: {exc}", file=sys.stderr)
+        else:
+            # Temp doesn't match ledger → ambiguous. Roll back ledger entry.
+            lp = ledger_path(ticket, home)
+            _rollback_ledger(lp, existing)
+            tmp.unlink(missing_ok=True)
+            print(f"recovery: rolled back ambiguous crash for {ticket} "
+                  f"(op {opid[:8]}…)")
+    return recovered_opid
+
+
 def cmd_commit(args: list) -> int:
     """Atomic binder-bound transition (spc-270 A1.1–A1.2).
 
@@ -309,20 +398,16 @@ def cmd_commit(args: list) -> int:
     record (fail-close). `record` remains as the ledger-only primitive for
     non-mutating callers; canonical writers route here.
     """
+    USAGE = ("usage: transition-api.py commit <ticket-id> <to> <owner> "
+             "<reason> [--from <expected>] [--wait-reason <r>] "
+             "[--force-side-state-reason <text>] [--trace <text>] "
+             "[--append-journal <text>] [--binder <path>] "
+             "[--operation-id <uuid>] [--expected-rev <n>] [--dry-run]")
     if not args or args[0] in ("--help", "-h"):
-        print("usage: transition-api.py commit <ticket-id> <to> <owner> "
-              "<reason> [--from <expected>] [--wait-reason <r>] "
-              "[--force-side-state-reason <text>] [--trace <text>] "
-              "[--append-journal <text>] [--binder <path>] [--dry-run]")
+        print(USAGE)
         return 0 if (args and args[0] in ("--help", "-h")) else 3
     if len(args) < 4:
-        # tkt-459 A3: a usage error used to raise ValueError (traceback, exit
-        # 1) and collide with the documented "ILLEGAL edge" code.
-        print("usage: transition-api.py commit <ticket-id> <to> <owner> "
-              "<reason> [--from <expected>] [--wait-reason <r>] "
-              "[--force-side-state-reason <text>] [--trace <text>] "
-              "[--append-journal <text>] [--binder <path>] [--dry-run]",
-              file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 3
     ticket, to, owner, reason = args[:4]
     rest = args[4:]
@@ -332,6 +417,8 @@ def cmd_commit(args: list) -> int:
     trace_override = None
     journal_entry = None
     binder_override = None
+    operation_id = None
+    expected_rev = None
     dry = False
     i = 0
     while i < len(rest):
@@ -348,6 +435,10 @@ def cmd_commit(args: list) -> int:
             journal_entry = rest[i + 1]; i += 2
         elif a == "--binder" and i + 1 < len(rest):
             binder_override = rest[i + 1]; i += 2
+        elif a == "--operation-id" and i + 1 < len(rest):
+            operation_id = rest[i + 1]; i += 2
+        elif a == "--expected-rev" and i + 1 < len(rest):
+            expected_rev = int(rest[i + 1]); i += 2
         elif a == "--dry-run":
             dry = True; i += 1
         else:
@@ -367,9 +458,11 @@ def cmd_commit(args: list) -> int:
     lock_fd = os.open(str(lock_dir), os.O_RDONLY)
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        recover_crash(binder, ticket)
         return _commit_locked(binder, ticket, to, owner, reason,
                               expected_from, wait_reason, force_reason,
-                              trace_override, journal_entry, dry)
+                              trace_override, journal_entry, dry,
+                              operation_id, expected_rev)
     except OSError as exc:
         print(f"commit: cannot lock binder directory {lock_dir}: {exc}",
               file=sys.stderr)
@@ -394,7 +487,8 @@ def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
                         wait_reason: str | None = None,
                         force_reason: str | None = None,
                         trace_override: str | None = None,
-                        journal_entry: str | None = None
+                        journal_entry: str | None = None,
+                        operation_id: str | None = None,
                         ) -> tuple[int, str | None, dict | None]:
     """PURE (no disk I/O) validation + snapshot build for a binder-bound
     transition (spc-297). Writers call this inside their own dir lock, merge
@@ -437,6 +531,7 @@ def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
         return 1, None, None
 
     edge = tt.edge_for(prior, to)
+    opid = operation_id or str(uuid.uuid4())
     entry = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "ticket": ticket,
@@ -448,9 +543,8 @@ def prepare_commit_text(orig_text: str, ticket: str, to: str, owner: str,
         "escape_used": force_reason is not None,
         "force_side_state_reason": force_reason,
         "trace": trace_override or (edge.trace if edge else None),
-        # spc-337 A2 (review cycle 1): `direct-jump` means a MERGE observed from
-        # queued/in-progress; a cancel on the same edge counts as a cancel.
         "metric": _resolve_metric(edge, reason),
+        "operation_id": opid,
     }
     new_text = _rewrite_field(orig_text, "status", to)
     resolved_wait_reason = wait_reason if wait_reason else "(none)"
@@ -475,17 +569,18 @@ def commit_transaction(binder: Path, new_text: str, entry: dict,
     io/transaction failure."""
     binder = Path(binder)
     tk = ticket or entry.get("ticket", "")
-    # spc-337 A1: the ledger lives in the binder's OWN home, never cwd — the
-    # writers stage `<binder home>/.transition-ledger/<tkt>.jsonl`, so the
-    # two must agree or the ledger is silently lost (tkt-335).
     lp = ledger_path(tk, home_for_binder(binder))
     lp.parent.mkdir(parents=True, exist_ok=True)
-    # tkt-459 A3: dot-prefixed so `.lattice/**/.*.tmp` ignores it (the old
-    # `README.README.md.tmp` was tracked-visible residue that made
-    # finish-commit.sh fail closed after a crashed rename).
-    tmp = binder.parent / f".transition-api.{os.getpid()}.tmp"
+    opid = entry.get("operation_id", str(uuid.uuid4()))
+    # tkt-472: embed operation_id in temp filename for crash recovery matching.
+    tmp = binder.parent / f".transition-api.{opid}.tmp"
     try:
         tmp.write_text(new_text, encoding="utf-8")
+        fd = os.open(str(tmp), os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
         try:
             os.chmod(tmp, os.stat(binder).st_mode & 0o777)
         except OSError:
@@ -518,14 +613,36 @@ def commit_transaction(binder: Path, new_text: str, entry: dict,
 def _commit_locked(binder: Path, ticket: str, to: str, owner: str, reason: str,
                    expected_from: str | None, wait_reason: str | None,
                    force_reason: str | None, trace_override: str | None,
-                   journal_entry: str | None, dry: bool) -> int:
+                   journal_entry: str | None, dry: bool,
+                   operation_id: str | None = None,
+                   expected_rev: int | None = None) -> int:
     """CLI path: read orig under the caller's dir lock, prepare, then either
     dry-print or commit_transaction. Preserves the `commit` CLI's exit codes
     (1 illegal, 2 escape-required, 3 usage/io) verbatim."""
+    home = home_for_binder(binder)
+    # tkt-472 A1: idempotent duplicate detection — if the caller supplies an
+    # operation_id that already exists in the ledger, return success.
+    if operation_id:
+        existing = _find_entry_by_opid(ticket, operation_id, home)
+        if existing is not None:
+            print(f"committed: {ticket} {existing.get('from', '?')} -> "
+                  f"{existing.get('to', '?')} ({existing.get('owner', '?')}) "
+                  f"[idempotent — operation {operation_id[:8]}… already recorded]")
+            return 0
+    # tkt-472 A2: expected-revision guard — the caller asserts the ledger has
+    # exactly N entries; a concurrent writer that appended between the caller's
+    # read and this commit makes the revision stale → refuse before mutation.
+    if expected_rev is not None:
+        actual_rev = _ledger_rev(ticket, home)
+        if actual_rev != expected_rev:
+            print(f"commit: expected-revision mismatch: caller expected "
+                  f"rev={expected_rev} but ledger has {actual_rev} entries "
+                  f"(stale snapshot; refusing)", file=sys.stderr)
+            return 3
     orig = binder.read_text(encoding="utf-8")
     rc, new_text, entry = prepare_commit_text(
         orig, ticket, to, owner, reason, expected_from, wait_reason,
-        force_reason, trace_override, journal_entry)
+        force_reason, trace_override, journal_entry, operation_id)
     if rc != 0:
         return rc
     if dry:
@@ -617,7 +734,8 @@ def cmd_legal(args: list) -> int:
 
 def build_entry(ticket: str, frm: str, to: str, owner: str, reason: str,
                 force_reason: "str | None" = None,
-                trace_override: "str | None" = None
+                trace_override: "str | None" = None,
+                operation_id: "str | None" = None,
                 ) -> "tuple[int, dict | None]":
     """Validate a ledger-only edge and build its entry dict (tkt-459 A2/A3).
 
@@ -647,6 +765,7 @@ def build_entry(ticket: str, frm: str, to: str, owner: str, reason: str,
         "force_side_state_reason": force_reason,
         "trace": trace_override or (edge.trace if edge else None),
         "metric": _resolve_metric(edge, reason),
+        "operation_id": operation_id or str(uuid.uuid4()),
     }
     return 0, entry
 
@@ -655,18 +774,21 @@ def cmd_record(args: list) -> int:
     if not args or args[0] in ("--help", "-h"):
         print("usage: transition-api.py record <ticket-id> <from> <to> "
               "<owner> <reason> [--force-side-state-reason <text>] "
-              "[--trace <text>] [--home <path>] [--dry-run]")
+              "[--trace <text>] [--home <path>] [--expected-rev <n>] "
+              "[--dry-run]")
         return 0 if (args and args[0] in ("--help", "-h")) else 3
     if len(args) < 5:
         print("usage: transition-api.py record <ticket-id> <from> <to> "
               "<owner> <reason> [--force-side-state-reason <text>] "
-              "[--trace <text>] [--home <path>] [--dry-run]", file=sys.stderr)
+              "[--trace <text>] [--home <path>] [--expected-rev <n>] "
+              "[--dry-run]", file=sys.stderr)
         return 3
     ticket, frm, to, owner, reason = args[:5]
     rest = args[5:]
     force_reason = None
     trace_override = None
     home_override = None
+    expected_rev = None
     dry = False
     i = 0
     while i < len(rest):
@@ -676,6 +798,8 @@ def cmd_record(args: list) -> int:
             trace_override = rest[i + 1]; i += 2
         elif rest[i] == "--home" and i + 1 < len(rest):
             home_override = rest[i + 1]; i += 2
+        elif rest[i] == "--expected-rev" and i + 1 < len(rest):
+            expected_rev = int(rest[i + 1]); i += 2
         elif rest[i] == "--dry-run":
             dry = True; i += 1
         else:
@@ -688,17 +812,19 @@ def cmd_record(args: list) -> int:
     if dry:
         print(json.dumps(entry, indent=2))
         return 0
-    # tkt-352 / ADR-012 §4: `record` has no binder to anchor it, so resolve the
-    # home from --home → LATTICE_HOME → <git show-toplevel>/.lattice (never bare
-    # cwd) so a run from a non-toplevel subdir lands under the repo's .lattice.
     rec_home = resolve_record_home(home_override)
+    # tkt-472 A7: expected-revision guard for record — a bare `record` cannot
+    # fabricate a detached event if the caller is required to know the current
+    # revision count. Without --expected-rev, record is unrestricted (legacy).
+    if expected_rev is not None:
+        actual_rev = _ledger_rev(ticket, rec_home)
+        if actual_rev != expected_rev:
+            print(f"record: expected-revision mismatch: caller expected "
+                  f"rev={expected_rev} but ledger has {actual_rev} entries "
+                  f"(refusing)", file=sys.stderr)
+            return 3
     lp = ledger_path(ticket, rec_home)
     lp.parent.mkdir(parents=True, exist_ok=True)
-    # Atomic append with a flock (review F7): batch-work spawns sibling
-    # worktrees; concurrent recorders must not interleave partial JSON lines.
-    # ADR-011 / spc-282 A2: the .lock sidecar lives OUT OF REPO (state home)
-    # so it does not leak as untracked dirt; the .jsonl it guards stays
-    # committed in-repo. Same-clone recorders resolve one lock via fingerprint.
     lockp = lock_path(ticket, rec_home)
     lockp.parent.mkdir(parents=True, exist_ok=True)
     lock_fd = os.open(str(lockp), os.O_CREAT | os.O_WRONLY, 0o644)
