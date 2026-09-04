@@ -58,6 +58,7 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -176,7 +177,8 @@ def load_state(batch_id: str, lattice_home: str) -> dict:
 
 def save_state(state: dict, lattice_home: str) -> None:
     """Atomic write (temp + rename) with a flock so concurrent recorders
-    (batch-work spawns sibling worktrees) cannot interleave or lose updates."""
+    (batch-work spawns sibling worktrees) cannot interleave or lose updates.
+    tkt-471 A9: raises on I/O failure (machine-fatal on the canonical path)."""
     p = state_path(state["batch_id"], lattice_home)
     p.parent.mkdir(parents=True, exist_ok=True)
     state["updated"] = now_iso()
@@ -198,6 +200,8 @@ def save_state(state: dict, lattice_home: str) -> None:
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 fh.write(json.dumps(state, indent=2, sort_keys=True) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
             os.replace(tmp, p)
         finally:
             if os.path.exists(tmp):
@@ -253,6 +257,11 @@ def _merge_state(cur: dict, new: dict) -> None:
         cur_set = set(cur.get("settled_tickets", []))
         cur_set.update(new["settled_tickets"])
         cur["settled_tickets"] = sorted(cur_set)
+    # tkt-471 A7: preserve plan_hash and plan_loaded through merges.
+    if new.get("plan_loaded"):
+        cur["plan_loaded"] = True
+    if new.get("plan_hash"):
+        cur["plan_hash"] = new["plan_hash"]
 
 
 # ---------------------------------------------------------------------------
@@ -318,10 +327,15 @@ def cmd_load_dag(args: list) -> int:
                 node.setdefault("reason", "")
     state = load_state(batch_id, lattice_home)
     state["dag"] = layers
+    # tkt-471 A7: plan_hash identifies the execution plan so a restart can
+    # verify it resumes the same plan. Computed from the normalized DAG JSON.
+    plan_json = json.dumps(layers, sort_keys=True, separators=(",", ":"))
+    state["plan_hash"] = hashlib.sha256(plan_json.encode()).hexdigest()[:16]
+    state["plan_loaded"] = True
     save_state(state, lattice_home)
     nl = len(layers)
     nn = sum(len(w.get("nodes", [])) for l in layers for w in l.get("waves", []))
-    print(f"load-dag: {nl} layer(s), {nn} node(s)")
+    print(f"load-dag: {nl} layer(s), {nn} node(s) plan_hash={state['plan_hash']}")
     return 0
 
 
@@ -363,6 +377,13 @@ def cmd_record_spawn(args: list) -> int:
     wave = {"wave": int(kv["--wave"]), "nodes": [node]}
     layer = {"layer": int(kv["--layer"]), "waves": [wave]}
     state = load_state(batch_id, lattice_home)
+    # tkt-471 A7/A9: fail closed if the DAG was never loaded — future waves are
+    # absent from durable state, so a restart cannot recover them.
+    if not state.get("plan_loaded"):
+        print(f"error: record-spawn refused — load-dag was never called for batch "
+              f"{batch_id}; persist the complete plan before spawning",
+              file=sys.stderr)
+        return 1
     # spc-270 A3.3: increment attempt on re-spawn of an existing ticket (a
     # restart re-runs a ticket that already attempted); a first spawn is 1.
     existing = _find_node(state, kv["--ticket"])
@@ -416,6 +437,19 @@ def cmd_record_node(args: list) -> int:
     failure_class = kv.get("--failure-class") or status
     tapi = kv.get("--transition-api") or DEFAULT_TRANSITION_API
 
+    # tkt-471 A11: idempotent replay — if the node is already settled with the
+    # same status AND is in settled_tickets, return success without re-running
+    # the transition. This prevents illegal stuck→stuck retries.
+    state = load_state(batch_id, lattice_home)
+    existing = _find_node(state, ticket)
+    if (existing and existing.get("status") == status
+            and ticket in state.get("settled_tickets", [])):
+        print(f"record-node: {ticket} already settled as {status} (idempotent no-op)")
+        return 0
+
+    # tkt-471 A12: a transition_failed node is retryable — allow re-recording
+    # with the original status to retry the stuck transition.
+
     # spc-270 A3.4 + spc-337 A6: for failed/unknown/timeout, the atomic stuck
     # flip (transition-api commit, in-progress → stuck + wait_reason: unblock)
     # MUST succeed BEFORE the node is settled. A transition failure leaves the
@@ -447,6 +481,7 @@ def cmd_record_node(args: list) -> int:
         "ended_epoch": int(time.time()),
         "reason": kv.get("--reason") or status,
     }
+    # Reload state under the lock path (save_state does read-merge-write).
     state = load_state(batch_id, lattice_home)
     _patch_node(state, ticket, node)
     if transition_ok:
@@ -472,10 +507,13 @@ def _patch_node(state: dict, ticket: str, patch: dict) -> None:
                 if node.get("ticket") == ticket:
                     # spc-270 A3.3: monotonic — a settled node never regresses;
                     # idempotent — re-recording the same settled status is a no-op.
+                    # tkt-471 A12: transition_failed → original status is allowed
+                    # (retry the stuck transition).
                     cur_status = node.get("status")
                     new_status = patch.get("status", cur_status)
                     if (cur_status in SETTLED_STATUSES
-                            and new_status not in SETTLED_STATUSES):
+                            and new_status not in SETTLED_STATUSES
+                            and cur_status != "transition_failed"):
                         return  # settled node must not regress
                     for k, v in patch.items():
                         if v is not None:
@@ -501,10 +539,20 @@ def cmd_advance_cursor(args: list) -> int:
     kv = _parse(args, ["--batch-id", "--layer", "--wave"], ["--lattice-home"])
     batch_id = kv["--batch-id"]
     lattice_home = kv.get("--lattice-home") or os.environ.get("LATTICE_HOME", ".lattice")
+    new_layer = int(kv["--layer"])
+    new_wave = int(kv["--wave"])
     state = load_state(batch_id, lattice_home)
-    state["resume_cursor"] = {"layer": int(kv["--layer"]), "wave": int(kv["--wave"])}
+    # tkt-471 A10: monotonic cursor — a stale writer cannot regress the cursor
+    # to a position already advanced past.
+    cur = state.get("resume_cursor", {"layer": 0, "wave": 0})
+    if (new_layer, new_wave) < (cur.get("layer", 0), cur.get("wave", 0)):
+        print(f"advance-cursor: refused — ({new_layer},{new_wave}) < current "
+              f"({cur['layer']},{cur['wave']}); stale write",
+              file=sys.stderr)
+        return 1
+    state["resume_cursor"] = {"layer": new_layer, "wave": new_wave}
     save_state(state, lattice_home)
-    print(f"advance-cursor: layer={kv['--layer']} wave={kv['--wave']}")
+    print(f"advance-cursor: layer={new_layer} wave={new_wave}")
     return 0
 
 
@@ -693,6 +741,15 @@ def self_test() -> int:
     def t3b() -> bool:
         bid2 = "st-batch-refused"
         run("init", "--batch-id", bid2, "--lattice-home", home)
+        # tkt-471: load-dag required before record-spawn
+        lj2 = Path(home) / "layers-refused.json"
+        lj2.write_text(json.dumps({"layers": [
+            {"layer": 0, "waves": [{"wave": 0, "nodes": [
+                {"ticket": "tkt-R", "worktree": "/p", "brief_file": "/b",
+                 "timebox_min": 5}]}]}
+        ]}), encoding="utf-8")
+        run("load-dag", "--batch-id", bid2, "--layers-json", str(lj2),
+            "--lattice-home", home)
         run("record-spawn", "--batch-id", bid2, "--ticket", "tkt-R",
             "--layer", "0", "--wave", "0", "--pid", "4343",
             "--worktree", "/p", "--brief-file", "/b", "--timebox", "5",

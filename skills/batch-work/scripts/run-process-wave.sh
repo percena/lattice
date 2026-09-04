@@ -263,11 +263,15 @@ record_stuck() {
 coord_record_spawn() {
   local ticket="$1" pid="$2" wt="$3" brief="$4" timebox="$5"
   [[ -n "${WAVE_COORDINATOR:-}" ]] || return 0
-  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" record-spawn \
+  # tkt-471 A9: record-spawn failure is machine-fatal — a lost spawn record
+  # means resume cannot recover the running node.
+  if ! LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" record-spawn \
     --batch-id "$WAVE_BATCH_ID" --ticket "$ticket" --layer "$WAVE_LAYER" \
     --wave "$WAVE_WAVE" --pid "$pid" --worktree "$wt" --brief-file "$brief" \
-    --timebox "$timebox" --lattice-home "$WAVE_LATTICE_HOME" >/dev/null 2>&1 \
-    || echo "warn: coordinator record-spawn failed for $ticket (state not persisted; resume may re-derive)" >&2
+    --timebox "$timebox" --lattice-home "$WAVE_LATTICE_HOME" >/dev/null 2>&1; then
+    echo "error: coordinator record-spawn FAILED for $ticket — machine-fatal (tkt-471 A9)" >&2
+    return 1
+  fi
 }
 
 # coord_record_node <ticket> <status> [pid] [pr] [oid] [reason]
@@ -318,10 +322,14 @@ heartbeat_marker() {
 # picks up at the NEXT wave, not re-running the settled one.
 coord_advance() {
   [[ -n "${WAVE_COORDINATOR:-}" ]] || return 0
-  LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" advance-cursor \
+  # tkt-471 A9: cursor persistence failure is machine-fatal — a lost cursor
+  # means restart replays the settled wave.
+  if ! LATTICE_HOME="$WAVE_LATTICE_HOME" python3 "$WAVE_COORDINATOR" advance-cursor \
     --batch-id "$WAVE_BATCH_ID" --layer "$WAVE_LAYER" --wave "$WAVE_WAVE" \
-    --lattice-home "$WAVE_LATTICE_HOME" >/dev/null 2>&1 \
-    || echo "warn: coordinator advance-cursor failed (resume cursor not advanced)" >&2
+    --lattice-home "$WAVE_LATTICE_HOME" >/dev/null 2>&1; then
+    echo "error: coordinator advance-cursor FAILED — machine-fatal (tkt-471 A9)" >&2
+    return 1
+  fi
 }
 
 # classify_node <i> — redefine a settled process node's final state from the
@@ -400,6 +408,7 @@ run_wave() {
   local manifest="" concurrency=3 ram_thr=10 state_file="" poll_interval=10 spawn_helper="$DEFAULT_HELPER" dry=0 report=""
   local verify_helper="$DEFAULT_VERIFY" transition_api="$DEFAULT_TRANSITION_API" lattice_home="${LATTICE_HOME:-.lattice}"
   local coordinator="" batch_id="" layer=0 wave=0 gate_script="$DEFAULT_GATE_SCRIPT"
+  local layers_json=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --manifest) manifest="$2"; shift 2 ;;
@@ -416,6 +425,7 @@ run_wave() {
       --gate-script) gate_script="$2"; shift 2 ;;
       --layer) layer="$2"; shift 2 ;;
       --wave) wave="$2"; shift 2 ;;
+      --layers-json) layers_json="$2"; shift 2 ;;
       --dry-run) dry=1; shift ;;
       --report) report="$2"; shift 2 ;;
       *) echo "usage error: unknown arg '$1'" >&2; usage >&2; exit 2 ;;
@@ -447,8 +457,20 @@ run_wave() {
   WAVE_GATE_SCRIPT="$gate_script"
   if [[ -n "$batch_id" ]]; then
     [[ -f "$coordinator" ]] || { echo "error: coordinator not found: $coordinator (required when --batch-id is set; spc-270 A3.1 default-on)" >&2; exit 1; }
-    # Ensure the state file exists (idempotent — init is a no-op if it does).
-    LATTICE_HOME="$lattice_home" python3 "$coordinator" init --batch-id "$batch_id" --lattice-home "$lattice_home" >/dev/null 2>&1 || true
+    # tkt-471 A9: init failure prevents spawn (was || true).
+    if ! LATTICE_HOME="$lattice_home" python3 "$coordinator" init --batch-id "$batch_id" --lattice-home "$lattice_home" >/dev/null 2>&1; then
+      echo "error: coordinator init FAILED for batch=$batch_id — aborting (tkt-471 A9: machine-fatal)" >&2
+      exit 1
+    fi
+    # tkt-471 A7: persist the complete DAG before any spawn. The host must pass
+    # --layers-json <path> so all future waves are durable. If --layers-json is
+    # not provided, verify load-dag was already called (plan_loaded in state).
+    if [[ -n "${layers_json:-}" && -f "$layers_json" ]]; then
+      if ! LATTICE_HOME="$lattice_home" python3 "$coordinator" load-dag --batch-id "$batch_id" --layers-json "$layers_json" --lattice-home "$lattice_home" >/dev/null 2>&1; then
+        echo "error: coordinator load-dag FAILED for batch=$batch_id — aborting (tkt-471 A7)" >&2
+        exit 1
+      fi
+    fi
     WAVE_COORDINATOR="$coordinator"
     WAVE_BATCH_ID="$batch_id"
     WAVE_LAYER="$layer"

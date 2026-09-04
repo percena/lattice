@@ -41,6 +41,23 @@ teardown() {
   rm -rf "$TEST_DIR"
 }
 
+# tkt-471: load-dag helper — writes a single-layer plan with the given tickets
+# and loads it into the coordinator. Required before record-spawn (A7/A9).
+# Usage: load_dag_for <batch-id> <ticket1> [<ticket2> ...]
+load_dag_for() {
+  local bid="$1"; shift
+  local lj="$TEST_DIR/layers-$bid.json"
+  local nodes=""
+  for t in "$@"; do
+    [[ -n "$nodes" ]] && nodes="$nodes,"
+    nodes="$nodes{\"ticket\":\"$t\",\"worktree\":\"/p\",\"brief_file\":\"/b\",\"timebox_min\":5}"
+  done
+  cat >"$lj" <<EOF
+{"layers":[{"layer":0,"waves":[{"wave":0,"nodes":[$nodes]}]}]}
+EOF
+  python3 "$COORD" load-dag --batch-id "$bid" --layers-json "$lj" --lattice-home "$LATTICE_HOME" >/dev/null
+}
+
 # Assert a ticket appears in the JSON's settled_tickets list (robust to
 # pretty-printed multi-line arrays — coordinator.py emits indent=2).
 assert_settled() {
@@ -96,6 +113,7 @@ EOF
 
 @test "record-spawn + record-node merge-update a node in place (no sibling wipe)" {
   python3 "$COORD" init --batch-id "b3" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for b3 tkt-A tkt-B
   # spawn tkt-A
   python3 "$COORD" record-spawn --batch-id "b3" --ticket "tkt-A" --layer 0 --wave 0 \
     --pid 1111 --worktree "/p/a" --brief-file "/b/a" --timebox 5 \
@@ -125,6 +143,7 @@ EOF
 
 @test "record-node unknown fail-closes binder to stuck via transition-api (tkt-255)" {
   python3 "$COORD" init --batch-id "b4" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for b4 tkt-U
   python3 "$COORD" record-spawn --batch-id "b4" --ticket "tkt-U" --layer 0 --wave 0 \
     --pid 3333 --worktree "/p/u" --brief-file "/b/u" --timebox 5 \
     --lattice-home "$LATTICE_HOME" >/dev/null
@@ -329,10 +348,15 @@ EOF
   WDIR="$LATTICE_HOME/tickets/tkt-W-demo"
   mkdir -p "$WDIR"
   printf '# tkt-W\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$WDIR/README.md"
+  lj_w="$TEST_DIR/layers-wire-1.json"
+  cat >"$lj_w" <<LJEOF
+{"layers":[{"layer":0,"waves":[{"wave":0,"nodes":[{"ticket":"tkt-W","worktree":"$wt","brief_file":"$brief","timebox_min":1}]}]}]}
+LJEOF
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
-    --coordinator "$COORD" --batch-id "wire-1" --layer 0 --wave 0
+    --coordinator "$COORD" --batch-id "wire-1" --layer 0 --wave 0 \
+    --layers-json "$lj_w"
   [ "$status" -eq 0 ]
   # The coordinator state file exists and carries the settled node.
   [ -f "$LATTICE_HOME/.coordinator/wire-1.json" ]
@@ -373,11 +397,16 @@ EOF
   # (correctly) exits non-ok. This test is about wiring, so give it the binder.
   DDIR="$LATTICE_HOME/tickets/tkt-D-demo"; mkdir -p "$DDIR"
   printf '# tkt-D\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| updated | 2026-09-01T00:00:00Z |\n' >"$DDIR/README.md"
+  lj_d="$TEST_DIR/layers-default-on-1.json"
+  cat >"$lj_d" <<LJEOF
+{"layers":[{"layer":0,"waves":[{"wave":0,"nodes":[{"ticket":"tkt-D","worktree":"$wt","brief_file":"$brief","timebox_min":1}]}]}]}
+LJEOF
   # --batch-id alone (no --coordinator) → coordinator default-on (state persisted)
   run bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" \
     --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf" \
-    --batch-id "default-on-1" --layer 0 --wave 0
+    --batch-id "default-on-1" --layer 0 --wave 0 \
+    --layers-json "$lj_d"
   [ "$status" -eq 0 ]
   [ -f "$LATTICE_HOME/.coordinator/default-on-1.json" ]
   # --coordinator WITHOUT --batch-id → legacy no-state (no failure; just no persistence)
@@ -408,10 +437,15 @@ EOF
   ADIR="$LATTICE_HOME/tickets/tkt-A-demo"
   mkdir -p "$ADIR"
   printf '# tkt-A\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$ADIR/README.md"
+  lj_ri="$TEST_DIR/layers-restart-int.json"
+  cat >"$lj_ri" <<LJEOF
+{"layers":[{"layer":0,"waves":[{"wave":0,"nodes":[{"ticket":"tkt-A","worktree":"$wt0","brief_file":"$b0","timebox_min":1}]}]}]}
+LJEOF
   LATTICE_HOME="$LATTICE_HOME" bash "$WAVE" --manifest "$m0" \
     --spawn-helper "$fast_helper" --verify-helper "$VERIFY" --transition-api "$TAPI" \
     --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf0" \
-    --coordinator "$COORD" --batch-id "restart-int" --layer 0 --wave 0 >/dev/null 2>&1
+    --coordinator "$COORD" --batch-id "restart-int" --layer 0 --wave 0 \
+    --layers-json "$lj_ri" >/dev/null 2>&1
   # --- HOST RESTARTS (new process, new manifest for wave 1) ---
   # The restarted host asks the coordinator what is settled before spawning.
   run python3 "$COORD" resume --batch-id "restart-int" --lattice-home "$LATTICE_HOME"
@@ -428,6 +462,7 @@ EOF
 
 @test "A3.4: unknown node WITHOUT a binder does NOT settle (transition failure prevents settle)" {
   LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a34 --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a34 tkt-NA
   # record-spawn then record-node unknown with NO binder → _commit_stuck fails → node not settled, exit 1
   LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" record-spawn --batch-id a34 --ticket tkt-NA \
     --layer 0 --wave 0 --pid 1234 --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
@@ -447,6 +482,7 @@ EOF
 
 @test "A3.3: settled node never regresses (re-recording a settled ticket with a lesser status is a no-op)" {
   LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a33 --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a33 tkt-S
   python3 "$COORD" record-spawn --batch-id a33 --ticket tkt-S --layer 0 --wave 0 --pid 1 \
     --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
   # create a binder so the stuck commit succeeds → node settles as unknown
@@ -463,6 +499,7 @@ EOF
 
 @test "A3.3: re-spawn increments attempt (does not reset to 1)" {
   LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a33att --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a33att tkt-R
   python3 "$COORD" record-spawn --batch-id a33att --ticket tkt-R --layer 0 --wave 0 --pid 100 \
     --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
   python3 "$COORD" record-spawn --batch-id a33att --ticket tkt-R --layer 0 --wave 0 --pid 101 \
@@ -473,6 +510,7 @@ EOF
 
 @test "A3.5: resume carries next_node (first eligible) so a host restart drives it directly" {
   LATTICE_HOME="$LATTICE_HOME" python3 "$COORD" init --batch-id a35 --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a35 tkt-N1 tkt-N2
   python3 "$COORD" record-spawn --batch-id a35 --ticket tkt-N1 --layer 0 --wave 0 --pid 1 \
     --worktree /p1 --brief-file /b1 --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
   python3 "$COORD" record-spawn --batch-id a35 --ticket tkt-N2 --layer 0 --wave 0 --pid 2 \
@@ -491,6 +529,7 @@ EOF
   # binder to stuck BEFORE settling — the binder may never keep reading
   # "active work" for a dead worker (FSM-2b; rev-20260902-015425Z F5).
   python3 "$COORD" init --batch-id "a6-failed" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a6-failed tkt-F6
   python3 "$COORD" record-spawn --batch-id "a6-failed" --ticket "tkt-F6" --layer 0 --wave 0 \
     --pid 4444 --worktree "/p/f" --brief-file "/b/f" --timebox 5 \
     --lattice-home "$LATTICE_HOME" >/dev/null
@@ -518,6 +557,7 @@ EOF
   # No binder → transition-api commit cannot flip anything → the node must
   # stay unsettled exactly as unknown|timeout do (A3.4 parity for failed).
   python3 "$COORD" init --batch-id "a6-refused" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a6-refused tkt-NF
   python3 "$COORD" record-spawn --batch-id "a6-refused" --ticket "tkt-NF" --layer 0 --wave 0 \
     --pid 4545 --worktree "/p" --brief-file "/b" --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
   run python3 "$COORD" record-node --batch-id "a6-refused" --ticket "tkt-NF" --status failed \
@@ -530,8 +570,80 @@ EOF
   printf '%s\n' "$output" | grep -qF 'tkt-NF'
 }
 
+# ---------------------------------------------------------------------------
+# tkt-471 A13: multi-process fault tests
+# ---------------------------------------------------------------------------
+
+@test "A13: stale writer cannot regress cursor past an already-advanced position" {
+  python3 "$COORD" init --batch-id "a13-stale" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a13-stale tkt-X tkt-Y
+  python3 "$COORD" advance-cursor --batch-id "a13-stale" --layer 1 --wave 0 --lattice-home "$LATTICE_HOME" >/dev/null
+  # A stale process tries to regress to layer 0 wave 0
+  run python3 "$COORD" advance-cursor --batch-id "a13-stale" --layer 0 --wave 0 --lattice-home "$LATTICE_HOME"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qiF "stale"
+  # Cursor remains at (1,0)
+  run python3 "$COORD" status --batch-id "a13-stale" --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF '"layer": 1'
+}
+
+@test "A13: terminal replay returns success without re-running the stuck transition" {
+  python3 "$COORD" init --batch-id "a13-replay" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a13-replay tkt-TR
+  python3 "$COORD" record-spawn --batch-id "a13-replay" --ticket tkt-TR --layer 0 --wave 0 \
+    --pid 7777 --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  TRDIR="$LATTICE_HOME/tickets/tkt-TR-demo"; mkdir -p "$TRDIR"
+  printf '# tkt-TR\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$TRDIR/README.md"
+  python3 "$COORD" record-node --batch-id "a13-replay" --ticket tkt-TR --status unknown \
+    --pid 7777 --failure-class unknown --reason "crash" \
+    --transition-api "$TAPI" --lattice-home "$LATTICE_HOME" >/dev/null
+  # Replay the exact same command — idempotent no-op, rc=0
+  run python3 "$COORD" record-node --batch-id "a13-replay" --ticket tkt-TR --status unknown \
+    --pid 7777 --failure-class unknown --reason "crash" \
+    --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "idempotent no-op"
+  # Only one ledger entry (not two)
+  local count
+  count=$(wc -l < "$LATTICE_HOME/.transition-ledger/tkt-TR.jsonl")
+  [ "$count" -eq 1 ]
+}
+
+@test "A13: record-spawn before load-dag is refused (pre-spawn restart guard)" {
+  python3 "$COORD" init --batch-id "a13-noPlan" --lattice-home "$LATTICE_HOME" >/dev/null
+  # Do NOT call load_dag_for — simulate a restart that lost the in-memory plan
+  run python3 "$COORD" record-spawn --batch-id "a13-noPlan" --ticket tkt-Z --layer 0 --wave 0 \
+    --pid 8888 --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME"
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qiF "plan"
+}
+
+@test "A13: transition_failed node can be retried with the original status" {
+  python3 "$COORD" init --batch-id "a13-retry" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a13-retry tkt-TF
+  python3 "$COORD" record-spawn --batch-id "a13-retry" --ticket tkt-TF --layer 0 --wave 0 \
+    --pid 9999 --worktree /p --brief-file /b --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
+  # First record-node fails (no binder → transition refused → transition_failed)
+  run python3 "$COORD" record-node --batch-id "a13-retry" --ticket tkt-TF --status unknown \
+    --pid 9999 --failure-class unknown --reason "crash" \
+    --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -ne 0 ]
+  run python3 "$COORD" status --batch-id "a13-retry" --lattice-home "$LATTICE_HOME"
+  printf '%s\n' "$output" | grep -qF '"status": "transition_failed"'
+  # Now provide the binder and retry — the transition_failed node accepts the retry
+  TFDIR="$LATTICE_HOME/tickets/tkt-TF-demo"; mkdir -p "$TFDIR"
+  printf '# tkt-TF\n\n| Field | Value |\n| --- | --- |\n| status | in-progress |\n| wait_reason | (none) |\n' >"$TFDIR/README.md"
+  run python3 "$COORD" record-node --batch-id "a13-retry" --ticket tkt-TF --status unknown \
+    --pid 9999 --failure-class unknown --reason "crash-retry" \
+    --transition-api "$TAPI" --lattice-home "$LATTICE_HOME"
+  [ "$status" -eq 0 ]
+  run python3 "$COORD" status --batch-id "a13-retry" --lattice-home "$LATTICE_HOME"
+  assert_settled "$output" "tkt-TF"
+}
+
 @test "A6: record-node failed with a binder in the WRONG from-state (closed) is refused, binder untouched" {
   python3 "$COORD" init --batch-id "a6-cont" --lattice-home "$LATTICE_HOME" >/dev/null
+  load_dag_for a6-cont tkt-CL
   python3 "$COORD" record-spawn --batch-id "a6-cont" --ticket "tkt-CL" --layer 0 --wave 0 \
     --pid 4646 --worktree "/p" --brief-file "/b" --timebox 5 --lattice-home "$LATTICE_HOME" >/dev/null
   CDIR="$LATTICE_HOME/tickets/tkt-CL-demo"
