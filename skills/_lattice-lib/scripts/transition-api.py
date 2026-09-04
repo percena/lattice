@@ -315,6 +315,15 @@ def cmd_commit(args: list) -> int:
               "[--force-side-state-reason <text>] [--trace <text>] "
               "[--append-journal <text>] [--binder <path>] [--dry-run]")
         return 0 if (args and args[0] in ("--help", "-h")) else 3
+    if len(args) < 4:
+        # tkt-459 A3: a usage error used to raise ValueError (traceback, exit
+        # 1) and collide with the documented "ILLEGAL edge" code.
+        print("usage: transition-api.py commit <ticket-id> <to> <owner> "
+              "<reason> [--from <expected>] [--wait-reason <r>] "
+              "[--force-side-state-reason <text>] [--trace <text>] "
+              "[--append-journal <text>] [--binder <path>] [--dry-run]",
+              file=sys.stderr)
+        return 3
     ticket, to, owner, reason = args[:4]
     rest = args[4:]
     expected_from = None
@@ -471,7 +480,10 @@ def commit_transaction(binder: Path, new_text: str, entry: dict,
     # two must agree or the ledger is silently lost (tkt-335).
     lp = ledger_path(tk, home_for_binder(binder))
     lp.parent.mkdir(parents=True, exist_ok=True)
-    tmp = binder.with_suffix(".README.md.tmp")
+    # tkt-459 A3: dot-prefixed so `.lattice/**/.*.tmp` ignores it (the old
+    # `README.README.md.tmp` was tracked-visible residue that made
+    # finish-commit.sh fail closed after a crashed rename).
+    tmp = binder.parent / f".transition-api.{os.getpid()}.tmp"
     try:
         tmp.write_text(new_text, encoding="utf-8")
         try:
@@ -491,6 +503,10 @@ def commit_transaction(binder: Path, new_text: str, entry: dict,
         os.replace(tmp, binder)
     except OSError as exc:
         _rollback_ledger(lp, entry)
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
         print(f"commit: transaction aborted (rename failure: {exc}); "
               f"binder and ledger unchanged", file=sys.stderr)
         return 3
@@ -563,9 +579,21 @@ def _rollback_ledger(lp: Path, entry: dict) -> None:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
         lines = lp.read_text(encoding="utf-8").splitlines()
         needle = json.dumps(entry, separators=(",", ":"))
-        if lines and lines[-1].strip() == needle:
-            lp.write_text("\n".join(lines[:-1]) + ("\n" if len(lines) > 1 else ""),
-                          encoding="utf-8")
+        # tkt-459 A3: the entry is not necessarily the LAST line — a concurrent
+        # recorder may have appended between the append's flock release and this
+        # re-acquire. Remove the last occurrence wherever it is; warn when it is
+        # gone (was a silent no-op that left a dangling entry).
+        idx = None
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip() == needle:
+                idx = i
+                break
+        if idx is None:
+            print(f"transition-api: WARNING — rollback found no matching entry in "
+                  f"{lp.name}; ledger may have a dangling entry", file=sys.stderr)
+        else:
+            kept = lines[:idx] + lines[idx + 1:]
+            lp.write_text(("\n".join(kept) + "\n") if kept else "", encoding="utf-8")
     except OSError as exc:
         # A2 fix (spc-424): was silent `pass` — a failed rollback leaves a dangling
         # ledger entry while commit_transaction reports "unchanged." Log to stderr
@@ -585,6 +613,42 @@ def cmd_legal(args: list) -> int:
     legal = tt.is_legal_edge(frm, to)
     print(f"{'legal' if legal else 'ILLEGAL'}: {frm} -> {to}")
     return 0 if legal else 1
+
+
+def build_entry(ticket: str, frm: str, to: str, owner: str, reason: str,
+                force_reason: "str | None" = None,
+                trace_override: "str | None" = None
+                ) -> "tuple[int, dict | None]":
+    """Validate a ledger-only edge and build its entry dict (tkt-459 A2/A3).
+
+    Single source for `record` (CLI) and for in-process writers such as
+    finish-stamp.py that must append the ledger BEFORE their binder rename and
+    roll it back on failure. Returns `(rc, entry)`: rc=1 illegal edge, rc=2
+    escape-required without override, rc=0 with the entry."""
+    if not tt.is_legal_edge(frm, to):
+        print(f"ILLEGAL transition: {frm} -> {to} "
+              f"(not in schema; refused)", file=sys.stderr)
+        return 1, None
+    if tt.requires_escape(frm, to) and not force_reason:
+        print(f"ILLEGAL without operator override: {frm} -> {to} "
+              f"requires --force-side-state-reason (side-state guard; "
+              f"no agent self-adjudication)", file=sys.stderr)
+        return 2, None
+    edge = tt.edge_for(frm, to)
+    entry = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "ticket": ticket,
+        "from": frm,
+        "to": to,
+        "owner": owner,
+        "reason": reason,
+        "guard": edge.guard,
+        "escape_used": force_reason is not None,
+        "force_side_state_reason": force_reason,
+        "trace": trace_override or (edge.trace if edge else None),
+        "metric": _resolve_metric(edge, reason),
+    }
+    return 0, entry
 
 
 def cmd_record(args: list) -> int:
@@ -617,31 +681,10 @@ def cmd_record(args: list) -> int:
         else:
             print(f"unknown arg: {rest[i]}", file=sys.stderr); return 3
 
-    if not tt.is_legal_edge(frm, to):
-        e = tt.edge_for(frm, to)
-        print(f"ILLEGAL transition: {frm} -> {to} "
-              f"(not in schema; refused)", file=sys.stderr)
-        return 1
-    if tt.requires_escape(frm, to) and not force_reason:
-        print(f"ILLEGAL without operator override: {frm} -> {to} "
-              f"requires --force-side-state-reason (side-state guard; "
-              f"no agent self-adjudication)", file=sys.stderr)
-        return 2
-
-    edge = tt.edge_for(frm, to)
-    entry = {
-        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "ticket": ticket,
-        "from": frm,
-        "to": to,
-        "owner": owner,
-        "reason": reason,
-        "guard": edge.guard,
-        "escape_used": force_reason is not None,
-        "force_side_state_reason": force_reason,
-        "trace": trace_override or (edge.trace if edge else None),
-        "metric": _resolve_metric(edge, reason),
-    }
+    rc, entry = build_entry(ticket, frm, to, owner, reason, force_reason,
+                            trace_override)
+    if rc != 0:
+        return rc
     if dry:
         print(json.dumps(entry, indent=2))
         return 0

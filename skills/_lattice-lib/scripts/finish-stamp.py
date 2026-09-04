@@ -253,6 +253,43 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
         updated_stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         text = binder_rows.stamp_updated(text, updated_stamp)
 
+    # --- Ledger FIRST, binder rename SECOND (tkt-459 A2, ADR-013 class) ---
+    # The ledger edge is the only thing that validates this transition. It used
+    # to be appended AFTER os.replace, so a refused edge (illegal prior status,
+    # escape-required side state) left a binder already flipped to closed with
+    # no ledger line — the transition_ledger_snapshot_mismatch the validator
+    # exists to catch. Now: build + validate the entry, append it under the
+    # per-ticket flock, THEN rename; a rename failure rolls the entry back.
+    ledger_entry = None
+    if flip_happened or ledger_needs_repair:
+        # A1 fix (spc-424): when repairing a missing ledger for an already-closed
+        # binder, prior_status is "closed" (read from the binder we already have)
+        # and closed→closed is NOT a legal edge. If ledger_last_to is empty (no
+        # ledger at all), try to recover the true prior status from the binder's
+        # own `anomaly: prior status X` line (written above for direct jumps and
+        # side-state merges). If no anomaly line exists, fall back to "open" —
+        # the legal legacy edge (transition_table.py).
+        recovered_prior = ""
+        if not flip_happened and not ledger_last_to:
+            anom_m = re.search(r'anomaly:.*prior status `([^`]+)`', text)
+            if anom_m:
+                recovered_prior = anom_m.group(1)
+        record_from = (prior_status if flip_happened
+                       else (ledger_last_to or recovered_prior or "open"))
+        rc, ledger_entry = ta.build_entry(ticket_id, record_from, "closed", "human", reason)
+        if rc != 0:
+            print(f"finish-stamp: ERROR — ledger edge refused (rc={rc}): "
+                  f"{record_from} → closed; binder NOT written (fail-close)", file=sys.stderr)
+            return 1
+        try:
+            ledger_path.parent.mkdir(parents=True, exist_ok=True)
+            ta._append_ledger_locked(ledger_path, ledger_entry)
+        except OSError as exc:
+            print(f"finish-stamp: ERROR — ledger append failed: {exc}; binder NOT written",
+                  file=sys.stderr)
+            return 1
+        print(f"finish-stamp: recorded ledger entry ({record_from} → closed)")
+
     # --- Atomic write: temp → rename (only if text changed) ---
     if written:
         d = os.path.dirname(binder_path) or "."
@@ -265,42 +302,20 @@ def _stamp_inner(binder_path, ticket_id, ledger_path, home, ta, ta_path,
                 os.fsync(fh.fileno())
             os.chmod(tmp, stat.S_IMODE(mode))
             os.replace(tmp, binder_path)
-        except BaseException:
+        except BaseException as exc:
             if os.path.exists(tmp):
                 os.unlink(tmp)
-            raise
+            if ledger_entry is not None:
+                ta._rollback_ledger(ledger_path, ledger_entry)
+            print(f"finish-stamp: ERROR — binder write failed: {exc}; ledger entry rolled back",
+                  file=sys.stderr)
+            return 1
 
     if written:
         print("finish-stamp: stamped")
     elif ledger_needs_repair:
         print("finish-stamp: ledger repair (binder unchanged)")
     print(f"flip: {1 if flip_happened else 0}")
-
-    # --- Append ledger via record CLI (only on actual flip or repair) ---
-    if flip_happened or ledger_needs_repair:
-        # A1 fix (spc-424): when repairing a missing ledger for an already-closed
-        # binder, prior_status is "closed" (read from the binder we already wrote)
-        # and closed→closed is NOT a legal edge. If ledger_last_to is empty (no
-        # ledger at all), try to recover the true prior status from the binder's
-        # own `anomaly: prior status X` line (written by lines 156-160 for direct
-        # jumps and side-state merges). If no anomaly line exists, fall back to
-        # "open" — the legal legacy edge (transition_table.py:157).
-        recovered_prior = ""
-        if not flip_happened and not ledger_last_to:
-            anom_m = re.search(r'anomaly:.*prior status `([^`]+)`', text)
-            if anom_m:
-                recovered_prior = anom_m.group(1)
-        record_from = (prior_status if flip_happened
-                       else (ledger_last_to or recovered_prior or "open"))
-        rc = subprocess.run([
-            sys.executable, ta_path, "record", ticket_id,
-            record_from, "closed", "human", reason,
-            "--home", home
-        ], capture_output=True, text=True)
-        if rc.returncode != 0:
-            print(f"finish-stamp: ERROR — record CLI failed (rc={rc.returncode}): {rc.stderr}", file=sys.stderr)
-            return 1
-        print(f"finish-stamp: recorded ledger entry ({record_from} → closed)")
 
     # --- Stage both files (NO || true — fail loud) ---
     repo_root = subprocess.run(
