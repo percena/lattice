@@ -112,9 +112,13 @@ MD
 }
 
 @test "dirty post-commit index (stranded unstaged .lattice change) fails closed" {
-  stage_finish_set
-  # simulate an interrupted loop: a second binder modified but NOT staged
+  # tkt-459 A4: the stranded symptom is a TRACKED binder modified but not
+  # staged (an interrupted per-binder loop). The fixture used to plant an
+  # untracked file, which the assertion no longer counts (--untracked-files=no).
   mkdir -p "$REPO/.lattice/tickets/tkt-8-demo"
+  printf '# tkt-8\n' > "$REPO/.lattice/tickets/tkt-8-demo/README.md"
+  stage_finish_set   # base commit now tracks tkt-8 too
+  # simulate an interrupted loop: the second binder modified but NOT staged
   printf '# tkt-8\n## stranded\n' > "$REPO/.lattice/tickets/tkt-8-demo/README.md"
   run bash "$FC" --message "finish(tkt-7): stamp Finish ledger — pr-12 merged, #7 closed" --repo "$REPO"
   [ "$status" -eq 1 ]
@@ -134,4 +138,15 @@ MD
     --message "finish(tkt-7): stamp Finish ledger — pr-12 merged, #7 closed" --repo "$REPO"
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF "git commit failed"
+}
+
+@test "tkt-459 A4: an untracked file under .lattice does not fail the post-commit clean assertion" {
+  stage_finish_set
+  printf 'fresh review\n' >"$REPO/.lattice/rev-new.md"   # untracked, never staged
+  run bash "$FC" --message "finish(tkt-7): stamp" --repo "$REPO"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "index clean"
+  # the untracked file is still there and still untracked
+  run git -C "$REPO" status --porcelain --untracked-files=all -- .lattice/rev-new.md
+  [ "$output" = "?? .lattice/rev-new.md" ]
 }
