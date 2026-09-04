@@ -76,7 +76,11 @@ COMMIT_OID=$(git -C "$REPO_ROOT" rev-parse HEAD)
 # `git status --porcelain -- <pathspec>` after the commit means stranded staged
 # or unstaged .lattice changes — the classic partial-ledger-commit symptom. Fail
 # closed so the operator investigates before pushing.
-DIRTY=$(git -C "$REPO_ROOT" status --porcelain -- "$PATHSPEC" 2>/dev/null || true)
+# tkt-459 A4: --untracked-files=no — the assertion is about STAGED/UNSTAGED
+# residue of the finish set; a new untracked file under .lattice/ (a fresh
+# review, a metrics snapshot) is not a partial-ledger symptom and must not
+# fail the finish.
+DIRTY=$(git -C "$REPO_ROOT" status --porcelain --untracked-files=no -- "$PATHSPEC" 2>/dev/null || true)
 if [[ -n "$DIRTY" ]]; then
   echo "Error: finish-commit: post-commit index is NOT clean under '$PATHSPEC' (tkt-360 A2) — stranded staged/unstaged changes detected:" >&2
   printf '%s\n' "$DIRTY" | sed 's/^/    /' >&2

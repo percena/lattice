@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/459 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:51:19Z |
+| updated | 2026-09-04T01:50:15Z |
 | adopted | false |
 | summary | Fix pr-N substring discovery, ledger-before-rename ordering, transition-api guards, finish-commit untracked, CI validator step |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,14 +29,14 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-459-finish-stamp-transition-api-correctness` |
 | worktree | sibling `…/lattice.worktrees/tkt-459-finish-stamp-transition-api-correctness/` |
-| prs | (none) |
+| prs | pr-465 — https://github.com/percena/lattice/pull/465 |
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `finish-stamp-ci.py` discovers binders by `\bpr-N\b` (pr-44 ≠ pr-440, bats-proven); push/fetch failure exits non-zero; commit uses the staged set, not `-- .lattice/`.
-- [ ] **A2** `finish-stamp.py` appends the ledger edge before the binder rename and removes it on rename failure; `finish-stamp.bats` + `finish-ledger.bats` green.
-- [ ] **A3** `transition-api.py commit` arity guard → usage + exit 3; `_rollback_ledger` finds the entry anywhere and warns when absent; temp file `.transition-api.*.tmp` unlinked on failure; `transition-api.bats` green.
-- [ ] **A4** `finish-commit.sh` uses `--untracked-files=no`; `finish-stamp.yml` runs the artifact validator before push.
+- [x] **A1** `finish-stamp-ci.py` discovers binders by `\bpr-N\b` (pr-44 ≠ pr-440, bats-proven); push/fetch failure exits non-zero; commit uses the staged set, not `-- .lattice/`.
+- [x] **A2** `finish-stamp.py` appends the ledger edge before the binder rename and removes it on rename failure; `finish-stamp.bats` + `finish-ledger.bats` green.
+- [x] **A3** `transition-api.py commit` arity guard → usage + exit 3; `_rollback_ledger` finds the entry anywhere and warns when absent; temp file `.transition-api.*.tmp` unlinked on failure; `transition-api.bats` green.
+- [x] **A4** `finish-commit.sh` uses `--untracked-files=no`; `finish-stamp.yml` runs the artifact validator before push.
 
 ## Approach
 
@@ -55,6 +55,10 @@ Touch-set: see `paths` row.
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-03 rename-failure rollback in finish-stamp.py → extracted `build_entry()` in transition-api.py and call `_append_ledger_locked` / `_rollback_ledger` in-process instead of the `record` subprocess (source: agent-judgment, reversible, ticket-local; avoids a third copy of the entry builder — chain source: `transition-api.py cmd_record`).
+- 2026-09-03 finish-stamp-ci push/fetch failure exit code → 1 (source: pre-resolved spc-458 A1).
+- 2026-09-03 validator-before-push → implemented as `--validator-script/--validator-baseline` flags on finish-stamp-ci.py rather than a separate workflow step, so the push is guarded in the same process that made the commit and consumer repos can pass their own validator (source: agent-judgment, reversible).
+- 2026-09-03 `finish-commit.bats` "stranded unstaged" fixture planted an UNTRACKED file; re-modelled as a tracked-modified binder (the real tkt-360 symptom) so the test still guards the class after `--untracked-files=no` (source: agent-judgment).
 
 ## Pending decisions
 
@@ -62,11 +66,13 @@ Touch-set: see `paths` row.
 
 ## Attempts
 
-- (none)
+- attempt 1 · 2026-09-03 · direct fix per Approach · suites: finish-stamp-ci 6/6, finish-stamp 9/9, finish-commit 7/7, finish-ledger 58/58, transition-api 42/42, stamp-pr-open 27/27, ensure-workspace-stamp 10/10, transition-parity 8/8 (local bats 1.2.1, root) · ci-local full run pending
 
 ## Notes
 
-- `stamp-pr-open.sh` `|| true` ledger staging is a sibling defect but the file is touched by open PR #453 — NOTICED, not folded in.
+- `stamp-pr-open.sh` `|| true` ledger staging is a sibling defect; #453 has since merged — NOTICED for a follow-up ticket, not folded in.
+- NOTICED-drain (dev red, out-of-paths, 2026-09-03): `.lattice/specs/spc-441-hardening-sweep.md` was flipped `locked → done` by direct commit 17d5663 with A1–A8 unchecked + a stale TL;DR header → `artifacts.yml` red on dev (`spec_done_open_acceptance`, `spec_header_status_mismatch`) — the same class as spc-433/#440. Drained here: boxes checked (all 8 PRs merged, tkt-442..449 closed in 0572c63), header fixed. Recurrence #2 of "locked→done flip has no scripted chokepoint".
+- NOTICED-drain (dev red, out-of-paths, 2026-09-03): `plugins/lattice/hooks/lib/status-row-guard.sh` (extracted by #456) references caller-set variables → `lint.yml` shellcheck `-S warning` SC2154 red on dev. Drained here with a file-level `# shellcheck disable=SC2154` + justification (sourced library contract).
 
 ## References
 
@@ -88,4 +94,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-465 merged: 2026-09-04T01:50:00Z — https://github.com/percena/lattice/pull/465 (base merge)
+- issue #459 closed: 2026-09-04T01:50:08Z (reason: completed) — https://github.com/percena/lattice/issues/459
