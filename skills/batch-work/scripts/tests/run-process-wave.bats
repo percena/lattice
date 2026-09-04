@@ -611,3 +611,38 @@ assert n.get("status") == "transition_failed", (n, nodes)
 assert "tkt-FC2" not in (d.get("settled_tickets") or []), d.get("settled_tickets")
 PY
 }
+
+@test "tkt-463: run_with_timeout falls back to a bash watchdog when timeout(1) is absent (macOS)" {
+  eval "$(sed -n '/^run_with_timeout()/,/^}$/p' "$WAVE")"
+  export -f run_with_timeout
+  # A PATH with only bash/sleep/kill-capable binaries and NO timeout/gtimeout.
+  local nb="$TEST_DIR/nobin"; mkdir -p "$nb"
+  for t in bash sleep true; do ln -s "$(command -v $t)" "$nb/$t"; done
+  run bash -c "PATH='$nb' run_with_timeout 5 bash -c 'echo alive: 1'"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "alive: 1"
+  # the watchdog really kills an overrunning command (exit non-zero, < 5s)
+  local t0 t1; t0=$(date +%s)
+  run bash -c "PATH='$nb' run_with_timeout 1 sleep 5"
+  t1=$(date +%s)
+  [ "$status" -ne 0 ]
+  [ $((t1 - t0)) -lt 4 ]
+}
+
+@test "tkt-463: grace probe reports a live surrogate as spawned even without timeout(1) on PATH" {
+  fast_helper="$TEST_DIR/fast.sh"
+  build_fast_helper "$fast_helper"
+  m="$TEST_DIR/manifest"; wt="$TEST_DIR/wt"; brief="$TEST_DIR/brief"
+  mkdir -p "$wt"; printf 'x\n' >"$brief"
+  printf 'tkt-M\t%s\t%s\t1\n' "$wt" "$brief" >"$m"
+  local nb="$TEST_DIR/nobin2"; mkdir -p "$nb"
+  for t in bash sleep true date sed grep mktemp rm mkdir cat awk sort head tail tr wc uname python3 env nohup kill ls cut dirname basename touch; do
+    b="$(command -v $t 2>/dev/null || true)"; [ -n "$b" ] && ln -sf "$b" "$nb/$t"
+  done
+  run env PATH="$nb" bash "$WAVE" --manifest "$m" --spawn-helper "$fast_helper" --verify-helper "$VERIFY" \
+    --ram-threshold 0 --poll-interval 1 --concurrency 1 --state-file "$TEST_DIR/sf"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "spawned: tkt-M"
+  run bash -c "printf '%s\n' \"\$1\" | grep -c 'spawned-but-dead: tkt-M'" _ "$output"
+  [ "$output" = "0" ]
+}
