@@ -121,7 +121,9 @@ d = json.loads(os.environ["CP_OUT"])
 assert d["schema"] == 1, d
 assert d["summary"] == {"pass": 7, "fail": 0, "skip": 0}, d["summary"]
 assert d["summary_line"] == "claim-probes: 7 pass, 0 fail, 0 skip"
-assert d["lattice_home"] == sys.argv[1], d["lattice_home"]
+# tkt-463: compare realpaths — macOS $TMPDIR is /var/… but the script reports
+# the resolved /private/var/… (macOS bats job, PR #466).
+assert os.path.realpath(d["lattice_home"]) == os.path.realpath(sys.argv[1]), d["lattice_home"]
 assert d["overlay"] is None
 assert d["degraded"] == [], d["degraded"]
 ids = [p["id"] for p in d["probes"]]
