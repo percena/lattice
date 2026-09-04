@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/462 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T17:26:29Z |
+| updated | 2026-09-04T01:33:03Z |
 | adopted | false |
 | summary | Fix skill-count/co-install/script-table drift, phantom deep-review state, broken links, CHANGELOG gaps, orphan bats suite, root guards |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-462-docs-drift-test-plumbing` |
 | worktree | sibling `…/lattice.worktrees/tkt-462-docs-drift-test-plumbing/` |
-| prs | (none) |
+| prs | pr-469 — https://github.com/percena/lattice/pull/469 |
 
 ## Acceptance (this slice)
 
