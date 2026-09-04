@@ -4,7 +4,7 @@ Shipped with `create-spec`. No monorepo docs required at runtime.
 
 ## Role
 
-**First-pass product/方案 alignment host** + durable Spec writer.
+**First-pass product/solution alignment host** + durable Spec writer.
 
 | Input | Action |
 | --- | --- |

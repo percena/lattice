@@ -46,7 +46,7 @@ For each id in `--ids` (or, under `--groups`, **every** binder under `.lattice/t
 1. Locate `.lattice/tickets/tkt-<id>-*/README.md`. If missing → fail closed: "ticket <id> has no binder; run create-tickets first".
 2. Parse the binder frontmatter/table for: `github`, `parallel_group`, `blocked_by`, `paths`, `worktree_bind`, `primary_ticket`, `autonomy`.
 3. Derive `<slug>` from the binder directory name (`tkt-<id>-<slug>`).
-4. **Autonomy filter** (spc-433): if `--min-autonomy` (DEFAULT `batch_min_autonomy: 3`) is set and the ticket's `autonomy` field is below the threshold, record never-spawned reason `autonomy-below-threshold` and exclude from the DAG. The ticket stays `queued` (still schedulable later for day-interactive). Tickets without an `autonomy` row default to 2 (medium) per `autonomy-rubric.md` — below default threshold 3, so legacy binders are filtered unless `--min-autonomy 0` overrides. Print filtered tickets in the dry-run report.
+4. **Autonomy filter** (spc-433; scripted by tkt-461): run `python3 "$SKILL_ROOT/scripts/autonomy-filter.py" --min-autonomy <N> --home "$PH" <ids…>` (DEFAULT `batch_min_autonomy: 3`; `0` disables). Every id in its `skipped` list gets never-spawned reason `autonomy-below-threshold` and is excluded from the DAG; `missing_binder` ids fail closed per step 1. The ticket stays `queued` (still schedulable later for day-interactive). Tickets without an `autonomy` row default to 2 (medium) per `autonomy-rubric.md` — below default threshold 3, so legacy binders are filtered unless `--min-autonomy 0` overrides. Print filtered tickets in the dry-run report.
 
 ## BUILD DAG
 

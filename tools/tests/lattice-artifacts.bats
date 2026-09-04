@@ -689,3 +689,21 @@ PY
   run python3 "$VAL" --home "$FIX/ledger-coverage" --json
   [ -z "$(printf '%s\n' "$output" | grep -F illegal_transition_edge)" ]
 }
+
+@test "tkt-461 A8: autonomy 0-4 on a C-mode ticket passes; legacy (pre-cutoff) and M-mode tickets without the row do not warn" {
+  run python3 "$VAL" --home "$FIX/autonomy-pass" --json
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF '"ok": true'
+  [ -z "$(printf '%s\n' "$output" | grep -F autonomy_missing)" ]
+  [ -z "$(printf '%s\n' "$output" | grep -F autonomy_out_of_range)" ]
+}
+
+@test "tkt-461 A8: autonomy outside 0-4 errors; a post-cutoff C-mode ticket without the row warns" {
+  run python3 "$VAL" --home "$FIX/autonomy-fail" --json
+  [ "$status" -eq 1 ]
+  printf '%s\n' "$output" | grep -qF '"ok": false'
+  printf '%s\n' "$output" | grep -qF autonomy_out_of_range
+  printf '%s\n' "$output" | grep -qF "tkt-511-range"
+  printf '%s\n' "$output" | grep -qF autonomy_missing
+  printf '%s\n' "$output" | grep -qF "tkt-512-missing"
+}

@@ -47,7 +47,7 @@ When the scorer is unsure, default to 2. This means the ticket is mostly self-su
 
 ## batch-work filter
 
-`batch-work --min-autonomy <level>` (default 3) filters tickets below the threshold from night-batch execution. Filtered tickets stay `queued` with never-spawned reason `autonomy-below-threshold` — they are not failed, just deferred to day-interactive.
+`batch-work --min-autonomy <level>` (default 3) filters tickets below the threshold from night-batch execution. Filtered tickets stay `queued` with never-spawned reason `autonomy-below-threshold` — they are not failed, just deferred to day-interactive. The scripted step is `batch-work/scripts/autonomy-filter.py --min-autonomy N --home <lattice-home> tkt-A tkt-B …` (JSON `selected` / `skipped` / `missing_binder`; missing row → 2; `0` disables) — tkt-461. The validator (`validate-lattice-artifacts.py`) errors on a row outside 0–4 (`autonomy_out_of_range`) and warns when a C-mode Spec-bound ticket created after spc-433 landed has no row (`autonomy_missing`).
 
 ## start-work --unattended
 
@@ -58,6 +58,6 @@ When `start-work --unattended` is active, the autonomy score determines which `#
 
 ## Reference
 
-- Spec: `spc-433` — Vibe Coding 流程优化
+- Spec: `spc-433` — Vibe Coding flow optimization (autonomy score, circuit breaker, unattended mode, context snapshot)
 - Decision policy: `decision-policy.md` (self-decision chain)
 - Fallback policy: `fallback-policy.md` (unattended caps)

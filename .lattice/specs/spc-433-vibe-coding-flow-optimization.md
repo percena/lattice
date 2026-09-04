@@ -85,6 +85,8 @@ superseded_by: null
 - `--unattended` 模式下 Agent 自主决策出错时的回滚成本 — 需确保 git worktree 隔离能兜底
 - 快照卡片与现有 transition-ledger / finish-ledger 的关系需厘清，避免职责重叠
 
+**Resolution (2026-09-03, spc-458 / tkt-461):** retry granularity — start-work `--budget` is per-ticket (retries = `## Attempts` entries across sessions; trip → `stuck`/`unblock`), batch-work `--budget` is per-batch (never-spawned → `deferred`/`budget-exhausted`); snapshot vs ledger — the snapshot is a gitignored reload card, the `## Attempts` ledger + status FSM + transition ledger remain the durable handoff. A2 now has a scripted step (`batch-work/scripts/autonomy-filter.py`); A1 has validator checks (`autonomy_out_of_range` / `autonomy_missing`); A3/A6 remain instruction-shaped and are labelled so in start-work.
+
 ## References
 
 - Prior Spec: spc-145（worktree 纪律 hard-enforcement）— 本 spec 的断路器依赖 worktree 隔离
