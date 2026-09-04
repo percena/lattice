@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | feat, P2 |
 | github | https://github.com/percena/lattice/issues/461 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T17:20:37Z |
+| updated | 2026-09-04T01:31:43Z |
 | adopted | false |
 | summary | Give spc-433 the validator check, gitignore generator, autonomy filter script and one consistent budget semantics it promised |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-461-spc433-closure-mechanisms` |
 | worktree | sibling `…/lattice.worktrees/tkt-461-spc433-closure-mechanisms/` |
-| prs | (none) |
+| prs | pr-468 — https://github.com/percena/lattice/pull/468 |
 
 ## Acceptance (this slice)
 
