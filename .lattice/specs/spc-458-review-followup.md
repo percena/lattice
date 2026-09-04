@@ -10,7 +10,7 @@ summary: "Fix verified defects from the 2026-09-03 full-repo review not covered 
 created: 2026-09-03
 updated: 2026-09-03
 tickets: [tkt-459, tkt-460, tkt-461, tkt-462, tkt-463]
-prs: []
+prs: [pr-464, pr-465, pr-466]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -103,5 +103,5 @@ Source: review session 2026-09-03 (this conversation; findings recorded in the t
 
 - Primary: [#458](https://github.com/percena/lattice/issues/458)
 - Tickets: tkt-459, tkt-460, tkt-461, tkt-462, tkt-463
-- PRs: (pending)
+- PRs: pr-464 (spec + binders), pr-465 (tkt-459), pr-466 (tkt-463); tkt-460/461/462 PRs added at their open time
 - Reviews: (none)

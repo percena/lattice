@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/462 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T16:51:19Z |
+| updated | 2026-09-03T17:26:29Z |
 | adopted | false |
 | summary | Fix skill-count/co-install/script-table drift, phantom deep-review state, broken links, CHANGELOG gaps, orphan bats suite, root guards |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -33,9 +33,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A12** one true count (15 user-facing + `_lattice-lib`) in `_lattice-lib/SKILL.md`, `llms.txt`, `plugins/lattice/README.md`; co-install list includes `review-lineage`; script table includes `transition-api.py`; `docs/workflow-fsm.md` describes `deep-review` as a triage class (mermaid note), not an M2 state.
-- [ ] **A13** every relative link in `skills/**/SKILL.md` and `skills/**/references/**/*.md` resolves from the file's own directory (link-check command + output pasted in PR Verification); `CHANGELOG.md` gains `[0.4.0]` and `[0.5.0]` sections from the release commits and `[Unreleased]` bullets for spc-433 (#438), #440, #450, spc-458.
-- [ ] **A14** `docs-truth.bats` lives under `skills/finish-work/scripts/tests/` (depth-adjusted, 8/8 green) so CI discovers it; `ci-local.bats` and `check-installed-skill-drift.bats` chmod-000 tests `skip` when `[ "$(id -u)" -eq 0 ]`.
+- [x] **A12** one true count (15 user-facing + `_lattice-lib`) in `_lattice-lib/SKILL.md`, `llms.txt`, `plugins/lattice/README.md`; co-install list includes `review-lineage`; script table includes `transition-api.py`; `docs/workflow-fsm.md` describes `deep-review` as a triage class (mermaid note), not an M2 state.
+- [x] **A13** every relative link in `skills/**/SKILL.md` and `skills/**/references/**/*.md` resolves from the file's own directory (link-check command + output pasted in PR Verification); `CHANGELOG.md` gains `[0.4.0]` and `[0.5.0]` sections from the release commits and `[Unreleased]` bullets for spc-433 (#438), #440, #450, spc-458.
+- [x] **A14** `docs-truth.bats` lives under `skills/finish-work/scripts/tests/` (depth-adjusted, 8/8 green) so CI discovers it; `ci-local.bats` and `check-installed-skill-drift.bats` chmod-000 tests `skip` when `[ "$(id -u)" -eq 0 ]`.
 
 ## Approach
 
@@ -53,6 +53,10 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- 2026-09-04 link convention → file-relative (what Markdown renderers and the README "self-contained" claim assume); 7 backtick path refs corrected (batch-work SKILL, create-pr SKILL ×2, ticket-binder template, start-work policy, lineage-audit template ×2); generate-wiki template placeholders (`{{PATH}}`, consumer `../README.md`) left as-is — they are rendered into the consumer repo (source: agent-judgment, reversible).
+- 2026-09-04 `deep-review` in docs/workflow-fsm.md → mermaid `note right of rework` + table row without an arrow, so the parity test's arrow parser skips it and the diagram no longer draws a state that `status_vocab.py` lacks (source: agent-judgment).
+- 2026-09-04 CHANGELOG `[Unreleased]` → written now for spc-433/#440/spc-441/spc-458 and compare links added; the per-landing vs at-release policy stays a Pending decision for ADR-005 (source: pre-resolved must-ask → parked).
+- 2026-09-04 orphan suite → `git mv` to `skills/finish-work/scripts/tests/` with `SKILL_DIR` depth +1; CI glob untouched (source: pre-resolved spc-458 D4).
 
 ## Pending decisions
 
@@ -60,7 +64,7 @@
 
 ## Attempts
 
-- (none)
+- attempt 1 · 2026-09-04 · direct fix per Approach · link scan 0 unresolved (excluding generate-wiki placeholders), transition-parity 8/8, batch-work docs-truth 4/4, moved finish-work docs-truth 8/8 (now under the CI glob), root-guard tests skip as uid 0, validate-skills OK
 
 ## Notes
 

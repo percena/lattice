@@ -121,6 +121,6 @@ Why this run (cadence / post-soak / operator ask), the home + window mined, and 
 
 ## References
 
-- Sensors: `skills/review-lineage/scripts/lineage-metrics.sh`, `scripts/claim-probes.sh`, `references/probes.md`
+- Sensors: `skills/review-lineage/scripts/lineage-metrics.sh`, `../../scripts/claim-probes.sh`, `../probes.md`
 - Prior lineage audits / method origin: `rev-…`, `rev-20260902-015425Z`
 - Laws cited: ADR-004 §1, ADR-007 §3/§8, ADR-012 §1/§4/§5
