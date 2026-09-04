@@ -10,11 +10,11 @@
 | priority | P3 |
 | labels | chore, P3 |
 | github | https://github.com/percena/lattice/issues/463 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-04T00:01:41Z |
+| updated | 2026-09-04T00:06:18Z |
 | adopted | false |
 | summary | Pin bats-core by commit SHA in both workflows; ci-local mirrors the artifacts base-baseline comparison |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-463-ci-bats-sha-pin-baseline` |
 | worktree | sibling `…/lattice.worktrees/tkt-463-ci-bats-sha-pin-baseline/` |
-| prs | (none) |
+| prs | pr-466 — https://github.com/percena/lattice/pull/466 |
 
 ## Acceptance (this slice)
 
