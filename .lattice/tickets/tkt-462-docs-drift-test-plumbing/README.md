@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | docs, P2 |
 | github | https://github.com/percena/lattice/issues/462 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-04T01:33:03Z |
+| updated | 2026-09-04T02:47:42Z |
 | adopted | false |
 | summary | Fix skill-count/co-install/script-table drift, phantom deep-review state, broken links, CHANGELOG gaps, orphan bats suite, root guards |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -84,4 +84,6 @@ Local files in `./assets/`.
 
 ## Finish
 
-- (none yet)
+
+- pr-469 merged: 2026-09-04T02:47:26Z — https://github.com/percena/lattice/pull/469 (base merge)
+- issue #462 closed: 2026-09-04T02:47:34Z (reason: completed) — https://github.com/percena/lattice/issues/462
