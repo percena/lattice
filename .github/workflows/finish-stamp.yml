@@ -33,6 +33,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: finish-stamp-${{ github.event_name == 'workflow_dispatch' && inputs.pr || github.event.pull_request.number }}
