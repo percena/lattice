@@ -56,4 +56,4 @@ jobs:
           brew install jq python3 2>/dev/null || true
       - name: Run lattice hook tests
         working-directory: plugins/lattice
-        run: bats scripts/tests/
+        run: bats --print-output-on-failure scripts/tests/

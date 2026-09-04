@@ -118,9 +118,12 @@ while [[ $# -gt 0 ]]; do
 done
 # Write the exit/result artifact the worker would have written (spc-254 A1).
 if [[ -n "${BATCH_RESULT_FILE:-}" && "${FAKE_EXIT:-0}" != "none" ]]; then
+  # tkt-463: `if`, not `[[ ]] &&` — under bash 3.2 (macOS) a failing && list
+  # as the group's last command trips `set -e` and the helper dies before
+  # spawning its surrogate.
   { printf 'exit=%s\n' "${FAKE_EXIT:-0}"
-    [[ -n "${FAKE_PR:-}" ]] && printf 'pr=%s\n' "${FAKE_PR}"
-    [[ -n "${FAKE_OID:-}" ]] && printf 'oid=%s\n' "${FAKE_OID}"
+    if [[ -n "${FAKE_PR:-}" ]]; then printf 'pr=%s\n' "${FAKE_PR}"; fi
+    if [[ -n "${FAKE_OID:-}" ]]; then printf 'oid=%s\n' "${FAKE_OID}"; fi
   } > "$BATCH_RESULT_FILE"
 fi
 # Surrogate sleeps past the grace probe (alive at grace → `running`) then

@@ -64,4 +64,6 @@ jobs:
           suites=()
           while IFS= read -r d; do suites+=("$d"); done < <(find skills tools -type d \( -path '*/scripts/tests' -o -path 'tools/tests' \) | sort)
           echo "suites: ${suites[*]}"
-          bats "${suites[@]}"
+          # tkt-463: print the failing test's captured output so a runner-only
+          # failure (timing, BSD tools) is diagnosable from the log.
+          bats --print-output-on-failure "${suites[@]}"
