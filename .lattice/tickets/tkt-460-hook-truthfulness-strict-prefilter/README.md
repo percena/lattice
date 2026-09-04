@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/460 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-03T16:51:19Z |
-| updated | 2026-09-03T17:03:23Z |
+| updated | 2026-09-04T01:31:22Z |
 | adopted | false |
 | summary | Hook docs/description match code; pretooluse hook exits 2; strict-mode jq pre-filter removes ~1s/Bash-call tax |
 | spec | spc-458 — Review follow-up (path: ../../specs/spc-458-review-followup.md) |
@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-460-hook-truthfulness-strict-prefilter` |
 | worktree | sibling `…/lattice.worktrees/tkt-460-hook-truthfulness-strict-prefilter/` |
-| prs | (none) |
+| prs | pr-467 — https://github.com/percena/lattice/pull/467 |
 
 ## Acceptance (this slice)
 
