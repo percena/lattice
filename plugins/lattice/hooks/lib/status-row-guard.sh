@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154
+# ^ sourced library: abs_path / tool_name / hook_data / file_path are set by the
+#   caller (intercept-shippable-write.sh) before the guard function runs (tkt-459
+#   NOTICED-drain: lint.yml shellcheck -S warning went red on dev at #456).
 # L3-status-row guard (spc-337 A4 / ADR-012 §2)
 #
 # Sourced by intercept-shippable-write.sh after the L1 location gate allows.

@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: Project-wide hardening sweep
 
 > **TL;DR:** Full-project review surfaced 2 security issues (GHA expression injection, fragile eval+python3), CI gaps (no macOS matrix, untested hook), and maintainability debt (CODEOWNERS, code duplication, large hook file, missing docs). This spec covers all confirmed findings.
-> **Kind:** chore · **Status:** locked · **Mode:** C · **Priority:** P2
+> **Kind:** chore · **Status:** done · **Mode:** C · **Priority:** P2
 > **Path:** spc-441 → tkt-442..449 → pr-…
 
 ## Why
@@ -46,14 +46,14 @@ A systematic project review against industry best practices identified 12 findin
 
 ## Acceptance
 
-- [ ] **A1** `finish-stamp.yml` routes `inputs.repo` and `inputs.base` through env vars, not direct `${{ }}` interpolation in `run:` blocks
-- [ ] **A2** All 8 `eval "$(python3 ...)"` sites replaced with `read`-based or `jq`-based variable assignment; no `eval` on external data remains
-- [ ] **A3** CI runs bats suites on both `ubuntu-latest` and `macos-latest`
-- [ ] **A4** `intercept-gh-issue-create.sh` has a bats test file covering block/allow paths
-- [ ] **A5** `.github/CODEOWNERS` exists with entries for `plugins/lattice/hooks/`, `.github/workflows/`, and `tools/`
-- [ ] **A6** The `_lattice-home.sh` walk-up pattern in `alignment-check.sh`, `ci-gate-check.sh`, `queue-health.sh` is replaced by a single shared function
-- [ ] **A7** `intercept-shippable-write.sh` L3 status-row guard is in a separate file; existing tests still pass
-- [ ] **A8** `evals/routing/README.md` documents the eval tiers and how to run them
+- [x] **A1** `finish-stamp.yml` routes `inputs.repo` and `inputs.base` through env vars, not direct `${{ }}` interpolation in `run:` blocks
+- [x] **A2** All 8 `eval "$(python3 ...)"` sites replaced with `read`-based or `jq`-based variable assignment; no `eval` on external data remains
+- [x] **A3** CI runs bats suites on both `ubuntu-latest` and `macos-latest`
+- [x] **A4** `intercept-gh-issue-create.sh` has a bats test file covering block/allow paths
+- [x] **A5** `.github/CODEOWNERS` exists with entries for `plugins/lattice/hooks/`, `.github/workflows/`, and `tools/`
+- [x] **A6** The `_lattice-home.sh` walk-up pattern in `alignment-check.sh`, `ci-gate-check.sh`, `queue-health.sh` is replaced by a single shared function
+- [x] **A7** `intercept-shippable-write.sh` L3 status-row guard is in a separate file; existing tests still pass
+- [x] **A8** `evals/routing/README.md` documents the eval tiers and how to run them
 
 ## Decisions (principal, user-confirmed)
 
@@ -76,5 +76,5 @@ A systematic project review against industry best practices identified 12 findin
 
 - Primary: [#441](https://github.com/percena/lattice/issues/441)
 - Tickets: (pending create-tickets)
-- PRs: (pending)
+- PRs: pr-450, pr-453, pr-451, pr-452, pr-454, pr-457, pr-456, pr-455 (all merged 2026-09-03; tkt-442..449 closed — see finish ledger 0572c63)
 - Reviews: (none)

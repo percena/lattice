@@ -57,6 +57,8 @@ Touch-set: see `paths`. Wait for #451 (macOS matrix) to merge, then rebase.
 
 ## Attempts
 
+- attempt 2 · 2026-09-04 · PR #466 CI: macOS job now completes (hang fixed) but batch-work wave tests A1/A2/A6 + coordinator A5 wiring failed on BOTH runners — surrogate `nohup sleep 1` vs several python3 startups before the 0.3s grace probe → `spawned-but-dead` on slow runners (never reproducible locally, incl. bats 1.13 + non-root). Surrogates now sleep 4s. Also carried the two dev reds (spc-441 spec done-state, SC2154) so this PR can be the first to merge.
+
 - attempt 1 · 2026-09-04 · pin file + workflow sha verify + ci-local base-baseline step + macOS hang fix · suites: next-artifact-id 12/12 (+1), ci-local (tkt-463 tests) 2/2, shellcheck OK, ci-local --fast all green (bats parity degraded: local 1.2.1)
 
 ## Notes

@@ -309,7 +309,7 @@ while [[ $# -gt 0 ]]; do
     --state-file) state="$2"; shift 2 ;; *) shift ;;
   esac
 done
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"

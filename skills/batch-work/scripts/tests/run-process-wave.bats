@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
     *) shift ;;
   esac
 done
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"
@@ -125,7 +125,11 @@ if [[ -n "${BATCH_RESULT_FILE:-}" && "${FAKE_EXIT:-0}" != "none" ]]; then
 fi
 # Surrogate sleeps past the grace probe (alive at grace → `running`) then
 # settles at the barrier so classify_node runs (not spawned-but-dead).
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+# tkt-463: 4s, not 1s — the wave runs several python3 startups (coordinator
+# record-spawn, transition-api) BEFORE its 0.3s grace probe; on GitHub runners
+# that exceeded 1s, the surrogate was already dead and every A1/A2/A6 test
+# collapsed to spawned-but-dead (both ubuntu and macOS, PR #466).
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"
@@ -393,7 +397,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in --cwd) cwd="$2"; shift 2 ;; --brief-file) brief="$2"; shift 2 ;; --state-file) state="$2"; shift 2 ;; *) shift ;; esac
 done
 [[ -n "${BATCH_RESULT_FILE:-}" ]] && printf 'exit=NaN\npr=\noid=\n' > "$BATCH_RESULT_FILE"
-( cd "$cwd" && exec nohup sleep 1 >/dev/null 2>&1 ) &
+( cd "$cwd" && exec nohup sleep 4 >/dev/null 2>&1 ) &
 pid=$!; disown "$pid" 2>/dev/null || true
 echo "spawned: pid=$pid worktree=$cwd"
 echo "state-file=$state"
