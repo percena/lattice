@@ -11,11 +11,11 @@ on:
       - "tools/validate-lattice-artifacts.py"
       - ".github/workflows/artifacts.yml"
   pull_request:
-    paths:
-      - ".lattice/**"
-      - "tools/validate-lattice-artifacts.py"
-      - ".github/workflows/artifacts.yml"
-
+    # tkt-480 A3: dev branch protection requires `lattice-artifacts` on EVERY
+    # PR, but a path filter here meant code/docs-only PRs never triggered the
+    # workflow → permanently BLOCKED (e.g. PR #478). The validator validates
+    # the whole .lattice tree anyway, so run it on every PR. (The push trigger
+    # above keeps its path filter — push only needs to run when artifacts change.)
 permissions:
   contents: read
 
