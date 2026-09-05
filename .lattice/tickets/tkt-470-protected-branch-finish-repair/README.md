@@ -10,11 +10,11 @@
 | priority | P0 |
 | labels | bug, github_actions, P0 |
 | github | https://github.com/percena/lattice/issues/470 |
-| status | in-progress |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:02:59Z |
-| updated | 2026-09-05T02:42:33Z |
+| updated | 2026-09-05T03:14:16Z |
 | adopted | false |
 | summary | Replace direct protected-base push with idempotent repair branch/PR protocol; aggregate child failures; postcondition verification |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |
@@ -58,3 +58,8 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+
+## Finish
+
+- pr-476 merged: 2026-09-05T03:13:25Z — https://github.com/percena/lattice/pull/476 (base merge)
+- issue #470 closed: 2026-09-05T03:13:46Z — https://github.com/percena/lattice/issues/470
