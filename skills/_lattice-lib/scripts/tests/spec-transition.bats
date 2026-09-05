@@ -100,7 +100,8 @@ commit_all() { git add -A && git commit -qm fixture; }
 
 @test "A21: an open (non-closed) child refuses done without mutation" {
   write_child; PRS=pr-5 write_spec; commit_all
-  sed -i 's/| status | closed |/| status | queued |/' .lattice/tickets/tkt-1-child/README.md
+  sed -i.bak 's/| status | closed |/| status | queued |/' .lattice/tickets/tkt-1-child/README.md
+  rm -f .lattice/tickets/tkt-1-child/README.md.bak
   run python3 "$ST" done spc-1 claude \
     --soak-evidence-ref pr-5 --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
@@ -186,7 +187,8 @@ EOF
   write_child; PRS=pr-5 write_spec; commit_all
   OPID="deadbeef-0000-0000-0000-00000000face"
   cp .lattice/specs/spc-1-demo.md ".lattice/specs/.spec-transition.${OPID}.tmp"
-  sed -i 's/^status: locked/status: done/' ".lattice/specs/.spec-transition.${OPID}.tmp"
+  sed -i.bak 's/^status: locked/status: done/' ".lattice/specs/.spec-transition.${OPID}.tmp"
+  rm -f ".lattice/specs/.spec-transition.${OPID}.tmp.bak"
   printf '{"ts":"2026-09-05T05:00:00Z","spec":"spc-1","ticket":"spc-1","from":"locked","to":"done","owner":"claude","reason":"sim","guard":"g","operation_id":"%s","soak_evidence_ref":"pr-5","soak_attestation_ts":"2026-09-05T05:00:00Z"}\n' "$OPID" \
     > .lattice/.transition-ledger/spc-1.jsonl
   git add -A && git commit -qm crash-state
@@ -235,7 +237,8 @@ EOF
 
 @test "A24: validator flags a hand-edited done Spec with no ledger (spec_terminal_without_ledger)" {
   write_child; PRS=pr-5 write_spec; commit_all
-  sed -i 's/^status: locked/status: done/' .lattice/specs/spc-1-demo.md
+  sed -i.bak 's/^status: locked/status: done/' .lattice/specs/spc-1-demo.md
+  rm -f .lattice/specs/spc-1-demo.md.bak
   git add -A && git commit -qm hand-edit
   run python3 "$VAL" --home "$LATTICE_HOME" --json
   printf '%s' "$output" | tr -d '\n' | grep -qF '"code": "spec_terminal_without_ledger"'
@@ -252,7 +255,8 @@ EOF
 
 @test "A25: close-spec-primary refuses to close the epic when the transition fails" {
   write_child; PRS=pr-5 write_spec; commit_all
-  sed -i 's/^prs: \[pr-5\]/prs: [pr-9]/' .lattice/specs/spc-1-demo.md
+  sed -i.bak 's/^prs: \[pr-5\]/prs: [pr-9]/' .lattice/specs/spc-1-demo.md
+  rm -f .lattice/specs/spc-1-demo.md.bak
   git add -A && git commit -qm mismatch
   mkdir -p bin
   printf '#!/usr/bin/env bash\necho "GH-CALLED: $*" >> "$REPO/gh-calls.log"\n' > bin/gh
