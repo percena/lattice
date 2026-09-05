@@ -12,6 +12,11 @@ Decision 1). This GHA is the SAFETY NET: catches local-stamp failures, repairs
 Mode C ledger discontinuity, and verifies the local stamp landed. Race with the
 local stamp is benign — both paths are idempotent (spc-416 Decision 7).
 
+tkt-470: on protected branches, direct push fails because the generated commit
+lacks required checks (bats, lattice-artifacts). Instead of a direct push, the
+safety net creates/updates a deterministic repair branch + PR that receives
+normal required checks.
+
 Usage:
   python3 finish-stamp-ci.py --pr <N> --repo <owner/name> [--lattice-home .lattice] [--dry-run]
 """
@@ -131,20 +136,70 @@ def staged_lattice_files():
     return [f for f in r.stdout.strip().splitlines() if f.startswith(".lattice/")]
 
 
-def commit_and_push(base_ref, pr_num, dry_run, validator=None):
-    """Commit staged .lattice/ changes and push to base_ref. Returns rc
-    (0 pushed/nothing, 1 failed, 2 race — caller re-stamps + retries).
-    `validator` (optional argv list) runs after the commit and before the
-    push; a non-zero validator aborts the push (tkt-459 A4)."""
+def verify_binder_postconditions(binders, lattice_home):
+    """Verify each discovered binder is in a consistent terminal state.
+
+    Returns a list of (binder_path, reason) for each inconsistent binder.
+    tkt-470 A3: staged-empty must not return success when postconditions fail.
+    """
+    inconsistent = []
+    for binder in binders:
+        try:
+            text = open(binder, encoding="utf-8").read()
+        except OSError:
+            inconsistent.append((binder, "cannot read binder"))
+            continue
+
+        # Check status is terminal (closed)
+        sm = re.search(r'\|\s*status\s*\|\s*(\S+)\s*\|', text)
+        if not sm:
+            inconsistent.append((binder, "no status row"))
+            continue
+        status = sm.group(1)
+        if status != "closed":
+            inconsistent.append((binder, f"status={status}, expected closed"))
+            continue
+
+        # Check transition ledger has a terminal entry
+        tid_m = re.match(r'^(tkt-[1-9][0-9]*)', os.path.basename(os.path.dirname(binder)))
+        if not tid_m:
+            continue
+        ticket_id = tid_m.group(1)
+        ledger = pathlib.Path(lattice_home) / ".transition-ledger" / f"{ticket_id}.jsonl"
+        if not ledger.exists():
+            inconsistent.append((binder, f"no transition ledger for {ticket_id}"))
+            continue
+        try:
+            lines = ledger.read_text(encoding="utf-8").strip().splitlines()
+            if not lines:
+                inconsistent.append((binder, f"empty transition ledger for {ticket_id}"))
+                continue
+            last_entry = json.loads(lines[-1])
+            if last_entry.get("to") != "closed":
+                inconsistent.append((binder, f"ledger last to={last_entry.get('to')!r}, expected closed"))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            inconsistent.append((binder, f"ledger parse error: {exc}"))
+
+    return inconsistent
+
+
+def commit_and_repair_pr(base_ref, pr_num, dry_run, validator=None, repo=None):
+    """Commit staged .lattice/ changes and create/update a repair branch + PR.
+
+    tkt-470 A1: instead of a direct push to the (potentially protected) base,
+    push to a deterministic repair branch and create/update a PR that receives
+    normal required checks.
+
+    Returns rc (0 success/nothing, 1 failed).
+    """
     staged = staged_lattice_files()
     if not staged:
-        print("finish-stamp-ci: no staged changes — local stamp already landed or nothing to repair")
         return 0
 
     print(f"finish-stamp-ci: staged {len(staged)} file(s): {staged}")
 
     if dry_run:
-        print(f"[dry-run] would commit + push to {base_ref}")
+        print(f"[dry-run] would commit + create repair PR to {base_ref}")
         return 0
 
     subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
@@ -152,9 +207,7 @@ def commit_and_push(base_ref, pr_num, dry_run, validator=None):
                     "41898282+github-actions[bot]@users.noreply.github.com"], check=True)
 
     msg = f"chore(ci): GHA safety-net ledger stamp — pr-{pr_num} merged"
-    # tkt-459 A1: commit the STAGED set only. `git commit -- .lattice/` commits
-    # the working-tree content of every tracked file under .lattice/, sweeping
-    # in unrelated unstaged edits the stamp never staged.
+    # tkt-459 A1: commit the STAGED set only.
     cr = run(["git", "commit", "-m", msg])
     if cr.returncode != 0:
         print(f"finish-stamp-ci: git commit failed: {cr.stderr}", file=sys.stderr)
@@ -164,29 +217,52 @@ def commit_and_push(base_ref, pr_num, dry_run, validator=None):
         vrc = run_validator(validator)
         if vrc != 0:
             print("finish-stamp-ci: artifact validator FAILED on the stamped tree — "
-                  "NOT pushing (the safety-net commit stays local to the runner)",
+                  "NOT creating repair PR",
                   file=sys.stderr)
             return 1
 
-    push = run(["git", "push", "origin", f"HEAD:{base_ref}"])
-    if push.returncode == 0:
-        print(f"finish-stamp-ci: pushed safety-net stamp to {base_ref}")
-        return 0
+    repair_branch = f"lattice/finish-repair/{base_ref}"
 
-    # Push failed — likely a race (local stamp or another run pushed first).
-    # Reset to remote, re-run stamps (idempotent), commit only if new changes.
-    print(f"finish-stamp-ci: push failed (race?) — fetching {base_ref} and re-verifying")
-    fetch = run(["git", "fetch", "origin", f"{base_ref}:refs/remotes/origin/{base_ref}"])
-    if fetch.returncode != 0:
-        # tkt-459 A1: was `return 0` ("non-fatal") — a green workflow with an
-        # unstamped merge is exactly the silent-failure class the safety net
-        # exists to catch. Fail loud; the operator re-dispatches the workflow.
-        print(f"finish-stamp-ci: fetch failed: {fetch.stderr} — safety-net stamp NOT landed",
+    # tkt-470 A1: push to a repair branch, not directly to the protected base.
+    push = run(["git", "push", "origin", f"HEAD:{repair_branch}", "--force"])
+    if push.returncode != 0:
+        print(f"finish-stamp-ci: push to repair branch {repair_branch} failed: {push.stderr}",
               file=sys.stderr)
         return 1
 
-    run(["git", "reset", "--hard", f"origin/{base_ref}"])
-    return 2  # signal: re-stamp + retry push (handled by caller)
+    print(f"finish-stamp-ci: pushed safety-net stamp to repair branch {repair_branch}")
+
+    # tkt-470 A4: check if a PR already exists for this repair branch.
+    existing_pr = gh_json(["pr", "list", "--repo", repo or "",
+                           "--head", repair_branch, "--base", base_ref,
+                           "--state", "open", "--json", "number,url", "--limit", "1"])
+
+    if existing_pr and len(existing_pr) > 0:
+        pr_url = existing_pr[0].get("url", "")
+        pr_number = existing_pr[0].get("number", "?")
+        print(f"finish-stamp-ci: repair PR #{pr_number} already exists — force-pushed update: {pr_url}")
+        return 0
+
+    # tkt-470 A5: create a new repair PR — fail loud on creation failure.
+    pr_title = f"chore(ci): safety-net ledger repair — pr-{pr_num}"
+    pr_body = (f"Automated safety-net repair: the local finish stamp for pr-{pr_num} "
+               f"did not land on `{base_ref}`. This PR carries the missing ledger/binder "
+               f"updates.\n\nCreated by `finish-stamp-ci.py` (spc-416 A6, tkt-470 A1).")
+
+    pr_create = run(["gh", "pr", "create",
+                     "--repo", repo or "",
+                     "--base", base_ref,
+                     "--head", repair_branch,
+                     "--title", pr_title,
+                     "--body", pr_body])
+    if pr_create.returncode != 0:
+        print(f"finish-stamp-ci: repair PR creation FAILED: {pr_create.stderr}",
+              file=sys.stderr)
+        return 1
+
+    pr_url = pr_create.stdout.strip()
+    print(f"finish-stamp-ci: created repair PR: {pr_url}")
+    return 0
 
 
 def run_validator(validator):
@@ -250,51 +326,47 @@ def main():
     script_dir = os.path.dirname(os.path.realpath(__file__))
     finish_ledger = os.path.join(script_dir, "finish-ledger.sh")
 
-    # Stamp pass 1
+    # tkt-470 A2: accumulate child stamp failures.
+    child_failures = 0
     for binder in binders:
         if args.dry_run:
             print(f"  [dry-run] would stamp: {binder}")
             continue
         rc = run_stamp(finish_ledger, binder, args.pr, args.repo, closing_issues)
         if rc != 0:
-            print(f"  finish-ledger FAILED (rc={rc}) for {binder} — continuing to other binders",
+            child_failures += 1
+            print(f"  finish-ledger FAILED (rc={rc}) for {binder}",
                   file=sys.stderr)
 
-    rc = commit_and_push(base_ref, args.pr, args.dry_run, validator)
-    if rc == 1:
-        return 1
-    if rc == 2:
-        # Race retry: re-run stamps on fresh remote, commit + push again
-        print("finish-stamp-ci: re-stamping on fresh remote (idempotent)")
-        for binder in binders:
-            rc2 = run_stamp(finish_ledger, binder, args.pr, args.repo, closing_issues)
-            if rc2 != 0:
-                print(f"  re-stamp FAILED (rc={rc2}) for {binder}", file=sys.stderr)
-        # Commit + push without further retry (avoid loops)
-        staged = staged_lattice_files()
-        if not staged:
-            print("finish-stamp-ci: race resolved — binder already stamped by other pusher")
-            return 0
-        subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
-        subprocess.run(["git", "config", "user.email",
-                        "41898282+github-actions[bot]@users.noreply.github.com"], check=True)
-        msg = f"chore(ci): GHA safety-net ledger stamp — pr-{args.pr} merged"
-        cr = run(["git", "commit", "-m", msg])
-        if cr.returncode != 0:
-            print(f"finish-stamp-ci: retry commit failed: {cr.stderr}", file=sys.stderr)
-            return 1
-        if validator is not None and run_validator(validator) != 0:
-            print("finish-stamp-ci: artifact validator FAILED on the re-stamped tree — NOT pushing",
+    # tkt-470 A3: before reporting success on staged-empty, verify postconditions.
+    staged = staged_lattice_files()
+    if not staged:
+        inconsistent = verify_binder_postconditions(binders, args.lattice_home)
+        if inconsistent:
+            print("finish-stamp-ci: staged-empty but postcondition verification FAILED:",
                   file=sys.stderr)
+            for path, reason in inconsistent:
+                print(f"  {os.path.relpath(path)}: {reason}", file=sys.stderr)
             return 1
-        push = run(["git", "push", "origin", f"HEAD:{base_ref}"])
-        if push.returncode != 0:
-            # tkt-459 A1: a lost retry is a real failure — surface it instead of
-            # a green run (operator re-dispatches finish-stamp.yml).
-            print(f"finish-stamp-ci: retry push also failed: {push.stderr} — "
-                  "safety-net stamp NOT landed", file=sys.stderr)
+        if child_failures > 0:
+            print(f"finish-stamp-ci: {child_failures} child stamp failure(s) — "
+                  "postconditions pass but stamp process had errors", file=sys.stderr)
             return 1
-        print(f"finish-stamp-ci: pushed safety-net stamp to {base_ref} (retry)")
+        print("finish-stamp-ci: no staged changes — local stamp already landed "
+              "(postconditions verified)")
+        return 0
+
+    # tkt-470 A2: fail even when there are staged changes if children failed.
+    if child_failures > 0:
+        print(f"finish-stamp-ci: {child_failures} child stamp failure(s) — "
+              "aborting repair PR creation", file=sys.stderr)
+        return 1
+
+    # tkt-470 A1: commit + create/update repair PR instead of direct push.
+    rc = commit_and_repair_pr(base_ref, args.pr, args.dry_run, validator, args.repo)
+    if rc != 0:
+        return 1
+
     return 0
 
 
