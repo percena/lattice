@@ -12,11 +12,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/480 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T16:00:00Z |
-| updated | 2026-09-05T00:22:22Z |
+| updated | 2026-09-05T01:56:58Z |
 | adopted | false |
 | summary | Review-found hardening: alignment-check --home, autonomy re.I, artifacts.yml PR trigger |
 | spec | spc-479 — Review-found hardening sweep (path: ../../specs/spc-479-review-found-hardening.md) |
@@ -63,3 +63,8 @@
 - A1 regression source: tkt-447 / PR #457 (`refactor(tkt-447): extract shared resolve_lattice_lib_scripts function`) — dropped both `if [[ -z "$HOME_DIR" ]]` guards; sibling `ci-gate-check.sh:84` retained them.
 - A2 validator-side `AUTONOMY_TABLE_RE` (`tools/validate-lattice-artifacts.py:322`) already has `re.I | re.M`; the filter at `autonomy-filter.py:30` lacked `re.I`.
 - A3 blocks PR #478 in practice (`mergeStateStatus: BLOCKED`, required `lattice-artifacts` check never fires for code/docs-only PRs).
+
+## Finish
+
+- pr-481 merged: 2026-09-05T01:10:11Z — https://github.com/percena/lattice/pull/481 (base merge)
+- issue #480 closed: 2026-09-05T01:14:54Z — https://github.com/percena/lattice/issues/480
