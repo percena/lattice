@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/472 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:03:24Z |
-| updated | 2026-09-05T02:42:33Z |
+| updated | 2026-09-05T04:27:56Z |
 | adopted | false |
 | summary | Stable operation_id + revision; durable prepared/committed/recovery protocol; SIGKILL recovery; retryable finish staging; ledger contracts |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |
@@ -58,3 +58,8 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+
+## Finish
+
+- pr-478 merged: 2026-09-05T04:27:06Z — https://github.com/percena/lattice/pull/478 (base merge)
+- issue #472 closed: 2026-09-05T04:27:24Z — https://github.com/percena/lattice/issues/472

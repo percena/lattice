@@ -1,0 +1,1 @@
+{"ts":"2026-09-05T04:27:58Z","ticket":"tkt-472","from":"queued","to":"closed","owner":"system","reason":"finish-work: PR 478 merged, issue 472 closed","guard":"cancel","escape_used":false,"force_side_state_reason":null,"trace":"finish ledger close","metric":"cancel-count"}
