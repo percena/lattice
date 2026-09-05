@@ -37,9 +37,9 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `alignment-check.sh --pr N --home /some/worktree/.lattice` (with `LATTICE_HOME` unset) resolves HOME_DIR to the supplied path, not `$git_root/.lattice`; the merge gate scans binders at the supplied home. Mirrors `ci-gate-check.sh:84`. Regression test covers `LATTICE_HOME`-unset + `--home`-set.
-- [ ] **A2** `autonomy-filter.py` matches `| Autonomy | 4 |` (capital A) the same as `| autonomy | 4 |`; a bats test asserts both forms resolve to score 4, and asserts the filter and `validate-lattice-artifacts.py` agree on the same row.
-- [ ] **A3** A PR that touches only `skills/**` / `docs/**` / `tools/**` (no `.lattice/**`) triggers the `lattice-artifacts` workflow on `pull_request`; the check passes (validator exits 0, legacy baseline unchanged). Static test asserts `artifacts.yml` `pull_request` trigger has no path filter.
+- [x] **A1** `alignment-check.sh --pr N --home /some/worktree/.lattice` (with `LATTICE_HOME` unset) resolves HOME_DIR to the supplied path, not `$git_root/.lattice`; the merge gate scans binders at the supplied home. Mirrors `ci-gate-check.sh:84`. Regression test covers `LATTICE_HOME`-unset + `--home`-set.
+- [x] **A2** `autonomy-filter.py` matches `| Autonomy | 4 |` (capital A) the same as `| autonomy | 4 |`; a bats test asserts both forms resolve to score 4, and asserts the filter and `validate-lattice-artifacts.py` agree on the same row.
+- [x] **A3** A PR that touches only `skills/**` / `docs/**` / `tools/**` (no `.lattice/**`) triggers the `lattice-artifacts` workflow on `pull_request`; the check passes (validator exits 0, legacy baseline unchanged). Static test asserts `artifacts.yml` `pull_request` trigger has no path filter.
 
 ## Approach
 
