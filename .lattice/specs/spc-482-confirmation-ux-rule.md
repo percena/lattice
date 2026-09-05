@@ -10,7 +10,7 @@ summary: "Every skill confirmation prompt marks one option (Recommended) and lis
 created: 2026-09-05
 updated: 2026-09-05
 tickets: [483]
-prs: []
+prs: [484]
 reviews: []
 supersedes: []
 superseded_by: null

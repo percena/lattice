@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/483 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T00:00:00Z |
-| updated | 2026-09-05T00:00:00Z |
+| updated | 2026-09-05T02:57:00Z |
 | adopted | false |
 | summary | Confirmation-UX rule: mark recommended option + list first across all skills |
 | spec | spc-482 — confirmation-UX rule (path: ../../specs/spc-482-confirmation-ux-rule.md) |
@@ -28,7 +28,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-483-confirmation-ux-rule` |
 | worktree | sibling `…/lattice.worktrees/spc-482-confirmation-ux-rule/` |
-| prs | (none) |
+| prs | pr-484 — https://github.com/percena/lattice/pull/484 |
 
 ## Acceptance (this slice)
 
