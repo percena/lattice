@@ -124,14 +124,14 @@ echo "  attestation ts:     $ATTEST_TS"
 
 if [[ "$DRY" == "true" ]]; then
   echo "close-spec-primary: dry-run — running spec-transition.py done --dry-run"
-  python3 "$ST" done "$SPEC_ID" "$OWNER" \
+  python3 "$ST" "done" "$SPEC_ID" "$OWNER" \
     --soak-evidence-ref "$SOAK_REF" --soak-attestation-ts "$ATTEST_TS" \
     --home "$HOME_DIR" --dry-run
   exit $?
 fi
 
 # --- A25: guarded transition; refuse to close the epic on failure ------------
-if ! python3 "$ST" done "$SPEC_ID" "$OWNER" \
+if ! python3 "$ST" "done" "$SPEC_ID" "$OWNER" \
       --soak-evidence-ref "$SOAK_REF" --soak-attestation-ts "$ATTEST_TS" \
       --home "$HOME_DIR"; then
   rc=$?
