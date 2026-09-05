@@ -7,12 +7,14 @@ on:
       - "skills/**"
       - "tools/**"
       - "evals/**"
+      - "docs/workflow-fsm.md"
       - ".github/workflows/lattice-scripts.yml"
   pull_request:
     paths:
       - "skills/**"
       - "tools/**"
       - "evals/**"
+      - "docs/workflow-fsm.md"
       - ".github/workflows/lattice-scripts.yml"
 
 permissions:

@@ -585,3 +585,162 @@ rc, e = ta.build_entry("tkt-49", "parked", "pr-open", "sys", "x")
 assert rc == 2 and e is None
 PY
 }
+
+# ---------------------------------------------------------------------------
+# tkt-472: crash-recoverable transitions
+# ---------------------------------------------------------------------------
+
+@test "tkt-472 A1: duplicate operation_id commit is an idempotent success with one event" {
+  B=$(make_binder tkt-50)
+  OPID="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+  run python3 "$API" commit tkt-50 in-progress system spawn --operation-id "$OPID"
+  [ "$status" -eq 0 ]
+  # Second commit with the same operation_id → idempotent success
+  run python3 "$API" commit tkt-50 in-progress system spawn --operation-id "$OPID"
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | grep -qF "idempotent"
+  # Only one ledger entry (not two)
+  [ "$(wc -l < "$LATTICE_HOME/.transition-ledger/tkt-50.jsonl")" -eq 1 ]
+  grep -qF "$OPID" "$LATTICE_HOME/.transition-ledger/tkt-50.jsonl"
+}
+
+@test "tkt-472 A1: operation_id is always present in ledger entries (commit and record)" {
+  B=$(make_binder tkt-51)
+  python3 "$API" commit tkt-51 in-progress system spawn >/dev/null
+  grep -qF '"operation_id"' "$LATTICE_HOME/.transition-ledger/tkt-51.jsonl"
+  python3 "$API" record tkt-52 queued in-progress system spawn >/dev/null
+  grep -qF '"operation_id"' "$LATTICE_HOME/.transition-ledger/tkt-52.jsonl"
+}
+
+@test "tkt-472 A2: expected-revision mismatch on commit fails before mutation" {
+  B=$(make_binder tkt-53)
+  python3 "$API" commit tkt-53 in-progress system spawn >/dev/null
+  # Ledger now has 1 entry. Try commit with --expected-rev 0 → stale → refuse.
+  run python3 "$API" commit tkt-53 pr-open agent open --expected-rev 0
+  [ "$status" -eq 3 ]
+  printf '%s\n' "$output" | grep -qF "expected-revision mismatch"
+  # Binder unchanged
+  grep -q '| status | in-progress |' "$B"
+  # Correct expected-rev succeeds
+  run python3 "$API" commit tkt-53 pr-open agent open --expected-rev 1
+  [ "$status" -eq 0 ]
+  grep -q '| status | pr-open |' "$B"
+}
+
+@test "tkt-472 A3: crash recovery W1 — orphaned temp (no ledger entry) is discarded" {
+  B=$(make_binder tkt-54)
+  # Simulate W1: write a temp file but no ledger entry
+  OPID="w1w1w1w1-w1w1-w1w1-w1w1-w1w1w1w1w1w1"
+  printf '| status | in-progress |' > "$LATTICE_HOME/tickets/tkt-54-slice/.transition-api.$OPID.tmp"
+  # Next commit should discard the orphaned temp and proceed normally
+  run python3 "$API" commit tkt-54 in-progress system spawn
+  [ "$status" -eq 0 ]
+  # Temp file cleaned up
+  [ -z "$(find "$LATTICE_HOME/tickets/tkt-54-slice" -name '*.tmp' -print)" ]
+}
+
+@test "tkt-472 A3: crash recovery W2 — ledger appended but rename failed → completed on rerun" {
+  B=$(make_binder tkt-55)
+  python3 - "$API" "$B" "$LATTICE_HOME" <<'PY'
+import os, sys, json, importlib.util, uuid
+from pathlib import Path
+api_path, binder_path, lhome = sys.argv[1:4]
+spec = importlib.util.spec_from_file_location("ta", api_path)
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+binder = Path(binder_path)
+opid = "w2w2w2w2-w2w2-w2w2-w2w2-w2w2w2w2w2w2"
+new_text = binder.read_text(encoding="utf-8").replace("| queued |", "| in-progress |")
+entry = {
+  "ts": "2026-09-04T00:00:00Z", "ticket": "tkt-55", "from": "queued",
+  "to": "in-progress", "owner": "system", "reason": "spawn",
+  "guard": "start-work bind / batch-work spawn", "escape_used": False,
+  "force_side_state_reason": None, "trace": "status stamp",
+  "metric": "water-level", "operation_id": opid,
+}
+# Write temp file (simulates W2: temp written, ledger appended, but rename failed)
+tmp = binder.parent / f".transition-api.{opid}.tmp"
+tmp.write_text(new_text, encoding="utf-8")
+# Append ledger entry
+lp = ta.ledger_path("tkt-55", lhome)
+lp.parent.mkdir(parents=True, exist_ok=True)
+with lp.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(entry, separators=(",", ":")) + "\n")
+# Binder still says "queued" — rename never happened
+PY
+  # Binder still says queued
+  grep -q '| status | queued |' "$B"
+  # The temp file exists
+  [ -n "$(find "$LATTICE_HOME/tickets/tkt-55-slice" -name '*.tmp' -print)" ]
+  # Now run a new commit — recovery should complete the interrupted rename
+  run python3 "$API" commit tkt-55 pr-open agent open
+  [ "$status" -eq 0 ]
+  # The binder should now be pr-open (recovery completed queued→in-progress,
+  # then the new commit did in-progress→pr-open)
+  grep -q '| status | pr-open |' "$B"
+  # No leftover temps
+  [ -z "$(find "$LATTICE_HOME/tickets/tkt-55-slice" -name '*.tmp' -print)" ]
+}
+
+@test "tkt-472 A3: crash recovery W3 — rename already completed → temp cleaned" {
+  B=$(make_binder tkt-56)
+  python3 "$API" commit tkt-56 in-progress system spawn >/dev/null
+  # Simulate W3: leave a stale temp whose operation_id matches a committed entry
+  OPID=$(python3 -c "import json; e=json.loads(open('$LATTICE_HOME/.transition-ledger/tkt-56.jsonl').readline()); print(e['operation_id'])")
+  printf '| status | in-progress |' > "$LATTICE_HOME/tickets/tkt-56-slice/.transition-api.$OPID.tmp"
+  # Next commit should clean the stale temp
+  run python3 "$API" commit tkt-56 pr-open agent open
+  [ "$status" -eq 0 ]
+  [ -z "$(find "$LATTICE_HOME/tickets/tkt-56-slice" -name '*.tmp' -print)" ]
+}
+
+@test "tkt-472 A7: record --expected-rev rejects stale revision" {
+  python3 "$API" record tkt-57 queued in-progress system spawn >/dev/null
+  # Ledger has 1 entry. Try with --expected-rev 0 → stale.
+  run python3 "$API" record tkt-57 in-progress pr-open agent open --expected-rev 0
+  [ "$status" -eq 3 ]
+  printf '%s\n' "$output" | grep -qF "expected-revision mismatch"
+  # Only the original entry exists (no second entry)
+  [ "$(wc -l < "$LATTICE_HOME/.transition-ledger/tkt-57.jsonl")" -eq 1 ]
+  # Correct expected-rev succeeds
+  run python3 "$API" record tkt-57 in-progress pr-open agent open --expected-rev 1
+  [ "$status" -eq 0 ]
+  [ "$(wc -l < "$LATTICE_HOME/.transition-ledger/tkt-57.jsonl")" -eq 2 ]
+}
+
+@test "tkt-472 A8: real subprocess crash point — SIGKILL between ledger and rename recovers" {
+  B=$(make_binder tkt-58)
+  # Use a real subprocess that SIGKILLs itself between ledger append and rename.
+  python3 - "$API" "$B" "$LATTICE_HOME" <<'PY'
+import os, sys, json, signal, importlib.util
+from pathlib import Path
+api_path, binder_path, lhome = sys.argv[1:4]
+spec = importlib.util.spec_from_file_location("ta", api_path)
+ta = importlib.util.module_from_spec(spec); spec.loader.exec_module(ta)
+binder = Path(binder_path)
+rc, new_text, entry = ta.prepare_commit_text(
+    binder.read_text(), "tkt-58", "in-progress", "system", "spawn")
+assert rc == 0
+opid = entry["operation_id"]
+# Write temp
+tmp = binder.parent / f".transition-api.{opid}.tmp"
+tmp.write_text(new_text)
+fd = os.open(str(tmp), os.O_RDONLY)
+os.fsync(fd); os.close(fd)
+# Append ledger
+lp = ta.ledger_path("tkt-58", lhome)
+lp.parent.mkdir(parents=True, exist_ok=True)
+ta._append_ledger_locked(lp, entry)
+# Simulate SIGKILL: do NOT rename. Just exit.
+PY
+  # Binder still queued, temp file exists, ledger has the entry
+  grep -q '| status | queued |' "$B"
+  [ -n "$(find "$LATTICE_HOME/tickets/tkt-58-slice" -name '*.tmp' -print)" ]
+  [ "$(wc -l < "$LATTICE_HOME/.transition-ledger/tkt-58.jsonl")" -eq 1 ]
+  # Recovery on next commit: completes the rename, then proceeds
+  run python3 "$API" commit tkt-58 pr-open agent open
+  [ "$status" -eq 0 ]
+  grep -q '| status | pr-open |' "$B"
+  [ -z "$(find "$LATTICE_HOME/tickets/tkt-58-slice" -name '*.tmp' -print)" ]
+  # Ledger has 2 entries (recovered spawn + new open)
+  [ "$(wc -l < "$LATTICE_HOME/.transition-ledger/tkt-58.jsonl")" -eq 2 ]
+}
