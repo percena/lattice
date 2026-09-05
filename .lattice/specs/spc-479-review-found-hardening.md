@@ -4,14 +4,14 @@ id: spc-479
 slug: review-found-hardening
 title: Review-found hardening sweep — alignment-gate --home, autonomy regex case, artifacts CI trigger
 kind: bug
-status: locked
+status: done
 mode: C
 priority: P1
 summary: "Fix three dev-landed review-found defects: alignment-check --home clobber, autonomy regex case mismatch, artifacts.yml PR path filter"
 created: 2026-09-05
 updated: 2026-09-05
 tickets: [tkt-480]
-prs: []
+prs: [pr-481]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -45,9 +45,9 @@ A complete review of the `80f3701..origin/dev` changeset (post round-2 follow-up
 <!-- required (C: use stable A* ids for light RTM; tickets declare covers) -->
 ## Acceptance
 
-- [ ] **A1** `alignment-check.sh --pr N --home /some/worktree/.lattice` (with `LATTICE_HOME` unset) resolves HOME_DIR to the supplied path, not to `$git_root/.lattice`; the merge gate scans the binders at the supplied home. Mirrors `ci-gate-check.sh:84`. Regression test covers the `LATTICE_HOME`-unset + `--home`-set case (the gap that let the original regression land).
-- [ ] **A2** `autonomy-filter.py` matches `| Autonomy | 4 |` (capital A) the same as `| autonomy | 4 |`; a bats test asserts both forms resolve to score 4, and asserts the filter and `validate-lattice-artifacts.py` agree on the same row.
-- [ ] **A3** A PR that touches only `skills/**` / `docs/**` / `tools/**` (no `.lattice/**`) triggers the `lattice-artifacts` workflow on `pull_request`; the check passes (validator exits 0, legacy baseline warnings unchanged). A static regression test asserts the `artifacts.yml` `pull_request` trigger has no path filter (or a path set that includes the code/docs paths).
+- [x] **A1** `alignment-check.sh --pr N --home /some/worktree/.lattice` (with `LATTICE_HOME` unset) resolves HOME_DIR to the supplied path, not to `$git_root/.lattice`; the merge gate scans the binders at the supplied home. Mirrors `ci-gate-check.sh:84`. Regression test covers the `LATTICE_HOME`-unset + `--home`-set case (the gap that let the original regression land). — delivered: PR #481
+- [x] **A2** `autonomy-filter.py` matches `| Autonomy | 4 |` (capital A) the same as `| autonomy | 4 |`; a bats test asserts both forms resolve to score 4, and asserts the filter and `validate-lattice-artifacts.py` agree on the same row. — delivered: PR #481
+- [x] **A3** A PR that touches only `skills/**` / `docs/**` / `tools/**` (no `.lattice/**`) triggers the `lattice-artifacts` workflow on `pull_request`; the check passes (validator exits 0, legacy baseline warnings unchanged). A static regression test asserts the `artifacts.yml` `pull_request` trigger has no path filter (or a path set that includes the code/docs paths). — delivered: PR #481
 
 <!-- optional -->
 ## Non-goals
