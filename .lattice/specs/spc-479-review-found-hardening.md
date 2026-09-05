@@ -20,7 +20,7 @@ superseded_by: null
 # Spec: Review-found hardening sweep
 
 > **TL;DR:** Three independent, dev-landed defects surfaced by a full review of `80f3701..origin/dev` — a merge-gate `--home` clobber regression (tkt-447), a validator/filter autonomy-regex case disagreement, and an artifacts.yml PR path-filter that structurally blocks all code/docs-only PRs from merging.
-> **Kind:** bug · **Status:** locked · **Mode:** C · **Priority:** P1
+> **Kind:** bug · **Status:** done · **Mode:** C · **Priority:** P1
 > **Path:** spc-479 → tkt-… → pr-…
 
 <!-- required -->
