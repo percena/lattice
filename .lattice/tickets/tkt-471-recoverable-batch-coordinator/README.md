@@ -33,13 +33,13 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A7** Complete future layers/waves are durable before the first worker starts; plan hash/revision identifies the execution plan.
-- [ ] **A8** Restart between waves returns the real next unspawned node and a production driver can continue it.
-- [ ] **A9** Init/load failure prevents spawn; canonical record/cursor persistence failures cannot be warning-only success.
-- [ ] **A10** Stale marker/node writes cannot regress a cursor already advanced to a later tuple.
-- [ ] **A11** Replaying the same failed/timeout/unknown command returns already-applied success and emits one binder transition.
-- [ ] **A12** Transition failure remains retryable and never marks the node settled prematurely.
-- [ ] **A13** Multi-process fault tests cover stale writers, terminal replay, pre-spawn restart, and reservation recovery.
+- [x] **A7** Complete future layers/waves are durable before the first worker starts; plan hash/revision identifies the execution plan.
+- [x] **A8** Restart between waves returns the real next unspawned node and a production driver can continue it.
+- [x] **A9** Init/load failure prevents spawn; canonical record/cursor persistence failures cannot be warning-only success.
+- [x] **A10** Stale marker/node writes cannot regress a cursor already advanced to a later tuple.
+- [x] **A11** Replaying the same failed/timeout/unknown command returns already-applied success and emits one binder transition.
+- [x] **A12** Transition failure remains retryable and never marks the node settled prematurely.
+- [x] **A13** Multi-process fault tests cover stale writers, terminal replay, pre-spawn restart, and reservation recovery.
 
 ## Approach
 

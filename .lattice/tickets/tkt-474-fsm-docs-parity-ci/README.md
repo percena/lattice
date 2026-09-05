@@ -33,11 +33,11 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A26** Documentation accurately describes actual transition replay and no longer claims history is not replayed.
-- [ ] **A27** Documentation describes the final protected-branch repair, durable coordinator, recoverable operation, and guarded Spec semantics without overclaiming.
-- [ ] **A28** A docs-only change to `docs/workflow-fsm.md` triggers the `bats` workflow.
-- [ ] **A29** Schema/docs single-sided changes fail parity.
-- [ ] **A30** Static regression test fails if the parity document path disappears from workflow filters.
+- [x] **A26** Documentation accurately describes actual transition replay and no longer claims history is not replayed.
+- [x] **A27** Documentation describes the final protected-branch repair, durable coordinator, recoverable operation, and guarded Spec semantics without overclaiming.
+- [x] **A28** A docs-only change to `docs/workflow-fsm.md` triggers the `bats` workflow.
+- [x] **A29** Schema/docs single-sided changes fail parity.
+- [x] **A30** Static regression test fails if the parity document path disappears from workflow filters.
 
 ## Approach
 

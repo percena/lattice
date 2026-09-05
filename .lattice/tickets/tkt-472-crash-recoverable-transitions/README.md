@@ -33,13 +33,13 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A14** Duplicate submission of one operation is an idempotent success with one event.
-- [ ] **A15** Expected-revision mismatch fails before mutation.
-- [ ] **A16** SIGKILL after temp, after ledger append, before rename, and after rename is recovered to a consistent snapshot on rerun.
-- [ ] **A17** Finish git-add/index failure returns `needs-stage`; rerun stages existing consistent files instead of early no-op.
-- [ ] **A18** Writer and validator reject invalid owner/reason-code, missing required trace/metric, and revision discontinuity.
-- [ ] **A19** Post-cutoff active/terminal binders require an anchor or explicit migration marker; legacy fixtures remain ratcheted warnings.
-- [ ] **A20** Bare ordinary `record` cannot fabricate an event detached from binder revision.
+- [x] **A14** Duplicate submission of one operation is an idempotent success with one event.
+- [x] **A15** Expected-revision mismatch fails before mutation.
+- [x] **A16** SIGKILL after temp, after ledger append, before rename, and after rename is recovered to a consistent snapshot on rerun.
+- [x] **A17** Finish git-add/index failure returns `needs-stage`; rerun stages existing consistent files instead of early no-op.
+- [x] **A18** Writer and validator reject invalid owner/reason-code, missing required trace/metric, and revision discontinuity.
+- [x] **A19** Post-cutoff active/terminal binders require an anchor or explicit migration marker; legacy fixtures remain ratcheted warnings.
+- [x] **A20** Bare ordinary `record` cannot fabricate an event detached from binder revision.
 
 ## Approach
 

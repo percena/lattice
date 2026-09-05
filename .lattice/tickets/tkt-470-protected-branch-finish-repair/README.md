@@ -33,12 +33,12 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** Missing local stamp creates or updates one deterministic repair PR targeting the merged PR base; no direct push to protected `dev`.
-- [ ] **A2** Any child stamp failure produces final non-zero even when nothing is staged.
-- [ ] **A3** Staged-empty returns success only after per-binder postcondition verification.
-- [ ] **A4** Repeated dispatch is idempotent and already-repaired state is a clean no-op.
-- [ ] **A5** PR create/update, validator, and publication failures are fail-loud.
-- [ ] **A6** Focused Bats cover first repair, repeated repair, child failure aggregation, inconsistent empty-stage, and consistent race resolution.
+- [x] **A1** Missing local stamp creates or updates one deterministic repair PR targeting the merged PR base; no direct push to protected `dev`.
+- [x] **A2** Any child stamp failure produces final non-zero even when nothing is staged.
+- [x] **A3** Staged-empty returns success only after per-binder postcondition verification.
+- [x] **A4** Repeated dispatch is idempotent and already-repaired state is a clean no-op.
+- [x] **A5** PR create/update, validator, and publication failures are fail-loud.
+- [x] **A6** Focused Bats cover first repair, repeated repair, child failure aggregation, inconsistent empty-stage, and consistent race resolution.
 
 ## Approach
 
