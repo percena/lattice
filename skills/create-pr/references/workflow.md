@@ -105,16 +105,19 @@ carried into the PR stage (§4.1), so the chain is end-to-end proven.
 Prefer `recommended_base` from `check-pr-context.sh` (integration-branch resolution) over the blind `default_branch`. The recommended base follows the user's working branch when long-lived, else fork-point inference from the current branch. Always pass `--base` to `gh pr create`.
 
 - `recommended_source` ∈ {`user_branch`, `fork_point`, `only_choice`} → use `recommended_base` directly.
-- `recommended_source` == `ask` (ambiguous fork-point, ≥2 long-lived) → `AskUserQuestion` among `long_lived` (NOT a hardcoded {main,dev}). If `|long_lived| == 1` there is no ask.
+- `recommended_source` == `ask` (ambiguous fork-point, ≥2 long-lived) → `AskUserQuestion` among `long_lived` (NOT a hardcoded {main,dev}). If `|long_lived| == 1` there is no ask. Present per `../../_lattice-lib/references/confirmation-ux.md`: tag the `recommended_base` (if non-empty) `(Recommended)` and list it first; if `recommended_base` is empty, tag the integration-branch-shaped long-lived branch (e.g. `dev` in a `main`+`dev` repo) `(Recommended)` first.
 - `recommended_base` empty / `recommended_source` == `default` → fall back to `default_branch`.
-- Soft-confirm when `recommended_base == default_branch` BUT the user's working branch is a non-default long-lived branch (e.g. on `dev`, recommended `main`): "landing on `main`, ok?".
+- Soft-confirm when `recommended_base == default_branch` BUT the user's working branch is a non-default long-lived branch (e.g. on `dev`, recommended `main`): "landing on `main`, ok? recommended: yes — `dev → main` is a separate operator-authorized release merge, so targeting `main` here is the intended base." (yes/no leans per `../../_lattice-lib/references/confirmation-ux.md`).
 
 GitFlow note: a repo with both `main` + `dev` is integration-shaped — feature PRs target `dev`; `dev → main` is a separate operator-authorized release merge. Trunk-shaped (only `main`) → `main`.
 
 ## 3.55. Diff matches intent (DEFAULT)
 
 1. `git diff <base>...HEAD --stat`  
-2. Unexpected files vs session → STOP and offer proceed / split / exclude.  
+2. Unexpected files vs session → STOP and offer (per `../../_lattice-lib/references/confirmation-ux.md`, recommended first):
+   - `exclude` (Recommended) — keep this PR to session-intended files; surface the unexpected files as a follow-up. Safest for intent fidelity.
+   - `split` — create a second PR for the unexpected files, then proceed with the intended set.
+   - `proceed` — include the unexpected files in this PR (risky — mixes intent).
 3. How from **actual diff**; Why from session/COMMITTED/Spec.
 
 ## 3.6. Public repo safeguards (INVARIANT when PUBLIC)

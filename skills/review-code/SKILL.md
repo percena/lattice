@@ -210,8 +210,8 @@ Do **not** use `go|go-with-risks|no-go` here (`review-production`). Advice only 
 
 1. Present **all** findings (correctness, interface impact, CI/CD, syntax/lint, docs-sync, privacy/secrets) in a single output — material table + **Solutions** subsection + axis subsections together.
 2. **STOP.** Do **not** apply patches or “obvious” fixes.
-3. **Single batch confirmation (ONE AskUserQuestion):** after presenting the full finding set **with recommended solutions and alternatives**, use **one** `AskUserQuestion` to ask what to fix — never per-finding or per-axis. Suggested options:
-   - `Apply all recommended solutions` — apply the best-practice fix for every material finding
+3. **Single batch confirmation (ONE AskUserQuestion):** after presenting the full finding set **with recommended solutions and alternatives**, use **one** `AskUserQuestion` to ask what to fix — never per-finding or per-axis. Suggested options (recommended option listed first, per `../_lattice-lib/references/confirmation-ux.md`):
+   - `Apply all recommended solutions` (Recommended) — apply the best-practice fix for every material finding; cleanest landing when the finding set is coherent
    - `Apply high-severity recommended only` — just the high rows’ recommended solutions
    - `Choose per-finding` — operator will specify which findings + which alternative; pause for input
    - `Skip — I’ll address manually` — no edits; operator takes over
@@ -290,3 +290,4 @@ Before claiming done:
 - [ ] **Hard stop** — no tree edits unless user explicitly requested tests/fixes
 - [ ] Did not gate or run finish-work / create-pr unless user also asked for those skills separately
 - [ ] If release-boundary merge review: `ci-local.sh --release-check` run; diff partitioned into subsystem slices; risk tiered by file class; findings classed release-blocking vs ship-as-is
+- [ ] Batch-fix `AskUserQuestion` tags one option `(Recommended)` and lists it first per `../_lattice-lib/references/confirmation-ux.md`

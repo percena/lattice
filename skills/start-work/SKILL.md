@@ -112,6 +112,7 @@ bash "$LIB/assert-shippable-cwd.sh" || {
    - **Context snapshot (spc-433 A6):** after EXECUTE completes a round (before VERIFY or handoff), write `.lattice/snapshots/<tkt>.md` with 3 sections: `## Delivered` (what was done), `## Deviations` (what was auto-decided or deviated from spec), `## Pending` (open questions for human). On resume (Step 2), if snapshot exists, read it **first** before loading full binder — it is the 30-second context reload card. Snapshots are gitignored (temporary state); `.lattice/blocked/` reports are committed (durable evidence).
    - DEFAULT: operator states a durable work preference mid-session → write it to `.lattice/preferences.md` at utterance time + one-line confirm (`decision-policy.md` §Capture duty).
    - DEFAULT: defect noticed outside the ticket's `paths` → write `- NOTICED: <path> — <one line> (out-of-paths, <date>)` to the binder `## Notes` at notice time, then move on — never expand scope, never silently drop (`decision-policy.md` §Observation duty).
+   - DEFAULT: any confirmation you surface to the operator (non-standard-flow escape, base-direct write, yes/no soft-confirm) tags a recommended lean + one-line why per `../_lattice-lib/references/confirmation-ux.md` (e.g. "recommended: no — open a bound worktree instead; base-write on dev is the strict-default block").
    - **Bug-class tickets** (ticket has `bug` label or Reproduction Steps): run the reproduce → fix → re-verify loop:
      - **Phase 0c (Pre-Fix Reproduction):** reproduce from ticket Reproduction Steps; capture pre-fix evidence in binder `reproduction-evidence.md`. If no Reproduction Steps found in binder → skip to Phase 1 with a note (cannot reproduce without steps). If bug no longer reproduces → consider wont-fix (stop, ask user).
      - **Phase 1 (Fix):** implement the fix.
@@ -231,3 +232,4 @@ Before claiming workflow setup / EXECUTE handoff is done:
 - [ ] Ticket/Spec ids recorded when required by mode
 - [ ] Setup-only stops without product implementation when requested
 - [ ] Resume honored the binder `status`: `rework` → findings-as-brief on the same PR; `parked` → implemented from the ratified `## Decision journal` entry (no re-ask); `stuck` → operator-chosen exit recorded, no silent retry; `in-progress` (abandoned) → treated as stuck if prior run failed/timed out, else continued
+- [ ] Any operator confirmation surfaced (non-standard flow, base-direct, yes/no) states a recommended lean + one-line why per `../_lattice-lib/references/confirmation-ux.md`

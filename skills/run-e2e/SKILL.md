@@ -26,10 +26,13 @@ every story run is the preflight `skills/run-e2e/scripts/ensure-e2e-runtime.sh`:
 If the chosen runtime is missing, it prints install guidance to stderr and exits
 non-zero. The calling agent surfaces that guidance to the user and **waits for
 explicit confirmation** before running any install step (a browser download is
-multi-hundred-MB and outward-facing — never trigger it silently). After the
-user confirms and the install completes, re-run the preflight; passing the
-presence check is the gate, so subsequent runs proceed directly without
-re-prompting. **No sentinel file** — the check is re-run every invocation.
+multi-hundred-MB and outward-facing — never trigger it silently). State the
+recommended lean with a one-line why (per `../_lattice-lib/references/confirmation-ux.md`):
+e.g. "recommended: yes — the e2e story needs a real browser; the download is the
+documented one-shot cost." After the user confirms and the install completes,
+re-run the preflight; passing the presence check is the gate, so subsequent runs
+proceed directly without re-prompting. **No sentinel file** — the check is re-run
+every invocation.
 
 Fallback (NOT primary, documented for scale): the camoufox Python remote-server
 (`python -m camoufox server` → `firefox.connect(ws://…)`) is experimental with
@@ -325,6 +328,7 @@ Before declaring a story done, confirm:
 - [ ] Exactly one `console.log(JSON.stringify(result, null, 2))` at the end.
 - [ ] JSON `status` is `'pass'` or `'fail'`; `reason` is a short machine-readable code; `assertions` array lists each check.
 - [ ] No `.js` file written; no Playwright import; no second browser launched.
+- [ ] Install-gate confirmation states a recommended lean + one-line why per `../_lattice-lib/references/confirmation-ux.md`
 
 # References:
 - [Story heredoc template (macOS / ego-browser)](references/story-template.md)
