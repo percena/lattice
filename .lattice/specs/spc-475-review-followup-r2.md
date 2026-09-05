@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: Review follow-up round 2 — recoverable workflow engine
 
 > **TL;DR:** Six findings from the 2026-09-04 review (rev-20260904-043350Z) expose crash/recovery gaps in the finish-stamp CI, batch coordinator, M2 transition API, and Spec lifecycle — fix them and close the FSM documentation gap.
-> **Kind:** fix · **Status:** locked · **Mode:** C · **Priority:** P0
+> **Kind:** fix · **Status:** done · **Mode:** C · **Priority:** P0
 > **Path:** spc-475 → tkt-470..474 → (pr-…)
 
 ## Why
