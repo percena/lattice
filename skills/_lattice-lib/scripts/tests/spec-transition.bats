@@ -1,7 +1,10 @@
 #!/usr/bin/env bats
 # spec-transition.bats — guarded Spec locked→done / locked→superseded (tkt-473 /
 # spc-475 A21–A25). Mirrors the transition-api.bats + spec-supersede.bats
-# fixture style: a tmp git repo + LATTICE_HOME, python heredoc-free helpers.
+# fixture style: a tmp git repo + LATTICE_HOME.
+#
+# Assertion idiom (tkt-460): use `[ ]` / `grep -qF`, never a bare `[[ ]]`
+# assertion (it is exempt from `set -e`).
 
 setup_file() {
   REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../../.." && pwd)"
@@ -22,7 +25,7 @@ setup() {
   mkdir -p .lattice/specs .lattice/tickets .lattice/.transition-ledger
 }
 
-teardown() { [[ -n "${REPO:-}" ]] && rm -rf "$REPO"; }
+teardown() { [ -n "${REPO:-}" ] && rm -rf "$REPO"; }
 
 # Fixture: a locked Spec spc-1 with one closed child tkt-1 (PR pr-5 merged).
 write_spec() {
@@ -89,7 +92,7 @@ commit_all() { git add -A && git commit -qm fixture; }
   [ "$status" -eq 0 ]
   grep -q '^status: done' .lattice/specs/spc-1-demo.md
   grep -q '^updated: 2026-09-' .lattice/specs/spc-1-demo.md
-  [[ -f .lattice/.transition-ledger/spc-1.jsonl ]]
+  [ -f .lattice/.transition-ledger/spc-1.jsonl ]
   grep -q '"from":"locked"' .lattice/.transition-ledger/spc-1.jsonl
   grep -q '"to":"done"' .lattice/.transition-ledger/spc-1.jsonl
   grep -q '"soak_evidence_ref":"pr-5"' .lattice/.transition-ledger/spc-1.jsonl
@@ -97,23 +100,21 @@ commit_all() { git add -A && git commit -qm fixture; }
 
 @test "A21: an open (non-closed) child refuses done without mutation" {
   write_child; PRS=pr-5 write_spec; commit_all
-  # flip the child back to queued
   sed -i 's/| status | closed |/| status | queued |/' .lattice/tickets/tkt-1-child/README.md
   run python3 "$ST" done spc-1 claude \
     --soak-evidence-ref pr-5 --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not \`closed\`"* ]]
-  # no mutation: spec stays locked, no ledger
+  grep -qF 'not `closed`' <<<"$output"
   grep -q '^status: locked' .lattice/specs/spc-1-demo.md
-  [[ ! -f .lattice/.transition-ledger/spc-1.jsonl ]]
+  [ ! -f .lattice/.transition-ledger/spc-1.jsonl ]
 }
 
 @test "A21: a missing/extra PR refuses done (exact equality both directions)" {
-  write_child; PRS=pr-9 write_spec; commit_all   # spec lists pr-9, child has pr-5
+  write_child; PRS=pr-9 write_spec; commit_all
   run python3 "$ST" done spc-1 claude \
     --soak-evidence-ref pr-5 --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"PR-set mismatch"* ]]
+  grep -qF 'PR-set mismatch' <<<"$output"
   grep -q '^status: locked' .lattice/specs/spc-1-demo.md
 }
 
@@ -122,12 +123,11 @@ commit_all() { git add -A && git commit -qm fixture; }
   run python3 "$ST" done spc-1 claude \
     --soak-evidence-ref pr-5 --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"open non-deferred"* ]]
+  grep -qF 'open non-deferred' <<<"$output"
 }
 
 @test "A21: an omitted historical child (backref not in tickets) refuses done" {
   write_child; PRS=pr-5 write_spec; commit_all
-  # add a second binder that references spc-1 but is NOT in tickets: [tkt-1]
   mkdir -p .lattice/tickets/tkt-2-orphan
   cat > .lattice/tickets/tkt-2-orphan/README.md <<'EOF'
 # tkt-2-orphan
@@ -142,23 +142,22 @@ EOF
   run python3 "$ST" done spc-1 claude \
     --soak-evidence-ref pr-5 --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"omitted historical child"* ]]
+  grep -qF 'omitted historical child' <<<"$output"
 }
 
 @test "A22: missing soak evidence ref refuses done" {
   write_child; PRS=pr-5 write_spec; commit_all
   run python3 "$ST" done spc-1 claude --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"--soak-evidence-ref"* ]]
+  grep -qF '--soak-evidence-ref' <<<"$output"
 }
 
 @test "A22: attestation ts not later than the last child merge refuses done" {
   write_child; PRS=pr-5 write_spec; commit_all
-  # child merged at 04:00; attestation at 03:00 -> refuse
   run python3 "$ST" done spc-1 claude \
     --soak-evidence-ref pr-5 --soak-attestation-ts 2026-09-05T03:00:00Z
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not later than the last child merge"* ]]
+  grep -qF 'not later than the last child merge' <<<"$output"
 }
 
 @test "A23: idempotent duplicate operation-id is a success no-op" {
@@ -170,9 +169,8 @@ EOF
   run python3 "$ST" done spc-1 claude --soak-evidence-ref pr-5 \
     --soak-attestation-ts 2026-09-05T05:00:00Z --operation-id "$OPID"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"idempotent"* ]]
-  # exactly one ledger entry
-  [[ "$(grep -c '"operation_id"' .lattice/.transition-ledger/spc-1.jsonl)" -eq 1 ]]
+  grep -qF 'idempotent' <<<"$output"
+  [ "$(grep -c '"operation_id"' .lattice/.transition-ledger/spc-1.jsonl)" -eq 1 ]
 }
 
 @test "A23: expected-revision mismatch refuses before mutation" {
@@ -180,29 +178,26 @@ EOF
   run python3 "$ST" done spc-1 claude --soak-evidence-ref pr-5 \
     --soak-attestation-ts 2026-09-05T05:00:00Z --expected-rev 9
   [ "$status" -eq 3 ]
-  [[ "$output" == *"expected-revision mismatch"* ]]
+  grep -qF 'expected-revision mismatch' <<<"$output"
   grep -q '^status: locked' .lattice/specs/spc-1-demo.md
 }
 
 @test "A23: W2 crash recovery completes an interrupted rename" {
   write_child; PRS=pr-5 write_spec; commit_all
   OPID="deadbeef-0000-0000-0000-00000000face"
-  # Simulate W2: temp Spec (status:done) + matching ledger entry, no rename.
   cp .lattice/specs/spc-1-demo.md ".lattice/specs/.spec-transition.${OPID}.tmp"
   sed -i 's/^status: locked/status: done/' ".lattice/specs/.spec-transition.${OPID}.tmp"
   printf '{"ts":"2026-09-05T05:00:00Z","spec":"spc-1","ticket":"spc-1","from":"locked","to":"done","owner":"claude","reason":"sim","guard":"g","operation_id":"%s","soak_evidence_ref":"pr-5","soak_attestation_ts":"2026-09-05T05:00:00Z"}\n' "$OPID" \
     > .lattice/.transition-ledger/spc-1.jsonl
   git add -A && git commit -qm crash-state
-  # any guarded call recovers under the dir lock first.
   run python3 "$ST" done spc-1 claude --soak-evidence-ref pr-5 \
     --soak-attestation-ts 2026-09-05T05:00:00Z --dry-run
   grep -q '^status: done' .lattice/specs/spc-1-demo.md
-  [[ ! -f ".lattice/specs/.spec-transition.${OPID}.tmp" ]]
+  [ ! -f ".lattice/specs/.spec-transition.${OPID}.tmp" ]
 }
 
 @test "A23: superseded flips status, sets superseded_by, writes ledger (no-sweep)" {
   write_child; PRS=pr-5 write_spec; commit_all
-  # a second spec to supersede into
   cat > .lattice/specs/spc-2-new.md <<'EOF'
 ---
 id: spc-2
@@ -235,16 +230,15 @@ EOF
   write_child; PRS=pr-5 write_spec; commit_all
   run python3 "$ST" superseded spc-1 spc-999 claude --no-sweep
   [ "$status" -eq 1 ]
-  [[ "$output" == *"does not resolve to a tracked Spec"* ]]
+  grep -qF 'does not resolve to a tracked Spec' <<<"$output"
 }
 
 @test "A24: validator flags a hand-edited done Spec with no ledger (spec_terminal_without_ledger)" {
   write_child; PRS=pr-5 write_spec; commit_all
-  # hand-edit the Spec to done WITHOUT a ledger (the breach this ticket catches)
   sed -i 's/^status: locked/status: done/' .lattice/specs/spc-1-demo.md
   git add -A && git commit -qm hand-edit
   run python3 "$VAL" --home "$LATTICE_HOME" --json
-  [[ "$(printf '%s' "$output" | tr -d '\n')" == *'"code": "spec_terminal_without_ledger"'* ]]
+  printf '%s' "$output" | tr -d '\n' | grep -qF '"code": "spec_terminal_without_ledger"'
 }
 
 @test "A24: a done Spec WITH a valid ledger is clean (no spec_terminal finding)" {
@@ -252,45 +246,34 @@ EOF
   python3 "$ST" done spc-1 claude --soak-evidence-ref pr-5 \
     --soak-attestation-ts 2026-09-05T05:00:00Z
   run python3 "$VAL" --home "$LATTICE_HOME" --json
-  [[ "$(printf '%s' "$output" | tr -d '\n')" != *'"code": "spec_terminal_without_ledger"'* ]]
+  found="$(printf '%s' "$output" | tr -d '\n' | grep -F '"code": "spec_terminal_without_ledger"' || true)"
+  [ -z "$found" ]
 }
 
 @test "A25: close-spec-primary refuses to close the epic when the transition fails" {
   write_child; PRS=pr-5 write_spec; commit_all
-  # leave child at `closed` but make the Spec prs mismatch so done refuses
   sed -i 's/^prs: \[pr-5\]/prs: [pr-9]/' .lattice/specs/spc-1-demo.md
   git add -A && git commit -qm mismatch
-  # stub gh so a real close never fires; the failure path exits before gh anyway
   mkdir -p bin
-  cat > bin/gh <<'EOF'
-#!/usr/bin/env bash
-echo "GH-CALLED: $*" >> "$REPO/gh-calls.log"
-EOF
+  printf '#!/usr/bin/env bash\necho "GH-CALLED: $*" >> "$REPO/gh-calls.log"\n' > bin/gh
   chmod +x bin/gh
-  export PATH="$REPO/bin:$PATH"
-  run "$CLOSE" --primary 999 --soak-evidence-ref pr-5 --id spc-1 --home "$LATTICE_HOME"
+  PATH="$REPO/bin:$PATH" run "$CLOSE" --primary 999 --soak-evidence-ref pr-5 --id spc-1 --home "$LATTICE_HOME"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"REFUSED"* ]]
-  [[ "$output" == *"NOT closed (A25)"* ]]
-  # the epic was never closed
-  [[ ! -f gh-calls.log ]]
-  # spec unmutated
+  grep -qF 'REFUSED' <<<"$output"
+  grep -qF 'NOT closed (A25)' <<<"$output"
+  [ ! -f gh-calls.log ]
   grep -q '^status: locked' .lattice/specs/spc-1-demo.md
 }
 
 @test "A25: close-spec-primary flips the Spec + closes the epic on a clean transition" {
   write_child; PRS=pr-5 write_spec; commit_all
   mkdir -p bin
-  cat > bin/gh <<'EOF'
-#!/usr/bin/env bash
-echo "GH-CLOSE: $*" >> "$REPO/gh-calls.log"
-EOF
+  printf '#!/usr/bin/env bash\necho "GH-CLOSE: $*" >> "$REPO/gh-calls.log"\n' > bin/gh
   chmod +x bin/gh
-  export PATH="$REPO/bin:$PATH"
-  run "$CLOSE" --primary 999 --soak-evidence-ref pr-5 --id spc-1 \
+  PATH="$REPO/bin:$PATH" run "$CLOSE" --primary 999 --soak-evidence-ref pr-5 --id spc-1 \
     --home "$LATTICE_HOME" --owner claude
   [ "$status" -eq 0 ]
   grep -q '^status: done' .lattice/specs/spc-1-demo.md
-  [[ -f .lattice/.transition-ledger/spc-1.jsonl ]]
-  [[ "$(cat gh-calls.log)" == *"GH-CLOSE: issue close 999"* ]]
+  [ -f .lattice/.transition-ledger/spc-1.jsonl ]
+  grep -qF 'GH-CLOSE: issue close 999' gh-calls.log
 }
