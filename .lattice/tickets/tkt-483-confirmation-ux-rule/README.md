@@ -10,7 +10,7 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/483 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T00:00:00Z |
@@ -32,10 +32,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** `_lattice-lib/references/confirmation-ux.md` exists with the DEFAULT rule (mark one `(Recommended)` + list first; yes/no states lean + why); linked from `skill-anatomy.md`.
-- [ ] **A2** Every enumerated-option confirmation site in `create-spec`, `review-code`, `finish-work`, `create-pr`, `create-tickets` tags one recommended option and lists it first; conditional `finish-work` mini-review uses dynamic ordering (severity-default tagged `(Recommended)` and first).
-- [ ] **A3** Rule covers yes/no soft-confirms; `create-pr` / `start-work` / `run-e2e` reference it and exemplify the lean.
-- [ ] **A4** Each touched skill's verification checklist has an entry asserting the confirmation-UX rule.
+- [x] **A1** `_lattice-lib/references/confirmation-ux.md` exists with the DEFAULT rule (mark one `(Recommended)` + list first; yes/no states lean + why); linked from `skill-anatomy.md`.
+- [x] **A2** Every enumerated-option confirmation site in `create-spec`, `review-code`, `finish-work`, `create-pr`, `create-tickets` tags one recommended option and lists it first; conditional `finish-work` mini-review uses dynamic ordering (severity-default tagged `(Recommended)` and first).
+- [x] **A3** Rule covers yes/no soft-confirms; `create-pr` / `start-work` / `run-e2e` reference it and exemplify the lean.
+- [x] **A4** Each touched skill's verification checklist has an entry asserting the confirmation-UX rule.
 
 ## Approach
 
@@ -62,6 +62,8 @@ Touch-set:
 ## Decision journal
 
 <!-- Append-only during execution. -->
+- Per-site yes/no rewrite vs. shared-rule reference → chose one exemplar per skill + rule reference (reversible, ticket-local). (source: agent-judgment — Anticipated decision 'Whether to rewrite per-site yes/no prose')
+- `(Recommended)` label format → '(Recommended)' suffix on first option, matching host AskUserQuestion convention. (source: pre-resolved — Spec D1)
 
 ## Pending decisions
 

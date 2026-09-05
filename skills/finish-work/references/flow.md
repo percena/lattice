@@ -161,7 +161,7 @@ Reuse the PR diff already resolved in §1 (no separate target resolution): `gh p
 | High-cost failure (if touched) | authz/trust · data loss/corruption · retry/idempotency · races · empty/timeout · schema/compat when migrations change — short list only |
 | Tests | Clear gaps for **new** behavior; missing regression for a bug fix |
 | Dig deeper | empty/null paths · partial failure/idempotency · stale state/ordering · rollback/irreversible writes — only where the diff touches |
-| Privacy/Secrets | Scan diff, PR body, ticket binders, and commit messages for: local filesystem paths (`/Users/`, `/home/`, `C:\`, `/root/`); API keys, tokens, passwords, private keys (grep: `api[_-]?key`, `secret`, `password`, `token`, `BEGIN.*PRIVATE`); closed-source project names or internal hostnames in public-repo artifacts; DB schema details of external services (table/column names in non-migration context); personal email/phone in non-standard contexts. **Credentials/secrets → high (default Hold).** Local paths/project names → med (recommend cleanup). If sensitive content is unavoidable → `AskUserQuestion`: "This diff contains `<type>` — clean up first or confirm it is safe to commit?" |
+| Privacy/Secrets | Scan diff, PR body, ticket binders, and commit messages for: local filesystem paths (`/Users/`, `/home/`, `C:\`, `/root/`); API keys, tokens, passwords, private keys (grep: `api[_-]?key`, `secret`, `password`, `token`, `BEGIN.*PRIVATE`); closed-source project names or internal hostnames in public-repo artifacts; DB schema details of external services (table/column names in non-migration context); personal email/phone in non-standard contexts. **Credentials/secrets → high (recommended: Hold, listed first).** Local paths/project names → med (recommend cleanup). If sensitive content is unavoidable → `AskUserQuestion` (per `../../_lattice-lib/references/confirmation-ux.md`): "This diff contains `<type>` — clean up first or confirm it is safe to commit?" Present `clean up first` tagged `(Recommended)` and first; allow `confirm it is safe to commit` only with explicit confirmation. |
 
 Skip deep threat modeling, load testing, full coverage matrices (`review-production`).
 
@@ -197,18 +197,23 @@ A prior review verdict — a review-delivery digest triage (`auto-pass` / `ratif
 ### Decision (advice, never auto-block / never auto-fix)
 
 - No material findings → one-line `mini-review: no material findings`; proceed to §3 merge.
-- Material findings → print the table, then `AskUserQuestion`:
-  - `Merge anyway` — operator accepts the risk
-  - `Hold (I'll address)` — stop; operator fixes or defers. When the operator **names findings to return**, stamp the binder `status: rework` + bump `fix_cycles` via the scripted owner (the procedural stamp point), and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (see `_lattice-lib/references/workflow-fsm-reference.md` or monorepo `docs/workflow-fsm.md`). Scripted stamp:
+- Material findings → print the table, then `AskUserQuestion` with **dynamic ordering** (per `../../_lattice-lib/references/confirmation-ux.md`): tag the severity-default option `(Recommended)` and list it first at presentation time.
+  - When any **high** finding is present (incl. credential/secret leak) → present:
+    - `Hold (I'll address)` (Recommended) — high finding present; fix before merge
+    - `Merge anyway` — operator accepts the risk
+    - `Invoke full /review-code` — deeper pass before deciding
+  - When only med/low findings → present:
+    - `Merge anyway` (Recommended) — findings are advice, not a gate; acceptable with explicit risk
+    - `Hold (I'll address)` — stop; operator fixes or defers
+    - `Invoke full /review-code` — deeper pass before deciding
+  - When the operator **names findings to return** under `Hold`, stamp the binder `status: rework` + bump `fix_cycles` via the scripted owner (the procedural stamp point), and record those findings as the new brief (binder note + PR review threads) — the `pr-open → rework` FSM edge (see `_lattice-lib/references/workflow-fsm-reference.md` or monorepo `docs/workflow-fsm.md`). Scripted stamp:
     ```bash
     SKILL_ROOT="${LATTICE_SKILL_ROOT:-${CLAUDE_SKILL_DIR:-}}"
     bash "$SKILL_ROOT/../_lattice-lib/scripts/bump-fix-cycle.sh" \
       --binder .lattice/tickets/tkt-N-slug/README.md --note "<one-line return brief>"
     ```
     The script stamps `status → rework` AND bumps `fix_cycles` atomically (cap ≤2; on the third rework it holds at 2 and FORCES `deep-review` — no auto-retry; `--extend-budget --reason` is the operator-adjudicated escape, spc-186 A6/A8). `start-work` resume loads the findings as the brief and fixes on the same PR (fix cycle ≤2). The stamp records the operator's decision on a durable artifact — bookkeeping, not a gate.
-  - `Invoke full /review-code` — deeper pass before deciding
-- Any **high** finding (including credential/secret leak) → default recommended option `Hold`; only med/low → default `Merge anyway`.
-- **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), default to `Hold` regardless of other axes. If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.
+- **Privacy/Secrets override:** if the Privacy/Secrets axis surfaces a **high** finding (credentials, API keys, private keys), the recommended option is `Hold` regardless of other axes (present `Hold` first, tagged `(Recommended)`). If the finding is **medium** (local paths, project names), recommend cleanup but allow `Merge anyway` after explicit confirmation.
 - **Hard stop on edits:** present findings and stop. Do **not** auto-fix even if "obvious". Edit the tree only when the operator explicitly names which findings to fix (then smallest change in the change set's modules; fresh test output if tests requested).
 - The HARD merge gate is unchanged — `alignment-check.sh`. Findings are advice; the operator may still choose `Merge anyway`.
 
@@ -448,8 +453,8 @@ Exit 0 before the marker gate and any merge.
 
 If the `.batch-work-active` marker is present at the out-of-repo state home — `$(bash "$LIB/lattice-state-home.sh")/.batch-work-active` (ADR-011 / spc-282 A1; single gate point, one directory shared by all sibling worktrees of a clone; `LIB` resolved as in §3.1):
 
-- `AskUserQuestion`: confirm "finish-work will remove the batch-work marker and merge N PRs in DAG order. Proceed?" (batch-id + PR count + layer summary).
-- On ack: `bash "$SKILL_ROOT/scripts/batch-merge-gate.sh" --remove --reason "user-authorized: batch-finish <batch-id>"`; paste the emitted trace line into a batch Decision-journal note.
+- `AskUserQuestion` (per `../../_lattice-lib/references/confirmation-ux.md`): confirm "finish-work will remove the batch-work marker and merge N PRs in DAG order. Proceed?" (batch-id + PR count + layer summary). Present `Proceed` tagged `(Recommended)` and first — finish-work is operator-initiated to land the batch; `Stop` is the alternative.
+- On ack (Proceed): `bash "$SKILL_ROOT/scripts/batch-merge-gate.sh" --remove --reason "user-authorized: batch-finish <batch-id>"`; paste the emitted trace line into a batch Decision-journal note.
 - On reject: stop; do not merge.
 
 If the marker is **absent** (no prior batch-work, or already removed): no-op; proceed. The batch owns the whole merge window — no per-PR marker dance. (Under `--close`, the marker gate is a no-op — it only blocks `gh pr merge`, not `gh pr close`; removal is harmless but unnecessary.)
