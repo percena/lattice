@@ -50,6 +50,8 @@ superseded_by: null
 
 # Demo
 
+> **Kind:** feat · **Status:** locked · **Mode:** C · **Priority:** P1
+
 ## Acceptance
 - [x] **A1** child closed
 ${A2_LINE:-- [x] **A2** second item}
@@ -267,6 +269,47 @@ EOF
   grep -qF 'NOT closed (A25)' <<<"$output"
   [ ! -f gh-calls.log ]
   grep -q '^status: locked' .lattice/specs/spc-1-demo.md
+}
+
+@test "tkt-486: done syncs the TL;DR **Status:** display (no spec_header_status_mismatch)" {
+  write_child; PRS=pr-5 write_spec; commit_all
+  # pre-fix: TL;DR says locked
+  grep -qF '**Status:** locked' .lattice/specs/spc-1-demo.md
+  run python3 "$ST" done spc-1 claude --soak-evidence-ref pr-5 \
+    --soak-attestation-ts 2026-09-05T05:00:00Z
+  [ "$status" -eq 0 ]
+  grep -qF '**Status:** done' .lattice/specs/spc-1-demo.md
+  run python3 "$VAL" --home "$LATTICE_HOME" --json
+  mismatch="$(printf '%s' "$output" | tr -d '\n' | grep -F '"code": "spec_header_status_mismatch"' || true)"
+  [ -z "$mismatch" ]
+}
+
+@test "tkt-486: superseded syncs the TL;DR **Status:** display to superseded" {
+  write_child; PRS=pr-5 write_spec; commit_all
+  cat > .lattice/specs/spc-2-new.md <<'EOF'
+---
+id: spc-2
+slug: new
+title: New
+kind: feat
+status: locked
+mode: C
+priority: P1
+summary: new
+created: 2026-09-05
+updated: 2026-09-05
+tickets: []
+prs: []
+reviews: []
+supersedes: []
+superseded_by: null
+---
+# New
+EOF
+  git add -A && git commit -qm second
+  run python3 "$ST" superseded spc-1 spc-2 claude --no-sweep
+  [ "$status" -eq 0 ]
+  grep -qF '**Status:** superseded' .lattice/specs/spc-1-demo.md
 }
 
 @test "A25: close-spec-primary flips the Spec + closes the epic on a clean transition" {

@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/486 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T06:10:00Z |
-| updated | 2026-09-05T06:10:00Z |
+| updated | 2026-09-05T07:32:22Z |
 | adopted | false |
 | summary | spec-transition.py syncs TL;DR **Status:** display on done/superseded |
 | spec | none (follow-up to tkt-473 / spc-475; spc-475 is `done`) |
@@ -33,10 +33,10 @@
 
 ## Acceptance (this slice)
 
-- [ ] **A1** After `spec-transition.py done`, the Spec's TL;DR `**Status:**` line reads `done` (matches front-matter `status: done`); validator reports no `spec_header_status_mismatch` for the transitioned Spec.
-- [ ] **A2** After `spec-transition.py superseded`, the TL;DR `**Status:**` line reads `superseded`.
-- [ ] **A3** A `spec-transition.bats` case proves the TL;DR display matches post-transition (no bare `[[ ]]` / `! cmd`; portable `sed -i.bak`).
-- [ ] **A4** Existing suites stay green (transition-parity, lattice-artifacts, transition-api, spec-supersede, spec-transition).
+- [x] **A1** After `spec-transition.py done`, the Spec's TL;DR `**Status:**` line reads `done` (matches front-matter `status: done`); validator reports no `spec_header_status_mismatch` for the transitioned Spec. *(spec-transition.bats test 17)*
+- [x] **A2** After `spec-transition.py superseded`, the TL;DR `**Status:**` line reads `superseded`. *(spec-transition.bats test 18)*
+- [x] **A3** A `spec-transition.bats` case proves the TL;DR display matches post-transition (no bare `[[ ]]` / `! cmd`; portable `sed -i.bak`). *(spec-transition.bats tests 17–18)*
+- [x] **A4** Existing suites stay green (transition-parity, lattice-artifacts, transition-api, spec-supersede, spec-transition). *(19/19 + 9 + 71 + 50 + 13; tkt-460 guard clean; validator ok True 0 errors 0 new_warnings)*
 
 ## Approach
 

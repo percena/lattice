@@ -677,8 +677,28 @@ def _valid_iso8601(ts: str) -> bool:
 # Snapshot build (PURE): flip status, bump updated, set superseded_by.
 # ---------------------------------------------------------------------------
 
+def _rewrite_tldr_status(text: str, new_status: str) -> str:
+    """Rewrite the `**Status:** <state>` token inside the leading TL;DR line
+    (tkt-486). The Spec's `> **Kind:** … **Status:** <state> …` display line
+    must mirror the front-matter `status:` or the validator's
+    `spec_header_status_mismatch` errors on a terminal Spec. The regex targets
+    the `**Status:**` token within the FIRST `>` block (the TL;DR), so a
+    `**Status:**` mention in prose below is not touched. Returns text unchanged
+    when the TL;DR has no `**Status:**` token (lazy migration — a Spec whose
+    display line omits the field stays to the validator's warning, not an
+    error, and the front-matter flip still holds)."""
+    # The first line beginning with `>` that carries `**Status:**` is the
+    # TL;DR display line. `**Status:**` followed by whitespace + a status
+    # word, then the next ` · ` or end-of-token boundary.
+    pat = re.compile(r"(^>.*\*\*Status:\*\*\s*)([A-Za-z_-]+)", re.M)
+    if not pat.search(text):
+        return text
+    return pat.sub(lambda m: m.group(1) + new_status, text, count=1)
+
+
 def _prepare_done_text(spec_text: str, entry: dict) -> str:
     new = _rewrite_fm_field(spec_text, "status", "done")
+    new = _rewrite_tldr_status(new, "done")
     new = _rewrite_fm_field(new, "updated",
                             time.strftime("%Y-%m-%d", time.gmtime()))
     return new
@@ -686,6 +706,7 @@ def _prepare_done_text(spec_text: str, entry: dict) -> str:
 
 def _prepare_superseded_text(spec_text: str, entry: dict) -> str:
     new = _rewrite_fm_field(spec_text, "status", "superseded")
+    new = _rewrite_tldr_status(new, "superseded")
     # superseded_by line exists in every Spec template; rewrite it.
     new = _rewrite_fm_field(new, "superseded_by", entry["superseded_by"])
     new = _rewrite_fm_field(new, "updated",
