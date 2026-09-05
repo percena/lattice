@@ -70,3 +70,20 @@ assert d["skipped"][0]["autonomy"]==1 and d["skipped"][0]["source"]=="row", d'
   run python3 "$AF" --min-autonomy 3 --home "$HOME_L"
   [ "$status" -eq 2 ]
 }
+
+@test "tkt-480 A2: capital-A autonomy row is scored (not missed as default 2)" {
+  # Regression: AUTONOMY_ROW_RE lacked re.I, so `| Autonomy | 4 |` was missed
+  # and scored default 2 → skipped under --min-autonomy 3 even though it's a 4.
+  # The validator (validate-lattice-artifacts.py AUTONOMY_TABLE_RE) has re.I, so
+  # the two consumers disagreed. Now both are case-insensitive.
+  local d="$HOME_L/tickets/tkt-1-cap"; mkdir -p "$d"
+  {
+    printf '# tkt-1-cap\n\n| Field | Value |\n| --- | --- |\n| status | queued |\n| Autonomy | 4 |\n'
+    printf '\n## Notes\n\n| autonomy | 4 |\n'
+  } >"$d/README.md"
+  run python3 "$AF" --min-autonomy 3 --home "$HOME_L" tkt-1
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" | python3 -c '
+import json,sys; d=json.load(sys.stdin)
+assert d["selected"]==["tkt-1"], d   # capital-A row scored 4 → selected, not skipped-as-default-2'
+}
