@@ -182,3 +182,4 @@ Structural Don’ts (time-pressure / invent-scope excuses → **Common Rationali
 - [ ] Per ticket: `## Approach` (sketch + touch-set) + `## Anticipated decisions` dispositions written at split time; no irreversible/cross-contract item marked `agent-decides`
 - [ ] Pre-resolved items confirmed inside the one delivery-meta batch; user-unresolved must-ask landed in `## Pending decisions`
 - [ ] No product implementation
+- [ ] Delivery-meta batch reply presents the recommended option tagged `(Recommended)` and first per `../_lattice-lib/references/confirmation-ux.md`

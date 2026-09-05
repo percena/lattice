@@ -1,0 +1,1 @@
+{"ts":"2026-09-05T02:57:00Z","ticket":"tkt-483","from":"in-progress","to":"pr-open","owner":"agent","reason":"create-pr opens the PR","guard":"create-pr opens the PR","escape_used":false,"force_side_state_reason":null,"trace":"pr-open stamp","metric":"pr-open-count"}

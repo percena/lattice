@@ -73,7 +73,7 @@ Fuzzy / empty Acceptance → **create-spec** (no ticket fiction).
 Spec primary / parent: #N (= spc-N, label:epic) — link each delivery child as GH sub-issue (including a single child)
 Foundation serial (optional): …
 
-Reply **go**, edit rows, or **single issue instead** (ticket-only / no Spec).
+Reply (recommended first, per `../../_lattice-lib/references/confirmation-ux.md`): **go (Recommended)** — proposed set is well-formed; independence obvious · **edit rows** — adjust granularity / deps / paths · **single issue instead** (ticket-only / no Spec).
 ```
 
 **Defaults:** shared hot paths / foundation → **Ship: one-PR**, serial, one worktree. Do not invent multi-PR only because N>1.  

@@ -15,7 +15,7 @@ After the process body, each user-facing `SKILL.md` must include:
 | `## Red Flags` | Behavioral signs the skill is being violated mid-run |
 | `## Verification` | Evidence checklist before claiming the skill’s job is done |
 
-Recommended (lifecycle): body **When to use / When NOT** table; Core rules labeled **INVARIANT / DEFAULT / HINT** (`constraint-language.md`). Standing ship bar: `definition-of-done.md` Iron Law.
+Recommended (lifecycle): body **When to use / When NOT** table; Core rules labeled **INVARIANT / DEFAULT / HINT** (`constraint-language.md`); **confirmation prompts follow `confirmation-ux.md`** (tag one `(Recommended)` option, list it first). Standing ship bar: `definition-of-done.md` Iron Law.
 
 Section titles must match **exactly** (Tier-1 lint).
 
@@ -29,6 +29,7 @@ Section titles must match **exactly** (Tier-1 lint).
 4. **Rebuttals cite policy** — script names when helpful.
 5. **Verification is evidence** — commands run, files written, ids issued — not “looks good.”
 6. Anti-patterns tables already in the body may stay; anatomy footers still required (lint looks for the three headings).
+7. **Confirmation UX** — any prompt presenting options to the operator tags exactly one `(Recommended)` option and lists it first (dynamic ordering when the recommendation is conditional); yes/no soft-confirms state a lean + one-line why. See `confirmation-ux.md`. A verification checklist entry must assert this.
 
 ## Template (copy into SKILL.md)
 
