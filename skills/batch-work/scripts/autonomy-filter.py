@@ -27,7 +27,7 @@ import re
 import sys
 
 DEFAULT_AUTONOMY = 2  # autonomy-rubric.md: "Default: 2 (medium)"
-AUTONOMY_ROW_RE = re.compile(r"^\|\s*autonomy\s*\|\s*([^|]*?)\s*\|", re.M)
+AUTONOMY_ROW_RE = re.compile(r"^\|\s*autonomy\s*\|\s*([^|]*?)\s*\|", re.I | re.M)
 
 
 def first_table_block(text):
