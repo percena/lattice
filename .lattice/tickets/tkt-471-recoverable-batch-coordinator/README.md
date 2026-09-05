@@ -10,11 +10,11 @@
 | priority | P0 |
 | labels | bug, P0 |
 | github | https://github.com/percena/lattice/issues/471 |
-| status | queued |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:03:12Z |
-| updated | 2026-09-05T02:42:33Z |
+| updated | 2026-09-05T04:12:23Z |
 | adopted | false |
 | summary | Persist complete versioned DAG before spawn; add resume driver; CAS/monotonic cursor; idempotent terminal transitions; fault tests |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |
@@ -58,3 +58,8 @@
 ## Decision journal
 
 <!-- Append-only during execution. -->
+
+## Finish
+
+- pr-477 merged: 2026-09-05T04:09:30Z — https://github.com/percena/lattice/pull/477 (base merge)
+- issue #471 closed: 2026-09-05T04:10:21Z — https://github.com/percena/lattice/issues/471
