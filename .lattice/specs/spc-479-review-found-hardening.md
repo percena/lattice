@@ -10,7 +10,7 @@ priority: P1
 summary: "Fix three dev-landed review-found defects: alignment-check --home clobber, autonomy regex case mismatch, artifacts.yml PR path filter"
 created: 2026-09-05
 updated: 2026-09-05
-tickets: []
+tickets: [tkt-480]
 prs: []
 reviews: []
 supersedes: []
