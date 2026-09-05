@@ -149,7 +149,7 @@ EOF
   write_child; PRS=pr-5 write_spec; commit_all
   run python3 "$ST" done spc-1 claude --soak-attestation-ts 2026-09-05T05:00:00Z
   [ "$status" -eq 1 ]
-  grep -qF '--soak-evidence-ref' <<<"$output"
+  grep -qF -e '--soak-evidence-ref' <<<"$output"
 }
 
 @test "A22: attestation ts not later than the last child merge refuses done" {
