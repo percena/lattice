@@ -201,3 +201,27 @@ EOF
   [ "$status" -eq 0 ]
   printf '%s\n' "$output" | grep -qF 'baseline: feature file'
 }
+
+
+@test "tkt-480 A3: artifacts.yml pull_request trigger has no path filter (runs on every PR)" {
+  # Regression: a pull_request path filter meant code/docs-only PRs never
+  # triggered lattice-artifacts → permanently BLOCKED by dev branch protection
+  # (required check never reported). pull_request must be bare; push keeps its
+  # path filter (push only needs to run when artifacts change).
+  run python3 -c '
+import re, sys
+lines = open(sys.argv[1]).read().splitlines()
+inpr = inpush = False
+pr_paths = push_paths = False
+for ln in lines:
+    if re.match(r"^\s*pull_request:\s*$", ln): inpr = True; continue
+    if re.match(r"^\s*push:\s*$", ln): inpush = True; continue
+    if inpr and re.match(r"^[A-Za-z]", ln): inpr = False
+    if inpush and re.match(r"^[A-Za-z]", ln): inpush = False
+    if inpr and re.match(r"^\s*paths:", ln): pr_paths = True
+    if inpush and re.match(r"^\s*paths:", ln): push_paths = True
+assert not pr_paths, "pull_request trigger must have NO path filter"
+assert push_paths, "push trigger must KEEP its path filter"
+' "$REPO_ROOT/.github/workflows/artifacts.yml"
+  [ "$status" -eq 0 ]
+}

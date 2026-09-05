@@ -12,11 +12,11 @@
 | priority | P1 |
 | labels | bug, P1 |
 | github | https://github.com/percena/lattice/issues/480 |
-| status | queued |
+| status | in-progress |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T16:00:00Z |
-| updated | 2026-09-05T16:00:00Z |
+| updated | 2026-09-05T00:13:58Z |
 | adopted | false |
 | summary | Review-found hardening: alignment-check --home, autonomy re.I, artifacts.yml PR trigger |
 | spec | spc-479 — Review-found hardening sweep (path: ../../specs/spc-479-review-found-hardening.md) |

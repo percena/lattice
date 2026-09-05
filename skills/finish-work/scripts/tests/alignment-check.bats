@@ -542,3 +542,38 @@ EOF
   printf '%s\n' "$output" | grep -qF "NOT_PLANNED"
   printf '%s\n' "$output" | grep -qF "reconcile close-reason"
 }
+
+@test "tkt-480 A1: caller-supplied --home is not clobbered by LATTICE_HOME" {
+  # Regression (tkt-447 / PR #457): the `if [[ -z "$HOME_DIR" ]]` guard was
+  # dropped, so source_lattice_home_and_resolve overwrote a caller-supplied
+  # --home with $LATTICE_HOME → the merge gate scanned the wrong (default)
+  # home and missed the binder. setup() exports LATTICE_HOME="$LATTICE", which
+  # is exactly why the regression was invisible (resolver returned the same path).
+  CUSTOM="$TEST_DIR/custom-lattice"
+  mkdir -p "$CUSTOM/tickets"
+  # Binder lives ONLY under the caller-supplied --home, NOT under LATTICE_HOME.
+  local dir="$CUSTOM/tickets/tkt-26-demo"
+  mkdir -p "$dir"
+  cat >"$dir/README.md" <<EOF
+# tkt-26-demo
+
+| Field | Value |
+| --- | --- |
+| status | open |
+
+## Acceptance (this slice)
+
+- [x] **A1** first
+- [x] **A2** second
+EOF
+  write_pr $'## Why\n\nShip demo with enough body text.\n\nFixes #26\n'
+  write_issue $'### Acceptance\n- [x] **A1** first\n- [x] **A2** second\n'
+
+  # LATTICE_HOME=$LATTICE (no tkt-26 binder there); --home=$CUSTOM (binder here).
+  # The gate MUST resolve HOME_DIR to --home, not LATTICE_HOME.
+  run bash "$ALIGN" --pr 99 --home "$CUSTOM"
+  [ "$status" -eq 0 ]
+  # Discriminator: with the regression, the gate scanned LATTICE_HOME and emitted
+  # "no binder dir for tkt-26"; with the fix it finds the binder at --home.
+  [ "$(printf '%s\n' "$output" | grep -cF 'no binder dir for tkt-26')" -eq 0 ]
+}
