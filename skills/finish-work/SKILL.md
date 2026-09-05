@@ -74,7 +74,7 @@ Finish **does not invent** which PR to merge.
 - [ ] After **merge**: `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` — fail if the PR closing set changed; otherwise actionable local delivery issues CLOSED
 - [ ] branch + worktree cleanup; remote head gone by default
 - [ ] binder `## Finish` ledger written on merge base with mergedAt (finish-ledger.sh); fails closed if a binder exists for a merged PR but lacks mergedAt
-- [ ] **Spec primary:** workstream **complete** → closed + Spec `done` (or explicit operator hold); **incomplete** → still OPEN + residual work named (commits/tickets/Spec)
+- [ ] **Spec primary:** workstream **complete** → `close-spec-primary.sh --primary <epic> --soak-evidence-ref <ref>` (guarded `spec-transition.py done` flips Spec `done` + writes the Spec ledger; only on success does it `gh issue close` the epic — A25: a failed transition refuses to close); **incomplete** → still OPEN + residual work named (commits/tickets/Spec)
 
 ## Core rules
 
@@ -236,7 +236,7 @@ Structural Don’ts (authority / remote / CI excuses → **Common Rationalizatio
 - [ ] Remote head gone unless `--keep-remote`
 - [ ] `close-fixed-issues.sh --pr N --expected-closing-ids <approved-set>` ran; the set matched and all actionable local PR-body delivery issues are CLOSED
 - [ ] Binder `## Finish` ledger stamped on merge base (mergedAt + prs + status); idempotent; no-binder skipped not failed
-- [ ] Spec primary: if workstream complete → closed (or explicit hold); if not complete → still open **and** residual work tracked
+- [ ] Spec primary: if workstream complete → `close-spec-primary.sh` (guarded `done` transition + Spec ledger + `gh issue close`, or `--no-close-issue` hold); if not complete → still open **and** residual work tracked
 - [ ] Adopted Fixes issues: optional one settlement comment if body left append-only
 
 **Multi-PR mode (`--ids`/`--groups`/multi-PR `spc N`) — flow.md §7:**

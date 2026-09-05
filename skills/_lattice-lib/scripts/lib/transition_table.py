@@ -193,6 +193,28 @@ LEGAL_EDGES: Tuple[Transition, ...] = (
     # absent — the doc states "there is no direct rework -> pr-open"; it must
     # go rework -> in-progress -> pr-open. Any ledger (rework, pr-open) pair
     # WITHOUT a force_side_state_reason is flagged illegal by the validator.
+    #
+    # --- M1/M3 Spec lifecycle edges (tkt-473 / spc-475 A21–A25) ------------
+    # Spec status enum is `draft | locked | done | superseded`
+    # (docs/workflow-fsm.md §1). Before tkt-473 the Spec `status:` flip was
+    # a manual front-matter edit with no chokepoint, ledger, or guards. The
+    # spec-transition.py API now guards these two terminal edges; the ledger
+    # entries live in the SAME .transition-ledger/ dir as ticket ledgers
+    # (<home>/.transition-ledger/spc-N.jsonl), and the validator's unified
+    # replay already globs *.jsonl, so the pairs must be legal here for the
+    # replay to accept them. `draft -> locked` stays create-spec prose (not a
+    # replayable status edge); only the two terminal exits are guarded.
+    Transition("locked", "done", "human",
+               "all children closed + exact child PR union + Acceptance "
+               "complete + soak attested",
+               "Spec done — workstream complete",
+               None, "Spec ledger entry (spec-transition.py done)",
+               "spec-done"),
+    Transition("locked", "superseded", "human",
+               "superseded_by resolves to a real tracked Spec",
+               "Spec superseded by spc-N",
+               None, "Spec ledger entry (spec-transition.py superseded)",
+               "spec-supersede"),
 )
 
 # Edge lookup keyed by (from, to). No wildcard sources (spc-337 A2): every
