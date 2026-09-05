@@ -69,6 +69,7 @@ Touch-set:
 
 (none — all principals pre-resolved in Spec D1–D4)
 
+- Red-run disposition (finish-work DEFAULT 15): artifacts run 33940510596 failed `[onesided_spec_ticket_edge]` — tkt-483 references spc-482 but spc-482.tickets front matter was `[483]` (missing `tkt-` prefix). **real** — fixed by Spec front matter `tickets: [tkt-483]` (commit 4d31a31) + body L0 line (a2b2d12). validate-lattice-artifacts now exit 0.
 ## Attempts
 
 (none yet)
