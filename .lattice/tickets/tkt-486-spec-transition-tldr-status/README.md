@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/486 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T06:10:00Z |
-| updated | 2026-09-05T07:36:18Z |
+| updated | 2026-09-05T07:54:29Z |
 | adopted | false |
 | summary | spec-transition.py syncs TL;DR **Status:** display on done/superseded |
 | spec | none (follow-up to tkt-473 / spc-475; spc-475 is `done`) |
@@ -55,3 +55,8 @@
 ## Notes
 
 - Discovered during the #475 close (2026-09-05): spc-475's TL;DR header was synced manually (`fix(spc-475): sync TL;DR Status display to done`). The manual fix stands; this ticket makes the API do it automatically so the next Spec done/superseded doesn't push a red `dev`.
+
+## Finish
+
+- pr-487 merged: 2026-09-05T07:54:19Z — https://github.com/percena/lattice/pull/487 (base merge)
+- issue #486: not closed (closed-without-merge? status recorded without mergedAt claim)
