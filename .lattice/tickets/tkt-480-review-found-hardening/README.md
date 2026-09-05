@@ -26,6 +26,7 @@
 | parallel_group | (serial) |
 | paths | skills/finish-work/scripts/alignment-check.sh; skills/batch-work/scripts/autonomy-filter.py; .github/workflows/artifacts.yml; +bats suites |
 | solo_merge | yes |
+| autonomy | 4 |
 | **primary_ticket** | tkt-480 |
 | **related_tickets** | (none) |
 | **worktree_bind** | `spc-479-review-found-hardening` |
