@@ -9,7 +9,7 @@ priority: P2
 summary: "Every skill confirmation prompt marks one option (Recommended) and lists it first; yes/no states a lean + why."
 created: 2026-09-05
 updated: 2026-09-05
-tickets: [483]
+tickets: [tkt-483]
 prs: [484]
 reviews: []
 supersedes: []
