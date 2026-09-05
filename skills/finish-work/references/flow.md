@@ -348,10 +348,21 @@ Parse source: PR **body**, outside fenced Markdown examples. The live close must
 
 | Workstream actually complete? | Action |
 | --- | --- |
-| **Yes** — Spec `A*` done/deferred; in-scope delivery landed; no honest remaining delivery tickets | Set Spec `status: done` if needed; **`gh issue close <primary>`** (unless operator explicitly holds). Do **not** leave OPEN as default “hygiene.” |
+| **Yes** — Spec `A*` done/deferred; in-scope delivery landed; no honest remaining delivery tickets | Run **`close-spec-primary.sh`** (below) — it flips the Spec `status: done` through the guarded `spec-transition.py` transition **and** closes the epic in one gated step. Unless operator explicitly holds (`--no-close-issue`). Do **not** leave OPEN as default “hygiene.” |
 | **No** | **Do not close** primary. Add commits / tickets / amend Spec. Open epic is not a buffer for half-done land. |
 
 **Script boundary:** `close-fixed-issues.sh` still must **not** close epic via sub-issue-count heuristic (progress ≠ Acceptance). That prevents **blind** auto-close — it does **not** mean “skip close after you verified completion.”
+
+**Gated close (tkt-473 A25):** the Spec-primary close is no longer a manual `status:` edit + `gh issue close`. `scripts/close-spec-primary.sh` runs `spec-transition.py done` first — the A21/A22 guards (every child closed, exact child PR union, Acceptance complete, soak attestation post-dating the last child merge) must pass. **On a failed transition the epic is NOT closed** (the helper exits non-zero; resolve the guard or hold). Usage:
+
+```bash
+scripts/close-spec-primary.sh --primary <epic-issue-num> \
+  --soak-evidence-ref <ref>     # e.g. the last child merge PR (pr-478) or a dogfood run ref
+  [--id <spc-N>] [--owner <owner>] [--attestation-ts <iso8601>]
+  [--home <lattice home>] [--no-close-issue] [--dry-run]
+```
+
+The helper stages the Spec file + its `spc-N.jsonl` Spec ledger for the finish-work base commit (the `finish-commit.sh` pattern); it does **not** commit/push itself. `--soak-evidence-ref` is the A22 dogfood attestation evidence reference; `--attestation-ts` defaults to now UTC (must post-date the last child merge — `spec-transition.py` validates this).
 
 After Fixes closed + cleanup on the **last** land for this Spec: verify completion in-session → close primary (or state the hold). Parent `k/n` alone is never Spec done.
 

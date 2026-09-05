@@ -125,6 +125,11 @@ LEGAL_TRANSITIONS: set[tuple[str, str]] = {
     # rework/deferred left --force-side-state flips on them undetected.
     ("parked", "pr-open"), ("stuck", "pr-open"),
     ("rework", "pr-open"), ("deferred", "pr-open"),
+    # M1/M3 Spec lifecycle edges (tkt-473 / spc-475 A21–A25): the Spec
+    # terminal exits guarded by spec-transition.py. Spec ledgers live in the
+    # same .transition-ledger/ dir as spc-N.jsonl; the unified replay globs
+    # *.jsonl, so the pairs must be legal here for Spec entries to replay.
+    ("locked", "done"), ("locked", "superseded"),
 }
 # Edges legal ONLY via an operator-adjudicated --force-side-state --reason
 # escape; the ledger entry must carry force_side_state_reason.
@@ -254,6 +259,20 @@ LEGAL_EDGES_FULL: tuple[tuple, ...] = (
      "force-side-state crossing",
      "--force-side-state --reason", "operator-adjudicated trace",
      "side-state-crossings", True),
+    # M1/M3 Spec lifecycle edges (tkt-473 / spc-475 A21–A25) — mirror of the
+    # lib. Spec status enum is draft|locked|done|superseded; only the two
+    # terminal exits are guarded/replayable (draft->locked stays create-spec
+    # prose). Spec ledgers are <home>/.transition-ledger/spc-N.jsonl.
+    ("locked", "done", "human",
+     "all children closed + exact child PR union + Acceptance complete + "
+     "soak attested",
+     "Spec done — workstream complete",
+     None, "Spec ledger entry (spec-transition.py done)", "spec-done", False),
+    ("locked", "superseded", "human",
+     "superseded_by resolves to a real tracked Spec",
+     "Spec superseded by spc-N",
+     None, "Spec ledger entry (spec-transition.py superseded)",
+     "spec-supersede", False),
 )
 TRANSITION_LEDGER_DIR = ".transition-ledger"
 # spc-337 A1 / ADR-012 sec.4: terminal binders created on/after this instant
@@ -771,6 +790,22 @@ def binder_for_ticket_id(home: Path, ticket: str) -> Path | None:
     return b if b.is_file() else None
 
 
+def spec_for_id(home: Path, spec_id: str) -> Path | None:
+    """Resolve a Spec file by spc-N id (tkt-473 A24 snapshot check). Mirrors
+    find-spec.sh: <home>/specs/spc-N-<slug>.md or slugless spc-N.md. Returns
+    None when absent/ambiguous so the snapshot check is skipped."""
+    sd = home / "specs"
+    if not sd.is_dir() or not SPEC_ID_RE.fullmatch(spec_id):
+        return None
+    matches = [p for p in sd.glob(f"{spec_id}-*.md") if p.is_file()]
+    slugless = sd / f"{spec_id}.md"
+    if slugless.is_file():
+        matches.append(slugless)
+    if len(matches) != 1:
+        return None
+    return matches[0]
+
+
 def iter_reviews(home: Path) -> list[Path]:
     d = home / "reviews"
     if not d.is_dir():
@@ -1178,6 +1213,51 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                         "detail": (
                             f"status is superseded but superseded_by is {by!r} "
                             "(must be a real spc-N)"
+                        ),
+                    }
+                )
+        # tkt-473 A24: a terminal Spec (`done`/`superseded`) must have a valid
+        # Spec transition ledger whose final `to` equals the Spec status —
+        # otherwise the status flip was a hand edit (the manual front-matter
+        # edit this ticket replaces). Mirrors `closed_without_ledger` for
+        # ticket binders. Error (Specs are post-cutoff by construction: the
+        # guarded API is the only writer from this point forward).
+        if sp_st in SPEC_STATUS_TERMINAL:
+            _ldir = home / TRANSITION_LEDGER_DIR
+            _lp = _ldir / f"{check_id}.jsonl"
+            _ledger_ok = False
+            if _lp.is_file():
+                _final_to = None
+                for _ln in _lp.read_text(encoding="utf-8").splitlines():
+                    _ln = _ln.strip()
+                    if not _ln:
+                        continue
+                    try:
+                        _e = json.loads(_ln)
+                    except json.JSONDecodeError:
+                        continue
+                    _final_to = _e.get("to")
+                _ledger_ok = _final_to == sp_st
+            if not _ledger_ok:
+                findings.append(
+                    {
+                        # tkt-473 A24: warning-level + one-way baseline ratchet
+                        # (mirrors `closed_without_ledger_legacy`). The 26
+                        # historical `done` Specs pre-date the guarded API and
+                        # are grandfathered in the baseline; any FUTURE
+                        # terminal Spec without a valid ledger is a hand edit
+                        # and, being absent from the baseline, fails CI. Going
+                        # forward spec-transition.py is the only terminal
+                        # writer, so a clean transition leaves no warning.
+                        "code": "spec_terminal_without_ledger",
+                        "level": "warning",
+                        "path": str(path.relative_to(home.parent)) if home.parent in path.parents else str(path),
+                        "detail": (
+                            f"status is {sp_st!r} but no valid Spec ledger "
+                            f"{TRANSITION_LEDGER_DIR}/{check_id}.jsonl records "
+                            f"a `{sp_st}` transition (hand-edited snapshot; "
+                            f"Spec status flips go through spec-transition.py "
+                            f"done/superseded — ADR-012 sec.1)"
                         ),
                     }
                 )
@@ -1797,7 +1877,9 @@ def validate_home(home: Path) -> list[dict[str, str]]:
             # A bare-digit key (e.g. 356.jsonl) means the caller bypassed
             # the tkt- prefix in ledger_path(); the replay cannot find the
             # file and the binder's status history is silently lost.
-            if not re.fullmatch(r'tkt-\d+(-[a-z0-9-]+)?', file_ticket):
+            # tkt-473: spc-N.jsonl Spec-ledger keys are also valid (Spec
+            # lifecycle ledgers live in the same dir).
+            if not re.fullmatch(r'(tkt-\d+(-[a-z0-9-]+)?|spc-\d+)', file_ticket):
                 findings.append(
                     {
                         "code": "ledger_key_not_ticket_id",
@@ -1914,6 +1996,27 @@ def validate_home(home: Path) -> list[dict[str, str]]:
                                 ),
                             }
                         )
+                else:
+                    # tkt-473 A24: spc-N ledger → resolve the Spec file and
+                    # snapshot-match its front-matter status. A Spec ledger
+                    # whose final `to` disagrees with the Spec `status:` is
+                    # a hand-edited snapshot (the inverse check below catches
+                    # a terminal Spec with NO ledger at all).
+                    spec_path = spec_for_id(home, ticket_id)
+                    if spec_path is not None:
+                        sst = spec_status(spec_path.read_text(encoding="utf-8"))
+                        if sst is not None and sst != last_to:
+                            findings.append(
+                                {
+                                    "code": "transition_ledger_snapshot_mismatch",
+                                    "path": str(ledger),
+                                    "detail": (
+                                        f"snapshot mismatch: ledger final to="
+                                        f"{last_to!r} but spec status="
+                                        f"{sst!r}"
+                                    ),
+                                }
+                            )
 
     return findings
 
