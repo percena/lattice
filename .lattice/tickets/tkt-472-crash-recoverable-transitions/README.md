@@ -29,7 +29,7 @@
 | **related_tickets** | tkt-473, tkt-474 |
 | **worktree_bind** | `tkt-472-crash-recoverable-transitions` |
 | worktree | sibling `…/lattice.worktrees/tkt-472-crash-recoverable-transitions/` |
-| prs | (pending) |
+| prs | pr-478 — https://github.com/percena/lattice/pull/478 |
 
 ## Acceptance (this slice)
 

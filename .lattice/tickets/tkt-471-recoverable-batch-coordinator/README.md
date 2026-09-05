@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-471-recoverable-batch-coordinator` |
 | worktree | sibling `…/lattice.worktrees/tkt-471-recoverable-batch-coordinator/` |
-| prs | (pending) |
+| prs | pr-477 — https://github.com/percena/lattice/pull/477 |
 
 ## Acceptance (this slice)
 

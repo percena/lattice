@@ -29,7 +29,7 @@
 | **related_tickets** | (none) |
 | **worktree_bind** | `tkt-470-protected-branch-finish-repair` |
 | worktree | sibling `…/lattice.worktrees/tkt-470-protected-branch-finish-repair/` |
-| prs | (pending) |
+| prs | pr-476 — https://github.com/percena/lattice/pull/476 |
 
 ## Acceptance (this slice)
 

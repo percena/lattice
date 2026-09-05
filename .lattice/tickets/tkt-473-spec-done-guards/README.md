@@ -29,7 +29,7 @@
 | **related_tickets** | tkt-472 |
 | **worktree_bind** | `tkt-472-crash-recoverable-transitions` (shared) |
 | worktree | sibling `…/lattice.worktrees/tkt-472-crash-recoverable-transitions/` |
-| prs | (pending — ships with tkt-472 PR) |
+| prs | (none) |
 
 ## Acceptance (this slice)
 

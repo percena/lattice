@@ -185,7 +185,8 @@ SH
   printf '%s\n' "$output" | grep -qF "already exists"
   printf '%s\n' "$output" | grep -qF "force-pushed update"
   # No pr create call — just an update via force-push
-  ! grep -qF "pr create" "$GH_LOG"
+  run grep -qF "pr create" "$GH_LOG"
+  [ "$status" -ne 0 ]
 }
 
 @test "tkt-470 A5: repair PR creation failure is fail-loud" {
@@ -302,7 +303,8 @@ SH
   [ "$status" -eq 1 ]
   printf '%s\n' "$output" | grep -qF "artifact validator FAILED"
   # No repair branch should exist on origin
-  ! git -C "$ORIGIN" rev-parse "lattice/finish-repair/main" >/dev/null 2>&1
+  run git -C "$ORIGIN" rev-parse "lattice/finish-repair/main"
+  [ "$status" -ne 0 ]
 }
 
 @test "tkt-459 A4: a passing --validator-script still creates repair PR" {
