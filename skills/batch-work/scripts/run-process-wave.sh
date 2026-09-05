@@ -462,14 +462,18 @@ run_wave() {
       echo "error: coordinator init FAILED for batch=$batch_id — aborting (tkt-471 A9: machine-fatal)" >&2
       exit 1
     fi
-    # tkt-471 A7: persist the complete DAG before any spawn. The host must pass
+    # tkt-471 A7: persist the complete DAG before any spawn. The host may pass
     # --layers-json <path> so all future waves are durable. If --layers-json is
-    # not provided, verify load-dag was already called (plan_loaded in state).
+    # not provided, the manifest is treated as the per-wave plan and a minimal
+    # DAG is auto-derived from it after parse_manifest (marker-heartbeat /
+    # single-wave path) so record-spawn can persist the spawn record.
+    local _PLAN_LOADED=0
     if [[ -n "${layers_json:-}" && -f "$layers_json" ]]; then
       if ! LATTICE_HOME="$lattice_home" python3 "$coordinator" load-dag --batch-id "$batch_id" --layers-json "$layers_json" --lattice-home "$lattice_home" >/dev/null 2>&1; then
         echo "error: coordinator load-dag FAILED for batch=$batch_id — aborting (tkt-471 A7)" >&2
         exit 1
       fi
+      _PLAN_LOADED=1
     fi
     WAVE_COORDINATOR="$coordinator"
     WAVE_BATCH_ID="$batch_id"
@@ -482,6 +486,42 @@ run_wave() {
   parse_manifest "$manifest"
   count=$M_COUNT
   [[ "$count" -gt 0 ]] || { echo "manifest has 0 tickets" >&2; exit 1; }
+
+  # tkt-471 A7: when the spine is active but the host did not pass --layers-json,
+  # the manifest is the per-wave plan. Derive a minimal single-layer DAG from it
+  # and persist it so record-spawn can recover a running node (plan_loaded must
+  # be true; otherwise record-spawn refuses as machine-fatal). The marker-
+  # heartbeat path relies on this auto-load — it has no separate plan step.
+  if [[ -n "$WAVE_COORDINATOR" && "$_PLAN_LOADED" -eq 0 ]]; then
+    local _auto_layers
+    _auto_layers=$(mktemp -t batch-wave-layers.XXXXXX) || { echo "error: cannot create temp layers file" >&2; exit 1; }
+    python3 - "$manifest" "$_auto_layers" "$WAVE_LAYER" "$WAVE_WAVE" <<'PY'
+import json, sys
+manifest, out, layer, wave = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
+nodes = []
+with open(manifest, encoding="utf-8") as f:
+    for line in f:
+        line = line.rstrip("\n")
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if len(fields) != 4:
+            continue
+        t, wt, brief, tb = fields
+        nodes.append({"ticket": t, "worktree": wt, "brief_file": brief,
+                      "timebox_min": int(tb), "status": "pending"})
+plan = {"layers": [{"layer": layer, "waves": [{"wave": wave, "nodes": nodes}]}]}
+with open(out, "w", encoding="utf-8") as fh:
+    json.dump(plan, fh)
+PY
+    if ! LATTICE_HOME="$lattice_home" python3 "$coordinator" load-dag --batch-id "$batch_id" --layers-json "$_auto_layers" --lattice-home "$lattice_home" >/dev/null 2>&1; then
+      rm -f "$_auto_layers"
+      echo "error: coordinator load-dag (auto from manifest) FAILED for batch=$batch_id — aborting (tkt-471 A7)" >&2
+      exit 1
+    fi
+    rm -f "$_auto_layers"
+    _PLAN_LOADED=1
+  fi
 
   local _state_auto=0
   [[ -n "$state_file" ]] || { state_file=$(mktemp -t batch-wave-state.XXXXXX); _state_auto=1; }
