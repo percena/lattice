@@ -76,6 +76,6 @@ Multiple Lattice skills present enumerated-option confirmation prompts (`AskUser
 
 ## Links / bloodline (L0)
 
-- Tickets: (to be split by `create-tickets` — `tkt-N`)
+- Tickets: `tkt-483`
 - PRs: prefer GitHub `Fixes`/`Refs`
 - Reviews: (none)
