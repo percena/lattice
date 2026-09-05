@@ -10,7 +10,7 @@ summary: "Every skill confirmation prompt marks one option (Recommended) and lis
 created: 2026-09-05
 updated: 2026-09-05
 tickets: [tkt-483]
-prs: [484]
+prs: [pr-484]
 reviews: []
 supersedes: []
 superseded_by: null
@@ -49,10 +49,10 @@ Multiple Lattice skills present enumerated-option confirmation prompts (`AskUser
 
 ## Acceptance
 
-- [ ] **A1** — `_lattice-lib/references/confirmation-ux.md` exists, states the DEFAULT rule (mark exactly one option `(Recommended)` and list it first; for yes/no soft-confirms state a recommended lean + one-line why), and is linked from `skill-anatomy.md`.
-- [ ] **A2** — Every enumerated-option confirmation site in `create-spec`, `review-code`, `finish-work`, `create-pr`, `create-tickets` (SKILL.md + references) tags exactly one recommended option and lists it first; for the conditional `finish-work` mini-review site, the instruction is dynamic ordering (severity-default option tagged `(Recommended)` and presented first at run time).
-- [ ] **A3** — The rule covers yes/no soft-confirms (state a lean + one-line why); `create-pr` / `start-work` / `run-e2e` yes/no sites reference the rule and exemplify the lean, without requiring per-site rewrite where the rule already covers them.
-- [ ] **A4** — Each touched skill's verification checklist gains an entry asserting the confirmation-UX rule (recommended option marked + first).
+- [x] **A1** — `_lattice-lib/references/confirmation-ux.md` exists, states the DEFAULT rule (mark exactly one option `(Recommended)` and list it first; for yes/no soft-confirms state a recommended lean + one-line why), and is linked from `skill-anatomy.md`.
+- [x] **A2** — Every enumerated-option confirmation site in `create-spec`, `review-code`, `finish-work`, `create-pr`, `create-tickets` (SKILL.md + references) tags exactly one recommended option and lists it first; for the conditional `finish-work` mini-review site, the instruction is dynamic ordering (severity-default option tagged `(Recommended)` and presented first at run time).
+- [x] **A3** — The rule covers yes/no soft-confirms (state a lean + one-line why); `create-pr` / `start-work` / `run-e2e` yes/no sites reference the rule and exemplify the lean, without requiring per-site rewrite where the rule already covers them.
+- [x] **A4** — Each touched skill's verification checklist gains an entry asserting the confirmation-UX rule (recommended option marked + first).
 
 ## Decisions (principal, user-confirmed)
 
