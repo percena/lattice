@@ -26,7 +26,7 @@
 | solo_merge | yes |
 | **primary_ticket** | tkt-483 (this issue) |
 | **related_tickets** | (none) |
-| **worktree_bind** | `spc-482-confirmation-ux-rule` (rebind to `tkt-483-confirmation-ux-rule` at start-work) |
+| **worktree_bind** | `tkt-483-confirmation-ux-rule` |
 | worktree | sibling `…/lattice.worktrees/spc-482-confirmation-ux-rule/` |
 | prs | (none) |
 
