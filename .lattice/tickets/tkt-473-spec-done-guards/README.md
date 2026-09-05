@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/473 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:03:41Z |
-| updated | 2026-09-05T05:04:16Z |
+| updated | 2026-09-05T06:02:56Z |
 | adopted | false |
 | summary | Guarded Spec locked→done/superseded transitions; authoritative child-set closure; soak attestation; Spec ledger |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |
@@ -56,3 +56,8 @@
 - 2026-09-05 — Ship plan revised: binder planned `serial in tkt-472 ship slot` (shared worktree/PR, `solo_merge: no`), but #472 merged via PR #478 (commit e348056) before this ticket started, so the shared slot no longer exists. #472 blocker is cleared. tkt-473 now ships in its own worktree `tkt-473-spec-done-guards` + own PR (`solo_merge: yes`). Agent-decided (autonomy 3): the alternative (reopening #472's branch) is impossible post-merge.
 
 - 2026-09-05 — **spc-254 A7/A8 strength correction (explicit, not a silent rewrite).** `spec-transition.py done` *hardens* the done-Spec child-PR-union check: spc-254 A7's `spec_prs_missing_child_union` stays a *warning* in the validator (advisory backfill for a `done` Spec whose `prs:` row drifted), but the guarded `locked → done` transition now **refuses** on any missing/extra PR (exact equality both directions) — i.e. A7 goes from warning to a hard pre-`done` gate at the chokepoint, while remaining a warning for a Spec that is *already* `done` (lazy migration, ratcheted). This is a deliberate strength change, recorded here, not a silent rewrite of A7's warning-level posture. Likewise A8: the new `spec_terminal_without_ledger` warning (A24) is one-way ratcheted; the 26 historical `done` Specs were backfilled with retroactive ledgers (the tkt-256/261 precedent) rather than baselined-in-PR, so the ratchet's "only-new-warnings fail" invariant holds and future hand-edits fail CI. The validator's `spec_prs_missing_child_union` (A7) and `spec_terminal_without_ledger` (A24) coexist without contradiction: A7 = "done Spec's prs row drifted from children" (warning, backfillable); A24 = "done Spec has no transition ledger" (warning, ratcheted).
+
+## Finish
+
+- pr-485 merged: 2026-09-05T06:01:46Z — https://github.com/percena/lattice/pull/485 (base merge)
+- issue #473 closed: 2026-09-05T06:02:26Z — https://github.com/percena/lattice/issues/473
