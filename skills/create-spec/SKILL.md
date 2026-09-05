@@ -80,7 +80,7 @@ Then one batch:
 …
 
 ### Please confirm (principal)
-1. … — options; **recommended:** … — trade-off: …
+1. … — options (list the **recommended** option first, tagged `(Recommended)`); trade-off: …
 2. …
 
 ### Self-decided (secondary; object if needed)
@@ -88,6 +88,8 @@ Then one batch:
 
 Reply by number, free-form, or “accept all recommendations”.
 ```
+
+Present via `AskUserQuestion` (or prose) per `../_lattice-lib/references/confirmation-ux.md`: tag exactly one option `(Recommended)` and list it first; one-line trade-off after it.
 
 Round budget: S 0–1 · M 1–2 · C 2–3 (cap 5). Prefer LOCKED summary before `status: locked`.  
 If already COMMITTED / locked axes → **skip** this step and write.
@@ -172,3 +174,4 @@ Structural Don’ts (pressure excuses → **Common Rationalizations**):
 - [ ] Decisions capture user-confirmed principals
 - [ ] L0 lists (`tickets`/`prs`/`reviews`) accurate (often empty at create)
 - [ ] No product implementation performed; primary not dual-roled as sole delivery ticket
+- [ ] PCA batch presents the recommended option tagged `(Recommended)` and first per `../_lattice-lib/references/confirmation-ux.md`

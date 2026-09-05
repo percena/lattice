@@ -135,3 +135,4 @@ Contract Don’ts (theater / memory excuses → **Common Rationalizations**):
 - [ ] Body Why+How minimum; lineage when known
 - [ ] DoD + Iron Law considered (fresh Verification only if commands ran)
 - [ ] PR URL returned; accountable owner verified the exact repository, base/head, body, and resulting state
+- [ ] Every confirmation surfaced (base-branch ask, unexpected-diff, soft-confirm) tags a recommended option/lean + one-line why per `../_lattice-lib/references/confirmation-ux.md`
