@@ -3,7 +3,7 @@ id: spc-482
 slug: confirmation-ux-rule
 title: Confirmation-UX rule — recommended option marked + first across all skills
 kind: feat
-status: locked
+status: done
 mode: M
 priority: P2
 summary: "Every skill confirmation prompt marks one option (Recommended) and lists it first; yes/no states a lean + why."
@@ -19,7 +19,7 @@ superseded_by: null
 # Spec: Confirmation-UX rule — recommended option marked + first across all skills
 
 > **TL;DR:** Add a shared DEFAULT rule that every user-facing confirmation presenting options tags exactly one `(Recommended)` and lists it first (dynamic ordering for severity-conditional sites); yes/no soft-confirms state a lean + one-line why. Fix all 9 enumerated-option sites.
-> **Kind:** feat · **Status:** locked · **Mode:** M · **Priority:** P2
+> **Kind:** feat · **Status:** done · **Mode:** M · **Priority:** P2
 > **Path:** spc-482 → tkt-… → pr-…
 
 ## Why
