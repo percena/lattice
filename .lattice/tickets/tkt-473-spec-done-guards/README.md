@@ -10,11 +10,11 @@
 | priority | P1 |
 | labels | feat, P1 |
 | github | https://github.com/percena/lattice/issues/473 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:03:41Z |
-| updated | 2026-09-05T04:44:34Z |
+| updated | 2026-09-05T05:04:16Z |
 | adopted | false |
 | summary | Guarded Spec locked→done/superseded transitions; authoritative child-set closure; soak attestation; Spec ledger |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |
@@ -29,7 +29,7 @@
 | **related_tickets** | tkt-472 |
 | **worktree_bind** | `tkt-473-spec-done-guards` |
 | worktree | sibling `…/lattice.worktrees/tkt-473-spec-done-guards/` |
-| prs | (none) |
+| prs | pr-485 — https://github.com/percena/lattice/pull/485 |
 
 ## Acceptance (this slice)
 
