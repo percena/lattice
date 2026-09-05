@@ -14,7 +14,7 @@
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:03:41Z |
-| updated | 2026-09-04 |
+| updated | 2026-09-05T02:42:33Z |
 | adopted | false |
 | summary | Guarded Spec locked→done/superseded transitions; authoritative child-set closure; soak attestation; Spec ledger |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |

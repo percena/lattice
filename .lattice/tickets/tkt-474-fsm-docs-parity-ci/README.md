@@ -14,7 +14,7 @@
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-04T05:03:52Z |
-| updated | 2026-09-04 |
+| updated | 2026-09-05T02:42:33Z |
 | adopted | false |
 | summary | FSM document reconciliation; parity CI path filter; contract test for workflow filter coverage |
 | spec | spc-475 — Review follow-up round 2 (path: ../../specs/spc-475-review-followup-r2.md) |
