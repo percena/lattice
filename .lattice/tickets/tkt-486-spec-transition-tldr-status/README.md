@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | bug, P2 |
 | github | https://github.com/percena/lattice/issues/486 |
-| status | in-progress |
+| status | pr-open |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T06:10:00Z |
-| updated | 2026-09-05T07:32:22Z |
+| updated | 2026-09-05T07:36:18Z |
 | adopted | false |
 | summary | spec-transition.py syncs TL;DR **Status:** display on done/superseded |
 | spec | none (follow-up to tkt-473 / spc-475; spc-475 is `done`) |
@@ -29,7 +29,7 @@
 | **related_tickets** | tkt-473 |
 | **worktree_bind** | `tkt-486-spec-transition-tldr-status` |
 | worktree | sibling `…/lattice.worktrees/tkt-486-spec-transition-tldr-status/` |
-| prs | (none) |
+| prs | pr-487 — https://github.com/percena/lattice/pull/487 |
 
 ## Acceptance (this slice)
 
