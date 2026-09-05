@@ -10,11 +10,11 @@
 | priority | P2 |
 | labels | enhancement, P2 |
 | github | https://github.com/percena/lattice/issues/483 |
-| status | pr-open |
+| status | closed |
 | fix_cycles | 0 |
 | wait_reason | (none) |
 | created | 2026-09-05T00:00:00Z |
-| updated | 2026-09-05T02:57:00Z |
+| updated | 2026-09-05T03:21:57Z |
 | adopted | false |
 | summary | Confirmation-UX rule: mark recommended option + list first across all skills |
 | spec | spc-482 — confirmation-UX rule (path: ../../specs/spc-482-confirmation-ux-rule.md) |
@@ -104,4 +104,6 @@ Touch-set:
 
 ## Finish
 
-- (none yet)
+
+- pr-484 merged: 2026-09-05T03:21:04Z — https://github.com/percena/lattice/pull/484 (base merge)
+- issue #483 closed: 2026-09-05T03:21:23Z — https://github.com/percena/lattice/issues/483
